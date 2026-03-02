@@ -3,11 +3,16 @@
   "slug": "trade-router",
   "displayName": "Solana Trading Api",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1771852785576,
-    "commit": "https://github.com/openclaw/skills/commit/550e6547e9f71e6b7c6fa7ce3625237c5b2a5926"
+    "version": "1.2.0",
+    "publishedAt": 1772354518425,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1771852785576,
+      "commit": "https://github.com/openclaw/skills/commit/550e6547e9f71e6b7c6fa7ce3625237c5b2a5926"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1771630323149,
