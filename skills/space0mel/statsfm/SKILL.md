@@ -1,6 +1,6 @@
 ---
 name: statsfm
-description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts. With a stats.fm username, also query personal listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
+description: Music data tool powered by the stats.fm API. Look up album tracklists, artist discographies, and global charts without an account. With a stats.fm username, query personal Spotify listening history, play counts, top artists/tracks/albums, monthly breakdowns, and currently playing.
 ---
 
 # stats.fm CLI
@@ -13,14 +13,17 @@ Comprehensive Python CLI for querying stats.fm API (Spotify listening analytics)
 
 ## Prerequisites
 
-**Stats.fm account (free)**
+**Stats.fm account (optional)**
+- A stats.fm account is only needed for personal listening data (history, top tracks, now playing, etc.)
+- Without an account, you can still use public features: album tracklists, artist discographies, search, and global charts
 - Don't have one? Visit [stats.fm](https://stats.fm) and sign up with Spotify or Apple Music (AM untested, Plus status unknown)
 - Already have one? Copy your username from your profile
-- Supports Spotify and Apple Music
 
 ## Setup
 
-Pass your username with `--user USERNAME` / `-u USERNAME`. If no user is provided, the script exits with code 1.
+**No account needed** for public commands: `search`, `album`, `artist-albums`, `charts-top-tracks`, `charts-top-artists`, `charts-top-albums`.
+
+For personal stats (`profile`, `top-artists`, `top-tracks`, `recent`, `np`, etc.), pass your username with `--user USERNAME` / `-u USERNAME`. These commands exit with code 1 if no user is provided.
 
 ## Quick Start
 
