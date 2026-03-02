@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-移动 Joplin 笔记到指定笔记本
+移动笔记到其他笔记本
+
+根据官方文档：PUT /notes/:id (修改 parent_id)
+
+用法:
+    python3 joplin_move.py --note-id <id> --to-folder <folder_id>
 """
-import argparse
 import sys
+import argparse
 import requests
 from joplin_config import get_base_url, get_auth_params, check_config
 
@@ -25,63 +30,36 @@ def find_folder_by_name(name):
         return None
 
 def move_note(note_id, folder_id):
-    """移动笔记到指定笔记本"""
+    """移动笔记到其他笔记本"""
     base_url = get_base_url()
     params = get_auth_params()
     
     try:
+        # 更新笔记的 parent_id
         url = f"{base_url}/notes/{note_id}"
-        data = {'parent_id': folder_id}
-        response = requests.put(url, params=params, json=data, timeout=10)
+        response = requests.put(url, params=params, json={'parent_id': folder_id}, timeout=10)
         
-        if response.status_code == 200:
-            print(f"✅ 笔记已移动")
-            return True
-        else:
-            print(f"❌ 移动失败: {response.text}")
+        if response.status_code == 404:
+            print(f"❌ 笔记不存在：{note_id}")
             return False
+        elif response.status_code != 200:
+            print(f"❌ 移动失败：HTTP {response.status_code}")
+            print(f"   {response.text}")
+            return False
+        
+        print(f"✅ 笔记已移动")
+        print(f"   笔记 ID: {note_id}")
+        print(f"   新笔记本：{folder_id}")
+        return True
+        
     except Exception as e:
-        print(f"❌ 错误: {e}")
+        print(f"❌ 错误：{e}")
         return False
-
-def move_notes_by_folder(source_folder_name, target_folder_name):
-    """批量移动一个笔记本的所有笔记到另一个笔记本"""
-    base_url = get_base_url()
-    params = get_auth_params()
-    
-    source_id = find_folder_by_name(source_folder_name)
-    target_id = find_folder_by_name(target_folder_name)
-    
-    if not source_id:
-        print(f"❌ 未找到源笔记本: {source_folder_name}")
-        return False
-    if not target_id:
-        print(f"❌ 未找到目标笔记本: {target_folder_name}")
-        return False
-    
-    # 获取源笔记本的所有笔记
-    url = f"{base_url}/folders/{source_id}/notes"
-    response = requests.get(url, params=params, timeout=10)
-    notes = response.json().get('items', [])
-    
-    print(f"📦 将移动 {len(notes)} 条笔记...")
-    
-    success_count = 0
-    for note in notes:
-        if move_note(note['id'], target_id):
-            success_count += 1
-            print(f"   ✓ {note['title']}")
-    
-    print(f"\n✅ 成功移动 {success_count}/{len(notes)} 条笔记")
-    return success_count == len(notes)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='移动 Joplin 笔记')
-    parser.add_argument('--note-id', help='要移动的笔记 ID')
-    parser.add_argument('--to-folder-id', help='目标笔记本 ID')
-    parser.add_argument('--to-folder', help='目标笔记本名称')
-    parser.add_argument('--batch-from', help='批量移动: 源笔记本名称')
-    parser.add_argument('--batch-to', help='批量移动: 目标笔记本名称')
+    parser = argparse.ArgumentParser(description='移动笔记到其他笔记本')
+    parser.add_argument('--note-id', required=True, help='笔记 ID')
+    parser.add_argument('--to-folder', required=True, help='目标笔记本 ID 或名称')
     
     args = parser.parse_args()
     
@@ -90,23 +68,16 @@ if __name__ == '__main__':
         print(f"❌ {msg}")
         sys.exit(1)
     
-    if args.batch_from and args.batch_to:
-        success = move_notes_by_folder(args.batch_from, args.batch_to)
-    elif args.note_id:
-        folder_id = args.to_folder_id
-        if args.to_folder and not folder_id:
-            folder_id = find_folder_by_name(args.to_folder)
-            if not folder_id:
-                print(f"❌ 未找到笔记本: {args.to_folder}")
-                sys.exit(1)
-        
-        if not folder_id:
-            print("❌ 需要指定 --to-folder-id 或 --to-folder")
-            sys.exit(1)
-        
-        success = move_note(args.note_id, folder_id)
-    else:
-        print("❌ 需要 --note-id 或 --batch-from/--batch-to")
-        sys.exit(1)
+    # 检查目标是 ID 还是名称
+    folder_id = args.to_folder
     
+    # 如果不是有效的 ID 格式（32 位 hex），尝试按名称查找
+    if len(folder_id) != 32 or not all(c in '0123456789abcdef' for c in folder_id.lower()):
+        folder_id = find_folder_by_name(args.to_folder)
+        if not folder_id:
+            print(f"❌ 找不到笔记本：{args.to_folder}")
+            sys.exit(1)
+        print(f"✅ 找到笔记本：{args.to_folder} (ID: {folder_id})")
+    
+    success = move_note(args.note_id, folder_id)
     sys.exit(0 if success else 1)
