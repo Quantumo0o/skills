@@ -1,6 +1,6 @@
 ---
 name: mcp-colombia
-description: "MCP Colombia Hub — aggregates Colombian services via MCP protocol. Use when: searching MercadoLibre products, finding hotels via Booking.com (real-time prices), searching flights (Avianca/LATAM/Skyscanner), applying to jobs with real listings from El Empleo/Computrabajo/LinkedIn, comparing CDTs, simulating credits/loans, or comparing bank accounts in Colombia. Requires an MCP-compatible client (Claude Desktop, OpenClaw, etc.)."
+description: "MCP Colombia Hub — aggregates Colombian services via MCP protocol. Soulprint identity verification integrated — verify Colombian users before sensitive operations. Use when: searching MercadoLibre products, finding hotels via Booking.com (real-time prices), searching flights (Avianca/LATAM/Skyscanner), applying to jobs with real listings from El Empleo/Computrabajo/LinkedIn, comparing CDTs, simulating credits/loans, or comparing bank accounts in Colombia. Requires an MCP-compatible client (Claude Desktop, OpenClaw, etc.)."
 homepage: https://www.npmjs.com/package/mcp-colombia-hub
 metadata:
   {
@@ -18,7 +18,7 @@ Aggregates Colombian services into a single MCP server — search products, find
 
 **npm:** https://www.npmjs.com/package/mcp-colombia-hub  
 **GitHub:** https://github.com/manuelariasfz/mcp-colombia  
-**Version:** 1.2.2
+**Version:** 1.3.0
 
 ---
 
@@ -165,7 +165,7 @@ Returns: bank, account type, 4×4 maintenance fee, GMF exemption, digital/physic
 
 ---
 
-## Soulprint Integration (v1.2.2)
+## Soulprint Integration (v1.3.0)
 
 The server accepts optional Soulprint identity tokens for verified access:
 
@@ -174,6 +174,21 @@ The server accepts optional Soulprint identity tokens for verified access:
 {
   "x-soulprint-token": "<your SPT token>"
 }
+```
+
+### `soulprint_status` — Check identity & on-chain reputation
+Check if a user has a valid Soulprint identity. Queries the live validator node for on-chain data.
+
+```
+Parameters: none (reads from x-soulprint-token capability)
+Returns:
+  status          — "active" | "no_token" | "invalid"
+  did             — decentralized identity
+  score           — trust score (0–100)
+  node_info       — live data from validator node
+  node_reputation — on-chain reputation
+  premium_access  — which tools are unlocked
+Validator node: https://soulprint-node-production.up.railway.app
 ```
 
 Tools with score requirements:
