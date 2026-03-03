@@ -1,0 +1,11 @@
+{
+  "owner": "maverick-software",
+  "slug": "hostinger-vps-mcp-tools",
+  "displayName": "Hostinger VPS MCP Tools",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772404703176,
+    "commit": null
+  },
+  "history": []
+}
