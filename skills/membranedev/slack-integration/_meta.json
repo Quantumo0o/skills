@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "slack-integration",
+  "displayName": "Slack",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772580660006,
+    "commit": null
+  },
+  "history": []
+}
