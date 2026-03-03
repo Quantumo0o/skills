@@ -1,0 +1,11 @@
+{
+  "owner": "kcns008",
+  "slug": "cluster-agent-swarm-skills",
+  "displayName": "Cluster Agent Swarm",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772498806833,
+    "commit": null
+  },
+  "history": []
+}
