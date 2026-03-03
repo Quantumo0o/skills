@@ -1,11 +1,17 @@
 {
   "owner": "tel18610240060-collab",
   "slug": "feishu-speaker",
-  "displayName": "feishu-speaker",
+  "displayName": "Feishu Speaker",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772379253576,
-    "commit": "https://github.com/openclaw/skills/commit/b3323af3ce45e43af2a5a86379757f0bc3636dda"
+    "version": "1.1.0",
+    "publishedAt": 1772454586544,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772379253576,
+      "commit": "https://github.com/openclaw/skills/commit/b3323af3ce45e43af2a5a86379757f0bc3636dda"
+    }
+  ]
 }
