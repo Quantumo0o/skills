@@ -1,6 +1,6 @@
 ---
 name: "openclaw-newbie-faq"
-version: "1.0.24"
+version: "1.0.25"
 displayName: "openclaw新手帮帮忙"
 description: "为刚接触 OpenCLAW 的新手提供完整指南。安装后请说"启动新手帮助"来启动34567端口的Web服务。源码：https://github.com/kunyashaw/openclaw-newbie-faq.git"
 entryPoint:
@@ -14,16 +14,12 @@ triggers:
 
 ## 功能截图
 
-### 大模型常识
 ![大模型常识](https://github.com/user-attachments/assets/7b8b7435-4583-4269-b385-4dfe7555a4c7)
 
-### 常见问题
 ![常见问题](https://github.com/user-attachments/assets/ebe867db-5b5c-4fec-93e2-573386e2f7d1)
 
-### 命令大全
 ![命令大全](https://github.com/user-attachments/assets/80a71d51-6332-48a7-b814-aa7096c9e71c)
 
-### 调优建议
 ![调优建议](https://github.com/user-attachments/assets/521f5caf-b7e2-44c6-9840-5eda44704f11)
 
 ## 服务启动说明
