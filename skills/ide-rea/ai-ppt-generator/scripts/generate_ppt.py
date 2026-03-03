@@ -1,5 +1,8 @@
 import os
+import random
 import sys
+import time
+
 import requests
 import json
 import argparse
@@ -22,6 +25,7 @@ class Outline:
 
 
 def get_ppt_theme(api_key: str):
+    """Get a random PPT theme"""
     headers = {
         "Authorization": "Bearer %s" % api_key,
     }
@@ -29,21 +33,14 @@ def get_ppt_theme(api_key: str):
     result = response.json()
     if "errno" in result and result["errno"] != 0:
         raise RuntimeError(result["errmsg"])
-    themes = []
-    count = 0
-    for theme in result["data"]["ppt_themes"]:
-        count += 1
-        if count > 20:
-            break
-        themes.append({
-            "style_name_list": theme["style_name_list"],
-            "style_id": theme["style_id"],
-            "tpl_id": theme["tpl_id"],
-        })
-    return Style(style_id=themes[0]["style_id"], tpl_id=themes[0]["tpl_id"])
+
+    style_index = random.randint(0, len(result["data"]["ppt_themes"]) - 1)
+    theme = result["data"]["ppt_themes"][style_index]
+    return Style(style_id=theme["style_id"], tpl_id=theme["tpl_id"])
 
 
 def ppt_outline_generate(api_key: str, query: str):
+    """Generate PPT outline"""
     headers = {
         "Authorization": "Bearer %s" % api_key,
         "X-Appbuilder-From": "openclaw",
@@ -74,13 +71,28 @@ def ppt_outline_generate(api_key: str, query: str):
     return Outline(chat_id=chat_id, query_id=query_id, title=title, outline=outline)
 
 
-def ppt_generate(api_key: str, query: str, web_content: str = None):
+def ppt_generate(api_key: str, query: str, style_id: int = 0, tpl_id: int = None, web_content: str = None):
+    """Generate PPT - simple version"""
     headers = {
         "Authorization": "Bearer %s" % api_key,
         "Content-Type": "application/json"
     }
-    style = get_ppt_theme(api_key)
+    
+    # Get theme
+    if tpl_id is None:
+        # Random theme
+        style = get_ppt_theme(api_key)
+        style_id = style.style_id
+        tpl_id = style.tpl_id
+        print(f"Using random template (tpl_id: {tpl_id})", file=sys.stderr)
+    else:
+        # Specific theme - use provided style_id (default 0)
+        print(f"Using template tpl_id: {tpl_id}, style_id: {style_id}", file=sys.stderr)
+    
+    # Generate outline
     outline = ppt_outline_generate(api_key, query)
+    
+    # Generate PPT
     headers.setdefault('Accept', 'text/event-stream')
     headers.setdefault('Cache-Control', 'no-cache')
     headers.setdefault('Connection', 'keep-alive')
@@ -90,13 +102,13 @@ def ppt_generate(api_key: str, query: str, web_content: str = None):
         "query": query,
         "outline": outline.outline,
         "title": outline.title,
-        "style_id": style.style_id,
-        "tpl_id": style.tpl_id,
+        "style_id": style_id,
+        "tpl_id": tpl_id,
         "web_content": web_content
     }
     with requests.post(URL_PREFIX + "generate_ppt_by_outline", headers=headers, json=params, stream=True) as response:
         if response.status_code != 200:
-            print("request failed, status code is %s, error message is %s", response.status_code, response.content)
+            print(f"request failed, status code is {response.status_code}, error message is {response.text}")
             return []
         for line in response.iter_lines():
             line = line.decode('utf-8')
@@ -106,25 +118,29 @@ def ppt_generate(api_key: str, query: str, web_content: str = None):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="ppt outline generate input parameters")
-    parser.add_argument("--query", "-q", type=str, required=True, help="user origin query")
-    parser.add_argument("--web_content", "-wc", type=str, default=None, help="web content")
+    parser = argparse.ArgumentParser(description="Generate PPT")
+    parser.add_argument("--query", "-q", type=str, required=True, help="PPT topic")
+    parser.add_argument("--style_id", "-si", type=int, default=0, help="Style ID (default: 0)")
+    parser.add_argument("--tpl_id", "-tp", type=int, help="Template ID (optional)")
+    parser.add_argument("--web_content", "-wc", type=str, default=None, help="Web content")
     args = parser.parse_args()
 
     api_key = os.getenv("BAIDU_API_KEY")
     if not api_key:
-        print("Error: BAIDU_API_KEY  must be set in environment.")
+        print("Error: BAIDU_API_KEY must be set in environment.")
         sys.exit(1)
+    
     try:
-        print(args.query, args.web_content)
-        results = ppt_generate(api_key, args.query, args.web_content)
+        start_time = int(time.time())
+        results = ppt_generate(api_key, args.query, args.style_id, args.tpl_id, args.web_content)
+        
         for result in results:
             if "is_end" in result and result["is_end"]:
                 print(json.dumps(result, ensure_ascii=False, indent=2))
             else:
-                print({"status": result["status"]})
+                end_time = int(time.time())
+                print(json.dumps({"status": result["status"], "run_time": end_time - start_time}))
+                
     except Exception as e:
-        exc_type, exc_value, exc_traceback = sys.exc_info()
-        print(f"error type：{exc_type}")
-        print(f"error message：{exc_value}")
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
