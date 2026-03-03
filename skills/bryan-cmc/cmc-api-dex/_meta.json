@@ -1,0 +1,11 @@
+{
+  "owner": "bryan-cmc",
+  "slug": "cmc-api-dex",
+  "displayName": "[Outdated] CoinMarketCap Onchain Data",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772468788809,
+    "commit": null
+  },
+  "history": []
+}
