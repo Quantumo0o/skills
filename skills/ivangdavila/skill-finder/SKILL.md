@@ -1,16 +1,16 @@
 ---
-name: "Skill Finder"
+name: "Skill Finder - Search Skills"
 slug: skill-finder
-version: "1.1.0"
+version: "1.1.2"
 homepage: https://clawic.com/skills/skill-finder
 description: "Find, evaluate, and recommend ClawHub skills by need with quality filtering and preference learning."
-changelog: "Added categories table, troubleshooting guide, better discovery workflows, setup system"
+changelog: "Updated the title to make the skill purpose clearer."
 metadata: {"clawdbot":{"emoji":"🔍","requires":{"bins":["npx"]},"os":["linux","darwin","win32"]}}
 ---
 
 ## Setup
 
-If `~/skill-finder/` doesn't exist or is empty, read `setup.md` silently and start naturally.
+If `~/skill-finder/` doesn't exist or is empty, tell the user you are initializing local memory files, then follow `setup.md`.
 
 ## When to Use
 
@@ -57,16 +57,25 @@ Don't just list skills. Explain why each fits:
 > "Found `pdf-editor` — handles form filling and annotations, 2.3k downloads, updated last week. Matches your need for editing contracts."
 
 ### 4. Learn Preferences
-When user explicitly states what they value, update `~/skill-finder/memory.md`:
+When user explicitly states what they value, confirm and update `~/skill-finder/memory.md`:
 - "I prefer minimal skills" → add to Preferences
 - "This one is great" → add to Liked with reason
 - "Too verbose" → add to Passed with reason
+
+Do not infer hidden preferences from behavior-only signals.
 
 ### 5. Check Memory First
 Before recommending, read memory.md:
 - Skip skills similar to Passed ones
 - Favor qualities from Liked ones
 - Apply stated Preferences
+
+### 6. Never Bypass Security Warnings
+If a candidate skill is marked risky by scanner output:
+- Explain the warning and inspect details first
+- Prefer a safer alternative
+- Do not run force-install flags for the user
+- Install only normal, non-risky options with explicit user consent
 
 ## Search Commands
 
@@ -111,7 +120,8 @@ clawhub list
 
 **This skill does NOT:**
 - Install skills without user consent
-- Track behavior silently
+- Bypass scanner warnings with force-install flags
+- Collect hidden behavior data
 - Access files outside `~/skill-finder/`
 
 ## Related Skills

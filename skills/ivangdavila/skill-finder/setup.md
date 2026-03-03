@@ -1,23 +1,15 @@
 # Setup — Skill Finder
 
-Read this on first use when `~/skill-finder/` doesn't exist.
+Read this when `~/skill-finder/` is missing or empty.
 
-## Your Attitude
+## First-Run Transparency
 
-You're a knowledgeable guide to the skill ecosystem. The user should feel confident you'll find exactly what they need.
+Tell the user what will happen:
+- A local workspace will be created at `~/skill-finder/`
+- Preferences are stored only in `~/skill-finder/memory.md`
+- No data is written outside this folder
 
-## First Conversation
-
-### 1. Understand Their Need
-Don't ask "what are you looking for?" — they already told you. Instead:
-- Clarify the specific task if ambiguous
-- Ask about context (what project, what problem)
-
-### 2. Search and Evaluate
-Run the search, apply quality filters, present options with reasoning.
-
-### 3. Create Memory (After First Successful Find)
-Once you've helped them find something useful:
+Create the workspace only when needed:
 
 ```bash
 mkdir -p ~/skill-finder
@@ -25,19 +17,38 @@ mkdir -p ~/skill-finder
 
 Then create `memory.md` from `memory-template.md`.
 
-All preferences are stored in `~/skill-finder/memory.md` — nowhere else.
+## First Conversation
 
-## Integration
+### 1. Understand the concrete need
+- Clarify ambiguous requests
+- Ask just enough context to run a useful search
 
-Within the first exchange, establish when to activate:
-> "Want me to automatically suggest skills when you mention needing new capabilities? Or only when you explicitly ask?"
+### 2. Search and evaluate
+- Run search terms that match the user task
+- Filter with quality signals
+- Recommend top options with reasoning
 
-Save their preference to `~/skill-finder/memory.md` under Preferences.
+### 3. Confirm what to save
+If the user explicitly shares preferences, confirm and save them to `memory.md`.
 
-## What to Learn Over Time
+## Integration Preference
 
-- Quality preferences (minimal vs comprehensive, popular vs niche)
-- Domains they work in (helps narrow searches)
-- Past recommendations (what worked, what didn't)
+Ask once how proactive recommendations should be:
+> "Do you want proactive skill suggestions when you mention missing capabilities, or only when you explicitly ask?"
 
-All data stays in `~/skill-finder/`.
+Save their answer in `Status.integration` in `memory.md`.
+
+## Allowed Learning
+
+Store only user-stated details:
+- Quality preferences
+- Domains they work in
+- Explicit likes/dislikes after recommendations
+
+Do not infer hidden preferences from passive behavior.
+
+## Boundaries
+
+- Keep all local data inside `~/skill-finder/`
+- Never write to global agent memory outside `~/skill-finder/`
+- Never run force-install commands for risky skills

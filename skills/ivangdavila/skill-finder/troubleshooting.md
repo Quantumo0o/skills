@@ -45,13 +45,12 @@ Reference for handling edge cases and common problems.
    clawhub inspect <slug> --files
    ```
 
-3. **Let user decide**
-   > "Want me to inspect the code, or should we find an alternative?"
+3. **Default to safer alternatives**
+   > "I can recommend similar skills that are not flagged, then we pick the best match."
 
-4. **Install only if user confirms**
-   ```bash
-   clawhub install <slug> --force
-   ```
+4. **Do not bypass scanner warnings**
+   - Never use force-install options
+   - Prefer normal installation only for non-flagged options with explicit user consent
 
 ## Skill Not Found (404)
 
