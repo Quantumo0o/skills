@@ -1,0 +1,11 @@
+{
+  "owner": "linux2010",
+  "slug": "doc-spellcheck",
+  "displayName": "Document Spell Check",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772495249325,
+    "commit": null
+  },
+  "history": []
+}
