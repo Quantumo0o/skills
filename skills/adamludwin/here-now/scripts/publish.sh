@@ -14,6 +14,7 @@ CLAIM_TOKEN=""
 TITLE=""
 DESCRIPTION=""
 TTL=""
+CLIENT=""
 TARGET=""
 
 usage() {
@@ -27,6 +28,7 @@ Options:
   --title <text>          Viewer title
   --description <text>    Viewer description
   --ttl <seconds>         Expiry (authenticated only)
+  --client <name>         Agent name for attribution (e.g. cursor, claude-code)
   --base-url <url>        API base (default: https://here.now)
   --allow-nonherenow-base-url
                          Allow auth requests to non-default API base URL
@@ -60,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --title)        TITLE="$2"; shift 2 ;;
     --description)  DESCRIPTION="$2"; shift 2 ;;
     --ttl)          TTL="$2"; shift 2 ;;
+    --client)       CLIENT="$2"; shift 2 ;;
     --base-url)     BASE_URL="$2"; shift 2 ;;
     --allow-nonherenow-base-url) ALLOW_NON_HERENOW_BASE_URL=1; shift ;;
     --help|-h)      usage ;;
@@ -191,10 +194,22 @@ if [[ -n "$API_KEY" ]]; then
   AUTH_MODE="authenticated"
 fi
 
+CLIENT_HEADER_VALUE="here-now-publish-sh"
+if [[ -n "$CLIENT" ]]; then
+  normalized_client=$(echo "$CLIENT" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')
+  normalized_client="${normalized_client#-}"
+  normalized_client="${normalized_client%-}"
+  if [[ -n "$normalized_client" ]]; then
+    CLIENT_HEADER_VALUE="${normalized_client}/publish-sh"
+  fi
+fi
+CLIENT_ARGS=(-H "x-herenow-client: $CLIENT_HEADER_VALUE")
+
 # Step 1: Create/update publish
 echo "creating publish ($file_count files)..." >&2
 RESPONSE=$(curl -sS -X "$METHOD" "$URL" \
   "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
+  "${CLIENT_ARGS[@]+"${CLIENT_ARGS[@]}"}" \
   -H "content-type: application/json" \
   -d "$BODY")
 
@@ -254,6 +269,7 @@ wait
 echo "finalizing..." >&2
 FIN_RESPONSE=$(curl -sS -X POST "$FINALIZE_URL" \
   "${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"}" \
+  "${CLIENT_ARGS[@]+"${CLIENT_ARGS[@]}"}" \
   -H "content-type: application/json" \
   -d "{\"versionId\":\"$VERSION_ID\"}")
 
