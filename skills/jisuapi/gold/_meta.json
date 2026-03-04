@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "gold",
+  "displayName": "黄金价格查询 - Gold Price Inquiry",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772534311444,
+    "commit": null
+  },
+  "history": []
+}
