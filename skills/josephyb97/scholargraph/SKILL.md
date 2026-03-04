@@ -1,6 +1,6 @@
 ---
 name: scholargraph
-description: Academic literature intelligence toolkit with AI-powered search, analysis, and knowledge management. Features literature search, concept learning, gap detection, progress tracking, paper analysis, and knowledge graph building across 15+ AI providers.
+description: Academic literature intelligence toolkit with AI-powered multi-source search (11 sources including arXiv, Semantic Scholar, OpenAlex, PubMed, CrossRef, DBLP, IEEE, CORE, Google Scholar), complementary search strategy with domain auto-detection, PDF download, concept learning, gap detection, progress tracking, paper analysis, knowledge graph building, review detection, concept extraction, and SQLite-based persistent storage across 15+ AI providers.
 metadata:
   {
     "openclaw": {
@@ -17,16 +17,20 @@ metadata:
 
 ## Overview
 
-ScholarGraph is a comprehensive academic literature intelligence toolkit that helps researchers efficiently search, analyze, and manage academic papers using AI-powered tools.
+ScholarGraph is a comprehensive academic literature intelligence toolkit that helps researchers efficiently search, analyze, and manage academic papers using AI-powered tools. Features 11 academic search sources with intelligent domain-based source selection and PDF download capabilities.
 
 ## Features
 
 ### Core Modules (6)
 
-1. **Literature Search** - Multi-source academic paper discovery
-   - Search across arXiv, Semantic Scholar, and web sources
-   - Filter by relevance, date, or citations
-   - Support for multiple search sources
+1. **Literature Search** - Multi-source academic paper discovery (11 sources)
+   - **Free sources**: arXiv, Semantic Scholar, OpenAlex (250M+), PubMed (biomedical), CrossRef (150M+ DOI), DBLP (CS), Web Search
+   - **API-key sources**: IEEE Xplore, CORE, Google Scholar (SerpAPI), Unpaywall (OA PDF)
+   - Adapter-based plugin architecture for easy extension
+   - Complementary search strategy with auto domain detection (biomedical/cs/engineering/physics)
+   - Priority-based source selection per domain
+   - Query expansion for better search results
+   - PDF download with multi-strategy URL resolution
 
 2. **Concept Learner** - Rapid knowledge framework construction
    - Generate structured learning cards
@@ -52,31 +56,67 @@ ScholarGraph is a comprehensive academic literature intelligence toolkit that he
    - Build interactive knowledge graphs
    - Support Mermaid and JSON output formats
    - Find learning paths between concepts
+   - SQLite-based persistent storage
+   - Bidirectional concept-paper indexing
 
-### Advanced Features (4)
+### Advanced Features (9)
 
-7. **Compare Concepts** - Compare two concepts
-   - Identify similarities and differences
-   - Provide use case recommendations
+7. **Review Detector** - Automatic review paper identification
+   - Multi-dimensional scoring (title 30% + citations 25% + abstract 25% + AI 20%)
+   - Chinese and English keyword support
+   - Confidence-based filtering with user confirmation
 
-8. **Compare Papers** - Compare multiple papers
-   - Find common themes and differences
-   - Generate synthesis analysis
+8. **Concept Extractor** - Extract concepts from review papers
+   - AI-powered extraction of 15-30 core concepts
+   - Four-level categorization (foundation/core/advanced/application)
+   - Importance scoring and relationship identification
+   - Cross-review deduplication and merging
 
-9. **Critique** - Critical paper analysis
-   - Identify strengths and weaknesses
-   - Find research gaps and improvement suggestions
-   - Support custom focus areas
+9. **Review-to-Graph Workflow** - End-to-end pipeline
+   - Search reviews -> Detect -> Confirm -> Analyze -> Extract concepts
+   - Build knowledge graph -> Enrich with key papers -> Index -> Store
+   - Interactive or automatic confirmation mode
 
-10. **Learning Path** - Find optimal learning paths
+10. **Knowledge Graph Query** - Bidirectional literature indexing
+    - Concept -> papers: find papers related to a concept
+    - Paper -> concepts: find concepts covered by a paper
+    - Paper recommendations based on multiple concepts
+    - SQLite-optimized high-performance queries
+
+11. **Compare Concepts** - Compare two concepts
+    - Identify similarities and differences
+    - Provide use case recommendations
+
+12. **Compare Papers** - Compare multiple papers
+    - Find common themes and differences
+    - Generate synthesis analysis
+
+13. **Critique** - Critical paper analysis
+    - Identify strengths and weaknesses
+    - Find research gaps and improvement suggestions
+    - Support custom focus areas
+
+14. **Learning Path** - Find optimal learning paths
     - Discover paths between concepts
     - Generate topological learning order
     - Visualize with Mermaid diagrams
 
+15. **Graph Management** - Manage persistent knowledge graphs
+    - List all saved graphs
+    - View graph statistics
+    - Export graphs to JSON
+    - Visualize with Mermaid
+
 ## Technical Features
 
+- **11 Academic Search Sources**: arXiv, Semantic Scholar, OpenAlex, PubMed, CrossRef, DBLP, IEEE Xplore, CORE, Google Scholar, Unpaywall, Web Search
+- **Complementary Search Strategy**: Auto-detects query domain and selects optimal source combination
+- **Adapter Pattern**: Plugin-based search source architecture for easy extension
+- **PDF Download**: Multi-strategy URL resolution (direct, Unpaywall, OpenAlex OA, CORE)
 - **Multi-AI Provider Support**: 15+ AI providers including OpenAI, Anthropic, DeepSeek, Qwen, Zhipu AI, etc.
-- **Rate Limiting**: Automatic retry and delay for API calls
+- **SQLite Persistence**: Knowledge graphs stored in SQLite database via bun:sqlite
+- **Bidirectional Indexing**: Concept-paper and paper-concept bidirectional query support
+- **Rate Limiting**: Per-source rate limiting with automatic retry and delay
 - **Multiple Output Formats**: Markdown, JSON, Mermaid
 - **TypeScript + Bun**: Fast and type-safe runtime
 - **CLI + API**: Both command-line and programmatic interfaces
@@ -113,11 +153,39 @@ export AI_PROVIDER=qwen
 export QWEN_API_KEY="your-api-key"
 ```
 
+### Academic Source API Keys (optional, expand search coverage)
+
+```bash
+export NCBI_API_KEY="your-key"           # PubMed high-speed access (10 req/s)
+export IEEE_API_KEY="your-key"           # IEEE Xplore engineering papers
+export CORE_API_KEY="your-key"           # CORE open access full text
+export UNPAYWALL_EMAIL="your@email.com"  # Unpaywall OA PDF resolver
+export CROSSREF_MAILTO="your@email.com"  # CrossRef polite pool (higher rate)
+export SERPAPI_KEY="your-key"            # Google Scholar (via SerpAPI)
+export SERPER_API_KEY="your-key"         # Web search via Serper
+```
+
 ## Usage Examples
 
 ### Search Literature
 ```bash
-lit search "transformer attention" --limit 20 --source arxiv
+# Auto-select best sources based on query domain
+lit search "transformer attention" --limit 20
+
+# Specify domain for optimized source selection
+lit search "CRISPR gene editing" --domain biomedical
+
+# Use specific sources (comma-separated)
+lit search "deep learning" --source semantic_scholar,arxiv,openalex --sort citations
+
+# Search and download PDFs
+lit search "attention is all you need" --download --limit 3
+```
+
+### Download PDFs
+```bash
+# Search and download PDFs
+lit download "transformer" --limit 5 --output ./papers
 ```
 
 ### Learn Concepts
@@ -160,6 +228,47 @@ lit critique "paper-url" --focus "novelty,scalability" --output critique.md
 lit path "Machine Learning" "Deep Learning" --concepts "Neural Networks" --output path.md
 ```
 
+### Search Review Papers
+```bash
+lit review-search "attention mechanism" --limit 10
+```
+
+### Build Knowledge Graph from Reviews
+```bash
+# From search query (interactive mode)
+lit review-graph "deep learning" --output dl-graph --enrich
+
+# From specific URL
+lit review-graph "https://arxiv.org/abs/xxxx" --output my-graph --enrich
+
+# Auto-confirm mode (non-interactive)
+lit review-graph "transformer" --output tf-graph --enrich --auto-confirm
+```
+
+### Query Knowledge Graph
+```bash
+# Find papers by concept
+lit query concept "transformer" --graph dl-graph --limit 20
+
+# Find concepts by paper
+lit query paper "https://arxiv.org/abs/1706.03762" --graph dl-graph
+```
+
+### Manage Knowledge Graphs
+```bash
+# List all graphs
+lit graph-list
+
+# View graph statistics
+lit graph-stats dl-graph
+
+# Visualize graph
+lit graph-viz dl-graph --format mermaid --output graph.md
+
+# Export graph
+lit graph-export dl-graph --output dl-graph.json
+```
+
 ## Use Cases
 
 ### 1. Quick Field Onboarding
@@ -184,6 +293,12 @@ lit path "Machine Learning" "Deep Learning" --concepts "Neural Networks" --outpu
 - Evaluate different models
 - Build comparison graphs
 
+### 5. Review-Driven Knowledge Building
+- Search and identify review papers
+- Extract concepts from reviews
+- Build persistent knowledge graphs
+- Query concept-paper relationships
+
 ## Project Structure
 
 ```
@@ -202,11 +317,59 @@ ScholarGraph/
 │   └── utils.ts                # Utility functions
 │
 ├── literature-search/          # Literature search module
+│   └── scripts/
+│       ├── search.ts           # Search engine core
+│       ├── types.ts            # Type definitions
+│       ├── query-expander.ts   # Query expansion
+│       ├── search-strategy.ts  # Complementary search strategy
+│       ├── pdf-downloader.ts   # PDF download module
+│       └── adapters/           # Search source adapters
+│           ├── base.ts         # Adapter interface & base class
+│           ├── registry.ts     # Adapter registry
+│           ├── index.ts        # Barrel export
+│           ├── arxiv-adapter.ts
+│           ├── semantic-scholar-adapter.ts
+│           ├── web-adapter.ts
+│           ├── openalex-adapter.ts
+│           ├── pubmed-adapter.ts
+│           ├── crossref-adapter.ts
+│           ├── dblp-adapter.ts
+│           ├── ieee-adapter.ts
+│           ├── core-adapter.ts
+│           ├── unpaywall-adapter.ts
+│           └── google-scholar-adapter.ts
+│
 ├── concept-learner/            # Concept learning module
 ├── knowledge-gap-detector/     # Gap detection module
 ├── progress-tracker/           # Progress tracking module
 ├── paper-analyzer/             # Paper analysis module
+│
+├── review-detector/            # Review paper identification
+│   └── scripts/
+│       ├── detect.ts           # Multi-dimensional scoring
+│       └── types.ts
+│
+├── concept-extractor/          # Concept extraction from reviews
+│   └── scripts/
+│       ├── extract.ts          # AI-powered extraction
+│       └── types.ts
+│
 ├── knowledge-graph/            # Knowledge graph module
+│   └── scripts/
+│       ├── graph.ts            # Graph building core
+│       ├── indexer.ts          # Bidirectional indexing
+│       ├── storage.ts          # SQLite persistence
+│       └── enricher.ts         # Key paper association
+│
+├── workflows/                  # End-to-end workflows
+│   └── review-to-graph.ts      # Review to graph pipeline
+│
+├── data/                       # Data directory (auto-created)
+│   └── knowledge-graphs.db     # SQLite database
+│
+├── downloads/                  # PDF downloads (auto-created)
+│   └── pdfs/
+│       └── metadata.json       # Download index
 │
 └── test/                       # Tests and documentation
     ├── ADVANCED_FEATURES.md

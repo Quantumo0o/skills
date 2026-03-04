@@ -3,7 +3,7 @@
  * 文献检索总结工具配置系统
  */
 
-import type { AIProviderType } from './shared/types';
+import type { AIProviderType, SearchSource } from './shared/types';
 
 export interface LiteratureSkillConfig {
   // AI 提供商配置
@@ -25,11 +25,39 @@ export interface LiteratureSkillConfig {
 
   // 检索配置
   search: {
-    defaultSources: ('arxiv' | 'semantic_scholar' | 'web')[];
+    defaultSources: SearchSource[];
     maxResults: number;
     sortBy: 'relevance' | 'date' | 'citations';
     cacheResults: boolean;
     cacheDuration: number; // 毫秒
+  };
+
+  // 数据源 API 密钥配置
+  sourceApiKeys: {
+    ncbiApiKey?: string;
+    ieeeApiKey?: string;
+    coreApiKey?: string;
+    unpaywallEmail?: string;
+    crossrefMailto?: string;
+    serpApiKey?: string;
+  };
+
+  // 搜索策略配置
+  searchStrategy: {
+    defaultPriority: SearchSource[];
+    domainPriorities: Record<string, SearchSource[]>;
+    maxConcurrentSources: number;
+    useComplementaryStrategy: boolean;
+  };
+
+  // PDF 下载配置
+  pdf: {
+    downloadDir: string;
+    namingStrategy: 'title' | 'id' | 'doi';
+    maxFileSize: number; // bytes
+    skipExisting: boolean;
+    concurrency: number;
+    autoDownload: boolean;
   };
 
   // 学习配置
@@ -85,6 +113,40 @@ export const defaultConfig: LiteratureSkillConfig = {
     cacheDuration: 3600000 // 1小时
   },
 
+  sourceApiKeys: {
+    ncbiApiKey: process.env.NCBI_API_KEY,
+    ieeeApiKey: process.env.IEEE_API_KEY,
+    coreApiKey: process.env.CORE_API_KEY,
+    unpaywallEmail: process.env.UNPAYWALL_EMAIL,
+    crossrefMailto: process.env.CROSSREF_MAILTO,
+    serpApiKey: process.env.SERPAPI_KEY
+  },
+
+  searchStrategy: {
+    defaultPriority: [
+      'semantic_scholar', 'openalex', 'arxiv', 'pubmed',
+      'crossref', 'dblp', 'core', 'ieee', 'web'
+    ],
+    domainPriorities: {
+      biomedical: ['pubmed', 'semantic_scholar', 'openalex', 'crossref'],
+      cs: ['semantic_scholar', 'arxiv', 'dblp', 'openalex'],
+      engineering: ['ieee', 'semantic_scholar', 'openalex', 'crossref'],
+      physics: ['arxiv', 'semantic_scholar', 'openalex'],
+      general: ['semantic_scholar', 'openalex', 'crossref', 'arxiv']
+    },
+    maxConcurrentSources: 4,
+    useComplementaryStrategy: true
+  },
+
+  pdf: {
+    downloadDir: './downloads/pdfs',
+    namingStrategy: 'title',
+    maxFileSize: 50 * 1024 * 1024, // 50MB
+    skipExisting: true,
+    concurrency: 3,
+    autoDownload: false
+  },
+
   learning: {
     depth: 'standard',
     includePapers: true,
@@ -118,7 +180,7 @@ export class ConfigManager {
   private config: LiteratureSkillConfig;
   private configPath: string;
 
-  constructor(configPath: string = './scholargraph-config.json') {
+  constructor(configPath: string = './literature-config.json') {
     this.configPath = configPath;
     this.config = { ...defaultConfig };
   }
@@ -161,6 +223,9 @@ export class ConfigManager {
       ai: { ...this.config.ai, ...partial.ai },
       user: { ...this.config.user, ...partial.user },
       search: { ...this.config.search, ...partial.search },
+      sourceApiKeys: { ...this.config.sourceApiKeys, ...partial.sourceApiKeys },
+      searchStrategy: { ...this.config.searchStrategy, ...partial.searchStrategy },
+      pdf: { ...this.config.pdf, ...partial.pdf },
       learning: { ...this.config.learning, ...partial.learning },
       tracking: { ...this.config.tracking, ...partial.tracking },
       output: { ...this.config.output, ...partial.output }
@@ -194,7 +259,7 @@ if (import.meta.main) {
   switch (command) {
     case 'init':
       manager.save();
-      console.log('Configuration initialized at ./scholargraph-config.json');
+      console.log('Configuration initialized at ./literature-config.json');
       break;
 
     case 'show':

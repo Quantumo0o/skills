@@ -12,12 +12,116 @@ import { createAIProvider, type AIProvider } from '../../shared/ai-provider';
 import { extractJson } from '../../shared/utils';
 import { ApiInitializationError, getErrorMessage } from '../../shared/errors';
 
+/**
+ * 文献引用信息
+ */
+export interface LiteratureReference {
+  /** 论文ID */
+  paperId: string;
+  /** 论文标题 */
+  title: string;
+  /** 相关度 (0-1) */
+  relevance: number;
+  /** 引用类型 */
+  mentionType: 'foundational' | 'methodological' | 'application';
+  /** 引用上下文 */
+  contexts: string[];
+}
+
+/**
+ * 概念定义（可多来源）
+ */
+export interface ConceptDefinition {
+  /** 定义内容 */
+  text: string;
+  /** 来源论文ID */
+  sourceId: string;
+  /** 来源论文标题 */
+  sourceTitle: string;
+}
+
+/**
+ * 论文元数据（用于索引）
+ */
+export interface PaperMetadata {
+  /** 论文ID */
+  id: string;
+  /** 标题 */
+  title: string;
+  /** 作者 */
+  authors: string[];
+  /** 摘要 */
+  abstract: string;
+  /** 发表日期 */
+  publishDate: string;
+  /** URL */
+  url: string;
+  /** PDF URL */
+  pdfUrl?: string;
+  /** 引用数 */
+  citations?: number;
+  /** 论文类型 */
+  paperType: 'review' | 'research';
+  /** 关键词 */
+  keywords: string[];
+  /** 额外元数据 */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * 文献索引（论文→概念映射）
+ */
+export interface LiteratureIndex {
+  /** 论文ID → 论文元数据 */
+  papers: Map<string, PaperMetadata>;
+  /** 论文ID → 关联概念ID列表 */
+  paperToConcepts: Map<string, string[]>;
+}
+
+/**
+ * 概念索引（概念→论文映射）
+ */
+export interface ConceptIndex {
+  /** 概念ID → 论文引用列表 */
+  conceptToPapers: Map<string, LiteratureReference[]>;
+}
+
+/**
+ * 图谱元数据
+ */
+export interface GraphMetadata {
+  /** 图谱名称 */
+  name: string;
+  /** 创建时间 */
+  createdAt: string;
+  /** 更新时间 */
+  updatedAt: string;
+  /** 来源综述 */
+  sourceReviews: string[];
+  /** 统计 */
+  totalConcepts: number;
+  totalPapers: number;
+  totalRelations: number;
+}
+
 export interface KnowledgeNode {
   id: string;
   label: string;
   category: 'foundation' | 'core' | 'advanced' | 'application';
   importance: number;
   description?: string;
+  /** 文献引用列表 */
+  literatureReferences?: LiteratureReference[];
+  /** 多来源定义 */
+  definitions?: ConceptDefinition[];
+  /** 关键论文ID */
+  keyPapers?: string[];
+  /** 节点元数据 */
+  metadata?: {
+    extractedFrom?: string[];
+    lastUpdated?: string;
+    confidence?: number;
+  };
 }
 
 export interface KnowledgeEdge {
@@ -31,6 +135,12 @@ export interface KnowledgeGraphData {
   nodes: KnowledgeNode[];
   edges: KnowledgeEdge[];
   clusters: Map<string, string[]>;
+  /** 文献索引 */
+  literatureIndex?: LiteratureIndex;
+  /** 概念索引 */
+  conceptIndex?: ConceptIndex;
+  /** 图谱元数据 */
+  graphMetadata?: GraphMetadata;
 }
 
 export default class KnowledgeGraphBuilder {
@@ -302,7 +412,15 @@ export default class KnowledgeGraphBuilder {
     return JSON.stringify({
       nodes: graph.nodes,
       edges: graph.edges,
-      clusters: Object.fromEntries(graph.clusters)
+      clusters: Object.fromEntries(graph.clusters),
+      literatureIndex: graph.literatureIndex ? {
+        papers: Object.fromEntries(graph.literatureIndex.papers),
+        paperToConcepts: Object.fromEntries(graph.literatureIndex.paperToConcepts)
+      } : undefined,
+      conceptIndex: graph.conceptIndex ? {
+        conceptToPapers: Object.fromEntries(graph.conceptIndex.conceptToPapers)
+      } : undefined,
+      graphMetadata: graph.graphMetadata
     }, null, 2);
   }
 
@@ -311,11 +429,30 @@ export default class KnowledgeGraphBuilder {
    */
   fromJSON(json: string): KnowledgeGraphData {
     const data = JSON.parse(json);
-    return {
+    const result: KnowledgeGraphData = {
       nodes: data.nodes,
       edges: data.edges,
       clusters: new Map(Object.entries(data.clusters || {}))
     };
+
+    if (data.literatureIndex) {
+      result.literatureIndex = {
+        papers: new Map(Object.entries(data.literatureIndex.papers || {})),
+        paperToConcepts: new Map(Object.entries(data.literatureIndex.paperToConcepts || {}))
+      };
+    }
+
+    if (data.conceptIndex) {
+      result.conceptIndex = {
+        conceptToPapers: new Map(Object.entries(data.conceptIndex.conceptToPapers || {}))
+      };
+    }
+
+    if (data.graphMetadata) {
+      result.graphMetadata = data.graphMetadata;
+    }
+
+    return result;
   }
 
   /**

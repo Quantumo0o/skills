@@ -8,8 +8,6 @@
 [![Bun](https://img.shields.io/badge/Bun-1.3+-orange.svg)](https://bun.sh/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-[English](#) | [中文文档](#)
-
 </div>
 
 ---
@@ -35,21 +33,50 @@
 
 #### 1. 🔍 文献检索 (Literature Search)
 
-跨 arXiv、Semantic Scholar 和 Web 的多源学术论文检索。
+跨 11 个学术数据源的智能多源检索，支持领域自动识别与互补搜索策略。
+
+**免费数据源 (无需 API Key)**：arXiv, Semantic Scholar, OpenAlex (250M+), PubMed (生物医学), CrossRef (150M+ DOI), DBLP (计算机科学), Web Search
+
+**API Key 数据源 (可选)**：IEEE Xplore, CORE, Google Scholar (SerpAPI), Unpaywall (OA PDF)
 
 ```bash
-# CLI 使用
-lit search "transformer attention" --limit 20 --source arxiv --sort citations
+# 基础搜索 - 自动选择最优数据源
+lit search "transformer attention" --limit 20 --sort citations
+
+# 指定领域 - 自动选择生物医学相关源 (PubMed + Semantic Scholar + OpenAlex)
+lit search "CRISPR gene editing" --domain biomedical
+
+# 指定多个数据源（逗号分隔）
+lit search "deep learning" --source semantic_scholar,arxiv,openalex
+
+# 搜索并下载 PDF
+lit search "attention is all you need" --download --limit 3
 
 # 编程 API
 import LiteratureSearch from './literature-search/scripts/search';
 
 const searcher = new LiteratureSearch();
 const results = await searcher.search("large language models", {
-  sources: ['arxiv', 'semantic_scholar'],
+  sources: ['arxiv', 'semantic_scholar', 'openalex'],
   limit: 10,
-  sortBy: 'citations'
+  sortBy: 'citations',
+  domainHint: 'cs'
 });
+```
+
+#### 1.1 📥 PDF 下载 (PDF Download)
+
+多策略 PDF URL 解析与批量下载，支持 Unpaywall/OpenAlex/CORE 开放获取查找。
+
+```bash
+# 搜索并下载 PDF
+lit download "transformer" --limit 5 --output ./papers
+
+# 编程 API
+import { PdfDownloader } from './literature-search/scripts/pdf-downloader';
+
+const downloader = new PdfDownloader({ outputDir: './papers' });
+const downloads = await downloader.downloadResults(searchResults);
 ```
 
 #### 2. 📖 概念学习 (Concept Learner)
@@ -280,8 +307,8 @@ const order = builder.getTopologicalOrder(graph);
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/ScholarGraph.git
-cd ScholarGraph
+git clone https://github.com/your-username/literature-skills.git
+cd literature-skills
 
 # 安装依赖
 bun install
@@ -325,31 +352,40 @@ export ZHIPU_API_KEY="your-api-key"
 ### 基础使用示例
 
 ```bash
-# 1. 检索文献
+# 1. 检索文献（自动选择最优数据源）
 lit search "transformer attention" --limit 20
 
-# 2. 学习概念
+# 2. 指定领域搜索
+lit search "CRISPR gene editing" --domain biomedical
+
+# 3. 指定多个数据源
+lit search "deep learning" --source semantic_scholar,arxiv,openalex
+
+# 4. 搜索并下载 PDF
+lit download "attention is all you need" --limit 3
+
+# 5. 学习概念
 lit learn "Transformer" --depth advanced --output transformer.md
 
-# 3. 检测知识盲区
+# 6. 检测知识盲区
 lit detect --domain "Deep Learning" --known "CNN,RNN"
 
-# 4. 分析论文
+# 7. 分析论文
 lit analyze "https://arxiv.org/abs/1706.03762" --output analysis.md
 
-# 5. 构建知识图谱
+# 8. 构建知识图谱
 lit graph transformer attention BERT GPT --format mermaid
 
-# 6. 对比概念
+# 9. 对比概念
 lit compare concepts CNN RNN
 
-# 7. 对比论文
+# 10. 对比论文
 lit compare papers "https://arxiv.org/abs/1706.03762" "https://arxiv.org/abs/1810.04805"
 
-# 8. 批判性分析
+# 11. 批判性分析
 lit critique "https://arxiv.org/abs/1706.03762" --focus "novelty,scalability"
 
-# 9. 查找学习路径
+# 12. 查找学习路径
 lit path "Machine Learning" "Deep Learning" --concepts "Neural Networks"
 ```
 
@@ -423,7 +459,7 @@ lit graph CNN RNN LSTM Transformer --format mermaid
 ## 📁 项目结构
 
 ```
-ScholarGraph/
+literature-skills/
 ├── cli.ts                      # 统一 CLI 入口
 ├── config.ts                   # 配置管理
 ├── README.md                   # 项目文档
@@ -434,13 +470,32 @@ ScholarGraph/
 │   ├── ai-provider.ts          # AI 提供商抽象层
 │   ├── types.ts                # 共享类型定义
 │   ├── validators.ts           # 参数验证
+│   ├── utils.ts                # 工具函数
 │   └── errors.ts               # 错误处理
 │
 ├── literature-search/          # 文献检索
 │   ├── skill.md
 │   └── scripts/
-│       ├── search.ts
-│       └── types.ts
+│       ├── search.ts           # 搜索引擎核心
+│       ├── types.ts            # 类型定义
+│       ├── query-expander.ts   # 查询扩展
+│       ├── search-strategy.ts  # 互补搜索策略
+│       ├── pdf-downloader.ts   # PDF 下载器
+│       └── adapters/           # 搜索源适配器
+│           ├── base.ts         # 适配器接口与基类
+│           ├── registry.ts     # 适配器注册表
+│           ├── index.ts        # 导出
+│           ├── arxiv-adapter.ts
+│           ├── semantic-scholar-adapter.ts
+│           ├── web-adapter.ts
+│           ├── openalex-adapter.ts
+│           ├── pubmed-adapter.ts
+│           ├── crossref-adapter.ts
+│           ├── dblp-adapter.ts
+│           ├── ieee-adapter.ts
+│           ├── core-adapter.ts
+│           ├── unpaywall-adapter.ts
+│           └── google-scholar-adapter.ts
 │
 ├── concept-learner/            # 概念学习
 │   ├── skill.md
@@ -479,7 +534,7 @@ ScholarGraph/
 
 ### 配置文件
 
-配置文件 `scholargraph-config.json`：
+配置文件 `literature-config.json`：
 
 ```json
 {
@@ -489,9 +544,34 @@ ScholarGraph/
     "primaryLanguage": "zh-CN"
   },
   "search": {
-    "defaultSources": ["arxiv", "semantic_scholar"],
+    "defaultSources": ["arxiv", "semantic_scholar", "web"],
     "maxResults": 20,
     "sortBy": "relevance"
+  },
+  "sourceApiKeys": {
+    "ncbiApiKey": "",
+    "ieeeApiKey": "",
+    "coreApiKey": "",
+    "unpaywallEmail": "",
+    "crossrefMailto": "",
+    "serpApiKey": ""
+  },
+  "searchStrategy": {
+    "useComplementaryStrategy": true,
+    "maxConcurrentSources": 4,
+    "domainPriorities": {
+      "biomedical": ["pubmed", "semantic_scholar", "openalex", "crossref"],
+      "cs": ["semantic_scholar", "arxiv", "dblp", "openalex"],
+      "engineering": ["ieee", "semantic_scholar", "openalex", "crossref"],
+      "physics": ["arxiv", "semantic_scholar", "openalex"]
+    }
+  },
+  "pdf": {
+    "downloadDir": "./downloads/pdfs",
+    "maxFileSize": 52428800,
+    "skipExisting": true,
+    "concurrency": 3,
+    "autoDownload": false
   },
   "learning": {
     "depth": "standard",
@@ -552,8 +632,16 @@ export BAICHUAN_API_KEY="your-key"
 export YI_API_KEY="your-key"
 export DOUBAO_API_KEY="your-key"
 
-# 搜索 API（可选）
+# Web 搜索 API（可选）
 export SERPER_API_KEY="your-key"  # 用于 web 搜索功能
+
+# 学术数据源 API Key（可选，提升搜索覆盖范围）
+export NCBI_API_KEY="your-key"           # PubMed 高速访问 (10 req/s)
+export IEEE_API_KEY="your-key"           # IEEE Xplore 工程文献
+export CORE_API_KEY="your-key"           # CORE 开放获取全文
+export UNPAYWALL_EMAIL="your@email.com"  # Unpaywall OA PDF 解析
+export CROSSREF_MAILTO="your@email.com"  # CrossRef 礼貌池 (更高速率)
+export SERPAPI_KEY="your-key"            # Google Scholar (via SerpAPI)
 ```
 
 ---
@@ -585,6 +673,13 @@ interface SearchResult {
   citationCount: number;
   url: string;
   source: string;
+  pdfUrl?: string;
+  doi?: string;
+  venue?: string;
+  journal?: string;
+  openAccess?: boolean;
+  concepts?: string[];
+  meshTerms?: string[];
 }
 
 interface ConceptCard {
@@ -638,6 +733,7 @@ lit <command> [options]
 
 命令:
   search <query>              检索相关文献
+  download <query>            检索并下载 PDF
   learn <concept>             学习概念并生成知识卡片
   detect --domain <d>         检测知识盲区
   track <action>              进展追踪
@@ -652,6 +748,9 @@ lit <command> [options]
   --help, -h                  显示帮助信息
   --output <file>             输出文件路径
   --limit <n>                 结果数量限制
+  --source <s1,s2,...>        数据源 (逗号分隔)
+  --domain <hint>             领域提示 (biomedical|cs|engineering|physics|general)
+  --download                  同时下载 PDF (用于 search 命令)
   --depth <d>                 学习深度 (beginner|intermediate|advanced)
   --mode <m>                  分析模式 (quick|standard|deep)
   --format <f>                输出格式 (mermaid|json)
@@ -692,16 +791,24 @@ mkdir -p my-feature/scripts
 
 ### API 速率限制
 
-- **Semantic Scholar API**: 有速率限制，已实现自动重试和延迟
-- **arXiv API**: 相对宽松，推荐用于批量操作
-- **建议**: 使用 arXiv URL 进行论文分析和对比
+- **Semantic Scholar API**: 10 req/s，已实现自动重试和延迟
+- **arXiv API**: 3 req/s，推荐用于批量操作
+- **OpenAlex API**: 10 req/s (100/s with mailto param)
+- **PubMed API**: 3 req/s (10/s with NCBI_API_KEY)
+- **CrossRef API**: 5 req/s (使用 CROSSREF_MAILTO 进入礼貌池)
+- **DBLP API**: 1 req/s (请求间隔较长)
+- **IEEE Xplore**: 200 req/day (免费 tier)
+- **CORE**: 1 req/10s (免费 tier)
+- **建议**: 使用互补搜索策略自动平衡多源负载
 
 ### 最佳实践
 
-1. **使用 arXiv URL**: 比 Semantic Scholar URL 更稳定
-2. **配置 SERPER_API_KEY**: 提供 web 搜索降级能力
-3. **选择合适的分析模式**: quick 用于快速浏览，deep 用于深度研究
-4. **批量操作间隔**: 避免短时间内大量请求
+1. **使用领域提示**: `--domain biomedical` 自动选择最优数据源组合
+2. **配置邮箱**: 设置 `CROSSREF_MAILTO` 和 `UNPAYWALL_EMAIL` 提升访问速率
+3. **配置 SERPER_API_KEY**: 提供 web 搜索降级能力
+4. **选择合适的分析模式**: quick 用于快速浏览，deep 用于深度研究
+5. **批量下载 PDF**: 使用 `lit download` 批量下载开放获取论文
+6. **批量操作间隔**: 避免短时间内大量请求
 
 ---
 
@@ -727,6 +834,12 @@ MIT License - 详见 [LICENSE](LICENSE) 文件。
 
 - [arXiv](https://arxiv.org/) - 开放获取的论文仓库
 - [Semantic Scholar](https://www.semanticscholar.org/) - 学术搜索引擎
+- [OpenAlex](https://openalex.org/) - 开放学术元数据目录
+- [PubMed](https://pubmed.ncbi.nlm.nih.gov/) - 生物医学文献数据库
+- [CrossRef](https://www.crossref.org/) - DOI 注册与元数据
+- [DBLP](https://dblp.org/) - 计算机科学文献库
+- [CORE](https://core.ac.uk/) - 开放获取全文聚合
+- [Unpaywall](https://unpaywall.org/) - 开放获取 PDF 查找
 - [Bun](https://bun.sh/) - 快速的 JavaScript 运行时
 - 所有 AI 提供商 - 提供强大的语言模型支持
 
@@ -734,8 +847,8 @@ MIT License - 详见 [LICENSE](LICENSE) 文件。
 
 ## 📞 联系方式
 
-- 问题反馈: [GitHub Issues](https://github.com/your-username/ScholarGraph/issues)
-- 功能建议: [GitHub Discussions](https://github.com/your-username/ScholarGraph/discussions)
+- 问题反馈: [GitHub Issues](https://github.com/your-username/literature-skills/issues)
+- 功能建议: [GitHub Discussions](https://github.com/your-username/literature-skills/discussions)
 
 ---
 

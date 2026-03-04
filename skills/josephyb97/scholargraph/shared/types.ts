@@ -13,7 +13,9 @@ export interface WebSearchResultItem {
 }
 
 // CLI 参数类型
-export type SearchSource = 'arxiv' | 'semantic_scholar' | 'web';
+export type SearchSource = 'arxiv' | 'semantic_scholar' | 'web'
+  | 'pubmed' | 'crossref' | 'openalex' | 'dblp'
+  | 'core' | 'ieee' | 'unpaywall' | 'google_scholar';
 export type SortBy = 'relevance' | 'date' | 'citations';
 export type LearningDepth = 'beginner' | 'intermediate' | 'advanced';
 export type AnalysisMode = 'quick' | 'standard' | 'deep';

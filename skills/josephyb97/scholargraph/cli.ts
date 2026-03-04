@@ -8,6 +8,7 @@
  *
  * 命令:
  *   search <query>          检索文献
+ *   download <query>        检索并下载 PDF
  *   learn <concept>         学习概念
  *   detect <domain>         检测知识盲区
  *   track <action>          进展追踪
@@ -17,6 +18,7 @@
  */
 
 import LiteratureSearch from './literature-search/scripts/search';
+import { PdfDownloader } from './literature-search/scripts/pdf-downloader';
 import ConceptLearner from './concept-learner/scripts/learn';
 import KnowledgeGapDetector from './knowledge-gap-detector/scripts/detect';
 import ProgressTracker from './progress-tracker/scripts/track';
@@ -30,6 +32,7 @@ import {
   validateDetectParams,
   validateAnalyzeParams,
   validateGraphParams,
+  validatePdfDownloadParams,
   formatValidationErrors,
   isValidSearchSource,
   isValidSortBy,
@@ -41,6 +44,7 @@ import type { SearchSource, SortBy, LearningDepth, AnalysisMode, ReportType } fr
 
 const COMMANDS = {
   search: '检索文献',
+  download: '检索并下载 PDF',
   learn: '学习概念',
   detect: '检测知识盲区',
   track: '进展追踪',
@@ -63,8 +67,15 @@ function showHelp() {
 命令:
   search <query>              检索相关文献
     --limit <n>               结果数量 (默认: 10, 范围: 1-100)
-    --source <s>              数据源 (arxiv|semantic_scholar|web)
+    --source <s1,s2,...>      数据源 (逗号分隔, 见下方列表)
     --sort <by>               排序方式 (relevance|date|citations)
+    --domain <hint>           领域提示 (biomedical|cs|engineering|physics|general)
+    --download                同时下载 PDF
+
+  download <query>            检索并下载 PDF
+    --limit <n>               结果数量 (默认: 5)
+    --source <s1,s2,...>      数据源
+    --output <dir>            下载目录 (默认: ./downloads/pdfs)
 
   learn <concept>             学习概念并生成知识卡片
     --depth <d>               学习深度 (beginner|intermediate|advanced)
@@ -109,6 +120,22 @@ function showHelp() {
     set <key> <value>         设置配置项
     reset                     重置为默认配置
 
+搜索数据源:
+  免费源 (无需 API Key):
+    arxiv               arXiv 预印本 (物理/数学/CS)
+    semantic_scholar     Semantic Scholar (200M+ 论文)
+    openalex             OpenAlex (250M+ 开放学术数据)
+    pubmed               PubMed (生物医学文献)
+    crossref             CrossRef (DOI 元数据)
+    dblp                 DBLP (计算机科学)
+    web                  Web 搜索 (需 SERPER_API_KEY)
+
+  需 API Key:
+    ieee                 IEEE Xplore (需 IEEE_API_KEY)
+    core                 CORE 开放获取 (需 CORE_API_KEY)
+    google_scholar       Google Scholar (需 SERPAPI_KEY)
+    unpaywall            Unpaywall OA PDF 解析 (需 UNPAYWALL_EMAIL)
+
 环境变量:
   AI_PROVIDER                 AI 提供商 (见下方支持列表)
 
@@ -134,12 +161,24 @@ function showHelp() {
   # 搜索
   SERPER_API_KEY              Serper 搜索 API 密钥 (用于 web 搜索功能)
 
+  # 学术数据源 API Key
+  NCBI_API_KEY                PubMed 高速访问密钥
+  IEEE_API_KEY                IEEE Xplore API 密钥
+  CORE_API_KEY                CORE API 密钥
+  UNPAYWALL_EMAIL             Unpaywall 邮箱 (用于 OA PDF 解析)
+  CROSSREF_MAILTO             CrossRef 礼貌池邮箱
+  SERPAPI_KEY                 SerpAPI 密钥 (Google Scholar)
+
 支持的 AI 提供商:
   zai, openai, anthropic, azure, ollama, qwen, deepseek, zhipu,
   minimax, moonshot, baichuan, yi, doubao, groq, together
 
 示例:
   lit search "transformer attention" --limit 20
+  lit search "CRISPR gene editing" --domain biomedical
+  lit search "deep learning" --source semantic_scholar,arxiv --sort citations
+  lit search "attention is all you need" --download --limit 3
+  lit download "transformer" --limit 5 --output ./papers
   lit learn "BERT" --depth advanced --output bert-card.md
   lit detect --domain "NLP" --known "transformer,attention"
   lit track report --type weekly --output weekly-report.md
@@ -184,6 +223,10 @@ async function main() {
     switch (command) {
       case 'search':
         await handleSearch(cmdArgs);
+        break;
+
+      case 'download':
+        await handleDownload(cmdArgs);
         break;
 
       case 'learn':
@@ -233,6 +276,15 @@ async function main() {
   }
 }
 
+/**
+ * Parse comma-separated source list
+ */
+function parseSources(sourceArg: string): SearchSource[] {
+  return sourceArg.split(',')
+    .map(s => s.trim())
+    .filter(s => isValidSearchSource(s)) as SearchSource[];
+}
+
 async function handleSearch(args: string[]) {
   const query = args[0];
 
@@ -241,14 +293,86 @@ async function handleSearch(args: string[]) {
 
   const sourceIndex = args.indexOf('--source');
   const sourceArg = sourceIndex > -1 ? args[sourceIndex + 1] : undefined;
-  const source: SearchSource | undefined = isValidSearchSource(sourceArg) ? sourceArg : undefined;
+  const sources: SearchSource[] | undefined = sourceArg ? parseSources(sourceArg) : undefined;
 
   const sortIndex = args.indexOf('--sort');
   const sortArg = sortIndex > -1 ? args[sortIndex + 1] : 'relevance';
   const sortBy: SortBy = isValidSortBy(sortArg) ? sortArg : 'relevance';
 
+  const domainIndex = args.indexOf('--domain');
+  const domainHint = domainIndex > -1 ? args[domainIndex + 1] : undefined;
+
+  const shouldDownload = args.includes('--download');
+
   // 验证参数
-  const validation = validateSearchParams({ query, limit, source, sortBy });
+  const validation = validateSearchParams({
+    query,
+    limit,
+    source: sources?.[0],
+    sortBy
+  });
+  if (!validation.valid) {
+    console.error('Validation errors:\n' + formatValidationErrors(validation.errors));
+    process.exit(1);
+  }
+
+  const searcher = new LiteratureSearch();
+  await searcher.initialize();
+
+  // Show domain detection info
+  if (!sources) {
+    const strategy = searcher.getStrategy();
+    const domainInfo = strategy.getDomainInfo(query, domainHint);
+    const selectedSources = strategy.selectSources(query, searcher.getRegistry(), domainHint);
+    console.log(`🔍 Searching for "${query}" [domain: ${domainInfo.domain}${domainInfo.isHinted ? ' (hinted)' : ' (auto)'}]`);
+    console.log(`   Sources: ${selectedSources.join(', ')}`);
+  } else {
+    console.log(`🔍 Searching for "${query}" [sources: ${sources.join(', ')}]`);
+  }
+
+  const results = await searcher.search(query, {
+    limit,
+    sources,
+    sortBy,
+    domainHint
+  });
+
+  console.log(`\n📚 Found ${results.totalResults} results:\n`);
+
+  results.results.forEach((paper, i) => {
+    console.log(`${i + 1}. ${paper.title}`);
+    console.log(`   Authors: ${paper.authors.slice(0, 3).join(', ')}${paper.authors.length > 3 ? '...' : ''}`);
+    console.log(`   Source: ${paper.source} | Date: ${paper.publishDate}${paper.citations ? ` | Citations: ${paper.citations}` : ''}`);
+    console.log(`   URL: ${paper.url}`);
+    if (paper.doi) console.log(`   DOI: ${paper.doi}`);
+    if (paper.openAccess) console.log(`   Open Access: Yes`);
+    console.log('');
+  });
+
+  // Download PDFs if requested
+  if (shouldDownload && results.results.length > 0) {
+    console.log('📥 Downloading PDFs...\n');
+    const downloader = new PdfDownloader(undefined, searcher.getRegistry());
+    const downloads = await downloader.downloadResults(results.results);
+    console.log(`\n✅ Downloaded ${downloads.length} PDFs`);
+  }
+}
+
+async function handleDownload(args: string[]) {
+  const query = args[0];
+
+  const limitIndex = args.indexOf('--limit');
+  const limit = limitIndex > -1 ? parseInt(args[limitIndex + 1]) : 5;
+
+  const sourceIndex = args.indexOf('--source');
+  const sourceArg = sourceIndex > -1 ? args[sourceIndex + 1] : undefined;
+  const sources: SearchSource[] | undefined = sourceArg ? parseSources(sourceArg) : undefined;
+
+  const outputIndex = args.indexOf('--output');
+  const outputDir = outputIndex > -1 ? args[outputIndex + 1] : undefined;
+
+  // 验证参数
+  const validation = validatePdfDownloadParams({ query, limit });
   if (!validation.valid) {
     console.error('Validation errors:\n' + formatValidationErrors(validation.errors));
     process.exit(1);
@@ -259,21 +383,25 @@ async function handleSearch(args: string[]) {
 
   console.log(`🔍 Searching for "${query}"...`);
 
-  const results = await searcher.search(query, {
-    limit,
-    sources: source ? [source] : undefined,
-    sortBy
-  });
+  const results = await searcher.search(query, { limit, sources });
 
-  console.log(`\n📚 Found ${results.totalResults} results:\n`);
+  if (results.results.length === 0) {
+    console.log('No results found.');
+    return;
+  }
 
-  results.results.forEach((paper, i) => {
-    console.log(`${i + 1}. ${paper.title}`);
-    console.log(`   Authors: ${paper.authors.slice(0, 3).join(', ')}${paper.authors.length > 3 ? '...' : ''}`);
-    console.log(`   Source: ${paper.source} | Date: ${paper.publishDate}`);
-    console.log(`   URL: ${paper.url}`);
-    console.log('');
-  });
+  console.log(`📚 Found ${results.totalResults} results. Downloading PDFs...\n`);
+
+  const downloader = new PdfDownloader(
+    { outputDir },
+    searcher.getRegistry()
+  );
+  const downloads = await downloader.downloadResults(results.results);
+
+  console.log(`\n✅ Downloaded ${downloads.length}/${results.results.length} PDFs`);
+  if (downloads.length > 0) {
+    console.log(`   Saved to: ${outputDir || './downloads/pdfs'}`);
+  }
 }
 
 async function handleLearn(args: string[]) {
@@ -519,7 +647,7 @@ function handleConfig(args: string[]) {
   switch (action) {
     case 'init':
       manager.save();
-      console.log('✅ Configuration initialized at ./scholargraph-config.json');
+      console.log('✅ Configuration initialized at ./literature-config.json');
       break;
 
     case 'show':

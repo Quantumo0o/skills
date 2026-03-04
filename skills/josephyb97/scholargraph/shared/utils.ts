@@ -345,3 +345,128 @@ export function normalizeTitle(title: string): string {
     .replace(/[^a-z0-9\u4e00-\u9fa5]/g, '') // 保留字母、数字和中文
     .substring(0, 50);
 }
+
+/**
+ * 从 OpenAlex 反转索引重建摘要文本
+ */
+export function reconstructAbstract(invertedIndex: Record<string, number[]>): string {
+  if (!invertedIndex || typeof invertedIndex !== 'object') return '';
+
+  const words: Array<[number, string]> = [];
+  for (const [word, positions] of Object.entries(invertedIndex)) {
+    for (const pos of positions) {
+      words.push([pos, word]);
+    }
+  }
+
+  words.sort((a, b) => a[0] - b[0]);
+  return words.map(([, word]) => word).join(' ');
+}
+
+/**
+ * 解析 PubMed XML efetch 响应
+ */
+export function parsePubMedXml(xml: string): Array<{
+  pmid: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  publishDate: string;
+  journal?: string;
+  doi?: string;
+  meshTerms?: string[];
+}> {
+  const results: Array<{
+    pmid: string;
+    title: string;
+    authors: string[];
+    abstract: string;
+    publishDate: string;
+    journal?: string;
+    doi?: string;
+    meshTerms?: string[];
+  }> = [];
+
+  try {
+    const articles = xml.split('<PubmedArticle>').slice(1);
+
+    for (const article of articles) {
+      try {
+        const pmid = extractXmlTagUtil(article, 'PMID');
+        const title = extractXmlTagUtil(article, 'ArticleTitle').replace(/\s+/g, ' ').trim();
+
+        // Extract abstract
+        const abstractMatch = article.match(/<Abstract>[\s\S]*?<\/Abstract>/);
+        let abstract = '';
+        if (abstractMatch) {
+          const abstractTexts: string[] = [];
+          const textRegex = /<AbstractText[^>]*>([^<]*)<\/AbstractText>/g;
+          let match;
+          while ((match = textRegex.exec(abstractMatch[0])) !== null) {
+            abstractTexts.push(match[1].trim());
+          }
+          abstract = abstractTexts.join(' ');
+        }
+
+        // Extract authors
+        const authors: string[] = [];
+        const authorRegex = /<Author[^>]*>[\s\S]*?<LastName>([^<]+)<\/LastName>[\s\S]*?<ForeName>([^<]+)<\/ForeName>[\s\S]*?<\/Author>/g;
+        let authorMatch;
+        while ((authorMatch = authorRegex.exec(article)) !== null) {
+          authors.push(`${authorMatch[2].trim()} ${authorMatch[1].trim()}`);
+        }
+
+        // Extract date
+        const yearMatch = article.match(/<PubDate>[\s\S]*?<Year>(\d{4})<\/Year>/);
+        const monthMatch = article.match(/<PubDate>[\s\S]*?<Month>([^<]+)<\/Month>/);
+        const year = yearMatch ? yearMatch[1] : '';
+        const month = monthMatch ? monthMatch[1] : '';
+        const publishDate = month ? `${year}-${month}` : year;
+
+        // Extract journal
+        const journal = extractXmlTagUtil(article, 'Title');
+
+        // Extract DOI
+        const doiMatch = article.match(/<ArticleId IdType="doi">([^<]+)<\/ArticleId>/);
+        const doi = doiMatch ? doiMatch[1] : undefined;
+
+        // Extract MeSH terms
+        const meshTerms: string[] = [];
+        const meshRegex = /<DescriptorName[^>]*>([^<]+)<\/DescriptorName>/g;
+        let meshMatch;
+        while ((meshMatch = meshRegex.exec(article)) !== null) {
+          meshTerms.push(meshMatch[1].trim());
+        }
+
+        results.push({
+          pmid,
+          title,
+          authors,
+          abstract,
+          publishDate,
+          journal: journal || undefined,
+          doi,
+          meshTerms: meshTerms.length > 0 ? meshTerms : undefined
+        });
+      } catch {
+        continue;
+      }
+    }
+  } catch (error) {
+    throw new ParseError('Failed to parse PubMed XML response', {
+      format: 'xml',
+      cause: error instanceof Error ? error : undefined
+    });
+  }
+
+  return results;
+}
+
+/**
+ * XML 标签提取工具函数 (公共版本)
+ */
+function extractXmlTagUtil(xml: string, tag: string): string {
+  const regex = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i');
+  const match = xml.match(regex);
+  return match ? match[1].trim() : '';
+}

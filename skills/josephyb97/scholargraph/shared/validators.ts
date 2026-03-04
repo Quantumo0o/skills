@@ -15,7 +15,11 @@ import type {
 } from './types';
 
 // 有效值常量
-const VALID_SEARCH_SOURCES: SearchSource[] = ['arxiv', 'semantic_scholar', 'web'];
+const VALID_SEARCH_SOURCES: SearchSource[] = [
+  'arxiv', 'semantic_scholar', 'web',
+  'pubmed', 'crossref', 'openalex', 'dblp',
+  'core', 'ieee', 'unpaywall', 'google_scholar'
+];
 const VALID_SORT_BY: SortBy[] = ['relevance', 'date', 'citations'];
 const VALID_LEARNING_DEPTHS: LearningDepth[] = ['beginner', 'intermediate', 'advanced'];
 const VALID_ANALYSIS_MODES: AnalysisMode[] = ['quick', 'standard', 'deep'];
@@ -345,4 +349,26 @@ export function isValidAnalysisMode(value: unknown): value is AnalysisMode {
  */
 export function isValidReportType(value: unknown): value is ReportType {
   return typeof value === 'string' && VALID_REPORT_TYPES.includes(value as ReportType);
+}
+
+/**
+ * 验证 PDF 下载参数
+ */
+export function validatePdfDownloadParams(params: {
+  query?: string;
+  limit?: number;
+  outputDir?: string;
+}): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  if (!params.query || params.query.trim().length === 0) {
+    errors.push(createError('query', 'Search query is required for PDF download'));
+  }
+
+  if (params.limit !== undefined) {
+    const limitResult = validateNumberRange(params.limit, 1, 50, 'limit');
+    errors.push(...limitResult.errors);
+  }
+
+  return createResult(errors);
 }
