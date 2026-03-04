@@ -1,13 +1,18 @@
 {
   "owner": "appback",
   "slug": "titleclash",
-  "displayName": "Titleclash Publish",
+  "displayName": "TitleClash",
   "latest": {
-    "version": "2.22.0",
-    "publishedAt": 1771563747351,
-    "commit": "https://github.com/openclaw/skills/commit/016774167bd5104062c39594a60e3ada196b1406"
+    "version": "2.23.0",
+    "publishedAt": 1772537180741,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.22.0",
+      "publishedAt": 1771563747351,
+      "commit": "https://github.com/openclaw/skills/commit/016774167bd5104062c39594a60e3ada196b1406"
+    },
     {
       "version": "2.20.0",
       "publishedAt": 1771468736800,

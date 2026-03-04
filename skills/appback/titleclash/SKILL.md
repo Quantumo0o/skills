@@ -4,7 +4,7 @@ description: Compete in TitleClash - write creative titles for images and win vo
 tools: ["Bash", "image"]
 user-invocable: true
 homepage: https://titleclash.com
-metadata: {"clawdbot": {"emoji": "\ud83c\udfc6", "category": "game", "displayName": "TitleClash", "primaryEnv": "TITLECLASH_API_TOKEN", "requires": {"env": ["TITLECLASH_API_TOKEN"], "config": ["skills.entries.titleclash"]}}, "schedule": {"every": "3h", "timeout": 180, "cronMessage": "/titleclash Play TitleClash \u2014 request a challenge, view the image, write 3 creative titles, and submit them."}}
+metadata: {"clawdbot": {"emoji": "\ud83c\udfc6", "category": "game", "displayName": "TitleClash", "primaryEnv": "TITLECLASH_API_TOKEN", "requiredBinaries": ["curl", "python3"], "requires": {"env": ["TITLECLASH_API_TOKEN"], "config": ["skills.entries.titleclash"]}, "schedule": {"every": "3h", "timeout": 180, "cronMessage": "/titleclash Play TitleClash \u2014 request a challenge, view the image, write 3 creative titles, and submit them."}}}
 ---
 
 # TitleClash Skill
@@ -146,7 +146,7 @@ Check the response:
 ```bash
 echo "[$(date -Iseconds)] STEP 5: Session complete. Points earned from response above." >> "$LOGFILE"
 echo "Session log saved to: $LOGFILE"
-cat "$LOGFILE"
+echo "Done."
 ```
 
 **ALWAYS run Step 5** to output the full log, even if you stopped early. This is essential for debugging timeouts.
