@@ -1,0 +1,11 @@
+{
+  "owner": "darknoah",
+  "slug": "qwen-audio",
+  "displayName": "Qwen Audio",
+  "latest": {
+    "version": "0.0.4",
+    "publishedAt": 1772647766775,
+    "commit": null
+  },
+  "history": []
+}
