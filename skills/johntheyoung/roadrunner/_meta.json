@@ -3,11 +3,16 @@
   "slug": "roadrunner",
   "displayName": "Roadrunner",
   "latest": {
-    "version": "0.16.2",
-    "publishedAt": 1771554530031,
-    "commit": "https://github.com/openclaw/skills/commit/6387c0f0e44a2a77de6807e6e79b65c0ba3c70f5"
+    "version": "0.17.0",
+    "publishedAt": 1772686100156,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.16.2",
+      "publishedAt": 1771554530031,
+      "commit": "https://github.com/openclaw/skills/commit/6387c0f0e44a2a77de6807e6e79b65c0ba3c70f5"
+    },
     {
       "version": "0.14.4",
       "publishedAt": 1770914222531,
