@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "gws-gmail-send",
+  "displayName": "Gws Gmail Send",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772741639110,
+    "commit": null
+  },
+  "history": []
+}
