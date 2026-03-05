@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "stripe-integration",
+  "displayName": "Stripe",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772676131160,
+    "commit": null
+  },
+  "history": []
+}
