@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "jisu-news",
+  "displayName": "热门新闻 - Hot News",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772611942253,
+    "commit": null
+  },
+  "history": []
+}
