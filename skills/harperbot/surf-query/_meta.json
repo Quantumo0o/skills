@@ -1,0 +1,11 @@
+{
+  "owner": "harperbot",
+  "slug": "surf-query",
+  "displayName": "Surf Query",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1772610311048,
+    "commit": null
+  },
+  "history": []
+}
