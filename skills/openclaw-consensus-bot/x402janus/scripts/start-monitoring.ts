@@ -77,7 +77,7 @@ async function buildPaymentHeader(challenge: X402Challenge): Promise<string> {
 
   const accept = challenge.accepts[0];
   const privateKey = requireEnv("PRIVATE_KEY");
-  const rpcUrl = process.env.BASE_RPC_URL;
+  const rpcUrl = process.env.BASE_RPC_URL ?? "https://base.gateway.tenderly.co";
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   const walletClient = createWalletClient({
@@ -192,6 +192,7 @@ async function fetchWithPayment(
         Accept: "application/json",
         "Content-Type": "application/json",
         ...(options.headers as Record<string, string> | undefined),
+        "PAYMENT-SIGNATURE": paymentHeader,
         "X-PAYMENT": paymentHeader,
       },
     });
@@ -267,7 +268,8 @@ async function subscribe(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Subscription failed: HTTP ${response.status} — ${text}`);
+    const preview = text.slice(0, 200);
+    throw new Error(`Subscription failed: HTTP ${response.status} — ${preview}`);
   }
 
   return response.json() as Promise<SubscriptionResult>;
@@ -393,8 +395,16 @@ Optional env:
   }
 
   const alertTypes = values["alert-types"]
-    ? values["alert-types"].split(",").map((t) => t.trim())
+    ? values["alert-types"].split(",").map((t) => t.trim().toLowerCase()).filter(Boolean)
     : ["all"];
+  const validAlertTypes = ["all", "approval", "transfer", "risk", "contract", "suspicious"];
+  const invalidAlertTypes = alertTypes.filter((t) => !validAlertTypes.includes(t));
+  if (invalidAlertTypes.length > 0) {
+    console.error(
+      `Error: invalid alert type(s): ${invalidAlertTypes.join(", ")} — use: ${validAlertTypes.join(", ")}`
+    );
+    process.exit(1);
+  }
 
   try {
     const result = await subscribe(address, {

@@ -75,7 +75,7 @@ async function buildPaymentHeader(challenge: X402Challenge): Promise<string> {
 
   const accept = challenge.accepts[0];
   const privateKey = requireEnv("PRIVATE_KEY");
-  const rpcUrl = process.env.BASE_RPC_URL;
+  const rpcUrl = process.env.BASE_RPC_URL ?? "https://base.gateway.tenderly.co";
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   const walletClient = createWalletClient({
@@ -188,6 +188,7 @@ async function fetchWithPayment(
       headers: {
         Accept: "application/json",
         ...(options.headers as Record<string, string> | undefined),
+        "PAYMENT-SIGNATURE": paymentHeader,
         "X-PAYMENT": paymentHeader,
       },
     });
@@ -276,7 +277,8 @@ async function fetchApprovals(
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Failed to fetch approvals: HTTP ${response.status} — ${body}`);
+    const preview = body.slice(0, 200);
+    throw new Error(`Failed to fetch approvals: HTTP ${response.status} — ${preview}`);
   }
 
   return response.json() as Promise<ApprovalsResult>;
@@ -417,8 +419,16 @@ Examples:
   }
 
   const riskFilter = values.risk
-    ? values.risk.split(",").map((r) => r.trim().toLowerCase())
+    ? values.risk.split(",").map((r) => r.trim().toLowerCase()).filter(Boolean)
     : [];
+  const validRiskLevels = ["low", "medium", "high", "critical"];
+  const invalidRiskLevels = riskFilter.filter((r) => !validRiskLevels.includes(r));
+  if (invalidRiskLevels.length > 0) {
+    console.error(
+      `Error: invalid risk level(s): ${invalidRiskLevels.join(", ")} — use: ${validRiskLevels.join(", ")}`
+    );
+    process.exit(1);
+  }
 
   const validFormats = ["table", "csv", "json"];
   const format = values.json ? "json" : (values.format ?? "table").toLowerCase();

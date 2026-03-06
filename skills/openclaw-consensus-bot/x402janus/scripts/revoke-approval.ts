@@ -78,7 +78,7 @@ async function buildPaymentHeader(challenge: X402Challenge): Promise<string> {
 
   const accept = challenge.accepts[0];
   const privateKey = requireEnv("PRIVATE_KEY");
-  const rpcUrl = process.env.BASE_RPC_URL;
+  const rpcUrl = process.env.BASE_RPC_URL ?? "https://base.gateway.tenderly.co";
 
   const account = privateKeyToAccount(privateKey as `0x${string}`);
   const walletClient = createWalletClient({
@@ -127,6 +127,7 @@ async function buildPaymentHeader(challenge: X402Challenge): Promise<string> {
   });
 
   const payload = {
+    x402Version: 2,
     scheme: accept.scheme,
     network: accept.network,
     payload: {
@@ -193,6 +194,7 @@ async function fetchWithPayment(
         Accept: "application/json",
         "Content-Type": "application/json",
         ...(options.headers as Record<string, string> | undefined),
+        "PAYMENT-SIGNATURE": paymentHeader,
         "X-PAYMENT": paymentHeader,
       },
     });
@@ -264,12 +266,17 @@ function buildRevokeTx(
   };
 }
 
-async function estimateGas(tx: RevokeTransaction): Promise<string> {
+async function estimateGas(tx: RevokeTransaction, timeoutMs = 10_000): Promise<string> {
   const rpcUrl = process.env.BASE_RPC_URL;
   if (!rpcUrl) return tx.gasEstimate; // BASE_RPC_URL not set — use default
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(rpcUrl, {
       method: "POST",
+      signal: controller.signal,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         jsonrpc: "2.0",
@@ -278,12 +285,20 @@ async function estimateGas(tx: RevokeTransaction): Promise<string> {
         id: 1,
       }),
     });
-    const result = await response.json();
+
+    if (!response.ok) return tx.gasEstimate;
+
+    const result = await response.json() as { result?: string };
     if (result.result) {
       const gas = BigInt(result.result);
       return (gas * 120n / 100n).toString(); // +20% buffer
     }
-  } catch { /* use default */ }
+  } catch {
+    // use default on timeout/network/parse errors
+  } finally {
+    clearTimeout(timer);
+  }
+
   return tx.gasEstimate;
 }
 
