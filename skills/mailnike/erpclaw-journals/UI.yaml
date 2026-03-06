@@ -4,6 +4,42 @@ skill_version: "1.0.0"
 display_name: Journal Entries
 icon: book-open
 color: "#8b5cf6"
+default_entity: journal_entry
+
+dashboard:
+  kpis:
+    - key: total_journal_entry
+      label: "Journal Entries"
+      type: count
+      action: list-journal-entries
+      drill_action: list-journal-entries
+    - key: draft_journal_entry
+      label: "Draft Journal Entries"
+      type: count
+      action: list-journal-entries
+      filter: { status: draft }
+      severity: warning
+      drill_action: list-journal-entries
+      drill_filter: { status: draft }
+  quick_actions:
+    - action: add-journal-entry
+      label: "New Journal Entry"
+
+workflows:
+  - after: add-journal-entry
+    suggest:
+      - action: submit-journal-entry
+        label: "Submit journal entry"
+        pass: { journal-entry-id: id }
+  - after: submit-journal-entry
+    suggest:
+      - action: add-journal-entry
+        label: "Create another journal entry"
+  - after: cancel-journal-entry
+    suggest:
+      - action: amend-journal-entry
+        label: "Amend (create corrected copy)"
+        pass: { journal-entry-id: id }
 
 entities:
   journal_entry:
@@ -206,149 +242,6 @@ child_entities:
         type: text
         label: Remark
 
-  recurring_journal_template:
-    label: Recurring Template
-    label_plural: Recurring Templates
-    table: recurring_journal_template
-    id_col: id
-    name_col: name
-    primary_field: name
-    identifier_field: naming_series
-    status_field: status
-    status_colors:
-      active: green
-      paused: yellow
-      completed: gray
-    fields:
-      id:
-        type: text
-        label: ID
-        read_only: true
-        hidden: true
-      naming_series:
-        type: text
-        label: Naming Series
-        read_only: true
-      name:
-        type: text
-        label: Template Name
-        required: true
-        in_list_view: true
-        in_form_view: true
-        form_group: header
-        form_order: 1
-      frequency:
-        type: select
-        label: Frequency
-        required: true
-        options:
-          - value: "daily"
-            label: "Daily"
-          - value: "weekly"
-            label: "Weekly"
-          - value: "monthly"
-            label: "Monthly"
-          - value: "quarterly"
-            label: "Quarterly"
-          - value: "annual"
-            label: "Annual"
-        in_list_view: true
-        in_form_view: true
-        form_group: header
-        form_order: 2
-      start_date:
-        type: date
-        label: Start Date
-        required: true
-        in_form_view: true
-        form_group: schedule
-        form_order: 3
-      end_date:
-        type: date
-        label: End Date
-        in_form_view: true
-        form_group: schedule
-        form_order: 4
-      next_run_date:
-        type: date
-        label: Next Run Date
-        read_only: true
-        in_list_view: true
-      last_generated_date:
-        type: date
-        label: Last Generated
-        read_only: true
-      entry_type:
-        type: select
-        label: Entry Type
-        options:
-          - value: "journal"
-            label: "Journal"
-          - value: "opening"
-            label: "Opening"
-          - value: "closing"
-            label: "Closing"
-          - value: "depreciation"
-            label: "Depreciation"
-          - value: "write_off"
-            label: "Write Off"
-        in_form_view: true
-        form_group: details
-        form_order: 5
-      auto_submit:
-        type: checkbox
-        label: Auto Submit
-        in_form_view: true
-        form_group: details
-        form_order: 6
-      remark:
-        type: text
-        label: Remark
-        in_form_view: true
-        form_group: details
-        form_order: 7
-      status:
-        type: select
-        label: Status
-        options:
-          - value: "active"
-            label: "Active"
-          - value: "paused"
-            label: "Paused"
-          - value: "completed"
-            label: "Completed"
-        in_list_view: true
-      company_id:
-        type: link
-        label: Company
-        link_entity: company
-        link_display_field: name
-        link_search_action: list-companies
-        in_form_view: true
-        form_group: references
-        form_order: 8
-    form_groups:
-      header:
-        label: Basic Information
-        order: 1
-        columns: 2
-      schedule:
-        label: Schedule
-        order: 2
-        columns: 2
-      details:
-        label: Details
-        order: 3
-        columns: 2
-      references:
-        label: References
-        order: 4
-        columns: 2
-      items:
-        label: Line Items
-        order: 5
-        type: child_table
-
 action_map:
   add-journal-entry:
     component: FormView
@@ -403,35 +296,3 @@ action_map:
     component: FormView
     entity: journal_entry
     mode: edit
-  add-recurring-template:
-    component: FormView
-    entity: recurring_journal_template
-    mode: create
-    child_tables:
-      - entity: journal_entry_line
-        form_group: items
-        add_label: "Add Row"
-  update-recurring-template:
-    component: FormView
-    entity: recurring_journal_template
-    mode: edit
-  list-recurring-templates:
-    component: DataTable
-    entity: recurring_journal_template
-    default_sort: next_run_date
-    default_sort_dir: asc
-    searchable: true
-    add_action: add-recurring-template
-  get-recurring-template:
-    component: DetailView
-    entity: recurring_journal_template
-  process-recurring:
-    component: WizardFlow
-    steps:
-      - label: Confirm
-        type: confirmation
-        message: "Generate journal entries from all due recurring templates?"
-  delete-recurring-template:
-    component: null
-    entity: recurring_journal_template
-    hidden: true
