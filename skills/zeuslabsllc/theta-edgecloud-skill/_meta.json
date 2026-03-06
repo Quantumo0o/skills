@@ -1,0 +1,11 @@
+{
+  "owner": "zeuslabsllc",
+  "slug": "theta-edgecloud-skill",
+  "displayName": "Theta EdgeCloud Skill",
+  "latest": {
+    "version": "0.1.5",
+    "publishedAt": 1772759862089,
+    "commit": null
+  },
+  "history": []
+}
