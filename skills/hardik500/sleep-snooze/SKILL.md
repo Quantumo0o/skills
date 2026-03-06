@@ -61,17 +61,22 @@ When a message or notification arrives during the sleep window:
 
 ### Outgoing messages you generate during sleep
 
-When you (or any agent) are about to send a proactive message to the user during the sleep window — status updates, recaps, reports, heartbeats — queue them instead of sending:
+When you (or any agent) are about to send a proactive message — status updates, recaps, reports, heartbeats — use `gate.js` instead of sending directly. It handles the sleep check and queuing automatically:
 
 ```bash
-node ~/.openclaw/skills/sleep-snooze/scripts/queue-message.js \
+node ~/.openclaw/skills/sleep-snooze/scripts/gate.js \
   --provider <provider> \
   --sender-id <agent-id> \
   --sender-name "<Agent Name>" \
   --message "<full message text>"
 ```
 
-Exit code 0 = queued, do not send. Exit code 2 = urgent, send immediately with 🚨 prefix.
+Exit codes:
+- **0** — sleeping, message was queued — do NOT send
+- **2** — sleeping but urgent — send with 🚨 prefix
+- **3** — awake — send normally
+
+Use `gate.js` for ALL outgoing messages. It checks the actual current time against the schedule, so it works even if the sleep-mode cron did not run.
 
 ## Urgency Rules
 

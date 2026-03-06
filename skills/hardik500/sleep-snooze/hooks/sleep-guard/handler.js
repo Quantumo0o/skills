@@ -1,10 +1,5 @@
-const fs   = require('fs');
 const path = require('path');
-
-const STATE_FILE = path.join(
-  process.env.HOME,
-  '.openclaw', 'skills', 'sleep-snooze', 'data', 'state.json'
-);
+const { loadSleepState } = require('../../lib/sleep-check');
 
 const QUEUE_SCRIPT = path.join(
   process.env.HOME,
@@ -14,26 +9,25 @@ const QUEUE_SCRIPT = path.join(
 const handler = async (event) => {
   if (event.type !== 'agent' || event.action !== 'bootstrap') return;
 
-  let state;
+  let isSleeping, state;
   try {
-    state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    ({ isSleeping, state } = loadSleepState());
   } catch {
     // sleep-snooze not configured yet — skip silently
     return;
   }
 
-  if (!state.isSleeping) return;
+  if (!isSleeping) return;
 
-  // Inject a strongly-worded bootstrap file into every agent session
   if (event.context && Array.isArray(event.context.bootstrapFiles)) {
     event.context.bootstrapFiles.push({
       basename: 'SLEEP_MODE_ACTIVE.md',
-      content: buildSleepNotice(state),
+      content:  buildSleepNotice(state, QUEUE_SCRIPT),
     });
   }
 };
 
-function buildSleepNotice(state) {
+function buildSleepNotice(state, queueScript) {
   return `# 🌙 SLEEP MODE IS ACTIVE — READ THIS BEFORE TAKING ANY ACTION
 
 The user is currently sleeping. Sleep window: **${state.sleepStart} → ${state.wakeTime} (${state.timezone})**.
@@ -42,12 +36,12 @@ The user is currently sleeping. Sleep window: **${state.sleepStart} → ${state.
 
 This includes: summaries, alerts, status updates, heartbeats, digests, reports, or any other notification.
 
-## Instead: Queue every message
+## Instead: use gate.js before every send
 
-For anything you would normally send, run this command instead:
+Replace any direct message send with a gate check:
 
 \`\`\`bash
-node ${QUEUE_SCRIPT} \\
+node ${path.join(path.dirname(queueScript), 'gate.js')} \\
   --provider <provider-name> \\
   --sender-id <your-agent-id> \\
   --sender-name "<Your Agent Name>" \\
@@ -55,20 +49,15 @@ node ${QUEUE_SCRIPT} \\
 \`\`\`
 
 Exit codes:
-- **0** — queued successfully → do nothing else, do not send
-- **2** — urgent message → deliver immediately, prefix with 🚨
+- **0** — queued, do NOT send
+- **2** — urgent, send immediately with 🚨 prefix
+- **3** — awake, send normally
 
-## Urgency bypass (exit code 2 only)
+## Urgency bypass
 
-Only consider a message urgent if:
-- It contains the words: \`urgent\`, \`emergency\`, \`critical\`, \`911\`, \`help me\`
-- The sender is a known VIP contact
+Only urgent if message contains: \`urgent\`, \`emergency\`, \`critical\`, \`911\`, \`help me\`, or sender is a VIP contact.
 
-Everything else — including routine heartbeats, weekly recaps, stock summaries, and backup confirmations — must be **queued, not sent**.
-
-## If the user sends you a message first
-
-If the user themselves initiates contact, suspend sleep mode for 30 minutes (they are awake). Respond normally.
+Heartbeats, weekly recaps, stock summaries, backup confirmations → **NOT urgent → queue them**.
 `;
 }
 
