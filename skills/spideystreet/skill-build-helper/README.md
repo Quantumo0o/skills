@@ -28,5 +28,5 @@ No setup required. The skill is self-contained.
 ## Install
 
 ```bash
-clawhub install spideystreet/skill-builder
+clawhub install skill-build-helper
 ```
