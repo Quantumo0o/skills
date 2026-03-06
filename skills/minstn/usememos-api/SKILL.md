@@ -1,5 +1,5 @@
 ---
-name: usememos
+name: usememos-api
 version: "1.0.0"
 description: Interact with UseMemos — a lightweight, self-hosted memo hub. Create, search, list memos and upload attachments.
 tags: ["memos", "notes", "self-hosted", "knowledge-base", "attachments"]

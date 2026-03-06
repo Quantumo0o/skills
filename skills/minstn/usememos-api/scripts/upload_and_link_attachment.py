@@ -60,13 +60,31 @@ def main():
     attachment_name = attachment['name']
     print(f"Uploaded [{attachment_name}] ({attachment.get('size', '?')} bytes)")
 
-    # Step 2: Link attachment to memo
+    # Step 2: Get existing memo to preserve current attachments
+    get_req = urllib.request.Request(
+        f"{base_url}/api/v1/memos/{memo_id}",
+        headers=headers,
+        method='GET'
+    )
+
+    try:
+        with urllib.request.urlopen(get_req) as resp:
+            memo_data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        print(f"Failed to get memo: {e.code} - {e.read().decode()}", file=sys.stderr)
+        print(f"Attachment was uploaded as {attachment_name} but not linked.", file=sys.stderr)
+        sys.exit(1)
+
+    # Step 3: Append new attachment to existing list
+    existing_attachments = memo_data.get('attachments', [])
+    existing_attachments.append({
+        'name': attachment_name,
+        'filename': filename,
+        'type': filetype
+    })
+
     link_payload = json.dumps({
-        'attachments': [{
-            'name': attachment_name,
-            'filename': filename,
-            'type': filetype
-        }]
+        'attachments': existing_attachments
     }).encode()
 
     req = urllib.request.Request(

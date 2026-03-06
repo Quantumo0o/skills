@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.1 (2026-03-05)
+
+### Fixed
+- **Attachment linking bug**: uploading multiple images to a memo replaced all
+  previous attachments instead of appending — only the last image survived.
+  The PATCH now fetches existing attachments first and appends the new one.
+
+### Added
+- Integration tests for image uploads (1 PNG, 2 PNGs, 1 JPG, 3 JPGs) that
+  run against a live UseMemos instance using the actual scripts
+- `package.sh` script for packaging the skill for clawhub.ai publishing
+
 ## 1.0.0 (2026-02-24)
 
 Initial release.
