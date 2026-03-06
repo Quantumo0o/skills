@@ -33,7 +33,7 @@ mcporter --version
 
 1. 访问钉钉 MCP 广场 - AI 表格页面：
    https://mcp.dingtalk.com/#/detail?mcpId=1060&detailType=marketMcpDetail
-2. 在页面**右侧**点击“获取 MCP 凭证配置”按钮，然后找到 `Streamable HTTP URL`
+2. 在页面**右侧**点击“获取 MCP Server 配置”按钮，然后找到 `Streamable HTTP URL`
 3. 点击复制该 URL（完整地址，以 http 开头）
 
 ### 3. 配置 MCP 服务器
@@ -93,7 +93,7 @@ mcporter call dingtalk-ai-table get_root_node_of_my_document --output json
 
 - 📊 [钉钉 AI 表格官网](https://table.dingtalk.com)
 - 🔌 [钉钉 MCP 广场 - AI 表格](https://mcp.dingtalk.com/#/detail?mcpId=1060&detailType=marketMcpDetail)
-- 📦 [ClawHub 技能页面](https://clawhub.com/skills/dingtalk-ai-table)
+- 📦 [ClawHub 技能页面](https://clawhub.ai/aliramw/dingtalk-ai-table)
 - 🐛 [问题反馈 (GitHub Issues)](https://github.com/aliramw/dingtalk-ai-table/issues)
 - 📖 [源代码仓库](https://github.com/aliramw/dingtalk-ai-table)
 - 💬 [加入钉钉讨论群](https://qr.dingtalk.com/action/joingroup?code=v1,k1,6T6sMqtYnX3JrR03p4y5EeTBHP4T+GLZbmGs3/dDTs29AN2XwsPGIg==&_dt_no_comment=1&origin=11?)
