@@ -18,8 +18,9 @@ SQLite-backed paper trading with immutable event logs.
 Asset identity:
 
 - `symbol` is required for trade/snapshot commands.
-- `mint` is optional (`--mint <address>`), useful for token-address-specific tracking.
+- `mint` is REQUIRED for `snapshot` and `open` (`--mint <address>`).
 - If multiple positions share the same symbol, pass `--mint` for `close`/`set-levels` so you target the right one.
+- For ETH/BTC on DEXs, use wrapped token contract addresses (`WETH`, `WBTC`/`cbBTC`) as the mint.
 
 ## When to Use
 
@@ -70,7 +71,7 @@ node --experimental-strip-types {baseDir}/scripts/paper_trading.ts snapshot \
   --symbol BTC \
   --mint 6p6xgHyF7AeE6TZk8x9mNQd2r2hH7r4mYJ8t6x6hYfSR \
   --price 62000 \
-  --source manual
+  --source dexscreener
 ```
 
 ### 3) Open position
@@ -144,7 +145,7 @@ node --experimental-strip-types {baseDir}/scripts/paper_trading.ts review --acco
 
 ## Workflow
 
-1. Keep snapshots updated for symbols with open positions.
+1. Keep snapshots updated for symbols with open positions, always with `--mint` and `--source dexscreener`.
 2. Open trades only with explicit stop and risk cap (`--max-risk-pct`).
 3. Log every change as an event, do not edit old events.
 4. Run `status` after each trade and `review` at week end.

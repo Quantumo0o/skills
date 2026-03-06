@@ -66,16 +66,19 @@ test('open requires symbol', () => {
   }
 });
 
-test('symbol-only lifecycle computes realized and unrealized pnl', () => {
+test('minted lifecycle computes realized and unrealized pnl', () => {
   const { dir, db } = mkTmpDbPath();
+  const mint = '0x4200000000000000000000000000000000000006';
   try {
     runOk(['init', '--starting-balance', '10000'], db);
-    runOk(['snapshot', '--symbol', 'BTC', '--price', '62000', '--source', 'test'], db);
+    runOk(['snapshot', '--symbol', 'BTC', '--mint', mint, '--price', '62000', '--source', 'dexscreener'], db);
     runOk(
       [
         'open',
         '--symbol',
         'BTC',
+        '--mint',
+        mint,
         '--side',
         'LONG',
         '--qty',
@@ -91,8 +94,25 @@ test('symbol-only lifecycle computes realized and unrealized pnl', () => {
       ],
       db,
     );
-    runOk(['snapshot', '--symbol', 'BTC', '--price', '63000', '--source', 'test'], db);
-    runOk(['close', '--symbol', 'BTC', '--side', 'LONG', '--qty', '0.05', '--price', '63100', '--fee', '1'], db);
+    runOk(['snapshot', '--symbol', 'BTC', '--mint', mint, '--price', '63000', '--source', 'dexscreener'], db);
+    runOk(
+      [
+        'close',
+        '--symbol',
+        'BTC',
+        '--mint',
+        mint,
+        '--side',
+        'LONG',
+        '--qty',
+        '0.05',
+        '--price',
+        '63100',
+        '--fee',
+        '1',
+      ],
+      db,
+    );
 
     const status = runOk(['status', '--format', 'json', '--pretty'], db);
     const payload = parseJsonStdout(status.stdout);
@@ -101,21 +121,27 @@ test('symbol-only lifecycle computes realized and unrealized pnl', () => {
     assert.equal(payload.summary.unrealizedPnl, 49);
     assert.equal(payload.summary.openPositions, 1);
     assert.equal(payload.positions[0].symbol, 'BTC');
-    assert.equal(payload.positions[0].mint, null);
+    assert.equal(payload.positions[0].mint, mint);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test('mint is optional and separates same-symbol positions', () => {
+test('mint separates same-symbol positions', () => {
   const { dir, db } = mkTmpDbPath();
   const mintA = 'MintA11111111111111111111111111111111111';
   const mintB = 'MintB22222222222222222222222222222222222';
   try {
     runOk(['init', '--starting-balance', '10000'], db);
 
-    runOk(['snapshot', '--symbol', 'BTC', '--mint', mintA, '--price', '62000', '--source', 'test'], db);
-    runOk(['snapshot', '--symbol', 'BTC', '--mint', mintB, '--price', '50000', '--source', 'test'], db);
+    runOk(
+      ['snapshot', '--symbol', 'BTC', '--mint', mintA, '--price', '62000', '--source', 'dexscreener'],
+      db,
+    );
+    runOk(
+      ['snapshot', '--symbol', 'BTC', '--mint', mintB, '--price', '50000', '--source', 'dexscreener'],
+      db,
+    );
 
     runOk(['open', '--symbol', 'BTC', '--mint', mintA, '--side', 'LONG', '--qty', '1', '--price', '62000'], db);
     runOk(['open', '--symbol', 'BTC', '--mint', mintB, '--side', 'LONG', '--qty', '1', '--price', '50000'], db);

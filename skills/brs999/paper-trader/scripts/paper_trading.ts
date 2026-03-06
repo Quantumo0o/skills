@@ -42,6 +42,25 @@ function normalizeMint(v: unknown): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function requireMint(v: unknown, command: string): string {
+  const mint = normalizeMint(v);
+  if (!mint) {
+    throw new Error(`--mint is required for ${command}`);
+  }
+  return mint;
+}
+
+function normalizeSnapshotSource(v: unknown): string {
+  const source = typeof v === "string" ? v.trim().toLowerCase() : "dexscreener";
+  if (!source) {
+    return "dexscreener";
+  }
+  if (source !== "dexscreener") {
+    throw new Error("snapshot --source must be dexscreener");
+  }
+  return source;
+}
+
 function marketKey(symbol: string, mint?: string | null): string {
   return `${symbol.toUpperCase()}|${mint ?? ""}`;
 }
@@ -471,7 +490,7 @@ function cmdInit(db: DatabaseSync, args: CliMap): void {
 function cmdOpen(db: DatabaseSync, args: CliMap): void {
   const accountId = (args.account as string) ?? "main";
   const symbol = asString(args.symbol, "symbol").toUpperCase();
-  const mint = normalizeMint(args.mint);
+  const mint = requireMint(args.mint, "open");
   const side = parseSide(args.side);
   const qty = asNumber(args.qty, "qty");
   const price = asNumber(args.price, "price");
@@ -613,9 +632,9 @@ function cmdNote(db: DatabaseSync, args: CliMap): void {
 
 function cmdSnapshot(db: DatabaseSync, args: CliMap): void {
   const symbol = asString(args.symbol, "symbol").toUpperCase();
-  const mint = normalizeMint(args.mint);
+  const mint = requireMint(args.mint, "snapshot");
   const price = asNumber(args.price, "price");
-  const source = (args.source as string) ?? "manual";
+  const source = normalizeSnapshotSource(args.source);
 
   db.prepare("INSERT INTO price_snapshots (id, symbol, mint, price, source, captured_at) VALUES (?, ?, ?, ?, ?, ?)").run(
     randomUUID(),
@@ -708,13 +727,13 @@ function cmdStatus(db: DatabaseSync, args: CliMap): void {
   if (payload.positions.length > 0) {
     console.log("positions:");
     for (const p of payload.positions) {
-      const mark = p.mark == null ? "n/a" : p.mark.toFixed(4);
+      const mark = p.mark == null ? "n/a" : p.mark.toFixed(9);
       const unreal = p.unrealizedPnl == null ? "n/a" : p.unrealizedPnl.toFixed(2);
-      const stop = p.stopPrice == null ? "n/a" : p.stopPrice.toFixed(4);
-      const take = p.takePrice == null ? "n/a" : p.takePrice.toFixed(4);
+      const stop = p.stopPrice == null ? "n/a" : p.stopPrice.toFixed(9);
+      const take = p.takePrice == null ? "n/a" : p.takePrice.toFixed(9);
       const mintSuffix = p.mint ? ` mint=${p.mint}` : "";
       console.log(
-        `- ${p.symbol}${mintSuffix} ${p.side} qty=${p.qty.toFixed(6)} avg=${p.avgEntry.toFixed(4)} mark=${mark} unreal=${unreal} stop=${stop} take=${take}`,
+        `- ${p.symbol}${mintSuffix} ${p.side} qty=${p.qty.toFixed(6)} avg=${p.avgEntry.toFixed(9)} mark=${mark} unreal=${unreal} stop=${stop} take=${take}`,
       );
     }
   }
@@ -774,8 +793,8 @@ Usage:
 
 Commands:
   init --starting-balance <n> [--account main] [--name <name>] [--base-currency USD]
-  snapshot --symbol <sym> [--mint <address>] --price <n> [--source manual]
-  open --symbol <sym> [--mint <address>] --side LONG|SHORT --qty <n> --price <n> [--fee 0] [--stop-price <n>] [--take-price <n>] [--max-risk-pct <n>] [--note <text>] [--account main]
+  snapshot --symbol <sym> --mint <address> --price <n> [--source dexscreener]
+  open --symbol <sym> --mint <address> --side LONG|SHORT --qty <n> --price <n> [--fee 0] [--stop-price <n>] [--take-price <n>] [--max-risk-pct <n>] [--note <text>] [--account main]
   close --symbol <sym> [--mint <address>] --side LONG|SHORT --qty <n> --price <n> [--fee 0] [--note <text>] [--account main]
   set-levels --symbol <sym> [--mint <address>] --side LONG|SHORT [--stop-price <n>] [--take-price <n>] [--note <text>] [--account main]
   note --note <text> [--symbol <sym>] [--mint <address>] [--side LONG|SHORT] [--tags t1 t2 ...] [--account main]
