@@ -1,0 +1,11 @@
+{
+  "owner": "nissan",
+  "slug": "inbox-cleanup",
+  "displayName": "Inbox Cleanup",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772407519615,
+    "commit": null
+  },
+  "history": []
+}
