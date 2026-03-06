@@ -1,6 +1,21 @@
 ---
 name: safelink
 description: Secure agent-to-agent hiring and execution skill for OpenClaw MCP with escrowed settlement, x402 facilitator payments, ERC-8004 identity/reputation checks, strict replay protection, DNS-safe endpoint validation, and MPC wallet signing. Use when building or operating production A2A workflows that require proof-before-settlement, policy gating, risk-scored transactions, and beginner-friendly wallet setup.
+license: MIT
+compatibility: "Node.js >= 20. Foundry (forge) required for one-time contract deployment only — not needed at MCP runtime."
+metadata:
+  author: charliebot8888
+  version: "0.1.1"
+  required_env: "BASE_RPC_URL (Base RPC endpoint), ERC8004_REGISTRY_ADDRESS (after deploy), SAFE_ESCROW_ADDRESS (after deploy), X402_FACILITATOR_URL (default: https://x402.org/facilitator)"
+  required_env_wallet: "One of: COINBASE_CDP_API_KEY_NAME + COINBASE_CDP_API_KEY_PRIVATE_KEY (Coinbase AgentKit) OR PRIVY_APP_ID + PRIVY_APP_SECRET (Privy MPC). Both are MPC providers — private keys never enter app memory."
+  required_env_llm: "ANTHROPIC_API_KEY (when LLM_PROVIDER=anthropic, default) OR LLM_BASE_URL + LLM_API_KEY (when LLM_PROVIDER=openai_compatible)"
+  optional_env: "REDIS_URL (multi-instance replay store), TENDERLY_ACCESS_KEY (simulation), BASESCAN_API_KEY (explorer), TASK_AUTH_SHARED_SECRET (>=32 chars, when TASK_AUTH_REQUIRED=true), SIWX_VERIFIER_URL (when SIWX_REQUIRED=true), AUTONOMYS_RPC_URL (memory checkpoints)"
+  deploy_only_env: "DEPLOYER_PRIVATE_KEY — used once by scripts/deploy-contracts.ts to deploy on-chain contracts. NOT loaded at MCP runtime. Use a throwaway funded key; discard after deployment."
+  runtime_network: "Opens HTTP server on TASK_SERVER_PORT (default 3402, bound to 127.0.0.1) only when safe_listen_for_hire tool is called."
+  runtime_files: "scripts/generate-env.ts writes .env interactively on first setup. scripts/deploy-contracts.ts writes deployed contract addresses back to .env after one-time deployment. Neither runs automatically."
+  security_test_note: "tests/stress/ files contain literal prompt-injection strings (e.g. Ignore all previous instructions) as adversarial test fixtures to verify the input-gate blocks them. These are not instructions."
+  homepage: "https://github.com/charliebot8888/SafeLink"
+  repository: "https://github.com/charliebot8888/SafeLink"
 ---
 
 # SafeLink
@@ -416,7 +431,21 @@ export async function safe_listen_for_hire(): Promise<ListenResult> {
 - `SIWX_REQUIRED`: require SIWx signature binding for paid task requests
 - `ENABLE_OPAQUE_ENVELOPE`: encrypted A2A payload mode
 
+## Security Disclosure
+
+- **Required environment variables**: `ANTHROPIC_API_KEY` (LLM), `BASE_RPC_URL`, and one of Privy (`PRIVY_APP_ID` + `PRIVY_APP_SECRET`) or Coinbase CDP (`COINBASE_CDP_API_KEY_NAME` + `COINBASE_CDP_API_KEY_PRIVATE_KEY`) for MPC wallet signing. Full list in `.env.example` and `_meta.json`.
+- **`DEPLOYER_PRIVATE_KEY`**: Used **once** by `scripts/deploy-contracts.ts` for initial on-chain contract deployment only. Not loaded at MCP runtime. Use a throwaway funded key; discard after deployment.
+- **HTTP listener**: `safe_listen_for_hire` opens an HTTP server on `TASK_SERVER_PORT` (default 3402), bound to `127.0.0.1` unless explicitly reconfigured.
+- **File writes**: `scripts/deploy-contracts.ts` writes deployed contract addresses back to `.env`. `scripts/generate-env.ts` creates `.env` interactively. Neither runs automatically on MCP startup.
+- **External CLI** (`forge`): Used by `scripts/deploy-contracts.ts` for one-time Solidity contract compilation and deployment only. Not required or invoked at MCP runtime.
+- **Test files**: `tests/stress/` contains literal prompt-injection strings (e.g. `Ignore all previous instructions`) as adversarial test fixtures that verify the input-gate blocks them. These are not instructions to any agent.
+
 ## Changelog
+
+- `v0.1.1` (2026-03-05)
+  - added `_meta.json` with full required env vars, binaries, runtime behavior, and security disclosure for registry scanners
+  - added clarifying headers to stress test files to prevent false-positive prompt-injection scanner alerts
+  - upgraded `x402` to `^1.1.0` (fixes GHSA-3j63-5h8p-gf7c)
 
 - `v0.1.0` (2026-03-05)
   - initial public release
