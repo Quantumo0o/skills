@@ -1,0 +1,11 @@
+{
+  "owner": "zuoanco",
+  "slug": "sre-operator",
+  "displayName": "sre-operator",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1772703543706,
+    "commit": null
+  },
+  "history": []
+}
