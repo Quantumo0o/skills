@@ -1,0 +1,11 @@
+{
+  "owner": "2944721178",
+  "slug": "mikrotik",
+  "displayName": "MikroTik RouterOS 管理",
+  "latest": {
+    "version": "1.8.2",
+    "publishedAt": 1772792069478,
+    "commit": null
+  },
+  "history": []
+}
