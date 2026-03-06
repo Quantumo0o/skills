@@ -36,9 +36,17 @@ description: "Coach and generate Xiaohongshu (小红书/RedNote/XHS) note writin
   "tags": ["#...", "#..."],
   "cta": "...",
   "cover_text": "封面上建议放的短句（可选）",
-  "notes": ["优化建议/可替换的标题备选/风险提醒"]
+  "notes": [
+    "优化建议/可替换的标题备选/风险提醒",
+    "which archetype was used",
+    "which angle was chosen"
+  ]
 }
 ```
+
+## Living know-how
+
+See `references/strategy-notes.md` for the evolving playbook. Update it whenever we learn new tactics or notice repetition.
 
 ## Template A: 爆款 5 段式（叙事共鸣）
 
