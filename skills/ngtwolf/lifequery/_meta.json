@@ -1,0 +1,11 @@
+{
+  "owner": "ngtwolf",
+  "slug": "lifequery",
+  "displayName": "Telegram History via LifeQuery",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772838860913,
+    "commit": null
+  },
+  "history": []
+}
