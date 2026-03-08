@@ -8,6 +8,9 @@ description: >
   COD origination, scholarships, work-study, and loan tracking.
 author: ERPForge
 parent: educlaw
+requires: [erpclaw, erpclaw-people, educlaw]
+database: ~/.openclaw/erpclaw/data.sqlite
+user-invocable: true
 scripts:
   - scripts/db_query.py
 domains:
@@ -39,6 +42,7 @@ tables:
   - finaid_work_study_assignment
   - finaid_work_study_timesheet
   - finaid_loan
+metadata: {"openclaw":{"type":"executable","install":{"post":"python3 init_db.py && python3 scripts/db_query.py --action status"},"requires":{"bins":["python3"],"env":[],"optionalEnv":[]},"os":["darwin","linux"]}}
 ---
 
 # EduClaw Financial Aid
@@ -51,7 +55,7 @@ professional judgment, COD origination, scholarships, work-study, and loan track
 
 - **Local-only**: All data stored in `~/.openclaw/erpclaw/data.sqlite`
 - **Fully offline**: No external API calls, no telemetry, no cloud dependencies
-- **No credentials required**: Uses erpclaw_lib shared library (installed by erpclaw-setup)
+- **No credentials required**: Uses erpclaw_lib shared library (installed by erpclaw)
 - **SQL injection safe**: All queries use parameterized statements
 - **FERPA compliant**: Student financial data access is logged
 - **Title IV compliance**: ISIR, SAP, R2T4, and COD records follow federal regulations. COD origination records are generated locally for export.
@@ -74,8 +78,8 @@ python3 db_query.py --action create-award-package --student-id <id> \
 # 3. Add awards and disburse
 python3 db_query.py --action add-award --award-package-id <id> \
   --aid-type grant --aid-source federal --offered-amount 7395
-python3 db_query.py --action offer-award-package --id <id>
-python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
+python3 db_query.py --action submit-award-offer --id <id>
+python3 db_query.py --action record-award-disbursement --award-id <id> --amount 3697.50
 ```
 
 ## Tier 1 — Daily Operations
@@ -85,7 +89,7 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 |--------|-------------|
 | `add-aid-year` | Create an aid year with Pell max award |
 | `update-aid-year` | Update aid year dates and parameters |
-| `set-active-aid-year` | Activate aid year for packaging |
+| `activate-aid-year` | Activate aid year for packaging |
 | `get-aid-year` | Get aid year details |
 | `list-aid-years` | List all aid years |
 | `import-pell-schedule` | Import Pell disbursement schedule |
@@ -108,12 +112,12 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 | Action | Description |
 |--------|-------------|
 | `import-isir` | Import ISIR with SAI, dependency, C-flags |
-| `review-isir` | Mark ISIR as reviewed |
+| `complete-isir-review` | Mark ISIR as reviewed |
 | `update-isir` | Update ISIR fields after correction |
 | `get-isir` | Get ISIR details |
 | `list-isirs` | List ISIRs for student/aid year |
 | `add-isir-cflag` | Add C-flag comment code |
-| `resolve-isir-cflag` | Resolve a C-flag |
+| `complete-isir-cflag` | Resolve a C-flag |
 | `list-isir-cflags` | List C-flags for an ISIR |
 
 ## Tier 2 — Award Packaging & Verification
@@ -135,14 +139,14 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 |--------|-------------|
 | `create-award-package` | Create award package for student |
 | `update-award-package` | Update package details |
-| `offer-award-package` | Offer package to student |
+| `submit-award-offer` | Offer package to student |
 | `cancel-award-package` | Cancel an award package |
 | `get-award-package` | Get package details with awards |
 | `list-award-packages` | List packages for student/aid year |
 | `add-award` | Add individual award to package |
 | `update-award` | Update award amounts |
 | `accept-award` | Student accepts an award |
-| `decline-award` | Student declines an award |
+| `deny-award` | Student declines an award |
 | `delete-award` | Remove unapproved award |
 | `get-award` | Get award details |
 | `list-awards` | List awards in package |
@@ -150,9 +154,9 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 ### Disbursements
 | Action | Description |
 |--------|-------------|
-| `disburse-award` | Disburse funds for an award |
-| `reverse-disbursement` | Reverse a disbursement |
-| `mark-credit-balance-returned` | Mark credit balance returned to student |
+| `record-award-disbursement` | Disburse funds for an award |
+| `cancel-disbursement` | Reverse a disbursement |
+| `record-credit-balance-return` | Mark credit balance returned to student |
 | `get-disbursement` | Get disbursement details |
 | `list-disbursements` | List disbursements for package/award |
 
@@ -161,13 +165,13 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 ### SAP (Satisfactory Academic Progress)
 | Action | Description |
 |--------|-------------|
-| `run-sap-evaluation` | Evaluate SAP for a student |
-| `run-sap-batch` | Batch SAP evaluation |
-| `override-sap-status` | Override SAP status |
+| `generate-sap-evaluation` | Evaluate SAP for a student |
+| `generate-sap-batch` | Batch SAP evaluation |
+| `apply-sap-override` | Override SAP status |
 | `get-sap-evaluation` | Get SAP evaluation details |
 | `list-sap-evaluations` | List SAP evaluations |
 | `submit-sap-appeal` | Submit SAP appeal with academic plan |
-| `decide-sap-appeal` | Approve or deny SAP appeal |
+| `complete-sap-appeal` | Approve or deny SAP appeal |
 | `update-sap-appeal` | Update appeal details |
 | `get-sap-appeal` | Get appeal details |
 | `list-sap-appeals` | List SAP appeals |
@@ -176,7 +180,7 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 | Action | Description |
 |--------|-------------|
 | `create-r2t4` | Create R2T4 calculation for withdrawn student |
-| `calculate-r2t4` | Execute R2T4 calculation |
+| `generate-r2t4-calculation` | Execute R2T4 calculation |
 | `approve-r2t4` | Approve R2T4 result |
 | `record-r2t4-return` | Record institutional return |
 | `record-r2t4-return-disbursement` | Record return disbursement |
@@ -204,26 +208,26 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 |--------|-------------|
 | `add-scholarship-program` | Create scholarship program |
 | `update-scholarship-program` | Update program criteria |
-| `deactivate-scholarship-program` | Deactivate program |
+| `terminate-scholarship-program` | Deactivate program |
 | `get-scholarship-program` | Get program details |
 | `list-scholarship-programs` | List scholarship programs |
 | `submit-scholarship-application` | Submit student application |
-| `review-scholarship-application` | Review application |
-| `award-scholarship-application` | Award scholarship to applicant |
+| `complete-scholarship-review` | Review application |
+| `approve-scholarship-application` | Award scholarship to applicant |
 | `deny-scholarship-application` | Deny application |
 | `update-scholarship-application` | Update application |
 | `get-scholarship-application` | Get application details |
 | `list-scholarship-applications` | List applications |
-| `evaluate-scholarship-renewal` | Evaluate renewal eligibility |
+| `generate-scholarship-renewal` | Evaluate renewal eligibility |
 | `list-scholarship-renewals` | List renewal evaluations |
-| `auto-match-scholarships` | Auto-match students to programs |
+| `generate-scholarship-matches` | Auto-match students to programs |
 
 ### Work-Study
 | Action | Description |
 |--------|-------------|
 | `add-work-study-job` | Create work-study position |
 | `update-work-study-job` | Update job details |
-| `close-work-study-job` | Close position |
+| `terminate-work-study-job` | Close position |
 | `get-work-study-job` | Get job details |
 | `list-work-study-jobs` | List work-study positions |
 | `assign-student-to-job` | Assign student to position |
@@ -233,12 +237,12 @@ python3 db_query.py --action disburse-award --award-id <id> --amount 3697.50
 | `list-work-study-assignments` | List assignments |
 | `submit-work-study-timesheet` | Submit timesheet |
 | `approve-work-study-timesheet` | Approve timesheet |
-| `reject-work-study-timesheet` | Reject timesheet |
+| `deny-work-study-timesheet` | Reject timesheet |
 | `update-work-study-timesheet` | Update timesheet |
 | `get-work-study-timesheet` | Get timesheet details |
 | `list-work-study-timesheets` | List timesheets |
 | `get-work-study-earnings-summary` | Get earnings summary |
-| `export-work-study-payroll` | Export payroll data |
+| `generate-payroll-export` | Export payroll data |
 
 ### Loan Tracking
 | Action | Description |
