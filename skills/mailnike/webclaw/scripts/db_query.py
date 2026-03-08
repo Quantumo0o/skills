@@ -28,6 +28,15 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
+# ── PyPika query builder (from erpclaw shared lib) ──
+sys.path.insert(0, os.path.expanduser("~/.openclaw/erpclaw/lib"))
+try:
+    from erpclaw_lib.query import Q, P, Table, Field, fn, CustomFunction, Order
+except ImportError:
+    Q = P = Table = Field = fn = CustomFunction = Order = None
+
+GroupConcat = CustomFunction("GROUP_CONCAT", ["field"]) if CustomFunction else None
+
 INSTALL_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.expanduser("~/.openclaw/webclaw/webclaw.sqlite")
 NGINX_CONF = "/etc/nginx/sites-enabled/webclaw"
@@ -101,7 +110,9 @@ def action_status(args):
     user_count = 0
     try:
         conn = _get_conn()
-        user_count = conn.execute("SELECT COUNT(*) FROM webclaw_user").fetchone()[0]
+        wu = Table("webclaw_user")
+        q = Q.from_(wu).select(fn.Count("*"))
+        user_count = conn.execute(q.get_sql()).fetchone()[0]
     except Exception:
         pass
 
@@ -199,15 +210,19 @@ def action_renew_ssl(args):
 def action_list_users(args):
     """List web dashboard user accounts."""
     conn = _get_conn()
-    rows = conn.execute(
-        """SELECT u.id, u.email, u.full_name, u.status, u.last_login,
-                  GROUP_CONCAT(r.name) as roles
-           FROM webclaw_user u
-           LEFT JOIN webclaw_user_role ur ON ur.user_id = u.id
-           LEFT JOIN webclaw_role r ON r.id = ur.role_id
-           GROUP BY u.id
-           ORDER BY u.created_at DESC"""
-    ).fetchall()
+    u = Table("webclaw_user")
+    ur = Table("webclaw_user_role")
+    r = Table("webclaw_role")
+    q = (
+        Q.from_(u)
+        .left_join(ur).on(ur.user_id == u.id)
+        .left_join(r).on(r.id == ur.role_id)
+        .select(u.id, u.email, u.full_name, u.status, u.last_login,
+                GroupConcat(r.name).as_("roles"))
+        .groupby(u.id)
+        .orderby(u.created_at, order=Order.desc)
+    )
+    rows = conn.execute(q.get_sql()).fetchall()
 
     users = []
     for r in rows:
@@ -239,36 +254,42 @@ def action_create_user(args):
     conn = _get_conn()
 
     # Check if email already exists
-    existing = conn.execute("SELECT id FROM webclaw_user WHERE email = ?", (email,)).fetchone()
+    import uuid
+    wu = Table("webclaw_user")
+    q = Q.from_(wu).select(wu.id).where(wu.email == P())
+    existing = conn.execute(q.get_sql(), (email,)).fetchone()
     if existing:
         _fail(f"User with email {email} already exists")
 
-    import uuid
     user_id = str(uuid.uuid4())
     username = email.split("@")[0]
 
     try:
-        conn.execute(
-            """INSERT INTO webclaw_user (id, username, email, full_name, password_hash, status)
-               VALUES (?, ?, ?, ?, ?, 'active')""",
-            (user_id, username, email, full_name, pw_hash),
+        q = (
+            Q.into(wu)
+            .columns("id", "username", "email", "full_name", "password_hash", "status")
+            .insert(P(), P(), P(), P(), P(), P())
         )
+        conn.execute(q.get_sql(), (user_id, username, email, full_name, pw_hash, "active"))
 
         # Find or create role
-        role = conn.execute("SELECT id FROM webclaw_role WHERE name = ?", (role_name,)).fetchone()
+        wr = Table("webclaw_role")
+        q = Q.from_(wr).select(wr.id).where(wr.name == P())
+        role = conn.execute(q.get_sql(), (role_name,)).fetchone()
         if not role:
             role_id = str(uuid.uuid4())
-            conn.execute(
-                "INSERT INTO webclaw_role (id, name, description, is_system) VALUES (?, ?, ?, 0)",
-                (role_id, role_name, f"Auto-created role: {role_name}"),
+            q = (
+                Q.into(wr)
+                .columns("id", "name", "description", "is_system")
+                .insert(P(), P(), P(), P())
             )
+            conn.execute(q.get_sql(), (role_id, role_name, f"Auto-created role: {role_name}", 0))
         else:
             role_id = role["id"]
 
-        conn.execute(
-            "INSERT INTO webclaw_user_role (id, user_id, role_id) VALUES (?, ?, ?)",
-            (str(uuid.uuid4()), user_id, role_id),
-        )
+        wur = Table("webclaw_user_role")
+        q = Q.into(wur).columns("id", "user_id", "role_id").insert(P(), P(), P())
+        conn.execute(q.get_sql(), (str(uuid.uuid4()), user_id, role_id))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -290,16 +311,21 @@ def action_reset_password(args):
         _fail("--email is required")
 
     conn = _get_conn()
-    user = conn.execute("SELECT id FROM webclaw_user WHERE email = ?", (email,)).fetchone()
+    wu = Table("webclaw_user")
+    q = Q.from_(wu).select(wu.id).where(wu.email == P())
+    user = conn.execute(q.get_sql(), (email,)).fetchone()
     if not user:
         _fail(f"User not found: {email}")
 
     temp_password = secrets.token_urlsafe(12)
     pw_hash = _hash_password(temp_password)
 
-    conn.execute("UPDATE webclaw_user SET password_hash = ? WHERE id = ?", (pw_hash, user["id"]))
+    q = Q.update(wu).set(wu.password_hash, P()).where(wu.id == P())
+    conn.execute(q.get_sql(), (pw_hash, user["id"]))
     # Clear all sessions for this user
-    conn.execute("DELETE FROM webclaw_session WHERE user_id = ?", (user["id"],))
+    ws = Table("webclaw_session")
+    q = Q.from_(ws).delete().where(ws.user_id == P())
+    conn.execute(q.get_sql(), (user["id"],))
     conn.commit()
 
     _ok({
@@ -315,12 +341,17 @@ def action_disable_user(args):
         _fail("--email is required")
 
     conn = _get_conn()
-    user = conn.execute("SELECT id, status FROM webclaw_user WHERE email = ?", (email,)).fetchone()
+    wu = Table("webclaw_user")
+    q = Q.from_(wu).select(wu.id, wu.status).where(wu.email == P())
+    user = conn.execute(q.get_sql(), (email,)).fetchone()
     if not user:
         _fail(f"User not found: {email}")
 
-    conn.execute("UPDATE webclaw_user SET status = 'disabled' WHERE id = ?", (user["id"],))
-    conn.execute("DELETE FROM webclaw_session WHERE user_id = ?", (user["id"],))
+    q = Q.update(wu).set(wu.status, "disabled").where(wu.id == P())
+    conn.execute(q.get_sql(), (user["id"],))
+    ws = Table("webclaw_session")
+    q = Q.from_(ws).delete().where(ws.user_id == P())
+    conn.execute(q.get_sql(), (user["id"],))
     conn.commit()
 
     _ok({"status": "ok", "message": f"User {email} has been disabled and all sessions cleared."})
@@ -329,13 +360,16 @@ def action_disable_user(args):
 def action_list_sessions(args):
     """Show active sessions."""
     conn = _get_conn()
-    rows = conn.execute(
-        """SELECT s.id, u.email, s.ip_address, s.user_agent, s.created_at, s.expires_at
-           FROM webclaw_session s
-           JOIN webclaw_user u ON u.id = s.user_id
-           ORDER BY s.created_at DESC
-           LIMIT 50"""
-    ).fetchall()
+    s = Table("webclaw_session")
+    u = Table("webclaw_user")
+    q = (
+        Q.from_(s)
+        .join(u).on(u.id == s.user_id)
+        .select(s.id, u.email, s.ip_address, s.user_agent, s.created_at, s.expires_at)
+        .orderby(s.created_at, order=Order.desc)
+        .limit(50)
+    )
+    rows = conn.execute(q.get_sql()).fetchall()
 
     sessions = []
     for r in rows:
@@ -354,8 +388,11 @@ def action_list_sessions(args):
 def action_clear_sessions(args):
     """Purge all sessions (force everyone to re-login)."""
     conn = _get_conn()
-    count = conn.execute("SELECT COUNT(*) FROM webclaw_session").fetchone()[0]
-    conn.execute("DELETE FROM webclaw_session")
+    ws = Table("webclaw_session")
+    q = Q.from_(ws).select(fn.Count("*"))
+    count = conn.execute(q.get_sql()).fetchone()[0]
+    q = Q.from_(ws).delete()
+    conn.execute(q.get_sql())
     conn.commit()
     _ok({"status": "ok", "message": f"Cleared {count} sessions. All users must log in again."})
 
@@ -366,7 +403,9 @@ def action_maintenance(args):
     now = datetime.now(timezone.utc).isoformat()
 
     # Clean expired sessions
-    result = conn.execute("DELETE FROM webclaw_session WHERE expires_at < ?", (now,))
+    ws = Table("webclaw_session")
+    q = Q.from_(ws).delete().where(ws.expires_at < P())
+    result = conn.execute(q.get_sql(), (now,))
     expired = result.rowcount
     conn.commit()
 

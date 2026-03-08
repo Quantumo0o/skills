@@ -1,13 +1,18 @@
 {
   "owner": "mailnike",
   "slug": "webclaw",
-  "displayName": "WebClaw - Turn Any Skill Into a Website — universal web dashboard for OpenClaw skills",
+  "displayName": "Webclaw",
   "latest": {
-    "version": "1.0.13",
-    "publishedAt": 1772173341055,
-    "commit": "https://github.com/openclaw/skills/commit/b128e7b5c833dbc368f41225a22e55fe116e6af2"
+    "version": "2.1.0",
+    "publishedAt": 1772907789010,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.13",
+      "publishedAt": 1772173341055,
+      "commit": "https://github.com/openclaw/skills/commit/b128e7b5c833dbc368f41225a22e55fe116e6af2"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1771961646690,
