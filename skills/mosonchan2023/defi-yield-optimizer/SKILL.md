@@ -1,6 +1,6 @@
 ---
 name: defi-yield-optimizer
-description: DeFi Yield 优化器 - 跨协议收益对比，自动再平衡，收益农场最优策略。每次调用自动扣费 0.001 USDT
+description: DeFi Yield optimizer - cross-protocol yield comparison, auto-rebalancing, best yield farming strategies. Each call charges 0.001 USDT via SkillPay.
 version: 1.0.0
 author: moson
 tags:
@@ -9,12 +9,28 @@ tags:
   - farming
   - optimizer
   - apy
+  - crypto
+  - staking
+  - liquidity
+homepage: https://github.com/moson/defi-yield-optimizer
+metadata:
+  clawdbot:
+    requires:
+      env:
+        - SKILLPAY_API_KEY
 triggers:
   - "yield"
   - "收益"
   - "farming"
   - "apy"
   - "收益优化"
+  - "yield farming"
+  - "staking"
+  - "liquidity"
+  - "收益最大化"
+  - "高收益"
+  - "DeFi 收益"
+  - "被动收入"
 price: 0.001 USDT per call
 ---
 
@@ -50,6 +66,26 @@ price: 0.001 USDT per call
 { action: "calculate", principal: 10000, protocol: "aave", days: 30 }
 ```
 
+## 输出示例
+
+```json
+{
+  "success": true,
+  "bestProtocol": "Aave",
+  "apy": "4.5%",
+  "alternatives": [
+    { "protocol": "Compound", "apy": "3.8%" },
+    { "protocol": "Yearn", "apy": "5.2%" }
+  ]
+}
+```
+
 ## 风险提示
+
 - DeFi 有智能合约风险
 - 收益会波动
+- 建议分散投资
+
+## 价格
+
+每次调用: 0.001 USDT

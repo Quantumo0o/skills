@@ -1,11 +1,17 @@
 {
   "owner": "mosonchan2023",
   "slug": "defi-yield-optimizer",
-  "displayName": "defi-yield-optimizer",
+  "displayName": "Defi Yield Optimizer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772692550982,
-    "commit": "https://github.com/openclaw/skills/commit/c8271ceec655024edeb9cd02bedb20b4fdbbd173"
+    "version": "1.0.1",
+    "publishedAt": 1772845140192,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772692550982,
+      "commit": "https://github.com/openclaw/skills/commit/c8271ceec655024edeb9cd02bedb20b4fdbbd173"
+    }
+  ]
 }
