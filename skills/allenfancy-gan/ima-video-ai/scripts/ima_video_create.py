@@ -1,16 +1,30 @@
 #!/usr/bin/env python3
 """
 IMA Video Creation Script — ima_video_create.py
-Version: 1.0.0
+Version: 1.0.8
 
 Specialized script for video generation via IMA Open API.
 Handles: product list query → virtual param resolution → task create → poll status
 
+🆕 v1.0.8 Features:
+  - Enhanced error handling for 401 (Unauthorized) and 4008 (Insufficient points)
+  - Clickable links to API key generation and credit purchase pages
+
+🆕 v1.0.7 Features:
+  - Pixverse model parameter auto-inference for V5.5/V5/V4
+
+🆕 v1.0.5 Features:
+  - Automatic error recovery (Reflection mechanism)
+  - Smart parameter matching with case-insensitive support
+  - 500 error handling with parameter degradation
+  - 6009/6010 error auto-correction
+  - Up to 3 automatic retries with detailed failure suggestions
+
 Usage:
-  python3 ima_video_create.py \\
-    --api-key  ima_xxx \\
-    --task-type text_to_video \\
-    --model-id  wan2.6-t2v \\
+  python3 ima_video_create.py \
+    --api-key  ima_xxx \
+    --task-type text_to_video \
+    --model-id  wan2.6-t2v \
     --prompt   "a cute puppy running on grass"
 
 Supports all task types:
@@ -386,17 +400,7 @@ def extract_model_params(node: dict) -> dict:
             f"version '{node.get('id')}'. Cannot determine attribute_id or credit."
         )
 
-    cr = credit_rules[0]
-    attribute_id = cr.get("attribute_id", 0)
-    credit       = cr.get("points", 0)
-
-    if attribute_id == 0:
-        raise RuntimeError(
-            f"attribute_id is 0 for model '{node.get('model_id')}'. "
-            "This will cause 'Invalid product attribute' error."
-        )
-
-    # Build form_config defaults
+    # Build form_config defaults FIRST (before selecting credit_rule)
     form_params: dict = {}
     for field in (node.get("form_config") or []):
         fname = field.get("field")
@@ -413,17 +417,67 @@ def extract_model_params(node: dict) -> dict:
             if fvalue is not None:
                 form_params[fname] = fvalue
 
-    # ✅ FIX for error 6009: Extract credit_rules[].attributes (required by backend validation)
-    # Backend积分校验要求请求参数必须包含规则的attributes字段，否则MatchScore < 1.0 → 错误6009
-    rule_attributes: dict = {}
-    if credit_rules:
-        # Use first rule's attributes as defaults
-        first_rule_attrs = credit_rules[0].get("attributes", {})
+    # 🆕 CRITICAL FIX: Select the correct credit_rule based on form_params
+    # Don't always use credit_rules[0] - match form_params to rule.attributes
+    selected_rule = None
+    
+    # Normalize form_params for matching
+    def normalize_value(v):
+        if isinstance(v, bool):
+            return str(v).lower()
+        return str(v).strip().upper()
+    
+    normalized_form = {
+        k.lower().strip(): normalize_value(v)
+        for k, v in form_params.items()
+    }
+    
+    # Try to find a rule that matches form_params
+    for cr in credit_rules:
+        attrs = cr.get("attributes", {})
+        if not attrs:
+            continue
         
-        # Filter out {"default": "enabled"} marker (not an actual parameter)
-        for key, value in first_rule_attrs.items():
-            if not (key == "default" and value == "enabled"):
-                rule_attributes[key] = value
+        normalized_attrs = {
+            k.lower().strip(): normalize_value(v)
+            for k, v in attrs.items()
+            if not (k == "default" and v == "enabled")  # Skip markers
+        }
+        
+        # Check if rule attributes match form_params
+        match = all(
+            normalized_form.get(k) == v
+            for k, v in normalized_attrs.items()
+        )
+        
+        if match:
+            selected_rule = cr
+            logger.info(f"🎯 Matched credit_rule by form_params: attribute_id={cr.get('attribute_id')}, "
+                       f"attrs={attrs}")
+            break
+    
+    # Fallback to first rule if no match
+    if not selected_rule:
+        selected_rule = credit_rules[0]
+        logger.warning(f"⚠️  No credit_rule matched form_params, using first rule (attribute_id={selected_rule.get('attribute_id')})")
+    
+    attribute_id = selected_rule.get("attribute_id", 0)
+    credit = selected_rule.get("points", 0)
+
+    if attribute_id == 0:
+        raise RuntimeError(
+            f"attribute_id is 0 for model '{node.get('model_id')}'. "
+            "This will cause 'Invalid product attribute' error."
+        )
+
+    # ✅ Extract rule_attributes from the SELECTED rule (not always credit_rules[0])
+    rule_attributes: dict = {}
+    rule_attrs = selected_rule.get("attributes", {})
+    
+    # Filter out {"default": "enabled"} marker (not an actual parameter)
+    for key, value in rule_attrs.items():
+        if not (key == "default" and value == "enabled"):
+            rule_attributes[key] = value
 
     logger.info(f"Params extracted: model={node.get('model_id')}, attribute_id={attribute_id}, "
                 f"credit={credit}, rule_attrs={len(rule_attributes)} fields")
@@ -464,7 +518,9 @@ def select_credit_rule_by_params(credit_rules: list, user_params: dict) -> dict 
     def normalize_value(v):
         if isinstance(v, bool):
             return str(v).lower()  # False → "false", True → "true"
-        return str(v).strip()
+        # CRITICAL FIX: Case-insensitive matching for resolution/duration/size values
+        # User may pass "1080p" but rules define "1080P", or "5s" vs "5S"
+        return str(v).strip().upper()  # "1080p" → "1080P", "5s" → "5S"
     
     normalized_user = {
         k.lower().strip(): normalize_value(v)
@@ -541,6 +597,8 @@ def create_task(base_url: str, api_key: str,
 
     # Smart credit_rule selection based on user params
     all_rules = model_params.get("all_credit_rules", [])
+    normalized_rule_params = {}  # 🆕 Store normalized params from matched rule
+    
     if all_rules:  # ← FIX: Always try smart selection
         # Extract params that might be in attributes
         # CRITICAL: ONLY include keys that actually appear in credit_rules.attributes
@@ -567,7 +625,20 @@ def create_task(base_url: str, api_key: str,
             if selected_rule:
                 attribute_id = selected_rule.get("attribute_id", model_params["attribute_id"])
                 credit = selected_rule.get("points", model_params["credit"])
+                
+                # 🆕 CRITICAL FIX: Use normalized values from the matched rule's attributes
+                # This ensures API gets "1080P" (from rule) instead of "1080p" (from user)
+                rule_attrs = selected_rule.get("attributes", {})
+                valid_keys = ["size", "quality", "resolution", "n",
+                             "duration", "generate_audio", "sound", "mode",
+                             "fast_pretreatment", "prompt_optimizer"]
+                for key in valid_keys:
+                    if key in rule_attrs:
+                        normalized_rule_params[key] = rule_attrs[key]
+                
                 print(f"🎯 Smart credit_rule selection: {candidate_params} → attribute_id={attribute_id}, credit={credit} pts", flush=True)
+                if normalized_rule_params:
+                    print(f"   📝 Normalized params from rule: {normalized_rule_params}", flush=True)
             else:
                 attribute_id = model_params["attribute_id"]
                 credit = model_params["credit"]
@@ -579,7 +650,7 @@ def create_task(base_url: str, api_key: str,
         credit = model_params["credit"]
 
     # ✅ FIX for error 6009: Merge parameters in correct priority order
-    # Priority (low → high): rule_attributes < form_params < extra_params
+    # Priority (low → high): rule_attributes < form_params < normalized_rule_params < extra_params (non-rule keys)
     # This ensures backend validation always gets required fields from attributes
     inner: dict = {}
     
@@ -591,15 +662,47 @@ def create_task(base_url: str, api_key: str,
     # 2. Then merge form_config defaults (optional fields, medium priority)
     inner.update(model_params["form_params"])
     
-    # 3. Finally merge user overrides (highest priority, can override everything)
+    # 3. Merge normalized params from matched rule (higher priority - these are canonical values)
+    # 🆕 CRITICAL: This overwrites user's "1080p" with rule's "1080P" to match attribute_id
+    if normalized_rule_params:
+        inner.update(normalized_rule_params)
+    
+    # 4. Finally merge user overrides for non-rule keys (highest priority for non-canonical fields)
+    # Only merge keys that are NOT in normalized_rule_params to preserve canonical values
     if extra_params:
-        inner.update(extra_params)
+        for key, value in extra_params.items():
+            if key not in normalized_rule_params:  # Don't override canonical rule values
+                inner[key] = value
 
     # Required inner fields (always set these)
     inner["prompt"]       = prompt
     inner["n"]            = int(inner.get("n", 1))
     inner["input_images"] = input_images
     inner["cast"]         = {"points": credit, "attribute_id": attribute_id}
+    
+    # 🆕 CRITICAL: Preserve model parameter from form_config if present
+    # Some models (e.g. Pixverse) use the same model_id but distinguish versions via this parameter
+    # Example: model_id="pixverse" with model="v5.5" | "v5" | "v4.5" | "v4" | "v3.5"
+    # Priority: form_config default < user override (if provided)
+    if "model" in model_params.get("form_params", {}):
+        # Use default from form_config (e.g. "v5.5")
+        inner["model"] = model_params["form_params"]["model"]
+    if extra_params and "model" in extra_params:
+        # Allow user to explicitly override the version
+        inner["model"] = extra_params["model"]
+    
+    # 🆕 CRITICAL: Auto-infer model parameter for Pixverse if missing
+    # Pixverse V5.5/V5/V4 don't have model in form_config, but backend requires it
+    # Error: "Invalid value for model" or "The Fusion feature is supported in model v4.5, v5, v5.5 and v5.6 only"
+    if model_params.get("model_id") == "pixverse" and "model" not in inner:
+        # Extract version from model_name: "Pixverse V5.5" → "v5.5"
+        model_name = model_params.get("model_name", "")
+        import re
+        version_match = re.search(r'V(\d+(?:\.\d+)?)', model_name, re.IGNORECASE)
+        if version_match:
+            version = version_match.group(1)  # "5.5", "5", "4.5", "4", "3.5"
+            inner["model"] = f"v{version}"
+            print(f"🔧 Auto-inferred Pixverse model parameter: model=\"v{version}\" (from model_name=\"{model_name}\")", flush=True)
 
     payload = {
         "task_type":          task_type,
@@ -745,6 +848,374 @@ def poll_task(base_url: str, api_key: str, task_id: str,
             last_progress_report = elapsed
 
         time.sleep(poll_interval)
+
+
+# ─── Reflection Mechanism (v1.0.5) ────────────────────────────────────────────
+
+def extract_error_info(exception: Exception) -> dict:
+    """
+    Extract error code and message from exception.
+    
+    Handles:
+    - RuntimeError from create_task with code in message
+    - requests.HTTPError (500, 400, etc.)
+    - TimeoutError from poll_task
+    
+    Returns: {"code": int|str, "message": str, "type": str}
+    """
+    error_str = str(exception)
+    
+    # Check for HTTP status codes (500, 400, etc.)
+    if isinstance(exception, requests.HTTPError):
+        status_code = exception.response.status_code
+        try:
+            response_data = exception.response.json()
+            api_code = response_data.get("code")
+            api_msg = response_data.get("message", "")
+            return {
+                "code": api_code if api_code else status_code,
+                "message": api_msg or error_str,
+                "type": f"http_{status_code}",
+                "raw_response": response_data
+            }
+        except:
+            return {
+                "code": status_code,
+                "message": error_str,
+                "type": f"http_{status_code}"
+            }
+    
+    # Check for API error codes in RuntimeError message (6009, 6010, etc.)
+    import re
+    code_match = re.search(r'code[=:]?\s*(\d+)', error_str, re.IGNORECASE)
+    if code_match:
+        code = int(code_match.group(1))
+        return {
+            "code": code,
+            "message": error_str,
+            "type": f"api_{code}"
+        }
+    
+    # Timeout error
+    if isinstance(exception, TimeoutError):
+        return {
+            "code": "timeout",
+            "message": error_str,
+            "type": "timeout"
+        }
+    
+    # Generic error
+    return {
+        "code": "unknown",
+        "message": error_str,
+        "type": "unknown"
+    }
+
+
+def get_param_degradation_strategy(param_key: str, current_value: str) -> list:
+    """
+    Get degradation sequence for a parameter when error occurs.
+    
+    Returns list of fallback values to try, from high-quality to low-quality.
+    Empty list means no degradation available.
+    """
+    # Resolution degradation (1080p → 720p → 480p) for video
+    if param_key.lower() == "resolution":
+        res_map = {
+            "1080p": ["720p", "480p"],
+            "720p": ["480p"],
+            "480p": []
+        }
+        return res_map.get(current_value.lower(), [])
+    
+    # Duration degradation (10s → 5s) for video
+    if param_key.lower() == "duration":
+        dur_map = {
+            "10s": ["5s"],
+            "5s": []
+        }
+        return dur_map.get(current_value.lower(), [])
+    
+    # Mode degradation for video models
+    if param_key.lower() == "mode":
+        mode_map = {
+            "professional": ["standard"],
+            "standard": []
+        }
+        return mode_map.get(current_value.lower(), [])
+    
+    # Quality degradation
+    if param_key.lower() == "quality":
+        quality_map = {
+            "高清": ["标清"],
+            "high": ["standard", "low"],
+            "standard": ["low"],
+            "low": []
+        }
+        return quality_map.get(current_value.lower(), [])
+    
+    return []
+
+
+def reflect_on_failure(error_info: dict, 
+                      attempt: int,
+                      current_params: dict,
+                      credit_rules: list,
+                      model_params: dict) -> dict:
+    """
+    Analyze failure and determine corrective action.
+    
+    Args:
+        error_info: Output from extract_error_info()
+        attempt: Current attempt number (1, 2, or 3)
+        current_params: Parameters used in failed attempt
+        credit_rules: All available credit_rules for this model
+        model_params: Model metadata (name, id, form_params, etc.)
+    
+    Returns:
+        {
+            "action": "retry" | "give_up",
+            "new_params": dict (if action=="retry"),
+            "reason": str (explanation of what changed),
+            "suggestion": str (user-facing suggestion if give_up)
+        }
+    """
+    code = error_info.get("code")
+    error_type = error_info.get("type", "")
+    
+    logger.info(f"🔍 Reflection Attempt {attempt}: analyzing error code={code}, type={error_type}")
+    
+    # Strategy 1: 500 Internal Server Error → Degrade parameters
+    if code == 500 or "http_500" in error_type:
+        logger.info("Strategy: Degrade parameters due to 500 error")
+        
+        # Try to degrade a parameter (prioritize video-specific params)
+        for key in ["resolution", "duration", "mode", "quality"]:
+            if key in current_params:
+                current_val = current_params[key]
+                fallbacks = get_param_degradation_strategy(key, current_val)
+                
+                if fallbacks:
+                    new_val = fallbacks[0]
+                    new_params = current_params.copy()
+                    new_params[key] = new_val
+                    
+                    logger.info(f"  → Degrading {key}: {current_val} → {new_val}")
+                    
+                    return {
+                        "action": "retry",
+                        "new_params": new_params,
+                        "reason": f"500 error with {key}='{current_val}', degrading to '{new_val}'"
+                    }
+        
+        return {
+            "action": "give_up",
+            "suggestion": f"Model '{model_params['model_name']}' returned 500 Internal Server Error. "
+                         f"This may indicate a backend issue or unsupported parameter combination. "
+                         f"Try a different model or contact IMA support."
+        }
+    
+    # Strategy 2: 6009 (No matching rule) → Extract required params from first rule
+    if code == 6009:
+        logger.info("Strategy: Add missing parameters from credit_rules (6009)")
+        
+        if credit_rules and len(credit_rules) > 0:
+            min_rule = min(credit_rules, key=lambda r: r.get("points", 9999))
+            rule_attrs = min_rule.get("attributes", {})
+            
+            if rule_attrs:
+                new_params = current_params.copy()
+                added = []
+                
+                for key, val in rule_attrs.items():
+                    if key not in new_params:
+                        new_params[key] = val
+                        added.append(f"{key}={val}")
+                
+                if added:
+                    logger.info(f"  → Adding missing params: {', '.join(added)}")
+                    return {
+                        "action": "retry",
+                        "new_params": new_params,
+                        "reason": f"6009 error: added missing parameters {', '.join(added)} from credit_rules"
+                    }
+        
+        return {
+            "action": "give_up",
+            "suggestion": f"No matching credit rule found for parameters: {current_params}. "
+                         f"Model '{model_params['model_name']}' may not support this parameter combination. "
+                         f"Try using default parameters or a different model."
+        }
+    
+    # Strategy 3: 6010 (attribute_id mismatch) → Reselect credit_rule
+    if code == 6010:
+        logger.info("Strategy: Reselect credit_rule based on current params (6010)")
+        
+        if credit_rules:
+            selected = select_credit_rule_by_params(credit_rules, current_params)
+            
+            if selected:
+                new_attr_id = selected.get("attribute_id")
+                new_points = selected.get("points")
+                rule_attrs = selected.get("attributes", {})
+                
+                new_params = current_params.copy()
+                new_params.update(rule_attrs)
+                
+                logger.info(f"  → Reselected rule: attribute_id={new_attr_id}, points={new_points}, attrs={rule_attrs}")
+                
+                return {
+                    "action": "retry",
+                    "new_params": new_params,
+                    "reason": f"6010 error: reselected credit_rule (attribute_id={new_attr_id}, {new_points} pts)",
+                    "new_attribute_id": new_attr_id,
+                    "new_credit": new_points
+                }
+        
+        return {
+            "action": "give_up",
+            "suggestion": f"Parameter mismatch (error 6010) for model '{model_params['model_name']}'. "
+                         f"Could not find compatible credit_rule. Try refreshing the model list or using default parameters."
+        }
+    
+    # Strategy 4: Timeout → Can't retry, but give helpful info
+    if code == "timeout":
+        return {
+            "action": "give_up",
+            "suggestion": f"Task generation timed out for model '{model_params['model_name']}'. "
+                         f"The task may still be processing in the background. "
+                         f"Check the IMA Studio dashboard (https://imagent.bot) for your task status. "
+                         f"If this model is consistently slow, consider using a faster model."
+        }
+    
+    # Default: Unknown error
+    return {
+        "action": "give_up",
+        "suggestion": f"Unexpected error (code={code}): {error_info.get('message')}. "
+                     f"If this persists, please report to IMA support with error code {code}."
+    }
+
+
+def create_task_with_reflection(base_url: str, api_key: str,
+                                task_type: str, model_params: dict,
+                                prompt: str,
+                                input_images: list[str] | None = None,
+                                extra_params: dict | None = None,
+                                max_attempts: int = 3) -> str:
+    """
+    Create task with automatic error reflection and retry.
+    
+    Attempts up to max_attempts times, using reflection to adjust parameters
+    between attempts based on error codes (500, 6009, 6010, timeout).
+    
+    Returns task_id on success, raises exception after max_attempts with helpful suggestion.
+    """
+    current_params = extra_params.copy() if extra_params else {}
+    attempt_log = []
+    
+    credit_rules = model_params.get("all_credit_rules", [])
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            logger.info(f"{'='*60}")
+            logger.info(f"Attempt {attempt}/{max_attempts}: Creating task with params={current_params}")
+            logger.info(f"{'='*60}")
+            
+            # Special handling: if reflection provided new attribute_id/credit, update model_params
+            if attempt > 1 and "last_reflection" in locals():
+                reflection = locals()["last_reflection"]
+                if "new_attribute_id" in reflection:
+                    model_params["attribute_id"] = reflection["new_attribute_id"]
+                    model_params["credit"] = reflection["new_credit"]
+                    logger.info(f"  Using reflected attribute_id={reflection['new_attribute_id']}, "
+                              f"credit={reflection['new_credit']} pts")
+            
+            task_id = create_task(
+                base_url=base_url,
+                api_key=api_key,
+                task_type=task_type,
+                model_params=model_params,
+                prompt=prompt,
+                input_images=input_images,
+                extra_params=current_params
+            )
+            
+            # Success!
+            if attempt > 1:
+                logger.info(f"✅ Task created successfully after {attempt} attempts (auto-recovery)")
+            
+            attempt_log.append({
+                "attempt": attempt,
+                "result": "success",
+                "params": current_params.copy()
+            })
+            
+            return task_id
+            
+        except Exception as e:
+            error_info = extract_error_info(e)
+            
+            attempt_log.append({
+                "attempt": attempt,
+                "result": "failed",
+                "params": current_params.copy(),
+                "error": error_info
+            })
+            
+            logger.error(f"❌ Attempt {attempt} failed: {error_info['type']} - {error_info['message']}")
+            
+            if attempt < max_attempts:
+                reflection = reflect_on_failure(
+                    error_info=error_info,
+                    attempt=attempt,
+                    current_params=current_params,
+                    credit_rules=credit_rules,
+                    model_params=model_params
+                )
+                
+                last_reflection = reflection
+                
+                if reflection["action"] == "retry":
+                    current_params = reflection["new_params"]
+                    logger.info(f"🔄 Reflection decision: {reflection['reason']}")
+                    logger.info(f"   Retrying with new params: {current_params}")
+                    continue
+                else:
+                    logger.error(f"💡 Reflection suggests giving up: {reflection.get('suggestion')}")
+                    raise RuntimeError(
+                        f"Task creation failed after {attempt} attempt(s).\n\n"
+                        f"💡 Suggestion: {reflection.get('suggestion')}\n\n"
+                        f"Attempt log:\n" + json.dumps(attempt_log, indent=2, ensure_ascii=False)
+                    ) from e
+            else:
+                logger.error(f"❌ All {max_attempts} attempts failed")
+                
+                last_error = attempt_log[-1]["error"]
+                suggestion = f"All {max_attempts} attempts failed. Last error: {last_error['message']}"
+                
+                if last_error['code'] in [401, 500, 4008, 6009, 6010]:
+                    suggestion += f"\n\n💡 This may indicate:\n"
+                    if last_error['code'] == 401:
+                        suggestion += "  - API key is invalid or unauthorized\n"
+                        suggestion += "  - 🔗 Generate API Key: https://www.imaclaw.ai/imaclaw/apikey\n"
+                    elif last_error['code'] == 4008:
+                        suggestion += "  - Insufficient points to create this task\n"
+                        suggestion += "  - 🔗 Buy Credits: https://www.imaclaw.ai/imaclaw/subscription\n"
+                    elif last_error['code'] == 500:
+                        suggestion += "  - Backend server issue or unsupported parameter\n"
+                        suggestion += "  - Try a different model or simpler parameters\n"
+                    elif last_error['code'] == 6009:
+                        suggestion += "  - No matching pricing rule for your parameters\n"
+                        suggestion += "  - Try using default parameters or check available options\n"
+                    elif last_error['code'] == 6010:
+                        suggestion += "  - Parameter/pricing rule mismatch\n"
+                        suggestion += "  - Refresh the model list or use recommended parameters\n"
+                
+                raise RuntimeError(
+                    f"Task creation failed after {max_attempts} attempts.\n\n"
+                    f"{suggestion}\n\n"
+                    f"Full attempt log:\n" + json.dumps(attempt_log, indent=2, ensure_ascii=False)
+                ) from e
 
 
 # ─── User Preference Memory ───────────────────────────────────────────────────
@@ -956,15 +1427,22 @@ def main():
         
         print(f"✅ All {len(processed_images)} image(s) ready")
 
-    # ── 5. Create task ─────────────────────────────────────────────────────────
+    # ── 5. Create task (with Reflection) ──────────────────────────────────────
     print(f"\n🚀 Creating task…", flush=True)
     try:
-        task_id = create_task(base, apikey, args.task_type, mp,
-                              args.prompt, processed_images,
-                              extra if extra else None)
+        task_id = create_task_with_reflection(
+            base_url=base,
+            api_key=apikey,
+            task_type=args.task_type,
+            model_params=mp,
+            prompt=args.prompt,
+            input_images=processed_images,
+            extra_params=extra if extra else None,
+            max_attempts=3  # Up to 3 automatic retries with reflection
+        )
     except RuntimeError as e:
-        logger.error(f"Task creation failed: {str(e)}")
-        print(f"❌ Create task failed: {e}", file=sys.stderr)
+        logger.error(f"Task creation failed after reflection: {str(e)}")
+        print(f"❌ Create task failed:\n{e}", file=sys.stderr)
         sys.exit(1)
 
     print(f"✅ Task created: {task_id}", flush=True)

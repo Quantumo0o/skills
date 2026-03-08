@@ -3,11 +3,16 @@
   "slug": "ima-video-ai",
   "displayName": "IMA Studio Video Generation",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772548066341,
-    "commit": "https://github.com/openclaw/skills/commit/d79e6a3caea05f1248ab20291ebd49ff01b5ceac"
+    "version": "1.0.3",
+    "publishedAt": 1772815813454,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772548066341,
+      "commit": "https://github.com/openclaw/skills/commit/d79e6a3caea05f1248ab20291ebd49ff01b5ceac"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772300526392,
