@@ -3,11 +3,16 @@
   "slug": "ibt",
   "displayName": "IBT: Instinct + Behavior + Trust",
   "latest": {
-    "version": "2.7.3",
-    "publishedAt": 1772458506666,
-    "commit": "https://github.com/openclaw/skills/commit/f7fb94abb3e1b0e678763b4ab9c1fd4b63fc7bc1"
+    "version": "2.9.2",
+    "publishedAt": 1772892979405,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.7.3",
+      "publishedAt": 1772458506666,
+      "commit": "https://github.com/openclaw/skills/commit/f7fb94abb3e1b0e678763b4ab9c1fd4b63fc7bc1"
+    },
     {
       "version": "2.6.0",
       "publishedAt": 1772206794028,
