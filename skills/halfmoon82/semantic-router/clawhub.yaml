@@ -2,7 +2,7 @@
 # Semantic Router v7.7 - Phase 3 Stability Enhancement
 
 name: semantic-router
-version: 7.9.3
+version: 7.9.4
 
 metadata:
   title: "Semantic Router — 让你的 AI 代理学会自己选模型"
@@ -229,6 +229,17 @@ testing:
     - Verify configuration merging
 
 changelog:
+  "7.9.4":
+    date: 2026-03-07
+    breaking_changes: []
+    new_features: []
+    improvements:
+      - "Skill Trigger 注入文本移除 dispatch_id 动态字段（Trigger/Retry/Degraded 三处）：dispatch_id 仍保留在系统日志和 skill_trigger_exec_log.jsonl 中，不影响追踪能力。消除 input-side prependContext 每轮变化，M1 combinedKey 完全稳定，LLM prefix cache 命中率显著提升。"
+      - "Skill Trigger 注入文本移除 SKILL_NOT_APPLICABLE 输出指令：LLM 不再被要求在回复首行输出动态声明文本。技能不适用或无关时直接忽略并正常回复，消除 output-side 动态前缀，进一步提升 LLM 回复的 cache 稳定性。"
+    bug_fixes:
+      - "Fixed: dispatch_id in Skill Trigger prependContext caused M1 cache miss on every turn even when skill and routing state were unchanged."
+      - "Fixed: SKILL_NOT_APPLICABLE directive caused assistant reply first-line to vary per-turn, breaking output-side prefix cache."
+
   "7.9.3":
     date: 2026-03-06
     breaking_changes: []
