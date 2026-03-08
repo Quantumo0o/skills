@@ -1,0 +1,11 @@
+{
+  "owner": "neck-cn",
+  "slug": "tencentcloud-image-face-fusion",
+  "displayName": "TencentCloud Image Face Fusion",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772802510868,
+    "commit": null
+  },
+  "history": []
+}
