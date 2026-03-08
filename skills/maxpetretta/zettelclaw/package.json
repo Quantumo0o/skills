@@ -1,25 +1,20 @@
 {
   "name": "@zettelclaw/skill",
-  "version": "2026.2.23",
+  "version": "2026.3.7",
   "description": "Zettelclaw skill package for OpenClaw and ClawHub",
   "private": false,
   "type": "module",
   "files": [
-    "SKILL.md",
-    "hooks",
-    "templates"
+    "SKILL.md"
   ],
   "clawhub": {
     "skill": {
-      "entry": "SKILL.md",
-      "hooksDir": "hooks",
-      "templatesDir": "templates"
+      "entry": "SKILL.md"
     }
   },
   "scripts": {
-    "lint": "biome check . && tsgo --noEmit",
+    "lint": "biome check .",
     "lint:biome": "biome check .",
-    "lint:typecheck": "tsgo --noEmit",
     "fix": "biome check --write ."
   },
   "devDependencies": {

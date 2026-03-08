@@ -3,9 +3,15 @@
   "slug": "zettelclaw",
   "displayName": "Zettelclaw",
   "latest": {
-    "version": "2026.2.23",
-    "publishedAt": 1771824438353,
-    "commit": "https://github.com/openclaw/skills/commit/a13cb1657ae1179ef6dcd6951f3ce0fd86258ba7"
+    "version": "2026.3.7",
+    "publishedAt": 1772937890087,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2026.2.23",
+      "publishedAt": 1771824438353,
+      "commit": "https://github.com/openclaw/skills/commit/a13cb1657ae1179ef6dcd6951f3ce0fd86258ba7"
+    }
+  ]
 }
