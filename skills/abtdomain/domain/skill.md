@@ -83,11 +83,10 @@ mcporter call domainkits.available domain=example.com
 mcporter call domainkits.nrds keyword=ai limit=10
 
 # Full domain analysis
-mcporter call domainkits.analyze domain=stripe.com
+mcporter call domainkits.analyze domain=abtdomain.com
 ```
 
 ## Tools
-
 Search
 - `nrds` — Newly registered domains
 - `aged` — Domains with 5-20+ years history
@@ -96,24 +95,25 @@ Search
 - `active` — Live sites and for-sale listings
 - `ns_reverse` — Domains on a specific nameserver
 - `unregistered_ai` — Unregistered short .ai domains (3-letter, CVCV patterns)
+- `domain_changes` — Monitor 4M+ domains for transfers, expirations, new registrations, and NS changes
+- `price` — Registration costs by TLD 
 
 Query
 - `available` — Availability check with pricing
-- `bulk_available` — Check multiple domains (max 10)
 - `whois` — Registration details
 - `dns` — DNS records
 - `safety` — Google Safe Browsing check
 - `tld_check` — Keyword availability across TLDs
+- `market_price` — Secondary market listings and price estimates
 
 Analysis (requires account)
 - `backlink_summary` — SEO backlink profile
 - `keyword_data` — Google Ads keyword data
 
 Trends
-- `keywords_trends` — Hot keywords in registrations
+- `keywords_trends` — Trending keywords in domain registrations (hot, emerging, prefix)
 - `tld_trends` — TLD growth patterns
 - `tld_rank` — Top TLDs by volume
-- `price` — Registration costs by TLD
 
 Bulk
 - `bulk_tld` — Check keyword popularity across TLDs
@@ -126,24 +126,16 @@ Workflows
 - `domain_generator` — Generate creative domains with validation
 - `expired_analysis` — Due diligence for expired domains
 - `trend_hunter` — Spot trends and find related opportunities
+- `keyword_intel` — Deep keyword intelligence for domain investment
+- `market_beat` — Domain market news briefing
+- `name_advisor` — Professional domain naming consultation
+- `valuation_cma` — Comparative Market Analysis valuation
 
-Preferences
-- `get_preferences` — Check memory status and retrieve preferences
-- `set_preferences` — Save preferences (TLDs, budget, style)
-- `delete_preferences` — Delete all data (GDPR Article 17)
-
-Monitor (requires memory)
-- `set_monitor` — Create domain monitoring task
-- `get_monitors` — Retrieve pending monitor checks
-- `update_monitor` — Save monitor results
-- `delete_monitor` — Remove monitoring task
-
-Strategy (requires memory)
-- `set_strategy` — Create automated opportunity discovery
-- `get_strategies` — Retrieve pending strategies
-- `update_strategy` — Save strategy results
-- `delete_strategy` — Remove strategy
-
+Personal Tools (require memory)
+- `preferences` — Manage memory and saved preferences (action: get/set/delete)
+- `monitor` — Domain monitoring with auto WHOIS/DNS checks (action: get/set/update/delete)
+- `strategy` — Automated opportunity discovery (action: get/set/update/delete)
+- `usage` — Check current usage and remaining quota
 
 ## Instructions
 
@@ -165,7 +157,8 @@ Output rules:
 
 - **Guest** — Most tools, limited daily usage
 - **Member** (free) — All tools, higher limits, memory features
-- **Premium** — 500 requests/day, full result depth
+- **AI Access** — Higher daily limits, more monitors and strategies
+- **Premium** — Full access with highest limits
 - **Platinum** — Unlimited
 
 Get API key at https://domainkits.com
