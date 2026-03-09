@@ -1,6 +1,8 @@
 ---
-name: DOCX
+name: Word / Docx
+version: 1.0.1
 description: Read and generate Word documents with correct structure, styles, and cross-platform compatibility.
+changelog: Clarified the skill name and added a page layout compatibility note.
 metadata: {"clawdbot":{"emoji":"📘","os":["linux","darwin","win32"]}}
 ---
 
@@ -49,6 +51,7 @@ metadata: {"clawdbot":{"emoji":"📘","os":["linux","darwin","win32"]}}
 ## Compatibility
 
 - Compatibility mode limits features to earlier Word version—check `w:compat` settings
+- Page size defaults vary by tool and region—set US Letter vs A4 explicitly or pagination and table widths can drift
 - LibreOffice/Google Docs: complex formatting may shift—test roundtrip
 - Embedded fonts may not transfer—fallback fonts substitute
 - DOCM contains macros (security risk); DOC is legacy binary format
