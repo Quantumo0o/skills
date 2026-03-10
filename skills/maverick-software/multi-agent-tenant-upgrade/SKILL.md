@@ -1,6 +1,6 @@
 ---
 name: agent-chat-ux
-version: 1.5.1
+version: 1.5.2
 author: Charles Sears
 description: "Multi-agent UX for OpenClaw Control UI — agent selector, per-agent sessions, session history viewer with search, agent-filtered Sessions tab with friendly names, Create Agent wizard, emoji picker, backend agent CRUD, and auth mode badge."
 ---
@@ -8,7 +8,7 @@ description: "Multi-agent UX for OpenClaw Control UI — agent selector, per-age
 # agent-chat-ux
 
 **name:** agent-chat-ux  
-**version:** 1.5.1  
+**version:** 1.5.2  
 **author:** Charles Sears  
 **description:** Multi-agent UX for OpenClaw Control UI — agent selector, per-agent sessions, session history viewer with search, agent-filtered Sessions tab with friendly names, Create Agent wizard, emoji picker, and backend agent CRUD.
 
@@ -172,8 +172,8 @@ New RPC handler that reads full JSONL transcript files:
 Returns `{key, sessionId, agentId, total, offset, items[{role, text, timestamp}]}`.
 
 
-### 14. Auth Mode Badge in Chat Controls (v1.5.0)
-A small pill badge appears in the chat controls bar (between the context gauge and the `+` New Session button) showing which auth method was used for the last response:
+### 14. Auth Mode Badge on Every Assistant Message (v1.5.0 / v1.5.1)
+A small pill badge appears on every assistant message group showing which auth method was used:
 
 | Badge | Color | Meaning |
 |-------|-------|---------|
@@ -182,14 +182,31 @@ A small pill badge appears in the chat controls bar (between the context gauge a
 | **Fallback** | Orange | OpenAI or other fallback provider |
 
 **How it works:**
-1. After each final chat event, the UI calls a new `auth.status` RPC
-2. The RPC reads `lastGood` from `auth-profiles.json` to determine which profile was last used
-3. The badge updates to reflect that profile's type
+1. After each final chat event, the UI calls `auth.status` RPC
+2. The RPC reads `lastGood` from `auth-profiles.json` and returns `{profileId, mode}`
+3. `chatAuthMode` state is updated and passed as `fallbackAuthMode` to all message groups
+4. Messages with a specific `_authProfileId` (from the run pipeline) use that; all others fall back to `chatAuthMode`
+5. `renderAuthBadge()` handles both `profileId` strings (e.g. `anthropic:manual`) and `__mode:oauth` shorthand
 
-**Why this approach:** Simple and reliable — reads `lastGood` from the file already maintained by the auth profile store. No need to thread auth info through the streaming pipeline.
+This ensures **every** assistant message shows a badge, including tool-use messages and messages from autonomous loops.
+
+**"Up to Date" pill:** The gateway version header now shows "Up to Date" in a styled pill matching the Version and Health pills (green dot + rounded backdrop).
 
 ### 15. Pipedream Tab Refreshes on Agent Switch (v1.5.0)
 Previously, switching agents while on the Pipedream sub-tab kept showing the previous agent's data. Now `onSelectAgent` reloads Pipedream (and Zapier) state when their respective sub-tabs are active. Same fix applied to Zapier tab.
+
+### 16. OAuth-First Auth Priority Enforcement (v1.5.1)
+The auth profile candidate list is now sorted so `token`/`oauth` type profiles always come before `api_key` profiles, regardless of the order returned by `resolveAuthProfileOrder`. This guarantees OAuth is tried first for Anthropic even if the profile resolution system silently skips it.
+
+```ts
+// In pi-embedded-runner/run.ts — applied after resolveAuthProfileOrder()
+const sortedProfileOrder = [...profileOrder].sort((a, b) => {
+  const typeA = authStore.profiles[a]?.type ?? "api_key";
+  const typeB = authStore.profiles[b]?.type ?? "api_key";
+  const rank = (t: string) => (t === "token" || t === "oauth" ? 0 : 1);
+  return rank(typeA) - rank(typeB);
+});
+```
 
 ---
 
@@ -212,7 +229,7 @@ Previously, switching agents while on the Pipedream sub-tab kept showing the pre
 | `src/gateway/protocol/schema/types.ts` | `SessionsHistoryParams` type export |
 | `src/gateway/protocol/index.ts` | `validateSessionsHistoryParams` + re-exports |
 | `src/gateway/server-methods/sessions.ts` | `sessions.history` RPC handler |
-| `src/agents/pi-embedded-runner/run.ts` | Calls `updateAgentRunContext` with `authProfileId` after profile selection |
+| `src/agents/pi-embedded-runner/run.ts` | Calls `updateAgentRunContext` with `authProfileId`; sorts profile candidates so token/oauth always first |
 | `src/gateway/server-chat.ts` | Includes `authProfileId` from run context in final chat event payload |
 | `src/gateway/server-methods-list.ts` | Registers `auth.status` as a known RPC method |
 | `src/gateway/server-methods/sessions.ts` | `auth.status` RPC: reads `lastGood` from auth-profiles store |
@@ -220,14 +237,14 @@ Previously, switching agents while on the Pipedream sub-tab kept showing the pre
 | `ui/src/styles/chat/grouped.css` | Auth badge styles for per-message display (OAuth/API/fallback) |
 | `ui/src/styles/chat/layout.css` | `.chat-auth-badge` styles for chat controls bar badge |
 | `ui/src/ui/app-gateway.ts` | Calls `auth.status` after each final chat event; updates `chatAuthMode` state |
-| `ui/src/ui/app-render.helpers.ts` | Renders auth badge in chat controls bar next to context gauge |
+| `ui/src/ui/app-render.helpers.ts` | Agent dropdown, per-agent session filter, `+` New Session; auth badge in controls bar **removed** in v1.5.1 (moved to per-message) |
 | `ui/src/ui/app-view-state.ts` | Adds `chatAuthMode` field |
 | `ui/src/ui/app.ts` | Adds `@state() chatAuthMode` |
-| `ui/src/ui/chat/grouped-render.ts` | `renderAuthBadge()` helper for per-message badge (passes `group.authProfileId`) |
+| `ui/src/ui/chat/grouped-render.ts` | `renderAuthBadge()` for per-message badge; accepts `fallbackAuthMode` opt; handles `__mode:oauth` shorthand |
 | `ui/src/ui/controllers/chat.ts` | Annotates final messages with `_authProfileId` from payload |
 | `ui/src/ui/types/chat-types.ts` | Adds `authProfileId?: string` to `MessageGroup` type |
-| `ui/src/ui/views/chat.ts` | `groupMessages()` propagates `_authProfileId` from messages to group |
-| `ui/src/ui/app-render.ts` | `onSelectAgent` reloads Pipedream/Zapier state when their sub-tabs are active |
+| `ui/src/ui/views/chat.ts` | `groupMessages()` propagates `_authProfileId`; `ChatProps` adds `chatAuthMode`; passes `fallbackAuthMode` to `renderMessageGroup` |
+| `ui/src/ui/app-render.ts` | `onSelectAgent` reloads Pipedream/Zapier state when sub-tabs active; passes `chatAuthMode` to chat props; "Up to Date" styled as pill |
 | `ui/src/ui/app-chat.ts` | Removed `CHAT_SESSIONS_ACTIVE_MINUTES` time filter (was 120min, now 0 = show all sessions in chat dropdown) |
 
 ---
@@ -369,10 +386,11 @@ git apply ~/.openclaw/workspace/skills/agent-chat-ux/references/v1.4.0/patch-05-
 ```bash
 cd ~/openclaw
 
-# Auth badge (auth.status RPC + UI badge in chat controls)
+# Auth badge (auth.status RPC + per-message badge on all assistant groups)
+# Also includes: OAuth-first sort, "Up to Date" pill styling
 git apply ~/.openclaw/workspace/skills/agent-chat-ux/references/v1.5.0/patch-auth-badge.txt
 
-# Pipedream/Zapier tab refresh on agent switch
+# Pipedream/Zapier tab refresh on agent switch + chatAuthMode wiring to chat view
 git apply ~/.openclaw/workspace/skills/agent-chat-ux/references/v1.5.0/patch-pipedream-agent-switch.txt
 ```
 
@@ -470,13 +488,13 @@ Stored as `model.fallbacks[]` in the agent config. The runtime tries them via `r
 
 ## Changelog
 
-### 1.5.1 (2026-03-05)
-- **Fix:** Main/default agent model selection now honors Agents tab changes for model + fallbacks.
-- **Fix:** `ui/src/ui/app-render.ts` now mirrors `agentId === "main"` model edits to both config paths:
-  - `agents.list[main].model`
-  - `agents.defaults.model`
-- **Why:** Runtime/default resolution reads `agents.defaults.model`, while the Agents tab previously only updated `agents.list[].model`.
-- **Reference patch:** `references/main-agent-model-sync.patch`
+### 1.5.1 (2026-02-28)
+- **Fix:** Auth badge now shows on ALL assistant message groups, including tool-use and autonomous loop messages — `chatAuthMode` passed as `fallbackAuthMode` to every message group renderer
+- **Fix:** `renderAuthBadge()` updated to handle `__mode:<mode>` shorthand in addition to raw profile IDs
+- **Fix:** OAuth-first enforcement — profile candidate list is sorted so `token`/`oauth` profiles always precede `api_key`, regardless of resolution order quirks
+- **Fix:** Auth badge removed from chat controls bar (was redundant; per-message badge is more informative)
+- **New:** "Up to Date" in gateway version header now renders as a styled pill (green dot + rounded backdrop) matching Version and Health pills
+- **Patches:** Updated `patch-auth-badge.txt` and `patch-pipedream-agent-switch.txt` in `references/v1.5.0/` to include all v1.5.1 changes
 
 ### 1.5.0 (2026-02-28)
 - **New:** Auth mode badge in chat controls bar — shows OAuth / API / Fallback pill after each response via `auth.status` RPC reading `lastGood` from auth-profiles store
@@ -534,32 +552,123 @@ Stored as `model.fallbacks[]` in the agent config. The runtime tries them via `r
 
 ## ⚠️ Known Gotchas
 
-### Model Dropdown Shows Only 2–3 Models (Allowlist Trap)
+### Model Dropdown Shows Only 1–3 Models
 
-**Symptom:** The model selector in the Agents config page only shows a tiny handful of models (e.g. 2 Anthropic models) even though many providers are authenticated and `ModelRegistry.getAll()` returns 756+ models.
-
-**Root cause:** `agents.defaults.models` in `~/.openclaw/openclaw.json` acts as a **strict allowlist** in `buildAllowedModelSet()`. When the key is non-empty (any entries present), ONLY those models appear in the dropdown. This gets populated during onboarding when the user selects a default model, and then never cleared.
-
-**Fix:**
-```bash
-# Clear the allowlist so all models are shown
-python3 -c "
-import json
-cfg = json.load(open('/home/charl/.openclaw/openclaw.json'))
-cfg['agents']['defaults']['models'] = {}
-json.dump(cfg, open('/home/charl/.openclaw/openclaw.json', 'w'), indent=2)
-"
-# Then restart the gateway to clear the model catalog cache
-systemctl --user restart openclaw-gateway.service
-```
-
-**Verify:** `openclaw models list | wc -l` — should be 700+ lines.
-
-**Code path:** `models.list` RPC → `loadGatewayModelCatalog()` → `loadModelCatalog()` → `getAll()` (756 models) → `buildAllowedModelSet()` → filters to allowlist if `cfg.agents.defaults.models` is non-empty.
-
-**Note:** This also affects the gateway's in-process model catalog cache (`modelCatalogPromise` at module scope). A gateway restart is required after fixing the config.
+This manifests in two distinct failure modes that often alternate. Both are fixed permanently in v1.5.2 source patches. Understanding both helps if you're on an unpatched install.
 
 ---
+
+#### Mode A — Allowlist Trap (`agents.defaults.models` non-empty)
+
+**Symptom:** Dropdown shows a handful of models from one provider (e.g. 2 Claude variants) even though many providers have API keys configured. `openclaw models list --all` shows 750+ models fine.
+
+**Root cause:** `agents.defaults.models` in `openclaw.json` acts as a **strict allowlist** inside `buildAllowedModelSet()` in the `models.list` RPC handler. Any wizard, `openclaw models set <model>`, or onboarding command writes a single entry there — after that, only that one provider's model is shown. The key is never auto-cleared.
+
+**Temporary fix (unpatched installs):**
+```bash
+python3 -c "
+import json, re
+path = '/home/charl/.openclaw/openclaw.json'   # adjust path if needed
+raw = open(path).read()
+# strip JS comments, fix trailing commas, then parse
+clean = re.sub(r'//.*\n', '\n', raw)
+clean = re.sub(r',\s*([}\]])', r'\1', clean)
+cfg = json.loads(clean)
+cfg.setdefault('agents', {}).setdefault('defaults', {})['models'] = {}
+open(path, 'w').write(json.dumps(cfg, indent=2))
+print('done')
+"
+systemctl --user restart openclaw-gateway
+```
+
+**Permanent fix (source patch — v1.5.2):**  
+Remove `buildAllowedModelSet` from the `models.list` handler entirely. `agents.defaults.models` controls routing/defaults, not what appears in the UI dropdown. File: `src/gateway/server-methods/models.ts`.
+
+```diff
+-      const cfg = loadConfig();
+-      const { allowedCatalog } = buildAllowedModelSet({
+-        cfg,
+-        catalog,
+-        defaultProvider: DEFAULT_PROVIDER,
+-      });
+-      const models = allowedCatalog.length > 0 ? allowedCatalog : catalog;
++      // Always return the full catalog — agents.defaults.models is for routing,
++      // not for filtering what's visible in the UI dropdown.
++      const models = await context.loadGatewayModelCatalog();
+       respond(true, { models }, undefined);
+```
+
+---
+
+#### Mode B — Empty Catalog on First Gateway Boot
+
+**Symptom:** Dropdown shows nothing (or only the currently-selected model as a static fallback). Happens right after a fresh `systemctl restart`. After a second restart it usually works. The `models.list` RPC takes 1000+ ms and returns `{ models: [] }`.
+
+**Root cause:** Three interacting issues:
+1. `loadModelCatalog()` is lazy — not called until the first `models.list` RPC. If the gateway was busy at startup (e.g. rebuilding the Control UI, which happens on first install), the dynamic `import()` of the Pi SDK module may contend with other startup I/O and resolve to an empty registry.
+2. When `models.length === 0`, `modelCatalogPromise` is reset to `null` — so every subsequent call retries, but the error is only logged **once** (then `hasLoggedModelCatalogError` suppresses all future failures). This makes the root cause invisible in logs.
+3. The `loadGatewayModelCatalog()` wrapper had no retry — it returned `[]` as-is.
+
+**Permanent fix (source patches — v1.5.2):**
+
+**`src/gateway/server-model-catalog.ts`** — retry once on empty + pre-warm at startup:
+```typescript
+export async function loadGatewayModelCatalog(): Promise<GatewayModelChoice[]> {
+  const result = await loadModelCatalog({ config: loadConfig() });
+  if (result.length === 0) {
+    // Bust cache and retry once — handles transient startup race.
+    return await loadModelCatalog({ config: loadConfig(), useCache: false });
+  }
+  return result;
+}
+
+export function warmModelCatalogInBackground(): void {
+  loadGatewayModelCatalog().catch(() => {});
+}
+```
+
+**`src/agents/model-catalog.ts`** — reset error-log gate on each new attempt so failures stay visible:
+```diff
+       modelCatalogPromise = null;
++      hasLoggedModelCatalogError = false; // allow next attempt to log
+```
+
+**`src/gateway/server.impl.ts`** — call `warmModelCatalogInBackground()` at gateway startup (after sidecars):
+```typescript
+import { loadGatewayModelCatalog, warmModelCatalogInBackground } from "./server-model-catalog.js";
+// ...inside startGateway(), after startGatewaySidecars():
+warmModelCatalogInBackground();
+```
+
+---
+
+#### Diagnostic Commands
+
+```bash
+# How many models does the CLI see?
+openclaw models list --all | wc -l          # should be 750+
+
+# What does the live RPC return? (needs wscat or the gateway WS client)
+# Quickest check — look at the gateway log for models.list response time:
+# < 100ms = hitting cache (good); > 500ms = fresh load (may be empty)
+journalctl --user -u openclaw-gateway --no-pager | grep "models.list"
+
+# Is the allowlist populated?
+python3 -c "
+import json, re
+raw = open('/home/charl/.openclaw/openclaw.json').read()
+clean = re.sub(r'//.*\n', '\n', raw)
+clean = re.sub(r',\s*([}\]])', r'\1', clean)
+cfg = json.loads(clean)
+print('models allowlist:', cfg.get('agents',{}).get('defaults',{}).get('models',{}))
+"
+```
+
+---
+
+### 1.5.2 (2026-03-08)
+- **Permanent model dropdown fix (Mode A + Mode B):** Removes `buildAllowedModelSet` from `models.list` handler — the dropdown now always shows the full Pi SDK catalog regardless of `agents.defaults.models`. Adds `warmModelCatalogInBackground()` called at gateway startup to pre-warm the catalog and prevent the empty-on-first-boot race. Adds retry in `loadGatewayModelCatalog()` when the first load returns empty. Resets `hasLoggedModelCatalogError` on each fresh attempt so failures are always logged.
+- **Known Gotchas section:** Full root-cause writeup for both failure modes with source-level diffs and diagnostic commands.
 
 ### 1.0.0 (2026-02-18)
 - Initial release

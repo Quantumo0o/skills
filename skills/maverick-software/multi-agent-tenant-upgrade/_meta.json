@@ -1,13 +1,18 @@
 {
   "owner": "maverick-software",
   "slug": "multi-agent-tenant-upgrade",
-  "displayName": "Multi Agent Tenant Upgrade",
+  "displayName": "Multi-Agent Tenant Upgrade",
   "latest": {
-    "version": "1.5.1",
-    "publishedAt": 1772765656036,
-    "commit": "https://github.com/openclaw/skills/commit/011daff6e77ed6c0250f3722ea47dbfd4ca8cfdb"
+    "version": "1.5.2",
+    "publishedAt": 1772987956421,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.1",
+      "publishedAt": 1772765656036,
+      "commit": "https://github.com/openclaw/skills/commit/011daff6e77ed6c0250f3722ea47dbfd4ca8cfdb"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1772268552719,

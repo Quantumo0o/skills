@@ -1,5 +1,5 @@
 diff --git a/src/agents/pi-embedded-runner/run.ts b/src/agents/pi-embedded-runner/run.ts
-index c2d964569..5faff2246 100644
+index c2d964569..427a823c0 100644
 --- a/src/agents/pi-embedded-runner/run.ts
 +++ b/src/agents/pi-embedded-runner/run.ts
 @@ -1,4 +1,5 @@
@@ -8,7 +8,28 @@ index c2d964569..5faff2246 100644
  import fs from "node:fs/promises";
  import type { ThinkLevel } from "../../auto-reply/thinking.js";
  import { generateSecureToken } from "../../infra/secure-random.js";
-@@ -450,6 +451,9 @@ export async function runEmbeddedPiAgent(
+@@ -354,10 +355,18 @@ export async function runEmbeddedPiAgent(
+       if (lockedProfileId && !profileOrder.includes(lockedProfileId)) {
+         throw new Error(`Auth profile "${lockedProfileId}" is not configured for ${provider}.`);
+       }
++      // Enforce priority order: token/oauth profiles always before api_key profiles.
++      // This guarantees OAuth is tried first regardless of resolution order quirks.
++      const sortedProfileOrder = [...profileOrder].sort((a, b) => {
++        const typeA = authStore.profiles[a]?.type ?? "api_key";
++        const typeB = authStore.profiles[b]?.type ?? "api_key";
++        const rank = (t: string) => (t === "token" || t === "oauth" ? 0 : 1);
++        return rank(typeA) - rank(typeB);
++      });
+       const profileCandidates = lockedProfileId
+         ? [lockedProfileId]
+-        : profileOrder.length > 0
+-          ? profileOrder
++        : sortedProfileOrder.length > 0
++          ? sortedProfileOrder
+           : [undefined];
+       let profileIndex = 0;
+ 
+@@ -450,6 +459,9 @@ export async function runEmbeddedPiAgent(
            authStorage.setRuntimeApiKey(model.provider, apiKeyInfo.apiKey);
          }
          lastProfileId = apiKeyInfo.profileId;
@@ -188,24 +209,6 @@ index 08f83aaa3..3ac3ef771 100644
  }
  
  function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
-diff --git a/ui/src/ui/app-render.helpers.ts b/ui/src/ui/app-render.helpers.ts
-index 76385d795..6fcda85c0 100644
---- a/ui/src/ui/app-render.helpers.ts
-+++ b/ui/src/ui/app-render.helpers.ts
-@@ -489,6 +489,13 @@ export function renderChatControls(state: AppViewState) {
-         </select>
-       </label>
-       ${renderContextGauge(state)}
-+      ${(() => {
-+        const mode = (state as unknown as { chatAuthMode?: string | null }).chatAuthMode;
-+        if (!mode || mode === "unknown") return nothing;
-+        const label = mode === "oauth" ? "OAuth" : mode === "api" ? "API" : "Fallback";
-+        const cls = mode === "oauth" ? "chat-auth-badge--oauth" : mode === "api" ? "chat-auth-badge--api" : "chat-auth-badge--fallback";
-+        return html`<span class="chat-auth-badge ${cls}" title="Auth: ${label}">${label}</span>`;
-+      })()}
-       <button
-         class="btn btn--sm btn--icon"
-         ?disabled=${!state.connected}
 diff --git a/ui/src/ui/app-view-state.ts b/ui/src/ui/app-view-state.ts
 index c97edd7a5..c554c1c4f 100644
 --- a/ui/src/ui/app-view-state.ts
@@ -231,10 +234,10 @@ index 92037d608..cbca616d2 100644
    @state() backgroundJobToasts: BackgroundJobToast[] = [];
    @state() fallbackStatus: FallbackStatus | null = null;
 diff --git a/ui/src/ui/chat/grouped-render.ts b/ui/src/ui/chat/grouped-render.ts
-index df4689b0f..23ec4a525 100644
+index df4689b0f..1ccd76951 100644
 --- a/ui/src/ui/chat/grouped-render.ts
 +++ b/ui/src/ui/chat/grouped-render.ts
-@@ -105,6 +105,28 @@ export function renderStreamingGroup(
+@@ -105,6 +105,34 @@ export function renderStreamingGroup(
    `;
  }
  
@@ -244,17 +247,23 @@ index df4689b0f..23ec4a525 100644
 +  }
 +  let label: string;
 +  let cls: string;
-+  if (profileId.includes(":manual") || profileId.includes("claude-cli") || profileId.startsWith("anthropic:oat")) {
++  // Handle fallback mode hint (e.g. "__mode:oauth")
++  if (profileId.startsWith("__mode:")) {
++    const mode = profileId.slice(7);
++    if (mode === "oauth") { label = "OAuth"; cls = "auth-badge auth-badge--oauth"; }
++    else if (mode === "api") { label = "API"; cls = "auth-badge auth-badge--api"; }
++    else { label = "Fallback"; cls = "auth-badge auth-badge--fallback"; }
++  } else if (profileId.includes(":manual") || profileId.includes("claude-cli") || profileId.startsWith("anthropic:oat")) {
 +    label = "OAuth";
 +    cls = "auth-badge auth-badge--oauth";
 +  } else if (profileId.startsWith("anthropic:")) {
 +    label = "API";
 +    cls = "auth-badge auth-badge--api";
 +  } else if (profileId.startsWith("openai:")) {
-+    label = "OpenAI";
++    label = "Fallback";
 +    cls = "auth-badge auth-badge--fallback";
 +  } else {
-+    label = profileId.split(":")[0] ?? "API";
++    label = "API";
 +    cls = "auth-badge auth-badge--fallback";
 +  }
 +  return html`<span class="${cls}" title="${profileId}">${label}</span>`;
@@ -263,11 +272,19 @@ index df4689b0f..23ec4a525 100644
  export function renderMessageGroup(
    group: MessageGroup,
    opts: {
-@@ -148,6 +170,7 @@ export function renderMessageGroup(
+@@ -112,6 +140,7 @@ export function renderMessageGroup(
+     showReasoning: boolean;
+     assistantName?: string;
+     assistantAvatar?: string | null;
++    fallbackAuthMode?: "oauth" | "api" | "fallback" | "unknown" | null;
+   },
+ ) {
+   const normalizedRole = normalizeRoleForGrouping(group.role);
+@@ -148,6 +177,7 @@ export function renderMessageGroup(
          )}
          <div class="chat-group-footer">
            <span class="chat-sender-name">${who}</span>
-+          ${renderAuthBadge(group.authProfileId, normalizedRole)}
++          ${renderAuthBadge(group.authProfileId ?? (opts.fallbackAuthMode ? `__mode:${opts.fallbackAuthMode}` : undefined), normalizedRole)}
            <span class="chat-group-timestamp">${timestamp}</span>
          </div>
        </div>
@@ -308,10 +325,26 @@ index aba1b1730..7a746aed4 100644
  
  /** Content item types in a normalized message */
 diff --git a/ui/src/ui/views/chat.ts b/ui/src/ui/views/chat.ts
-index 77f076bb5..5f33da11d 100644
+index 77f076bb5..7fb48f9b6 100644
 --- a/ui/src/ui/views/chat.ts
 +++ b/ui/src/ui/views/chat.ts
-@@ -499,6 +499,7 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
+@@ -62,6 +62,7 @@ export type ChatProps = {
+   splitRatio?: number;
+   assistantName: string;
+   assistantAvatar: string | null;
++  chatAuthMode?: "oauth" | "api" | "fallback" | "unknown" | null;
+   // Image attachments
+   attachments?: ChatAttachment[];
+   onAttachmentsChange?: (attachments: ChatAttachment[]) => void;
+@@ -305,6 +306,7 @@ export function renderChat(props: ChatProps) {
+               showReasoning,
+               assistantName: props.assistantName,
+               assistantAvatar: assistantIdentity.avatar,
++              fallbackAuthMode: props.chatAuthMode ?? null,
+             });
+           }
+ 
+@@ -499,6 +501,7 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
      const role = normalizeRoleForGrouping(normalized.role);
      const timestamp = normalized.timestamp || Date.now();
  
@@ -319,7 +352,7 @@ index 77f076bb5..5f33da11d 100644
      if (!currentGroup || currentGroup.role !== role) {
        if (currentGroup) {
          result.push(currentGroup);
-@@ -510,9 +511,13 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
+@@ -510,9 +513,13 @@ function groupMessages(items: ChatItem[]): Array<ChatItem | MessageGroup> {
          messages: [{ message: item.message, key: item.key }],
          timestamp,
          isStreaming: false,
