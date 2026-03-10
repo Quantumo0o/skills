@@ -2,7 +2,7 @@
 metadata.clawdbot:
   name: aura-openclaw
   description: Compile documents into knowledge bases and manage persistent AI agent memory with Aura Core
-  version: 0.1.1
+  version: 0.1.3
   author: Auralith Inc.
   homepage: https://github.com/Auralith-Inc/aura-openclaw
 requires:
@@ -13,6 +13,8 @@ files: ["scripts/*"]
 # Aura for OpenClaw
 
 Persistent memory and instant knowledge retrieval for your OpenClaw agent. Compile 60+ file formats into queryable `.aura` archives and give your agent a 3-tier memory that survives sessions, compaction, and restarts.
+
+> **Memory OS v2.1** (`auralith-aura>=0.2.2`): Enhanced with temporal decay scoring, noise filtering, deduplication, bloom filters, SimHash fuzzy matching, and tiered priority scoring — zero RAM overhead.
 
 ## Setup
 
@@ -165,6 +167,17 @@ Markup: Markdown (.md), reStructuredText, LaTeX
 
 This skill makes **zero network requests**. All processing is local.
 
+## Data Provenance & Trust
+
+Every memory entry stores `source` (agent/user/system), `namespace`, `timestamp`, `session_id`, and a unique `entry_id`. Nothing is inferred or synthesized — memory contains only what was explicitly written. No hidden embeddings, no derived data.
+
+```python
+memory.show_usage()                              # Inspect what's stored per tier
+memory.prune_shards(before_date="2026-01-01")    # Prune by date
+memory.prune_shards(shard_ids=["specific_id"])   # Delete specific shards
+# Or delete ~/.aura/memory/ to wipe everything
+```
+
 ## Security & Privacy
 
 - **No data leaves your machine.** All compilation and memory operations run locally.
@@ -179,9 +192,10 @@ This skill is autonomously invoked by the agent as part of its normal operation.
 
 ## Trust Statement
 
-By using this skill, **no data is sent to any external service**. All processing happens on your local machine. Only install this skill if you trust [Auralith Inc.](https://auralith.org) and have reviewed the source code at [GitHub](https://github.com/Auralith-Inc/aura-openclaw).
+By using this skill, **no data is sent to any external service**. All processing happens on your local machine. Only install this skill if you trust [Auralith Inc.](https://auralith.org). Source code for the compiler and RAG components is available on [GitHub](https://github.com/Auralith-Inc/aura-core).
 
 ## Notes
 
-- Memory uses a Two-Speed WAL: instant writes (~0.001s), background compilation to durable shards.
+- Memory OS provides instant writes and background compilation to durable shards.
+- Compiler and RAG components are open source (Apache 2.0). Memory OS is proprietary, free to use.
 - For emphasis weighting and training features, see [OMNI Platform](https://omni.auralith.org).
