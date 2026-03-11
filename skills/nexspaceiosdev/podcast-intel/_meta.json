@@ -1,0 +1,11 @@
+{
+  "owner": "nexspaceiosdev",
+  "slug": "podcast-intel",
+  "displayName": "Podcast Intel",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773063276832,
+    "commit": null
+  },
+  "history": []
+}
