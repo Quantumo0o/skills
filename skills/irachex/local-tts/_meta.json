@@ -1,0 +1,11 @@
+{
+  "owner": "irachex",
+  "slug": "local-tts",
+  "displayName": "Local TTS",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773256127521,
+    "commit": null
+  },
+  "history": []
+}
