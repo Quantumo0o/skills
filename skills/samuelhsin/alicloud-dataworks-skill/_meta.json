@@ -1,0 +1,11 @@
+{
+  "owner": "samuelhsin",
+  "slug": "alicloud-dataworks-skill",
+  "displayName": "Alicloud DataWorks Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773078279117,
+    "commit": null
+  },
+  "history": []
+}
