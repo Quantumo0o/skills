@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "sendcloud",
+  "displayName": "Sendcloud",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773093759487,
+    "commit": null
+  },
+  "history": []
+}
