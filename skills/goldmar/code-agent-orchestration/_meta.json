@@ -1,0 +1,11 @@
+{
+  "owner": "goldmar",
+  "slug": "code-agent-orchestration",
+  "displayName": "Code Agent Orchestration",
+  "latest": {
+    "version": "2.0.5",
+    "publishedAt": 1773213235712,
+    "commit": null
+  },
+  "history": []
+}
