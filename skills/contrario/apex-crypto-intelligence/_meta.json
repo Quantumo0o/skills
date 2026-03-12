@@ -3,11 +3,16 @@
   "slug": "apex-crypto-intelligence",
   "displayName": "Apex Crypto Intelligence",
   "latest": {
-    "version": "0.2.0",
-    "publishedAt": 1772830100073,
-    "commit": "https://github.com/openclaw/skills/commit/a11c65992a9045a33c098f7b12596d76269eac21"
+    "version": "0.2.1",
+    "publishedAt": 1773148187427,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.0",
+      "publishedAt": 1772830100073,
+      "commit": "https://github.com/openclaw/skills/commit/a11c65992a9045a33c098f7b12596d76269eac21"
+    },
     {
       "version": "0.1.3",
       "publishedAt": 1770947469716,
