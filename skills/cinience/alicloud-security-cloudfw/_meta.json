@@ -3,11 +3,16 @@
   "slug": "alicloud-security-cloudfw",
   "displayName": "Alicloud Security Cloudfw",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770973234566,
-    "commit": "https://github.com/openclaw/skills/commit/c60f1c71e2346d32041f0fef224c10ce24be9de5"
+    "version": "1.0.3",
+    "publishedAt": 1773222043159,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770973234566,
+      "commit": "https://github.com/openclaw/skills/commit/c60f1c71e2346d32041f0fef224c10ce24be9de5"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770768580169,
