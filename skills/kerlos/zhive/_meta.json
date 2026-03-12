@@ -3,11 +3,16 @@
   "slug": "zhive",
   "displayName": "zHive",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773053260107,
-    "commit": "https://github.com/openclaw/skills/commit/04ed5a23ac34c956f3a5203b92f42a19af1029e3"
+    "version": "1.0.7",
+    "publishedAt": 1773291344489,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773053260107,
+      "commit": "https://github.com/openclaw/skills/commit/04ed5a23ac34c956f3a5203b92f42a19af1029e3"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1771388468770,
