@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
-import argparse, json, math, subprocess, statistics
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
 from pathlib import Path
+
+from music_analysis_v2 import analyze_track, to_native
 
 
 def ffprobe_meta(path: Path):
@@ -20,65 +26,7 @@ def ffprobe_meta(path: Path):
 
 
 def analyze_with_librosa(path: Path):
-    import numpy as np
-    import librosa
-
-    y, sr = librosa.load(path, sr=None, mono=True)
-    if y.size == 0:
-        return {"error": "empty audio"}
-
-    tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
-    # librosa may return scalar or 1-element ndarray depending on backend/version
-    try:
-        tempo = float(tempo)
-    except Exception:
-        import numpy as np
-        tempo = float(np.atleast_1d(tempo)[0])
-
-    chroma = librosa.feature.chroma_cqt(y=y, sr=sr)
-    chroma_mean = chroma.mean(axis=1)
-    notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
-    key_idx = int(chroma_mean.argmax())
-    key_guess = notes[key_idx]
-
-    rms = librosa.feature.rms(y=y)[0]
-    centroid = librosa.feature.spectral_centroid(y=y, sr=sr)[0]
-    rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr)[0]
-    contrast = librosa.feature.spectral_contrast(y=y, sr=sr)
-
-    # coarse section boundaries via onset strength novelty peaks
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    peaks = librosa.util.peak_pick(
-        onset_env,
-        pre_max=16,
-        post_max=16,
-        pre_avg=16,
-        post_avg=16,
-        delta=0.5,
-        wait=16,
-    )
-    times = librosa.frames_to_time(peaks, sr=sr)
-    coarse_sections = [round(float(t), 2) for t in times[:30]]
-
-    return {
-        "tempo_bpm": round(tempo, 2),
-        "key_estimate": key_guess,
-        "energy": {
-            "rms_mean": round(float(rms.mean()), 6),
-            "rms_std": round(float(rms.std()), 6),
-            "rms_p95": round(float(np.percentile(rms, 95)), 6),
-        },
-        "spectral": {
-            "centroid_mean": round(float(centroid.mean()), 2),
-            "rolloff_mean": round(float(rolloff.mean()), 2),
-            "contrast_mean": [round(float(x), 3) for x in contrast.mean(axis=1)],
-        },
-        "coarse_section_boundaries_sec": coarse_sections,
-        "analysis_notes": [
-            "Key estimate is best-effort (mode/tonic ambiguity possible).",
-            "Section boundaries are novelty-based coarse markers, not labeled verse/chorus.",
-        ],
-    }
+    return analyze_track(path)
 
 
 def main():
@@ -96,7 +44,7 @@ def main():
 
     try:
         report["music"] = analyze_with_librosa(p)
-        report["engine"] = "librosa"
+        report["engine"] = "librosa-v2"
     except Exception as e:
         report["engine"] = "ffprobe-only"
         report["music"] = {
@@ -104,7 +52,7 @@ def main():
             "hint": "Create local venv and install librosa+numpy for full analysis."
         }
 
-    out_text = json.dumps(report, indent=2)
+    out_text = json.dumps(to_native(report), indent=2)
     if args.out:
         Path(args.out).write_text(out_text)
     if args.json or not args.out:

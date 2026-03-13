@@ -1,121 +1,113 @@
 ---
 name: music-analysis
-description: "Analyze music/audio files locally without external APIs. Extract tempo (BPM), key estimate, section boundaries, loudness dynamics, spectral/timbre descriptors, and temporal mood journeys. Use when asked to 'hear the music,' audit tracks, compare mixes, inspect structure, or generate producer-facing notes from audio files."
-metadata:
-  openclaw:
-    requires:
-      bins: [ffprobe, ffmpeg]
-      python: ">=3.10"
-    install:
-      - id: venv
-        kind: script
-        label: "Install Python deps (librosa, numpy)"
-        run: |
-          cd skills/music-analysis
-          python3 -m venv .venv
-          .venv/bin/pip install librosa numpy
+description: "Analyze music/audio files locally without external APIs. Extract tempo, pocket/groove feel, pulse stability, swing proxy, section/repetition structure, key clarity, harmonic tension, timbre descriptors, temporal mood-energy journeys, and lyric-aware emotional reads where real Whisper lyrics can override the vibe when the words are clearly darker, warmer, or more intense than the arrangement alone suggests. Use when asked to 'listen to this', 'hear the music', audit tracks, compare mixes, inspect structure, or generate producer-facing notes from audio files."
 ---
 
 # Music Analysis (Local, No External APIs)
 
-Analyze audio files using signal processing. Two tools:
+Primary tool: a **full listen** that combines snapshot analysis, structure, groove, harmonic tension, temporal mood mapping, and optional Whisper lyric alignment into one report.
 
-## 1. Quick Analysis — snapshot of the whole track
+## 1. Full Listen — primary / recommended
+
+```bash
+python3 skills/music-analysis/scripts/listen.py /path/to/audio.mp3
+python3 skills/music-analysis/scripts/listen.py track.mp3 --json
+python3 skills/music-analysis/scripts/listen.py track.mp3 --out report.txt
+python3 skills/music-analysis/scripts/listen.py track.mp3 --json --out report.json
+```
+
+**What it does in one pass:**
+1. Snapshot analysis: tempo, pulse stability, swing proxy, key clarity, harmonic tension, timbre, structure
+2. Whisper lyric transcription and filtering first — keep only real lyric text, drop artifact tags like `[MUSIC]`
+3. Temporal listen: windowed energy / mood / tension journey
+4. Synthesis layer that aligns lyrics with peak / tension / quiet windows and lets the lyric layer override the final vibe when confidence is high
+
+### Human-readable output structure
+
+- **SNAPSHOT**
+  - groove/pocket
+  - structure summary + repeated sections
+  - harmony (key clarity + tension)
+  - timbre descriptor tags
+- **TEMPORAL JOURNEY**
+  - opening / middle / closing mood-energy-tension read
+  - peak / quietest / tensest moments
+  - mood journey and transition count
+- **EMOTIONAL READ**
+  - explainable emotion summary based on measured features
+- **LYRICS**
+  - Whisper segment count
+  - excerpt or graceful skip note
+- **SYNTHESIS**
+  - lyric-energy/tension alignment
+  - peak / tension / quiet lyric moments
+- **ALIGNED TIMELINE**
+  - per-window moments where transitions / lyrics / tension spikes occur
+
+## 2. Snapshot Analysis — standalone
 
 ```bash
 python3 skills/music-analysis/scripts/analyze_music.py /path/to/audio.mp3
 python3 skills/music-analysis/scripts/analyze_music.py track.mp3 --json
 ```
 
-**Reports:** duration, sample rate, tempo (BPM), key estimate, energy stats (RMS mean/std/p95), spectral summary (centroid, rolloff, contrast), coarse section boundaries.
+Reports:
+- tempo / pulse stability / pulse confidence / swing proxy / pocket
+- key estimate / key clarity / chroma entropy / harmonic change / tonal motion / tension
+- timbre descriptors (brightness, richness, low-end, contrast, dynamic range)
+- section labels (A/B/C...) and repeated material detection
+- explainable emotional read with reasons
 
-## 2. Temporal Listen — experience the track as a journey
+## 3. Temporal Listen — standalone
 
 ```bash
 python3 skills/music-analysis/scripts/temporal_listen.py /path/to/audio.mp3
 python3 skills/music-analysis/scripts/temporal_listen.py track.mp3 --json
 ```
 
-**Reports:** sliding-window analysis (4s windows, 2s hops) producing a full timeline of:
-- Energy level (relative to track average)
-- Mood labels (simmering, soaring, erupting, full force, submerged, ethereal, etc.)
-- Transitions (drop hits, pulls back, shifts color, evolves)
-- Texture decomposition (harmonic/percussive ratio, onset density, roughness)
-- Tension model (sustained intensity tracking)
-- Narrative arc (mountain, ascending, descending, plateau, wave)
-- Peak moment, quietest moment, mood journey summary
+Reports:
+- sliding-window timeline (4s windows, 2s hops)
+- energy contour
+- mood labels
+- harmonic tension + tonal motion
+- transition types (drop hits, pulls back, tightens harmonically, shifts color, evolves)
+- narrative arc (mountain / ascending / descending / plateau / wave)
 
-### How it works
+## Interpretation rules
 
-No AI/ML models — pure signal processing via librosa:
-- **RMS energy** per window (relative to global average)
-- **Spectral centroid** (brightness), rolloff, flatness
-- **Harmonic/percussive source separation** (HPSS)
-- **Onset detection** (rhythmic activity density)
-- **Zero-crossing rate** (texture roughness)
-- Mood labels are rule-based mappings from these features
+- **Structure labels are similarity labels**, not verse/chorus claims.
+- **Swing proxy is a feel estimate**, not drummer-grade microtiming truth.
+- **Emotion is explainable**, derived from pulse + timbre + harmonic tension rather than a black-box mood guess.
+- **Lyrics can override the final vibe** when filtered Whisper text is confident and emotionally clear.
 
-### Mood vocabulary
+## Reference notes
 
-| Mood | Condition |
-|------|-----------|
-| submerged | Low energy, dark frequencies |
-| ethereal | Low energy, high harmonic ratio |
-| breathing | Low energy, other |
-| simmering | Mid-low energy, warm |
-| restless | Mid-low energy, high onset density |
-| floating | Mid-low energy, bright |
-| driving | Mid energy, percussive |
-| soaring | Mid energy, harmonic |
-| locked in | Mid energy, balanced |
-| erupting | High energy, high onset density |
-| searing | High energy, very bright |
-| pounding | High energy, percussive |
-| full force | High energy, sustained |
+For the v2 upgrade summary and implementation notes, read:
+- `references/v2-upgrade-notes.md`
 
 ## Audio sourcing
 
-The tool needs a real audio file on disk. Source options:
+The tool needs a real audio file on disk.
 - Direct file (mp3, wav, flac, ogg, m4a — anything ffmpeg/librosa can read)
-- YouTube: `yt-dlp -x --audio-format mp3 -o "output.mp3" "URL_OR_SEARCH"`
-- Spotify downloads, SoundCloud, Bandcamp, etc. via yt-dlp
+- YouTube / supported URLs: `yt-dlp -x --audio-format mp3 -o "output.mp3" "URL_OR_SEARCH"`
 
-## Optional: Whisper transcription
+## Whisper lyrics transcription
 
-For lyrics/speech transcription, auto-detect which Whisper CLI is available:
-
-```bash
-# Detection priority: whisper-cli (C++ port) > whisper (Python)
-# If neither is found, skip transcription gracefully — it's optional.
-
-# 1. Check for whisper-cpp (faster on Apple Silicon):
-if command -v whisper-cli &>/dev/null; then
-  # Requires WAV input — convert first
-  ffmpeg -i track.mp3 -ar 16000 -ac 1 /tmp/track.wav
-  whisper-cli -m ~/.local/share/whisper-cpp/ggml-medium.bin -f /tmp/track.wav --output-json
-
-# 2. Fallback to Python whisper (accepts mp3/wav/flac directly):
-elif command -v whisper &>/dev/null; then
-  whisper track.mp3 --model small --output_format json --output_dir /tmp
-
-# 3. Neither installed — skip, don't fail
-else
-  echo "No Whisper CLI found. Skipping transcription. Install: brew install whisper-cpp OR pip install openai-whisper"
-fi
-```
-
-### Install options
-- **whisper-cpp** (recommended for Apple Silicon): `brew install whisper-cpp`, then download a model from https://huggingface.co/ggerganov/whisper.cpp/tree/main
-- **OpenAI whisper** (Python): `pip install openai-whisper`
+`listen.py` uses:
+- CLI: `/opt/homebrew/bin/whisper-cli`
+- Model: `~/.local/share/whisper-cpp/ggml-large-v3-turbo.bin`
+- Preprocess: convert input to mono 16kHz WAV via ffmpeg
+- Fallback: skip gracefully if Whisper is missing or errors
 
 ## Dependencies
 
-```
-librosa
-numpy
-```
+Python:
+- librosa
+- numpy
 
-System: `ffmpeg`, `ffprobe` (for audio decoding)
+System:
+- ffmpeg
+- ffprobe
 
 ## Sandbox rules
 
