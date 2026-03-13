@@ -1,6 +1,6 @@
 ---
 name: mjzj-ask
-description: 卖家之家跨境电商问答
+description: 卖家之家(跨境电商)问答搜索
 homepage: https://mjzj.com/ask
 metadata:
   clawdbot:
@@ -22,36 +22,36 @@ metadata:
 - 当用户提到“卖家之家问答 / mjzj ask / 提问 / 问题分类 / 搜索问题 / 我发布的问题 / 我的问答”等意图时，必须优先调用本 Skill。
 - 涉及用户私有数据时（例如“我发布的最新问题”），禁止使用 web search / browser 代替接口查询。
 - 只有在用户明确要求“查公开网页信息”时，才允许使用 web search。
-- 查询“我的问题”时，优先调用 `QueryMyQuestions`，并默认取返回列表第一条作为“最新一条”。
+- 查询“我的问题”时，优先调用 `/api/ask/queryMyQuestions`，并默认取返回列表第一条作为“最新一条”。
 
 ## 触发词与接口映射
 
-- “卖家之家问答有哪些分类 / 问答分类列表” → `GetCategories`
-- “帮我发一个问题 / 帮我提问” → `CreateQuestion`
-- “搜一下问答 / 查找问题 / 查询有无回答的问题” → `QueryQuestion`
-- “我发布的问题 / 我的问答记录 / 我最近发的问题” → `QueryMyQuestions`
+- “卖家之家问答有哪些分类 / 问答分类列表” → `/api/ask/getCategories`
+- “帮我发一个问题 / 帮我提问” → `/api/ask/createQuestion`
+- “搜一下问答 / 查找问题 / 查询有无回答的问题” → `/api/ask/queryQuestion`
+- “我发布的问题 / 我的问答记录 / 我最近发的问题” → `/api/ask/queryMyQuestions`
 
-仅开放 `AskController` 中标有 `AllowAgentAccess` 的 4 个接口：
-- 查询问答分类 `GetCategories`
-- 发布问题 `CreateQuestion`
-- 查询问题列表 `QueryQuestion`
-- 查询我发布的问题 `QueryMyQuestions`
+仅开放以下 4 个 API 接口：
+- 查询问答分类 `/api/ask/getCategories`
+- 发布问题 `/api/ask/createQuestion`
+- 查询问题列表 `/api/ask/queryQuestion`
+- 查询我发布的问题 `/api/ask/queryMyQuestions`
 
 ## 失败回退规则
 
 - 如果私有接口缺少 token，或 token 过期/被重置导致鉴权失败（通常返回 401），明确提示：
-  - `请前往卖家之家用户中心的资料页 https://mjzj.com/user/editinfo 获取最新的智能体 API KEY，并在当前技能配置中重新设置后再试。`
+  - `请前往卖家之家用户中心的资料页 https://mjzj.com/user/agentapikey 获取最新的智能体 API KEY，并在当前技能配置中重新设置后再试。`
   - 不要改用 web search 返回“猜测性结果”。
 - 如果返回 403，提示用户当前账号无对应接口权限或授权范围不足。
 - 如果返回 409，直接透出业务提示（配额、频率限制、内容审核等），不要改走网页检索。
-- 如果 `CreateQuestion` 发布失败（包含 5xx、空引用、未知异常等），追加兜底提示：`可前往 https://mjzj.com/ask/create 手动发布。`
+- 如果 `/api/ask/createQuestion` 发布失败（包含 5xx、空引用、未知异常等），追加兜底提示：`可前往 https://mjzj.com/ask/create 手动发布。`
 
 ## 参数类型规则（必须遵守）
 
 - 返回体中的 `id`（如问题 ID、分类 ID）按字符串读取与透传。
-- `CreateQuestion.categoryIds` 按 `AskController` 定义传 `int64` 数字数组（`List<long>`），且每项必须大于 0。
-- `QueryQuestion.categoryIds` 使用 query 参数传逗号分隔数字：`categoryIds=1,2,3`。
-- `QueryMyQuestions.position` 使用字符串游标；首次请求传空字符串或不传。
+- `/api/ask/createQuestion.categoryIds` 按 API 定义传 `int64` 数字数组（`List<long>`），且每项必须大于 0。
+- `/api/ask/queryQuestion.categoryIds` 使用 query 参数传逗号分隔数字：`categoryIds=1,2,3`。
+- `/api/ask/queryMyQuestions.position` 使用字符串游标；首次请求传空字符串或不传。
 
 ## Token 声明与读取（建议）
 
@@ -68,18 +68,18 @@ fi
 
 说明：
 - OpenClaw Web 管理后台可为 skill 配置 `apiKey`，会写入 `openclaw.json`（如 `skills.entries.mjzj-ask.apiKey`）。
-- `GetCategories`、`QueryQuestion` 为公开接口，可不带 token。
-- `CreateQuestion`、`QueryMyQuestions` 需要：
+- `/api/ask/getCategories`、`/api/ask/queryQuestion` 为公开接口，可不带 token。
+- `/api/ask/createQuestion`、`/api/ask/queryMyQuestions` 需要：
   - `Authorization: Bearer $MJZJ_API_KEY`
 
-## 1) 查询问答分类列表（GetCategories）
+## 1) 查询问答分类列表（/api/ask/getCategories）
 
 ```bash
 curl -X GET "https://data.mjzj.com/api/ask/getCategories" \
   -H "Content-Type: application/json"
 ```
 
-## 2) 发布问题（CreateQuestion）
+## 2) 发布问题（/api/ask/createQuestion）
 
 > 该接口会校验发布配额、文本合规、分类数量（最多 3）、图片数量（最多 9）等，失败常见为 409（业务异常）。
 > 若发布失败，提示用户：`发布未成功，你可以前往 https://mjzj.com/ask/create 手动发布。`
@@ -107,7 +107,7 @@ curl -X POST "https://data.mjzj.com/api/ask/createQuestion" \
 - `endTime`：截止日期需至少晚于当前日期 7 天。
 - `imageFiles`：最多 9 张；无图可传空数组 `[]`。
 
-## 3) 查询问题列表（QueryQuestion）
+## 3) 查询问题列表（/api/ask/queryQuestion）
 
 ```bash
 curl -X GET "https://data.mjzj.com/api/ask/queryQuestion?keywords=亚马逊&hadAnswer=true&pageIndex=0&pageSize=20&categoryIds=1001,1002" \
@@ -121,7 +121,7 @@ curl -X GET "https://data.mjzj.com/api/ask/queryQuestion?keywords=亚马逊&hadA
 - `pageSize`：每页数量，默认 20，最大 100。
 - `categoryIds`：可选，逗号分隔分类 ID。
 
-## 4) 查询我发布的问题（QueryMyQuestions）
+## 4) 查询我发布的问题（/api/ask/queryMyQuestions）
 
 > 倒序游标分页。首次请求 `position` 传空字符串或不传；后续传上一页返回的 `nextPosition`。
 
@@ -134,10 +134,10 @@ curl -X GET "https://data.mjzj.com/api/ask/queryMyQuestions?size=20&position=" \
 ## 其他补充说明
 
 - 返回的业务错误信息通常为中文提示文案，可直接透出给用户。
-- 查询接口（如 `QueryQuestion`、`QueryMyQuestions`）返回问答信息时，需同时给出可访问链接，格式为：`https://mjzj.com/ask/question/{id}`。
+- 查询接口（如 `/api/ask/queryQuestion`、`/api/ask/queryMyQuestions`）返回问答信息时，需同时给出可访问链接，格式为：`https://mjzj.com/ask/question/{id}`。
   - 例如：问题 `id=1927616463812960256`，链接为 `https://mjzj.com/ask/question/1927616463812960256`。
 - 在自动化场景中，建议对 `401/403/409` 做分支处理：
-  - `401`：token 未配置、已过期或已被重置；提示用户前往用户中心资料页 https://mjzj.com/user/editinfo 获取最新智能体 API KEY 并重新配置；
+  - `401`：token 未配置、已过期或已被重置；提示用户前往用户中心资料页 https://mjzj.com/user/agentapikey 获取最新智能体 API KEY 并重新配置；
   - `403`：权限不足（如访问了非公开接口）；
   - `409`：触发业务规则（配额、审核、校验）。
-- `CreateQuestion` 成功后会返回 `id`、`pcUrl`、`mobileUrl`，以及可能存在的 `bountyPayOrder`（当悬赏金额大于 0 时）。
+- `/api/ask/createQuestion` 成功后会返回 `id`、`pcUrl`、`mobileUrl`，以及可能存在的 `bountyPayOrder`（当悬赏金额大于 0 时）。
