@@ -1,141 +1,190 @@
 #!/bin/bash
-# MiniMax Token 快速查询 - V3 版本
-# 更新日期: 2026-03-09
-# 基于实际页面测试更新（修复协议勾选问题）
+# MiniMax Token 快速查询 - V9 版本
+# 更新日期: 2026-03-12
+# 支持两种登录方式：密码登录 + 手机验证码登录
 
-echo "🔍 正在打开 MiniMax Coding Plan 页面..."
+echo "🔍 打开 MiniMax 页面..."
 
 # 打开页面
 browser-use --browser real --profile "Default" open "https://platform.minimaxi.com/user-center/payment/coding-plan"
-
-# 等待页面加载
 sleep 3
 
 # 检查是否需要登录
 PAGE_TEXT=$(browser-use --browser real --profile "Default" eval "document.body.innerText" 2>/dev/null)
 
 if echo "$PAGE_TEXT" | grep -q "开放平台账户登录"; then
-    echo "📱 需要登录，正在跳转登录页..."
+    echo "📱 需要登录..."
     
-    # 检查是否在登录页，如果是则直接进行登录流程
-    if echo "$PAGE_TEXT" | grep -q "手机验证码登录"; then
-        echo "📱 页面已是登录页，点击手机验证码登录..."
-        browser-use --browser real --profile "Default" click 33
-        sleep 2
+    # 从 memory 获取凭据
+    MEMORY_FILE="/home/allen/.openclaw/workspace/memory/minimax-login.txt"
+    PHONE=""
+    PASSWORD=""
+    
+    if [ -f "$MEMORY_FILE" ]; then
+        PHONE=$(grep "phone=" "$MEMORY_FILE" | cut -d'=' -f2)
+        PASSWORD=$(grep "password=" "$MEMORY_FILE" | cut -d'=' -f2-)
     fi
     
-    # 获取当前页面状态
-    STATE=$(browser-use --browser real --profile "Default" state)
-    
-    # 提示用户输入手机号
-    echo "⚠️ 请提供手机号："
-    read -r PHONE
-    
-    # 输入手机号（先点击输入框获取焦点）
-    echo "📱 输入手机号: $PHONE"
-    # 找到手机号输入框（通常是 shadow DOM 内的 register_mail）
-    PHONE_INPUT=$(echo "$STATE" | grep -oP 'register_mail.*?id=\K[0-9]+' | head -1 || echo "362")
-    if [ -z "$PHONE_INPUT" ] || [ "$PHONE_INPUT" = "362" ]; then
-        browser-use --browser real --profile "Default" click 362
+    # 如果没有密码，尝试验证码登录
+    if [ -z "$PASSWORD" ]; then
+        echo "🔐 使用验证码登录..."
+        
+        # 检查当前是否在验证码登录页面
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        if echo "$STATE" | grep -q "手机验证码登录"; then
+            # 点击手机验证码登录标签
+            PHONE_TAB=$(echo "$STATE" | grep "手机验证码登录" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+            [ -n "$PHONE_TAB" ] && browser-use --browser real --profile "Default" click "$PHONE_TAB" 2>/dev/null
+            sleep 1
+        fi
+        
+        # 输入手机号
+        if [ -z "$PHONE" ]; then
+            echo "⚠️ 请提供手机号："
+            read -r PHONE
+        fi
+        
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        PHONE_INPUT=$(echo "$STATE" | grep "register_mail" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        
+        [ -n "$PHONE_INPUT" ] && browser-use --browser real --profile "Default" click "$PHONE_INPUT" 2>/dev/null
+        sleep 0.5
+        [ -n "$PHONE_INPUT" ] && browser-use --browser real --profile "Default" type "$PHONE"
+        echo "📱 手机号: $PHONE"
+        
+        # 勾选协议
+        browser-use --browser real --profile "Default" eval "document.querySelector('#register_protocol')?.click()" 2>/dev/null
+        sleep 1
+        
+        # 点击获取验证码
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        SEND_BTN=$(echo "$STATE" | grep -E "获取验证码" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        [ -n "$SEND_BTN" ] && browser-use --browser real --profile "Default" click "$SEND_BTN" 2>/dev/null
+        echo "📱 验证码已发送..."
+        
+        sleep 3
+        
+        # 输入验证码
+        echo "⚠️ 请提供验证码："
+        read -r CODE
+        echo "📱 输入验证码: $CODE"
+        
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        CODE_INPUT=$(echo "$STATE" | grep "register_captcha" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        [ -n "$CODE_INPUT" ] && browser-use --browser real --profile "Default" click "$CODE_INPUT" 2>/dev/null
+        browser-use --browser real --profile "Default" type "$CODE"
+        
+        # 点击登录
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        SUBMIT_BTN=$(echo "$STATE" | grep -E "button.*submit" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        [ -n "$SUBMIT_BTN" ] && browser-use --browser real --profile "Default" click "$SUBMIT_BTN" 2>/dev/null
+        
     else
-        browser-use --browser real --profile "Default" click $PHONE_INPUT
+        # 密码登录方式
+        echo "🔐 使用密码登录..."
+        
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        PHONE_INPUT=$(echo "$STATE" | grep "register_mail" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        
+        [ -n "$PHONE_INPUT" ] && browser-use --browser real --profile "Default" click "$PHONE_INPUT" 2>/dev/null
+        sleep 0.5
+        [ -n "$PHONE_INPUT" ] && browser-use --browser real --profile "Default" type "$PHONE"
+        echo "📱 手机号: $PHONE"
+        
+        sleep 0.5
+        
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        PWD_INPUT=$(echo "$STATE" | grep "register_password" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        
+        [ -n "$PWD_INPUT" ] && browser-use --browser real --profile "Default" click "$PWD_INPUT" 2>/dev/null
+        sleep 0.5
+        [ -n "$PWD_INPUT" ] && browser-use --browser real --profile "Default" type "$PASSWORD"
+        echo "📱 密码: ****"
+        
+        # 勾选协议
+        browser-use --browser real --profile "Default" eval "document.querySelector('#register_protocol')?.click()" 2>/dev/null
+        sleep 0.5
+        
+        # 点击登录
+        STATE=$(browser-use --browser real --profile "Default" state 2>&1)
+        SUBMIT_BTN=$(echo "$STATE" | grep -E "button.*submit" | head -1 | sed 's/.*\[\([0-9]*\)\].*/\1/' | head -1)
+        [ -n "$SUBMIT_BTN" ] && browser-use --browser real --profile "Default" click "$SUBMIT_BTN" 2>/dev/null
     fi
-    browser-use --browser real --profile "Default" type "$PHONE"
     
-    # 勾选用户协议 - 重要：点击 label 元素，不是链接！
-    echo "📱 勾选用户协议（点击 label）..."
-    # 尝试多个可能的元素 ID
-    browser-use --browser real --profile "Default" click 390 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 420 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 176 2>/dev/null
+    # 等待登录
+    sleep 4
     
-    # 点击获取验证码
-    echo "📱 点击获取验证码..."
-    browser-use --browser real --profile "Default" click 389 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 654 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 257 2>/dev/null
+    # 检查登录结果
+    PAGE_TEXT=$(browser-use --browser real --profile "Default" eval "document.body.innerText" 2>/dev/null)
     
-    # 提示用户输入验证码
-    echo "⚠️ 请提供验证码："
-    read -r CODE
-    
-    # 输入验证码
-    echo "📱 输入验证码: $CODE"
-    # 找到验证码输入框
-    CODE_INPUT=$(echo "$STATE" | grep -oP 'register_captcha.*?id=\K[0-9]+' | head -1 || echo "363")
-    if [ -z "$CODE_INPUT" ] || [ "$CODE_INPUT" = "363" ]; then
-        browser-use --browser real --profile "Default" click 363
-    else
-        browser-use --browser real --profile "Default" click $CODE_INPUT
+    if echo "$PAGE_TEXT" | grep -q "请输入正确的手机号或邮箱"; then
+        echo "❌ 登录失败：手机号或密码错误"
+        rm -f "$MEMORY_FILE"
+        exit 1
     fi
-    browser-use --browser real --profile "Default" type "$CODE"
     
-    # 点击登录按钮
-    echo "📱 点击登录..."
-    browser-use --browser real --profile "Default" click 360 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 407 2>/dev/null || \
-    browser-use --browser real --profile "Default" click 10 2>/dev/null
+    if echo "$PAGE_TEXT" | grep -q "开放平台账户登录"; then
+        echo "❌ 登录失败，请重试"
+        rm -f "$MEMORY_FILE"
+        exit 1
+    fi
     
-    # 等待登录完成
-    sleep 3
+    # 登录成功
+    echo "✅ 登录成功"
+    
+    # 如果有密码，保存到 memory
+    if [ -n "$PASSWORD" ]; then
+        echo "💾 保存凭据到 memory..."
+        echo "phone=$PHONE" > "$MEMORY_FILE"
+        echo "password=$PASSWORD" >> "$MEMORY_FILE"
+        chmod 600 "$MEMORY_FILE"
+    fi
 fi
 
-# 刷新页面获取最新数据
-echo "🔄 刷新页面获取最新数据..."
+# 刷新页面
+echo "🔄 刷新页面..."
 browser-use --browser real --profile "Default" eval "location.reload()"
 sleep 3
 
-# 获取页面内容
+# 获取数据
 PAGE_TEXT=$(browser-use --browser real --profile "Default" eval "document.body.innerText" 2>/dev/null)
 
-# 提取使用百分比
 USED=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+% 已使用' | grep -oE '[0-9]+' || echo "0")
 
-# 提取重置剩余时间 - 支持多种格式
-# 格式1: "X 小时 Y 分钟后重置"
-# 格式2: "X 分钟后重置"  
-# 格式3: 从时间窗口计算
-
+# 重置时间 - 修复解析逻辑（顺序很重要）
 RESET_MINUTES=""
 
-# 尝试提取 "X 小时 Y 分钟后" 格式
-TEMP=$(echo "$PAGE_TEXT" | grep -oP '\d+\s*小时\s*\d+\s*分钟' | head -1)
-if [ -n "$TEMP" ]; then
-    HOURS=$(echo "$TEMP" | grep -oP '\d+(?=\s*小时)' | head -1)
-    MINS=$(echo "$TEMP" | grep -oP '\d+(?=\s*分钟)' | head -1)
-    if [ -n "$HOURS" ] && [ -n "$MINS" ]; then
-        RESET_MINUTES=$((HOURS * 60 + MINS))
+# 格式1: "X 小时 Y 分钟后重置" (最优先)
+if [ -z "$RESET_MINUTES" ]; then
+    TEMP=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+ 小时 [0-9]+ 分钟后重置' | head -1)
+    if [ -n "$TEMP" ]; then
+        HOURS=$(echo "$TEMP" | grep -oE '[0-9]+' | head -1)
+        MINS=$(echo "$TEMP" | grep -oE '[0-9]+' | tail -1)
+        [ -n "$HOURS" ] && [ -n "$MINS" ] && RESET_MINUTES=$((HOURS * 60 + MINS))
     fi
 fi
 
-# 如果没找到，尝试提取 "X 分钟后重置"
+# 格式2: "X 分钟后重置"
 if [ -z "$RESET_MINUTES" ]; then
-    TEMP=$(echo "$PAGE_TEXT" | grep -oP '\d+\s*分钟\s*后' | head -1)
+    TEMP=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+ 分钟后重置' | head -1)
     if [ -n "$TEMP" ]; then
-        RESET_MINUTES=$(echo "$TEMP" | grep -oP '\d+' | head -1)
+        RESET_MINUTES=$(echo "$TEMP" | grep -oE '[0-9]+' | head -1)
     fi
 fi
 
-# 如果还没找到，尝试提取 "X 小时后重置"
+# 格式3: "X 小时后重置"
 if [ -z "$RESET_MINUTES" ]; then
-    TEMP=$(echo "$PAGE_TEXT" | grep -oP '\d+\s*小时\s*后' | head -1)
+    TEMP=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+ 小时后重置' | head -1)
     if [ -n "$TEMP" ]; then
-        HOURS=$(echo "$TEMP" | grep -oP '\d+' | head -1)
-        if [ -n "$HOURS" ]; then
-            RESET_MINUTES=$((HOURS * 60))
-        fi
+        HOURS=$(echo "$TEMP" | grep -oE '[0-9]+' | head -1)
+        [ -n "$HOURS" ] && RESET_MINUTES=$((HOURS * 60))
     fi
 fi
 
 # 如果都没找到，使用默认值
-if [ -z "$RESET_MINUTES" ]; then
-    RESET_MINUTES="0"
-fi
+[ -z "$RESET_MINUTES" ] && RESET_MINUTES="0"
 
-# 提取时间窗口
-TIME_WINDOW=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+:[0-9]+-[0-9]+:[0-9+]+(UTC+8)?' | head -1 || echo "")
-
-# 提取可用额度
+TIME_WINDOW=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+:[0-9]+-[0-9]+:[0-9]+' | head -1 || echo "")
 TOTAL_PROMPTS=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+ prompts' | grep -oE '[0-9]+' || echo "0")
 TOTAL_HOURS=$(echo "$PAGE_TEXT" | grep -oE '[0-9]+ 小时' | grep -oE '[0-9]+' | head -1 || echo "0")
 
@@ -145,17 +194,10 @@ echo "========================"
 echo "已使用: ${USED}%"
 echo "重置剩余: ${RESET_MINUTES} 分钟"
 echo "可用额度: ${TOTAL_PROMPTS} prompts / ${TOTAL_HOURS} 小时"
-if [ -n "$TIME_WINDOW" ]; then
-    echo "时间窗口: $TIME_WINDOW"
-fi
+[ -n "$TIME_WINDOW" ] && echo "时间窗口: $TIME_WINDOW"
 echo "========================"
 
-# 如果使用超过 90%，发出警告
-if [ "$USED" -ge 90 ]; then
-    echo ""
-    echo "⚠️ 警告：Token 使用量已达 ${USED}%！即将耗尽，请注意！"
-fi
+[ "$USED" -ge 90 ] && echo "⚠️ 警告：Token 使用量已达 ${USED}%！"
 
-# 截图保存
 browser-use --browser real --profile "Default" screenshot /tmp/minimax-token-query.png 2>/dev/null
-echo "📸 截图已保存到 /tmp/minimax-token-query.png"
+echo "📸 截图已保存"
