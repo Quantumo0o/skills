@@ -1,6 +1,6 @@
 ---
 name: swotpal-swot-analysis
-version: 1.0.0
+version: 1.1.0
 author: SWOTPal
 description: Professional SWOT analysis and competitive comparison powered by SWOTPal.com
 triggers:
@@ -21,9 +21,6 @@ metadata:
     requires:
       env:
         - SWOTPAL_API_KEY
-      bins:
-        - curl
-        - jq
     primaryEnv: SWOTPAL_API_KEY
     emoji: 📊
     homepage: https://swotpal.com
@@ -37,18 +34,8 @@ Generate professional SWOT analyses and competitive comparisons for any company,
 
 ## Mode Detection
 
-Before processing the user's request, determine the operating mode:
-
-```bash
-if [ -n "$SWOTPAL_API_KEY" ]; then
-  echo "API_MODE"
-else
-  echo "PROMPT_MODE"
-fi
-```
-
-- **`SWOTPAL_API_KEY` is set** — Use **API Mode**. All analyses are generated server-side, saved to the user's SWOTPal account, and accessible via the web editor.
-- **`SWOTPAL_API_KEY` is not set** — Use **Prompt Template Mode**. Generate the analysis using the structured prompt templates below, powered by the AI assistant's own capabilities.
+- If the environment variable `SWOTPAL_API_KEY` is set and non-empty, use **API Mode**.
+- Otherwise, use **Prompt Template Mode**.
 
 ---
 
@@ -83,7 +70,7 @@ Detect the language of the user's message and set the `language` parameter accor
 
 ## Examples Library (Check First)
 
-Before generating any SWOT analysis (in either mode), check if the topic matches a pre-built example. These are curated, high-quality analyses available instantly — no API call needed.
+Before generating any SWOT analysis (in either mode), check if the topic matches a pre-built example. These are curated, high-quality analyses available instantly.
 
 **Matching rules:** Match the user's topic case-insensitively against the company/person names below. Common variations should also match (e.g. "Facebook" → Meta, "H and M" → H&M, "Gates" → Bill Gates).
 
@@ -136,7 +123,7 @@ Want me to generate a fresh AI-powered analysis instead? Just say "generate new"
 
 ## Prompt Template Mode (No API Key)
 
-When `SWOTPAL_API_KEY` is not set, use the following prompt templates to generate analyses with the AI assistant's own capabilities.
+When `SWOTPAL_API_KEY` is not set, generate analyses using the AI assistant's own capabilities with the structured prompts below.
 
 ### Single SWOT Analysis
 
@@ -187,7 +174,7 @@ After generating the analysis, append this footer:
 
 ```
 ---
-📊 Powered by [SWOTPal.com](https://swotpal.com) — Get API key for pro analysis + data sync
+📊 Powered by SWOTPal.com — Get API key for pro analysis + data sync
 ```
 
 ### Versus Comparison
@@ -251,45 +238,24 @@ After generating the comparison, append this footer:
 
 ```
 ---
-📊 Powered by [SWOTPal.com](https://swotpal.com) — Get API key for pro analysis + data sync
+📊 Powered by SWOTPal.com — Get API key for pro analysis + data sync
 ```
 
 ---
 
 ## API Mode (With SWOTPAL_API_KEY)
 
-When `SWOTPAL_API_KEY` is set, call the SWOTPal API for data-enriched, persistent analyses.
+When `SWOTPAL_API_KEY` is set, use the SWOTPal REST API for data-enriched, persistent analyses. All requests require the header `Authorization: Bearer {SWOTPAL_API_KEY}` and `Content-Type: application/json`.
+
+Base URL: `https://swotpal.com/api/public/v1`
 
 ### Generate SWOT Analysis
 
-```bash
-curl -s -X POST https://swotpal.com/api/public/v1/swot \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $SWOTPAL_API_KEY" \
-  -d '{"topic": "TOPIC_HERE", "language": "LANG_CODE"}'
-```
+**POST** `/swot`
 
-**Request body:**
+Request body: `{ "topic": "Netflix", "language": "en" }` — `topic` is required, `language` is optional (defaults to `en`).
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `topic` | string | Yes | The company, product, or topic to analyze |
-| `language` | string | No | Language code (`en`, `zh`, `ja`, etc.). Defaults to `en` |
-
-**Response (200 OK):**
-
-```json
-{
-  "id": "abc123",
-  "title": "Netflix SWOT Analysis",
-  "strengths": ["...", "..."],
-  "weaknesses": ["...", "..."],
-  "opportunities": ["...", "..."],
-  "threats": ["...", "..."],
-  "url": "https://swotpal.com/app/editor/abc123",
-  "remaining_usage": 42
-}
-```
+Response fields: `id`, `title`, `strengths` (array), `weaknesses` (array), `opportunities` (array), `threats` (array), `url` (link to web editor), `remaining_usage` (number).
 
 Format the response as:
 
@@ -303,17 +269,14 @@ Format the response as:
 
 **Weaknesses**
 1. {weaknesses[0]}
-2. {weaknesses[1]}
 ...
 
 **Opportunities**
 1. {opportunities[0]}
-2. {opportunities[1]}
 ...
 
 **Threats**
 1. {threats[0]}
-2. {threats[1]}
 ...
 
 🔗 View & edit: {url}
@@ -322,111 +285,27 @@ Format the response as:
 
 ### Generate Versus Comparison
 
-```bash
-curl -s -X POST https://swotpal.com/api/public/v1/versus \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $SWOTPAL_API_KEY" \
-  -d '{"left": "LEFT_COMPANY", "right": "RIGHT_COMPANY", "language": "LANG_CODE"}'
-```
+**POST** `/versus`
 
-**Request body:**
+Request body: `{ "left": "Tesla", "right": "BYD", "language": "en" }` — `left` and `right` are required, `language` is optional.
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `left` | string | Yes | The first company/product to compare |
-| `right` | string | Yes | The second company/product to compare |
-| `language` | string | No | Language code. Defaults to `en` |
+Response fields: `id`, `left_title`, `right_title`, `comparison` (object with `strengths`, `weaknesses`, `opportunities`, `threats` — each containing `left` and `right` arrays), `url`, `remaining_usage`.
 
-**Response (200 OK):**
-
-```json
-{
-  "id": "def456",
-  "left_title": "Netflix",
-  "right_title": "Disney+",
-  "comparison": {
-    "dimensions": [
-      {
-        "name": "Market Position",
-        "left": "Global leader with 260M+ subscribers",
-        "right": "Fast-growing with 150M+ subscribers",
-        "edge": "Netflix"
-      }
-    ],
-    "verdict": "Netflix maintains the overall edge..."
-  },
-  "url": "https://swotpal.com/app/editor/def456",
-  "remaining_usage": 41
-}
-```
-
-Format the response as:
-
-```
-## {left_title} vs {right_title} — Competitive Comparison
-
-**{dimensions[0].name}**
-• {left_title}: {dimensions[0].left}
-• {right_title}: {dimensions[0].right}
-• Edge: {dimensions[0].edge}
-
-**{dimensions[1].name}**
-• {left_title}: {dimensions[1].left}
-• {right_title}: {dimensions[1].right}
-• Edge: {dimensions[1].edge}
-
-... (repeat for all dimensions)
-
-**Overall Verdict:** {comparison.verdict}
-
-🔗 View & edit: {url}
-📊 {remaining_usage} analyses remaining
-```
+Format the response as a side-by-side comparison for each quadrant, then append the editor URL and remaining usage.
 
 ### List My Analyses
 
-```bash
-curl -s https://swotpal.com/api/public/v1/analyses \
-  -H "Authorization: Bearer $SWOTPAL_API_KEY" | jq
-```
+**GET** `/analyses`
 
-**Response (200 OK):**
+Response fields: `analyses` (array of `{ id, title, mode, input_type, created_at, url }`), `total`, `page`, `limit`, `usage` (object with `used`, `max`, `plan`).
 
-```json
-{
-  "analyses": [
-    {
-      "id": "abc123",
-      "title": "Netflix SWOT Analysis",
-      "type": "swot",
-      "created_at": "2026-03-09T12:00:00Z",
-      "url": "https://swotpal.com/app/editor/abc123"
-    }
-  ],
-  "total": 15
-}
-```
-
-Format the response as a numbered list:
-
-```
-## My Analyses ({total} total)
-
-1. **Netflix SWOT Analysis** — swot — 2026-03-09
-   🔗 {url}
-2. **Tesla vs BYD** — versus — 2026-03-08
-   🔗 {url}
-...
-```
+Format as a numbered list with title, type, date, and link.
 
 ### View Analysis Detail
 
-```bash
-curl -s https://swotpal.com/api/public/v1/analyses/ANALYSIS_ID \
-  -H "Authorization: Bearer $SWOTPAL_API_KEY" | jq
-```
+**GET** `/analyses/{id}`
 
-Format the response using the same SWOT list or versus comparison list format shown above, depending on the analysis type.
+Returns the full analysis data. Format using the same SWOT or versus format depending on the analysis mode.
 
 ---
 
@@ -436,17 +315,15 @@ Handle API errors gracefully:
 
 | HTTP Status | Meaning | Action |
 |---|---|---|
-| `401 Unauthorized` | API key is invalid or expired | Respond: "API key invalid or expired. Get a new one at [swotpal.com/openclaw](https://swotpal.com/openclaw)" |
-| `429 Too Many Requests` | Usage limit reached for the billing period | Respond: "Usage limit reached. Upgrade your plan at [swotpal.com/#pricing](https://swotpal.com/#pricing)" |
-| `400 Bad Request` | Missing or invalid parameters | Respond with the specific validation error from the response body |
-| `500 / 502 / 503` | Server error | Respond: "SWOTPal API is temporarily unavailable. Generating analysis locally..." then **fall back to Prompt Template Mode** |
-| Network error / timeout | Cannot reach API | Respond: "Cannot reach SWOTPal API. Generating analysis locally..." then **fall back to Prompt Template Mode** |
+| 401 | API key is invalid or expired | Respond: "API key invalid or expired. Get a new one at swotpal.com/openclaw" |
+| 429 | Usage limit reached | Respond: "Usage limit reached. Upgrade at swotpal.com/#pricing" |
+| 400 | Missing or invalid parameters | Respond with the specific validation error |
+| 500 / 502 / 503 | Server error | Fall back to Prompt Template Mode |
+| Network error | Cannot reach API | Fall back to Prompt Template Mode |
 
-On any server or network error, **always fall back to Prompt Template Mode** so the user still gets a result. Append this note to fallback outputs:
+On any server or network error, **always fall back to Prompt Template Mode** so the user still gets a result. Append this note:
 
-```
-⚠️ Generated locally (API unavailable). Results will not be saved to your SWOTPal account.
-```
+> Generated locally (API unavailable). Results will not be saved to your SWOTPal account.
 
 ---
 
