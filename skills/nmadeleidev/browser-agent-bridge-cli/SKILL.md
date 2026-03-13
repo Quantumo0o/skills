@@ -1,13 +1,13 @@
 ---
 name: browser-bridge-cli
-description: Use this skill when an agent needs to control a user's browser through the Browser Bridge Python CLI from https://github.com/NmadeleiDev/browser_agent_bridge, including setup, server startup, extension connection, and command execution.
+description: Use this skill when you need to control or make actions on the user's chrome tab.
 ---
 
 # Browser Bridge CLI
 
 ## When to use
 
-Use this skill when you need to control a real Chrome tab through a user-side extension and a Python CLI bridge. Typical situations:
+Use this skill when you need to control a real Chrome tab. Typical situations:
 - browser automation with live user browser context
 - page observation (interactive elements and DOM snapshots)
 - remote tab actions (navigate, click, type, scroll)
