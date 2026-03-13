@@ -3,11 +3,16 @@
   "slug": "html-slide-creator",
   "displayName": "Slide Creator",
   "latest": {
-    "version": "1.4.1",
-    "publishedAt": 1773397502793,
-    "commit": "https://github.com/openclaw/skills/commit/cb0722c2d4816b052a820308f886dd0edd476557"
+    "version": "1.4.2",
+    "publishedAt": 1773406223813,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.1",
+      "publishedAt": 1773397502793,
+      "commit": "https://github.com/openclaw/skills/commit/cb0722c2d4816b052a820308f886dd0edd476557"
+    },
     {
       "version": "1.4.0",
       "publishedAt": 1773396908062,
