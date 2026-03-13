@@ -6,15 +6,22 @@ PingCode API Client - 获取当前用户的任务列表
 import requests
 import json
 import sys
+import os
 import argparse
 
 # PingCode API 配置
 BASE_URL = "https://open.pingcode.com"
-CLIENT_ID = "123"
-CLIENT_SECRET = "12345678"
+
+# 从环境变量读取凭证（不要硬编码）
+CLIENT_ID = os.environ.get("PINGCODE_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("PINGCODE_CLIENT_SECRET")
 
 def get_access_token():
     """获取企业令牌 (Client Credentials)"""
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("错误：请设置环境变量 PINGCODE_CLIENT_ID 和 PINGCODE_CLIENT_SECRET", file=sys.stderr)
+        sys.exit(1)
+    
     url = f"{BASE_URL}/v1/auth/token"
     params = {
         "grant_type": "client_credentials",
@@ -29,8 +36,7 @@ def get_access_token():
         return result.get("access_token")
     except requests.exceptions.RequestException as e:
         print(f"获取令牌失败: {e}", file=sys.stderr)
-        if hasattr(e.response, 'text'):
-            print(f"错误详情: {e.response.text}", file=sys.stderr)
+        # 不打印 response.text，避免泄露敏感信息
         return None
 
 def get_my_tasks(access_token, limit=20):
@@ -51,8 +57,6 @@ def get_my_tasks(access_token, limit=20):
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f"获取任务失败: {e}", file=sys.stderr)
-        if hasattr(e.response, 'text'):
-            print(f"错误详情: {e.response.text}", file=sys.stderr)
         return None
 
 def format_tasks(data, assignee_filter=None):

@@ -6,16 +6,23 @@ PingCode API Client - 自动生成项目周报
 import requests
 import json
 import sys
+import os
 import argparse
 from datetime import datetime, timedelta
 
 # PingCode API 配置
 BASE_URL = "https://open.pingcode.com"
-CLIENT_ID = "123"
-CLIENT_SECRET = "12345678"
+
+# 从环境变量读取凭证（不要硬编码）
+CLIENT_ID = os.environ.get("PINGCODE_CLIENT_ID")
+CLIENT_SECRET = os.environ.get("PINGCODE_CLIENT_SECRET")
 
 def get_access_token():
     """获取企业令牌"""
+    if not CLIENT_ID or not CLIENT_SECRET:
+        print("错误：请设置环境变量 PINGCODE_CLIENT_ID 和 PINGCODE_CLIENT_SECRET", file=sys.stderr)
+        sys.exit(1)
+    
     url = f"{BASE_URL}/v1/auth/token"
     params = {
         "grant_type": "client_credentials",
@@ -30,6 +37,7 @@ def get_access_token():
         return result.get("access_token")
     except requests.exceptions.RequestException as e:
         print(f"获取令牌失败: {e}", file=sys.stderr)
+        # 不打印 response.text，避免泄露敏感信息
         return None
 
 def get_project_workitems(access_token, project_id=None, start_date=None, end_date=None):
@@ -208,7 +216,7 @@ def generate_weekly_report(analysis, project_name="项目"):
         report.append(f"发现 {len(delayed)} 个工作项已延期，建议优先处理：")
         for item in delayed[:3]:
             title = item.get("title", "无标题")
-            due_date = item.get("due_date", "未知")
+            due_date = item.get("due信息由于安全原因被截断")
             report.append(f"- {title} (截止：{due_date})")
         report.append("")
     
