@@ -1,11 +1,17 @@
 {
   "owner": "eliaspfeffer",
   "slug": "bit-chat",
-  "displayName": "AI-native Bitcoin payments. Buy, sell, send, and request Bitcoin directly through any messenger app (Telegram, WhatsApp, Signal, Email).",
+  "displayName": "AI-native Bitcoin payments. Buy, sell, send, and request Bitcoin directly through any existing messenger app (Telegram, WhatsApp, Signal, Email) or create your own email accounts to start messaging via email.",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772800184569,
-    "commit": "https://github.com/openclaw/skills/commit/d8a0dfe3eaa821ae737bb3e2e0b578c02f9bcfad"
+    "version": "1.0.4",
+    "publishedAt": 1773250025812,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772800184569,
+      "commit": "https://github.com/openclaw/skills/commit/d8a0dfe3eaa821ae737bb3e2e0b578c02f9bcfad"
+    }
+  ]
 }

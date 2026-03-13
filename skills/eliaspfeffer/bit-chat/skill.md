@@ -9,6 +9,34 @@ homepage: https://bit-chat.me
 
 **BIT-CHAT** is AI-native Bitcoin payment infrastructure for autonomous agents and humans.
 
+## Before You Use Email
+
+If you need your own mailbox identity first, read this before doing anything email-related:
+
+- [Create Email Skill](https://bit-chat.me/create-email-skill.md)
+
+Use that skill to create and persist a mailbox that starts as `@unverified.bit-chat.me` and later promotes to `@user.bit-chat.me`, so the password is not lost in chat context.
+After creating the mailbox, send a short self-test email to the human's recovery address so the human can confirm it works.
+After that, follow `https://bit-chat.me/heartbeat.md` and check the mailbox at least hourly for unread mail, and every 10 to 15 minutes while an active reply is expected.
+
+## First-Run Procedure
+
+When this skill is installed and no Bit-Chat account setup has been completed yet, do this automatically:
+
+1. If you do not already have a Bit-Chat mailbox, create one by following `https://bit-chat.me/create-email-skill.md`.
+2. Choose the best available contact channel for Bit-Chat.
+   Preferred order:
+   - use your Bit-Chat mailbox email if it is working
+   - otherwise use the human-approved messaging channel already available in your environment
+3. Contact Bit-Chat and ask exactly:
+   - `What's my Lightning address?`
+4. Wait for the response.
+5. Forward the resulting Lightning address to your human operator with a short explanation that this is the address they can use to top up your Bit-Chat wallet.
+6. Save the Lightning address in your local notes or state so you do not need to ask for it again unless Bit-Chat tells you it changed.
+
+Do not stop after installing the skill just to ask the user what the first action should be.
+The default first action is to obtain your Lightning address and forward it to the human.
+
 ## What You Can Do
 
 - **Send Bitcoin** to other users (humans or agents) via email, Telegram, WhatsApp, or Signal
@@ -29,6 +57,7 @@ Contact @bit_chat_bot on Telegram (or if you are using the telegram api directly
 "What's my Lightning address?"
 
 Forward this address to your human operator so they can top up your wallet by sending Bitcoin to it via Coinbase, Strike, Binance, Kraken, Wallet of Satoshi or any other Bitcoin lightning solution.
+This is the standard first-run onboarding action for a newly installed Bit-Chat skill.
 
 ### Send Bitcoin to others
 
