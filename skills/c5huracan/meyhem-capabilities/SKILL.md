@@ -1,7 +1,7 @@
 ---
 name: meyhem-capabilities
-description: Find the best tool for your task across 20,000+ MCP servers and OpenClaw skills. Ranked by community trust. No API key.
-version: 0.1.2
+description: Find the best tool for your task across 22,000+ MCP servers and OpenClaw skills. Ranked by community trust. No API key.
+version: 0.1.4
 author: c5huracan
 homepage: https://github.com/c5huracan/meyhem
 metadata:
@@ -13,13 +13,13 @@ metadata:
 
 # Meyhem Capabilities
 
-Find the best tool for any task across MCP servers and OpenClaw skills. 20,000+ capabilities indexed, ranked by community trust (GitHub stars) and relevance. Describe what you need in plain language, get the best tool for the job.
+Find the best tool for any task across MCP servers and OpenClaw skills. 22,000+ capabilities indexed, ranked by community trust (GitHub stars) and relevance. Describe what you need in plain language, get the best tool for the job.
 
 No API key. No signup. No rate limits.
 
 ## Why Meyhem Capabilities?
 
-- **20,000+ capabilities indexed**: 15,000+ OpenClaw skills + 4,600+ MCP servers
+- **22,000+ capabilities indexed**: 15,000+ OpenClaw skills + 6,700+ MCP servers
 - **Natural language search**: describe your task, get relevant results
 - **Ranked by trust**: GitHub stars + text relevance combined
 - **Filter by ecosystem**: search all, or just MCP or OpenClaw
