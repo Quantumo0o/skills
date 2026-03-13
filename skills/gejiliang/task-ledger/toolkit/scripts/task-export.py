@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TASKS_DIR = ROOT / 'tasks'
+CHILD_STATUS_ORDER = ['pending', 'running', 'waiting', 'blocked', 'succeeded', 'failed', 'cancelled', 'partial']
 
 
 def die(msg, code=1):
@@ -23,12 +24,73 @@ def md_list(items):
     return ', '.join(items) if items else '-'
 
 
+def summarize_children(data):
+    child_ids = data.get('childTaskIds') or []
+    summary = {
+        'total': len(child_ids),
+        'counts': {status: 0 for status in CHILD_STATUS_ORDER},
+        'allChildrenClosed': True,
+        'allChildrenSucceeded': True if child_ids else False,
+        'children': [],
+        'missing': [],
+    }
+    for child_id in child_ids:
+        path = TASKS_DIR / f"{child_id}.json"
+        if not path.exists():
+            summary['missing'].append(child_id)
+            summary['allChildrenClosed'] = False
+            summary['allChildrenSucceeded'] = False
+            continue
+        child = json.loads(path.read_text())
+        status = child.get('status', 'pending')
+        if status not in summary['counts']:
+            summary['counts'][status] = 0
+        summary['counts'][status] += 1
+        if status not in {'succeeded', 'failed', 'cancelled', 'partial'}:
+            summary['allChildrenClosed'] = False
+        if status != 'succeeded':
+            summary['allChildrenSucceeded'] = False
+        summary['children'].append({
+            'taskId': child.get('taskId', child_id),
+            'title': child.get('title', child_id),
+            'status': status,
+            'stage': child.get('stage'),
+            'summary': child.get('workingSummary') or ((child.get('result') or {}).get('summary')) or ((child.get('error') or {}).get('summary')) or '',
+        })
+    return summary if child_ids else None
+
+
+def child_counts_text(child_summary):
+    if not child_summary:
+        return '-'
+    parts = []
+    for status in CHILD_STATUS_ORDER:
+        count = child_summary['counts'].get(status, 0)
+        if count:
+            parts.append(f"{status}={count}")
+    if child_summary['missing']:
+        parts.append(f"missing={len(child_summary['missing'])}")
+    return ', '.join(parts) if parts else 'total=0'
+
+
+def child_short_text(child_summary):
+    if not child_summary or not child_summary['children']:
+        return '-'
+    parts = []
+    for child in child_summary['children']:
+        parts.append(f"{child['taskId']}:{child['status']}")
+    if child_summary['missing']:
+        parts.extend(f"{task_id}:missing" for task_id in child_summary['missing'])
+    return ', '.join(parts)
+
+
 def export_short(data):
     reporting = data.get('reporting') or {
         'mode': 'short-first',
         'preferFileBackedReports': True,
         'longReportPath': None,
     }
+    child_summary = summarize_children(data)
     return {
         'taskId': data.get('taskId', '-'),
         'title': data.get('title', '-'),
@@ -39,24 +101,35 @@ def export_short(data):
         'readinessDeps': data.get('dependsOn', []),
         'reportMode': reporting.get('mode'),
         'longReportPath': reporting.get('longReportPath'),
+        'childSummary': child_summary,
     }
 
 
 def short_text(data):
     short = export_short(data)
     deps = ', '.join(short['readinessDeps']) if short['readinessDeps'] else '-'
+    child_summary = short['childSummary']
+    child_counts = child_counts_text(child_summary)
+    child_line = child_short_text(child_summary)
+    readiness = '-'
+    if child_summary:
+        readiness = f"allClosed={child_summary['allChildrenClosed']} allSucceeded={child_summary['allChildrenSucceeded']}"
     return (
         f"Task `{short['taskId']}` — {short['title']}\n"
         f"status={short['status']} stage={short['stage']} mode={short['reportMode']}\n"
         f"next={short['nextAction']}\n"
         f"deps={deps}\n"
         f"summary={short['workingSummary'] or '-'}\n"
+        f"children={child_counts}\n"
+        f"childSummary={child_line}\n"
+        f"childReadiness={readiness}\n"
         f"report={short['longReportPath'] or '-'}\n"
     )
 
 
 def export_markdown(data):
     lines = []
+    child_summary = summarize_children(data)
     lines.append(f"# {data.get('title', data.get('taskId', 'Task'))}")
     lines.append('')
     lines.append(f"- **Task ID:** `{data.get('taskId', '-')}`")
@@ -81,6 +154,26 @@ def export_markdown(data):
     lines.append(f"- **Blocked By:** {md_list(data.get('blockedBy') or [])}")
     lines.append(f"- **Blocked Reason:** {data.get('blockedReason') or '-'}")
     lines.append('')
+    if child_summary:
+        lines.append('## Child Task Summary')
+        lines.append('')
+        lines.append(f"- **Total Children:** {child_summary['total']}")
+        lines.append(f"- **Status Counts:** {child_counts_text(child_summary)}")
+        lines.append(f"- **All Children Closed:** {child_summary['allChildrenClosed']}")
+        lines.append(f"- **All Children Succeeded:** {child_summary['allChildrenSucceeded']}")
+        if child_summary['missing']:
+            lines.append(f"- **Missing Child Records:** {md_list(child_summary['missing'])}")
+        lines.append('')
+        lines.append('## Child Tasks')
+        lines.append('')
+        for child in child_summary['children']:
+            stage = child.get('stage') or '-'
+            summary = child.get('summary') or '-'
+            lines.append(f"- `{child['taskId']}` — **{child['status']}** — stage=`{stage}` — {summary}")
+        if child_summary['missing']:
+            for child_id in child_summary['missing']:
+                lines.append(f"- `{child_id}` — **missing** — stage=`-` — child task record not found")
+        lines.append('')
     lines.append('## Next Action')
     lines.append('')
     lines.append(data.get('nextAction') or '-')

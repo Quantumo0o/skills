@@ -74,6 +74,21 @@
     "resumeHint": { "type": ["string", "null"] },
     "decisionNotes": { "type": "string" },
     "workingSummary": { "type": "string" },
+    "readiness": {
+      "type": "object",
+      "required": ["successPolicy", "allowStartWhen", "allowPartialDependencies"],
+      "properties": {
+        "successPolicy": {
+          "type": "string",
+          "enum": ["all-succeeded", "fail-fast", "wait-all", "partial-allowed"]
+        },
+        "allowStartWhen": {
+          "type": "string",
+          "enum": ["deps-satisfied", "deps-closed"]
+        },
+        "allowPartialDependencies": { "type": "boolean" }
+      }
+    },
     "reporting": {
       "type": "object",
       "required": ["mode", "preferFileBackedReports", "longReportPath"],

@@ -3,9 +3,15 @@
   "slug": "task-ledger",
   "displayName": "Task Ledger",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1772895345118,
-    "commit": "https://github.com/openclaw/skills/commit/56463c19c29ccab429fc07a42d6d4e56011e3ddc"
+    "version": "0.3.2",
+    "publishedAt": 1773039549223,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1772895345118,
+      "commit": "https://github.com/openclaw/skills/commit/56463c19c29ccab429fc07a42d6d4e56011e3ddc"
+    }
+  ]
 }

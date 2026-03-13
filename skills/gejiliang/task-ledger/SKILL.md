@@ -1,6 +1,6 @@
 ---
 name: task-ledger
-description: Persistent long-task checkpoint, recovery, rollback-aware, relation-aware, scheduling-aware, reporting-aware, and resumable workflow toolkit for OpenClaw. Use when work is multi-step, long-running, uses background exec/subagents/cron, has external side effects, or must survive restarts, disconnects, and context loss.
+description: Durable workflow layer for OpenClaw long-running work. Use when tasks are multi-stage, recoverable, parallelized across sub-agents/ACP, use background exec or cron, have external side effects, or need auditable outputs and resumable execution.
 metadata:
   {
     "openclaw": {
@@ -12,7 +12,20 @@ metadata:
 
 # task-ledger
 
-Turn long-running tasks into durable task objects with checkpoints, recovery verification, rollback metadata, task relations, readiness-aware scheduling, short-first reporting, and resumable execution instead of fragile chat context.
+Use Task Ledger to turn long-running agent work into durable task objects instead of relying on fragile chat context.
+
+Task Ledger is a workflow layer on top of OpenClaw execution primitives.
+It does **not** replace ACP, sub-agents, exec, cron, or skills.
+It gives them a durable task structure:
+
+- checkpoint files in `tasks/`
+- execution logs in `logs/`
+- artifacts and reports in `outputs/`
+- execution bindings for process/session/cron references
+- parent/child task trees
+- dependency and readiness checks
+- recovery protocol
+- short-first reporting
 
 ## Trigger
 
@@ -26,13 +39,17 @@ Use this skill when any of these are true:
 - task has external side effects
 - task involves restart / deploy / maintenance workflows with risky side effects
 - task should be split into parent/child tasks or tracked with dependencies
+- multiple agents or sub-agents will work in parallel
 - task readiness should be checked before starting downstream work
 - task reporting should prefer short updates backed by long file-based reports
 - the user wants the work to be recoverable / resumable / auditable
 
+Do **not** use this skill for every tiny action.
+It is meant for work where losing state or execution structure would be costly.
+
 ## What this skill provides
 
-This package includes a task ledger toolkit with:
+This package includes:
 
 - task checkpoint JSON files in `tasks/`
 - execution logs in `logs/`
@@ -63,7 +80,8 @@ Always create the runtime directories if missing:
 - `logs/`
 - `outputs/`
 
-Do **not** overwrite user-modified files silently unless explicitly asked. Prefer copying only missing files and then report what was installed.
+Do **not** overwrite user-modified files silently unless explicitly asked.
+Prefer copying only missing files and then report what was installed.
 
 ## Operating protocol
 
@@ -72,15 +90,29 @@ Do **not** overwrite user-modified files silently unless explicitly asked. Prefe
 3. Choose explicit stages that match reality.
 4. Record execution references (`process.sessionId`, `subtask.sessionKey`, `cron.jobId`) when they exist.
 5. Link parent/child tasks and dependencies when the work is larger than a single task object.
-6. Check readiness before starting dependent tasks; use start-if-ready when appropriate.
-7. Update the task file after every completed stage.
-8. On recovery, read the resume summary and verify real state first.
-9. If reality and the checkpoint disagree, correct the checkpoint before continuing.
-10. Continue only the unfinished work.
-11. Prefer short user-facing summaries and keep long reports on file when appropriate.
-12. Export or summarize task state in a human-friendly form when needed.
-13. Proactively notify on completion.
-14. If execution was interrupted and later resumed/reconnected, proactively notify that too.
+6. If work is parallelized, prefer **one parent task plus one child task per worker**.
+7. Check readiness before starting dependent tasks; use start-if-ready when appropriate.
+8. Update the task file after every completed stage.
+9. On recovery, read the resume summary and verify real state first.
+10. If reality and the checkpoint disagree, correct the checkpoint before continuing.
+11. Continue only the unfinished work.
+12. Prefer short user-facing summaries and keep long reports on file when appropriate.
+13. Export or summarize task state in a human-friendly form when needed.
+14. Proactively notify on completion.
+15. If execution was interrupted and later resumed/reconnected, proactively notify that too.
+
+## Parallel task pattern
+
+For multi-agent or multi-sub-agent work:
+
+- create one **parent task** for the overall goal
+- create one **child task** per worker / subtask branch
+- bind each child task to its own execution reference
+- keep detailed stage tracking on child tasks
+- let the parent task orchestrate readiness, finalization, and reporting
+
+Avoid treating one task JSON file as a shared concurrent write target.
+Task trees are safer than shared state.
 
 ## Core commands
 

@@ -70,6 +70,8 @@ if next_stage is not None:
     data['nextAction'] = next_action_override if next_action_override is not None else f"Start {next_stage.get('id')}"
 else:
     old_next_status = None
+    data['stage'] = None
+    new_stage = None
     data['nextAction'] = next_action_override if next_action_override is not None else 'No further stages; close the task when validation is complete'
 
 stage_changes = [
