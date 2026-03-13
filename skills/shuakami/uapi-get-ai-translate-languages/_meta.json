@@ -1,0 +1,11 @@
+{
+  "owner": "shuakami",
+  "slug": "uapi-get-ai-translate-languages",
+  "displayName": "UAPI AI翻译配置 接口",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773075007280,
+    "commit": null
+  },
+  "history": []
+}
