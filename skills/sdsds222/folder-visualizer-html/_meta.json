@@ -3,9 +3,15 @@
   "slug": "folder-visualizer-html",
   "displayName": "Folder UI Visualizer - show the folder through HTML (via Telegram)",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773169207502,
-    "commit": "https://github.com/openclaw/skills/commit/b328ea62fa97e9a58ea3aeaecbd17bdd9d95da20"
+    "version": "1.0.10",
+    "publishedAt": 1773426424937,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773169207502,
+      "commit": "https://github.com/openclaw/skills/commit/b328ea62fa97e9a58ea3aeaecbd17bdd9d95da20"
+    }
+  ]
 }

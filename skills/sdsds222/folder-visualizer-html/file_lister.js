@@ -132,7 +132,7 @@ try {
 <body>
     <table width="100%" cellspacing="0" cellpadding="0" border="0">
       <tr>
-        <td><h2>📁 File List</h2></td>
+        <td><h2>📁 Folder Visualizer</h2></td>
         <td align="right"><p style="color: #888;">made by sdsds222</p></td>
       </tr>
     </table>
