@@ -1,12 +1,12 @@
 # 🐙 openclaw-skill-github-watch
 
-> OpenClaw skill - Weekly GitHub digest for sysops/DevOps engineers
+> OpenClaw skill - Weekly GitHub digest for SysOps/DevOps engineers
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-skill-blue)](https://openclaw.ai)
 [![ClawHub](https://img.shields.io/badge/ClawHub-github--watch-green)](https://clawhub.com/skills/github-watch)
 
-Automated weekly GitHub digest tailored for sysops/DevOps engineers. Fetches GitHub Trending repos and `topic:sysops` / `topic:devops` repos, scores them via LLM against a sysops/DevOps relevance profile, deduplicates across weeks, and dispatches a formatted HTML email + Markdown to Nextcloud. Uses `requests` and `beautifulsoup4` for fetching; dispatch delegates to [mail-client](https://github.com/Rwx-G/openclaw-skill-mail-client) and [nextcloud-files](https://github.com/Rwx-G/openclaw-skill-nextcloud) skills.
+Automated weekly GitHub digest tailored for sysops/DevOps engineers. Fetches GitHub Trending repos and `topic:sysops` / `topic:devops` repos, scores them via LLM against a sysops/DevOps relevance profile, deduplicates across weeks, and dispatches a formatted HTML email + Markdown to Nextcloud. Stdlib only (no external dependencies). Dispatch delegates to [mail-client](https://github.com/Rwx-G/openclaw-skill-mail-client) and [nextcloud-files](https://github.com/Rwx-G/openclaw-skill-nextcloud) skills.
 
 ## Install
 
@@ -19,7 +19,6 @@ Or manually:
 ```bash
 git clone https://github.com/Rwx-G/openclaw-skill-github-watch \
   ~/.openclaw/workspace/skills/github-watch
-pip3 install requests beautifulsoup4
 ```
 
 ## Setup
@@ -82,8 +81,7 @@ No credentials stored — GitHub token read from `token_path` at runtime.
 
 ## Requirements
 
-- Python 3.10+
-- `requests`, `beautifulsoup4` (`pip3 install requests beautifulsoup4`)
+- Python 3.9+ (stdlib only — no pip install needed)
 - GitHub PAT (optional, recommended)
 - [mail-client](https://github.com/Rwx-G/openclaw-skill-mail-client) skill for email output
 - [nextcloud-files](https://github.com/Rwx-G/openclaw-skill-nextcloud) skill for Nextcloud output

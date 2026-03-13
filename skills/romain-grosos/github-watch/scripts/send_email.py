@@ -10,19 +10,52 @@ import json
 import sys
 import argparse
 import os
+import re
 import importlib.util
 import html
 from datetime import datetime, date
 from pathlib import Path
 
+_MAX_STDIN_SIZE = 10 * 1024 * 1024  # 10 MB
+_EMAIL_RE = re.compile(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$')
+
 SKILL_BASE  = Path(os.path.expanduser("~/.openclaw/workspace/skills"))
 MAIL_SCRIPT = SKILL_BASE / "mail-client" / "scripts" / "mail.py"
-RECIPIENT   = "romain@rwx-g.fr"
 
 JOURS_FR = ["lundi","mardi","mercredi","jeudi","vendredi","samedi","dimanche"]
 MOIS_FR  = ["janvier","fevrier","mars","avril","mai","juin",
              "juillet","aout","septembre","octobre","novembre","decembre"]
 SECTION_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"]
+
+
+def _load_recipient_default():
+    """Load default recipient from config file."""
+    config_path = Path("~/.openclaw/config/github-watch/config.json").expanduser()
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            return cfg.get("recipient", "")
+        except Exception:
+            pass
+    return ""
+
+
+def _validate_email(addr):
+    """Validate email format."""
+    if not addr or not _EMAIL_RE.match(addr):
+        raise ValueError(f"Invalid email address: {addr}")
+    return addr
+
+
+def _validate_skill_script(script_path):
+    """Validate that the skill script is within the expected skills directory."""
+    resolved = str(script_path.resolve())
+    base = str(SKILL_BASE.resolve())
+    sep = os.sep
+    if resolved != base and not resolved.startswith(base + sep):
+        raise ValueError(f"Skill script outside allowed directory: {script_path}")
+    if not script_path.exists():
+        raise FileNotFoundError(f"mail-client skill non trouve: {script_path}")
 
 
 def date_fr(dt=None):
@@ -121,14 +154,31 @@ def format_html(sections, highlights):
 </table></td></tr></table></body></html>"""
 
 
+def _read_stdin_json():
+    """Read JSON from stdin with size limit."""
+    raw = sys.stdin.read(_MAX_STDIN_SIZE + 1)
+    if len(raw) > _MAX_STDIN_SIZE:
+        print(f"[ERR] stdin payload too large (>{_MAX_STDIN_SIZE // (1024*1024)} MB)", file=sys.stderr)
+        sys.exit(1)
+    return json.loads(raw)
+
+
 def main():
+    default_recipient = _load_recipient_default()
     parser = argparse.ArgumentParser()
-    parser.add_argument("--to", default=RECIPIENT)
+    parser.add_argument("--to", default=default_recipient)
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
+    # Validate email
     try:
-        raw = json.load(sys.stdin)
+        recipient = _validate_email(args.to)
+    except ValueError as e:
+        print(f"[ERR] {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        raw = _read_stdin_json()
     except json.JSONDecodeError as e:
         print(f"[ERR] JSON stdin: {e}", file=sys.stderr)
         sys.exit(1)
@@ -145,21 +195,23 @@ def main():
     week = datetime.now().strftime("S%V %Y")
 
     if args.dry_run:
-        print(f"[DRY-RUN] Email vers {args.to} - {total} repos, {len(highlights)} highlights")
+        print(f"[DRY-RUN] Email vers {recipient} - {total} repos, {len(highlights)} highlights")
         return
 
-    if not MAIL_SCRIPT.exists():
-        print(f"[ERR] mail-client skill non trouve: {MAIL_SCRIPT}", file=sys.stderr)
+    # Validate skill script path
+    try:
+        _validate_skill_script(MAIL_SCRIPT)
+    except (ValueError, FileNotFoundError) as e:
+        print(f"[ERR] {e}", file=sys.stderr)
         sys.exit(1)
 
-    # Ecrire le HTML dans un fichier temporaire pour --attachment
     # Import mail-client module directly to avoid exposing content in process listings (ps)
     spec = importlib.util.spec_from_file_location("mail", str(MAIL_SCRIPT))
     mail_mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mail_mod)
     client = mail_mod.MailClient()
     result_data = client.send(
-        to=args.to,
+        to=recipient,
         subject=f"GitHub Watch - {week}",
         body=f"GitHub Watch {week} - {total} repos selectionnes.",
         html=body,
@@ -170,7 +222,7 @@ def main():
     result = _Result()
 
     if result.returncode == 0:
-        print(f"[OK] Email envoye a {args.to}")
+        print(f"[OK] Email envoye a {recipient}")
     else:
         print(f"[ERR] mail-client: {result.stderr}", file=sys.stderr)
         sys.exit(1)

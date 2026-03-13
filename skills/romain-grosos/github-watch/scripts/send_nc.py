@@ -11,8 +11,11 @@ import sys
 import argparse
 import os
 import subprocess
+import posixpath
 from datetime import datetime
 from pathlib import Path
+
+_MAX_STDIN_SIZE = 10 * 1024 * 1024  # 10 MB
 
 SKILL_BASE = Path(os.path.expanduser("~/.openclaw/workspace/skills"))
 NC_SCRIPT  = SKILL_BASE / "nextcloud-files" / "scripts" / "nextcloud.py"
@@ -23,6 +26,27 @@ MOIS_FR  = ["janvier","fevrier","mars","avril","mai","juin",
              "juillet","aout","septembre","octobre","novembre","decembre"]
 
 SECTION_EMOJI = ["En vogue", "SysOps / DevOps", "Topics", "Autres"]
+
+
+def _validate_nc_path(path):
+    """Validate Nextcloud path: must be absolute POSIX path, no traversal."""
+    normalized = posixpath.normpath(path)
+    if not normalized.startswith("/"):
+        raise ValueError(f"Nextcloud path must be absolute (start with /): {path}")
+    if ".." in normalized.split("/"):
+        raise ValueError(f"Path traversal detected in Nextcloud path: {path}")
+    return normalized
+
+
+def _validate_skill_script(script_path):
+    """Validate that the skill script is within the expected skills directory."""
+    resolved = str(script_path.resolve())
+    base = str(SKILL_BASE.resolve())
+    sep = os.sep
+    if resolved != base and not resolved.startswith(base + sep):
+        raise ValueError(f"Skill script outside allowed directory: {script_path}")
+    if not script_path.exists():
+        raise FileNotFoundError(f"nextcloud-files skill non trouve: {script_path}")
 
 
 def date_fr(dt=None):
@@ -89,14 +113,30 @@ def build_markdown(sections, highlights):
     return "\n".join(lines)
 
 
+def _read_stdin_json():
+    """Read JSON from stdin with size limit."""
+    raw = sys.stdin.read(_MAX_STDIN_SIZE + 1)
+    if len(raw) > _MAX_STDIN_SIZE:
+        print(f"[ERR] stdin payload too large (>{_MAX_STDIN_SIZE // (1024*1024)} MB)", file=sys.stderr)
+        sys.exit(1)
+    return json.loads(raw)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--nc-path", default=NC_PATH)
     args = parser.parse_args()
 
+    # Validate Nextcloud path
     try:
-        raw = json.load(sys.stdin)
+        nc_path = _validate_nc_path(args.nc_path)
+    except ValueError as e:
+        print(f"[ERR] {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        raw = _read_stdin_json()
     except json.JSONDecodeError as e:
         print(f"[ERR] JSON stdin invalide: {e}", file=sys.stderr)
         sys.exit(1)
@@ -115,17 +155,20 @@ def main():
         print(content)
         return
 
-    if not NC_SCRIPT.exists():
-        print(f"[ERR] nextcloud-files skill non trouve: {NC_SCRIPT}", file=sys.stderr)
+    # Validate skill script path
+    try:
+        _validate_skill_script(NC_SCRIPT)
+    except (ValueError, FileNotFoundError) as e:
+        print(f"[ERR] {e}", file=sys.stderr)
         sys.exit(1)
 
     # Pass content via stdin to avoid exposing it in process listings (ps)
     result = subprocess.run(
-        [sys.executable, str(NC_SCRIPT), "write", args.nc_path],
+        [sys.executable, str(NC_SCRIPT), "write", nc_path],
         input=content, capture_output=True, text=True
     )
     if result.returncode == 0:
-        print(f"[OK] Publie sur Nextcloud: {args.nc_path}")
+        print(f"[OK] Publie sur Nextcloud: {nc_path}")
     else:
         print(f"[ERR] Nextcloud: {result.stderr}", file=sys.stderr)
         sys.exit(1)

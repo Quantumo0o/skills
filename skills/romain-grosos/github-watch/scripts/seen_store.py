@@ -1,26 +1,33 @@
 """
 Gestion des repos deja vus pour GitHub Watch.
 Stocke dans ~/.openclaw/data/github-watch/seen.json
+
+Atomic writes to prevent corruption on concurrent access.
 """
 
 import json
 import os
+import tempfile
 from pathlib import Path
 from datetime import datetime
 
 DEFAULT_PATH = os.path.expanduser("~/.openclaw/data/github-watch/seen.json")
+_ALLOWED_BASE = os.path.expanduser("~/.openclaw/data/")
 
 
 class GitHubStore:
     def __init__(self, filepath=DEFAULT_PATH):
-        self.filepath = Path(filepath)
+        self.filepath = Path(filepath).resolve()
+        # Validate path stays within allowed directory
+        if not str(self.filepath).startswith(str(Path(_ALLOWED_BASE).resolve())):
+            raise ValueError(f"Path {self.filepath} outside allowed directory {_ALLOWED_BASE}")
         self.data = {}
         self.load()
 
     def load(self):
         if self.filepath.exists():
             try:
-                with open(self.filepath) as f:
+                with open(self.filepath, encoding="utf-8") as f:
                     self.data = json.load(f)
             except Exception:
                 self.data = {}
@@ -28,9 +35,20 @@ class GitHubStore:
             self.data = {}
 
     def save(self):
+        """Atomic write: write to temp file then rename."""
         self.filepath.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.filepath, "w") as f:
-            json.dump(self.data, f, indent=2)
+        content = json.dumps(self.data, indent=2, ensure_ascii=False, sort_keys=True)
+        fd, tmp = tempfile.mkstemp(dir=str(self.filepath.parent), suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp, str(self.filepath))
+        except Exception:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
     def mark_seen(self, repo_name):
         """Mark a repo as seen. Call AFTER agent selection, not during filtering."""

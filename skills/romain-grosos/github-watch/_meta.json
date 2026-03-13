@@ -1,11 +1,17 @@
 {
   "owner": "romain-grosos",
   "slug": "github-watch",
-  "displayName": "Openclaw Skill Github Watch",
+  "displayName": "GitHub Watch",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1772493151299,
-    "commit": "https://github.com/openclaw/skills/commit/be812586fbeaf10ca78cd70ffe90faedf2db1d28"
+    "version": "1.0.6",
+    "publishedAt": 1773351533114,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1772493151299,
+      "commit": "https://github.com/openclaw/skills/commit/be812586fbeaf10ca78cd70ffe90faedf2db1d28"
+    }
+  ]
 }

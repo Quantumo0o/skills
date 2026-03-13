@@ -1,7 +1,8 @@
 {
   "token_path": "~/.openclaw/secrets/github_token",
-  "recipient": "romain@rwx-g.fr",
+  "recipient": "you@example.com",
   "nc_path": "/Jarvis/github-watch.md",
   "outputs": ["email", "nextcloud"],
-  "since": "weekly"
+  "since": "weekly",
+  "topics": ["sysops", "devops", "linux", "security", "terraform", "kubernetes", "ansible", "homelab", "self-hosted"]
 }
