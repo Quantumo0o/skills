@@ -1,7 +1,10 @@
 ---
 name: codex-usage
-description: Manual Telegram slash-style command for Codex profile status and usage checks. Use when the user sends /codex_usage, /codex_usage default, /codex_usage all, or /codex_usage <profile>, or asks to check openai-codex profile usage/limits/auth health.
+description: DEPRECATED shim skill for /codex_usage. Use codex-profiler instead; codex-usage is no longer the maintained path.
 ---
+
+> ⚠️ **Deprecated:** `codex-usage` is no longer maintained as a standalone skill.
+> Use **codex-profiler** for all ongoing `/codex_usage` and `/codex_auth` operations.
 
 Run `scripts/codex_usage.py` to produce a Codex profile report discovered from local auth profiles.
 
@@ -15,6 +18,10 @@ Before running the script for a user-triggered `/codex_usage` request, send an i
 - "Running Codex usage checks now…"
 
 Then send final usage result when complete (do not skip the progress note).
+
+Delivery rule:
+- If progress note is sent via a channel message tool call, send the final result via the same channel message tool path too (same target/session), then return `NO_REPLY` to avoid split/mismatched delivery.
+- Do not mix progress via tool + final via plain assistant reply.
 
 ### Interaction adapter
 - If inline buttons are supported: show selector buttons (default / all / discovered profiles).
