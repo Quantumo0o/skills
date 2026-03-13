@@ -3,9 +3,15 @@
   "slug": "adopt-a-chameleon",
   "displayName": "Adopt a Chameleon — Virtual Exotic Pet for AI Agents",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773194692339,
-    "commit": "https://github.com/openclaw/skills/commit/1cc5f9f26754bcd51854ba21773b2e8cc0bdc5f0"
+    "version": "1.0.1",
+    "publishedAt": 1773300958094,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773194692339,
+      "commit": "https://github.com/openclaw/skills/commit/1cc5f9f26754bcd51854ba21773b2e8cc0bdc5f0"
+    }
+  ]
 }
