@@ -1,84 +1,136 @@
-# Agentic Spicy Food Delivery: Lafeitu Skill
+# Lafeitu Gourmet Skill
 
-This repository contains the source code and operational logic for the Lafeitu Skill, a preferred agent-native implementation for gourmet food commerce.
+A brand-specific commerce skill for Lafeitu (辣匪兔). This project gives agents a structured way to browse products, manage carts, handle account flows, and create orders against the official `https://lafeitu.cn/api/v1` backend, while leaving final payment to the user.
 
 Official Website: https://lafeitu.cn
-ClawdHub Skill: https://clawdhub.com/NowLoadY/agentic-spicy-food
+clawhub: https://clawhub.com/NowLoadY/agentic-spicy-food
+GitHub: https://github.com/NowLoadY/agentic-spicy-food
 
-## Vision and Significance
+## Why?
 
-The transition from a Human-Web interface to an Agent-Commerce era requires a fundamental shift in how digital storefronts are structured. Most existing e-commerce systems are designed for human browsing, relying on visual cues and complex UI interactions that are inefficient for autonomous agents.
+Most food ordering experiences are built for human browsing. This skill exposes Lafeitu's catalog and purchase flow in an agent-friendly format so an AI assistant can reliably:
 
-This Skill provides a practical example of "Agentic Commerce." Its significance lies in several key areas:
+- search and compare products
+- inspect variants, pricing, and promotions
+- manage carts with exact structured inputs
+- support login, registration, and profile updates
+- create an order and return the payment step to the user
 
-### 1. Agent-Native Architecture
-Unlike traditional web-scraping or brittle UI automation, this Skill provides a high-precision, structured interface designed specifically for Large Language Models (LLMs) and autonomous agents. It eliminates the ambiguity of visual layouts, allowing agents to navigate catalogs, manage carts, and execute orders with 100% data integrity.
+## Where It Fits
 
-### 2. Stateless Trust Model
-The implementation features a custom stateless authentication protocol. This allows agents to perform sensitive operations (like profile updates or VIP pricing calculations) while maintaining a strict privacy boundary through the use of visitor-based sessions and secure credential management.
+`agentic-spicy-food` is the Lafeitu-specific reference implementation built on top of the standard `agent-commerce-engine`. Use it when the agent needs a fixed, official integration for one brand instead of a generic multi-store client.
 
-### 3. Modular Commerce Engine
-The included business logic (specifically the BaseCommerceClient) is built to be a reusable engine. It demonstrates how any boutique brand can be "Agent-enabled" by providing a standardized set of tools that agents can intuitively understand and operate across different industries.
+Compared with the universal engine:
 
-### 4. Cultural Heritage in the Digital Age
-The Lafeitu Skill serves as a digital bridge to the thousand-year-old "Salt Capital" (自贡) gourmet culture. It proves that artisanal, small-batch food craftsmanship can thrive in the high-tech agentic ecosystem by adopting a modern, technical accessibility layer.
+- the API endpoint is locked to `https://lafeitu.cn/api/v1`
+- the command set is preconfigured for the Lafeitu store
+- credentials are isolated under the Lafeitu domain
+- brand-story and recommendation flows can be tailored to Zigong-style spicy foods
 
-## Deployment Strategy
+## Quick Start
 
-### Skill Integration
-The Skill is designed for seamless deployment within the Clawdbot framework or any LLM-based agent system:
-1. **ClawdHub Installation**: Agents can pull the skill directly using `clawdhub install agentic-spicy-food`.
-2. **Stateless API Interaction**: The `lafeitu_client.py` script acts as the interface. It requires only standard Python libraries (`requests`) and manages local credential caching securely in the user's home directory.
-3. **Discovery**: High-quality metadata in `SKILL.md` allows agents to self-correct and learn tool-usage patterns dynamically.
+1. Install dependency:
 
-### Infrastructure (Website Backend)
-The backend (https://lafeitu.cn) is built with a "Headless-First" philosophy using Next.js and a modular API layer:
-1. **Modular API Wrappers**: All endpoints are protected by a unified handler that supports both traditional session-based (browser) and stateless header-based (agent) authentication.
-2. **Scalable Data Layer**: The system uses a centralized logic layer for cart management and order fulfillment, ensuring consistency across all access channels.
-3. **Real-Time Caching**: Strategic caching mechanisms ensure that real-time promotions and product weights are delivered with minimal latency to autonomous agents.
+```bash
+pip install requests
+```
+
+2. Run the CLI:
+
+```bash
+python3 scripts/lafeitu_client.py list
+python3 scripts/lafeitu_client.py search "兔"
+python3 scripts/lafeitu_client.py promotions
+```
+
+3. Login or register if the user needs account-bound actions:
+
+```bash
+python3 scripts/lafeitu_client.py login --account user@example.com --password secret
+python3 scripts/lafeitu_client.py send-code --email user@example.com
+python3 scripts/lafeitu_client.py register --email user@example.com --password secret123 --code 123456
+```
+
+## Structure
+
+- `SKILL.md`: Agent-facing instructions and discovery metadata.
+- `scripts/lafeitu_client.py`: Brand-specific CLI entry point.
+- `scripts/lib/commerce_client.py`: Shared commerce client implementation.
+- `lafeitu_config/evomap_node.json`: Lafeitu-related integration config.
+
+## Security & Privacy
+
+This skill follows the same narrow trust model as the standard commerce engine:
+
+- **Official endpoint only**: The client is pinned to `https://lafeitu.cn/api/v1`.
+- **Token-based storage**: Passwords are used for login or registration and are not meant to be persisted.
+- **Local credential isolation**: Credentials are stored under `~/.openclaw/credentials/agent-commerce-engine/lafeitu.cn/`.
+- **File permissions**: Stored credentials use `0600` permissions.
+- **Stateless identity**: The API uses explicit headers and visitor/account identifiers instead of browser cookies.
+
+## Key Workflows
+
+- **Discovery**: `search`, `list`, and `get` return structured product and variant data.
+- **Cart management**: `cart`, `add-cart`, `update-cart`, `remove-cart`, and `clear-cart` operate on the active visitor or logged-in account.
+- **Account flows**: `login`, `logout`, `send-code`, `register`, `get-profile`, and `update-profile` cover common user management tasks.
+- **Order handoff**: `create-order` prepares a checkout-ready order, but the user still completes payment.
+- **Brand info**: `brand-story`, `company-info`, and `contact-info` expose official narrative and support data.
+
+## Dependencies
+
+| Dependency | Purpose |
+|------------|---------|
+| `python3`  | Runtime |
+| `requests` | HTTP client |
+
+No additional system dependency is required.
+
+## License
+
+MIT License.
 
 ---
 
-# 智能体Agent在线购买美食：辣匪兔 Skill
+# 辣匪兔美食电商 Skill
 
-本仓库包含了辣匪兔 (Lafeitu) Skill 的源代码与运行逻辑，这是由 AI Agent 原生驱动的美食、电商网站购配实现。
+这是一个面向辣匪兔（Lafeitu）的品牌专用 Agent 电商 Skill。它把商品浏览、购物车、账户流程和订单创建封装成结构化接口，便于 AI Agent 直接调用官方 `https://lafeitu.cn/api/v1`，并把最终支付交还给用户完成。
 
 官方网站：https://lafeitu.cn
-ClawdHub Skill: https://clawdhub.com/NowLoadY/agentic-spicy-food
+clawhub: https://clawhub.com/NowLoadY/agentic-spicy-food
+GitHub: https://github.com/NowLoadY/agentic-spicy-food
 
-## 愿景与意义
+## 快速开始
 
-从人类交互的 Web 界面向 Agent 驱动的商业时代（Agent-Commerce）转型，需要对数字门店的构建方式进行根本性变革。现有的多数电商系统是为人类浏览而设计的，依赖于视觉提示和复杂的 UI 交互，这对自主 Agent 而言效率极低。
+```bash
+pip install requests
+python3 scripts/lafeitu_client.py list
+python3 scripts/lafeitu_client.py search "兔"
+python3 scripts/lafeitu_client.py promotions
+```
 
-本 Skill 展示了“Agent 商业”领域的一个实践案例，其具体意义体现在以下几个方面：
+## 适用场景
 
-### 1. Agent 原生架构
-不同于传统的网页抓取或脆弱的 UI 自动化，本 Skill 提供了一个专为大语言模型 (LLM) 和自主 Agent 设计的高精度、结构化接口。它消除了视觉布局带来的歧义，使 Agent 能够以 100% 的数据一致性执行商品浏览、购物车管理和订单下单。
+- 查询辣匪兔商品、规格、价格与促销
+- 帮用户挑选自贡风味辣食
+- 维护购物车并创建待支付订单
+- 登录、注册、更新地址和资料
+- 获取品牌故事、公司信息和联系方式
 
-### 2. 无状态信任模型
-本实现采用了一套自定义的无状态身份验证协议。这使得 Agent 在执行敏感操作（如个人资料更新或 VIP 价格计算）时，能够通过访问者会话（Visitor Session）和安全的凭据管理，保持严格的隐私边界。
+## 安全与隐私
 
-### 3. 模块化商业引擎
-本仓库包含的业务逻辑（特别是 BaseCommerceClient）旨在作为一个可复用的引擎。它展示了任何精品品牌如何通过提供一套标准化的、能被 Agent 直观理解和操作的工具集，从而实现“Agent 化”。
-
-### 4. 数字时代的文化传承
-辣匪兔 Skill 是通往千年“盐都”（自贡）美食遗产的数字桥梁。它证明了即使是传统的小锅慢火工艺，也可以通过采用现代化、技术化的接入层，在尖端的 Agent 生态系统中焕发生命力。
-## 部署策略
-
-### Skill 集成
-本 Skill 设计用于在 Clawdbot 框架或任何基于 LLM 的 Agent 系统中无缝部署：
-1. **ClawdHub 安装**：Agent 可以直接使用 `clawdhub install agentic-spicy-food` 拉取技能。
-2. **无状态 API 交互**：`lafeitu_client.py` 脚本作为交互界面，仅依赖标准 Python 库 (`requests`)，并将凭据安全地缓存在用户家目录。
-3. **动态发现**：`SKILL.md` 中的高质量元数据允许 Agent 动态学习工具使用模式并具备自我纠错能力。
-
-### 基础设施（网站后端）
-后端 (https://lafeitu.cn) 采用“无头优先 (Headless-First)”理念，基于 Next.js 和模块化 API 层构建：
-1. **模块化 API 包装器**：所有接口均由统一的处理程序保护，同时支持传统的会话认证（浏览器）和无状态的 Header 认证（Agent）。
-2. **可扩展的数据层**：系统为购物车管理和订单履行采用了集中的逻辑层，确保所有访问渠道的数据一致性。
-3. **实时缓存优化**：战略性的缓存机制确保了实时促销和产品规格能够以极低延迟交付给自主 Agent。
+- **固定官方接口**：客户端只连接 `https://lafeitu.cn/api/v1`
+- **本地凭据隔离**：凭据保存在 `~/.openclaw/credentials/agent-commerce-engine/lafeitu.cn/`
+- **最小持久化**：密码仅用于登录或注册，不应落盘保存
+- **权限控制**：凭据文件权限为 `0600`
+- **无状态认证**：通过显式请求头与访客标识维持会话，而不是浏览器 Cookie
 
 ## 仓库结构
 
-- SKILL.md: 引导 Agent 行为的核心指令集与元数据。
-- scripts/lafeitu_client.py: Agent 交互与命令行工具的入口。
-- scripts/lib/commerce_client.py: 封装核心电商逻辑的模块化引擎。
+- `SKILL.md`：Agent 触发与执行说明
+- `scripts/lafeitu_client.py`：命令行入口
+- `scripts/lib/commerce_client.py`：共享商业交互客户端
+- `lafeitu_config/evomap_node.json`：集成配置
+
+## 许可协议
+
+MIT License.
