@@ -3,11 +3,16 @@
   "slug": "openstoryline-install",
   "displayName": "OpenStoryline Install",
   "latest": {
-    "version": "0.0.2",
-    "publishedAt": 1773307870364,
-    "commit": "https://github.com/openclaw/skills/commit/29b95cfc9acb8a5caf1cdf918ed337d785f542ab"
+    "version": "0.0.3",
+    "publishedAt": 1773392194985,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.2",
+      "publishedAt": 1773307870364,
+      "commit": "https://github.com/openclaw/skills/commit/29b95cfc9acb8a5caf1cdf918ed337d785f542ab"
+    },
     {
       "version": "0.0.1",
       "publishedAt": 1773230400813,
