@@ -1,83 +1,76 @@
 ---
-version: 3.1.0
+version: 3.1.6
 name: aerobase-travel-wallet
 description: Credit cards, loyalty balances, transfer partners, and transfer bonuses. Calculates CPP.
 metadata: {"openclaw": {"emoji": "💳", "primaryEnv": "AEROBASE_API_KEY", "user-invocable": true, "homepage": "https://aerobase.app"}}
 ---
 
-# Aerobase Points & Wallet
+# Aerobase Points & Wallet 💳
 
-Your complete points and miles command center. Aerobase.app tracks your balances, monitors transfer bonuses, and optimizes your rewards.
+Use this skill to translate travel rewards into concrete trip value and clear redemption choices.
 
-**Why Aerobase?**
-- 📧 **Gmail scanning** — Auto-imports loyalty balances (OAuth via aerobase.app, email processed on Aerobase servers only)
-- 🔄 **Transfer tracking** — Know when bonuses are active
-- 💳 **Card strategy** — Best card for every purchase
-- 📊 **CPP analysis** — Never overpay with points
+## Setup
 
-## What This Skill Does
+Use this skill by getting a free API key at https://aerobase.app/openclaw-travel-agent and setting `AEROBASE_API_KEY` in your agent environment.
+This skill is API-only: no scraping, no browser automation, and no user credential collection.
 
-- Search travel credit cards with transfer partners
-- Show current transfer bonuses between programs
-- Calculate cents-per-point (CPP) value
-- Scan Gmail for loyalty program balances (requires user to connect Gmail via OAuth in Aerobase settings)
-- Recommend optimal transfer strategies
+Usage is capped at 5 requests/day for free users.
+Upgrade to Pro ($10.99) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
 
-## Example Conversations
+## Agent API Key Protocol
 
-```
-User: "What's my total points balance across all programs?"
-→ Scans Gmail for loyalty emails (user connects Gmail via OAuth in Aerobase settings)
-→ Aggregates balances
-→ Shows total value
+- Base URL: `https://aerobase.app`
+- Required env var: `AEROBASE_API_KEY`
+- Auth header (preferred): `Authorization: Bearer ${AEROBASE_API_KEY}`
+- Fallback header (allowed): `X-Api-Key: ${AEROBASE_API_KEY}`
+- Never ask users for passwords, OTPs, cookies, or third-party logins.
+- Never print raw API keys in output; redact as `sk_live_***`.
 
-User: "Best way to pay for $500 flight to Europe?"
-→ Analyzes card bonuses
-→ Considers category multipliers
-→ Recommends best option
-```
+### Request rules
 
-## API Documentation
+- Use only Aerobase endpoints documented in this skill.
+- Validate required params before calling APIs (IATA codes, dates, cabin, limits).
+- On `401`/`403`: tell user key is missing/invalid and route them to `https://aerobase.app/openclaw-travel-agent`.
+- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$10.99/month`, 500 API calls/month) or Lifetime ($149.99, 500 API calls/month).
+- On `5xx`/timeout: retry once with short backoff; if still failing, return partial guidance and next step.
+- Use concise responses: top options first, then 1-2 follow-up actions.
 
-Full API docs: https://aerobase.app/developers
+## What this skill does
 
-OpenAPI spec: https://aerobase.app/api/v1/openapi
+- Search travel credit cards by transfer partners and rewards profile.
+- Pull current transfer bonuses and conversion opportunities.
+- Show loyalty balances and wallet summary views.
+- Calculate cents-per-point from user-provided fare context.
+
+## Endpoints
 
 **GET /api/v1/credit-cards**
+- `action` list
+- `transferable`, `issuers`, `networks`
+- `issuer` card issuer filter
+- `network` card network filter
+- `q` text search
+- `minFee`, `maxFee`, `limit`
 
-Query params:
-- `action` — list, transferable, issuers, networks
-- `issuer` — Chase, Amex, Citi, etc.
-- `network` — Visa, Mastercard
-- `minFee` / `maxFee` — annual fee range
+**GET /api/transfer-bonuses**  
+Returns active transfer bonuses.
 
-**GET /api/transfer-bonuses**
+**GET /api/wallet/summary**  
+Returns linked cards, transfer accounts, and loyalty balances.
 
-Shows active transfer bonuses (Chase→United, Amex→Delta, Citi→AA, etc.)
+**GET /api/user-loyalty-programs**  
+Returns linked loyalty program summaries.
 
-**GET /api/concierge/instances/{id}/gmail/loyalty**
+**GET /api/user-loyalty?action=summary**  
+Returns wallet-wide normalized points and value summary.
 
-Returns loyalty balances scanned from user's Gmail. User must connect their Gmail via OAuth in Aerobase settings - Aerobase processes email on their servers, never shares data with third parties.
+## Safety
 
-## Supported Programs
+- Do not request bank details, account PINs, passwords, OTPs, or sensitive loyalty credentials.
+- Compute CPP from user-provided fare numbers and displayed miles only.
 
-Airlines: United, Delta, AA, BA, Aeroplan, Singapore, ANA, Air France, KLM
-Hotels: Marriott, Hilton, IHG
-Credit Cards: Chase UR, Amex MR, Citi TY, Capital One
+## Usage limits
 
-## Rate Limits
-
-- **Free tier**: 5 API requests per day
-- **Premium tier**: Unlimited requests
-
-Get free API key at: https://aerobase.app/openclaw-travel-agent/setup
-
-## Get the Full Experience
-
-Want ALL travel capabilities? Install the complete **Aerobase Travel Concierge** skill:
-- Flights, hotels, lounges, awards, activities, deals, wallet
-- One skill for everything
-
-→ https://clawhub.ai/kurosh87/aerobase-travel-concierge
-
-Or get the full AI agent at https://aerobase.app/openclaw-travel-agent/pricing
+- Free: 5 requests/day
+- Pro: 500 API calls/month (upgrade at $10.99/month)
+- Lifetime: $149.99 for 500 API calls/month
