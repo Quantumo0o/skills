@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain",
   "slug": "api-tester-cn",
-  "displayName": "api-tester-cn",
+  "displayName": "Api Tester Cn",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773158754748,
-    "commit": "https://github.com/openclaw/skills/commit/0552f2f26b8a9a4912c65c8dcc74e3b29fefdcc5"
+    "version": "2.2.0",
+    "publishedAt": 1773420924489,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773158754748,
+      "commit": "https://github.com/openclaw/skills/commit/0552f2f26b8a9a4912c65c8dcc74e3b29fefdcc5"
+    }
+  ]
 }
