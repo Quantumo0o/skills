@@ -21,18 +21,21 @@ Send push notifications to your phone through the Signalgrid API.
 
 
 ## Examples
+&nbsp;  
 
 Send a simple notification:
 
 ``` bash
 node {baseDir}/skills/signalgrid-push/signalgrid-push.js --title "OpenClaw" --body "Hello from OpenClaw" --type INFO
 ```
+&nbsp;  
   
 Send a deployment notification:
 
 ``` bash
 node {baseDir}/skills/signalgrid-push/signalgrid-push.js --title "Deployment" --body "Build finished successfully" --type INFO
 ```
+&nbsp;  
     
 Send a critical notification:
 
@@ -52,13 +55,13 @@ node {baseDir}/skills/signalgrid-push/signalgrid-push.js --title "Attention" --b
 
 Use this skill when the user asks to:  
 &nbsp;  
-&nbsp;o   &nbsp;send a notification  
-&nbsp;o   &nbsp;notify me  
-&nbsp;o   &nbsp;send a push  
-&nbsp;o   &nbsp;push a message  
-&nbsp;o   &nbsp;alert me  
-&nbsp;o   &nbsp;send a signalgrid notification  
-&nbsp;o   &nbsp;notify my phone
+&nbsp;&nbsp;o   &nbsp;send a notification  
+&nbsp;&nbsp;o   &nbsp;notify me  
+&nbsp;&nbsp;o   &nbsp;send a push  
+&nbsp;&nbsp;o   &nbsp;push a message  
+&nbsp;&nbsp;o   &nbsp;alert me  
+&nbsp;&nbsp;o   &nbsp;send a signalgrid notification  
+&nbsp;&nbsp;o   &nbsp;notify my phone
 
 ## Notes
 
