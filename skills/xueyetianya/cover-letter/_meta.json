@@ -1,11 +1,17 @@
 {
   "owner": "xueyetianya",
   "slug": "cover-letter",
-  "displayName": "Cover Letter Generator",
+  "displayName": "Cover Letter",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773202683501,
-    "commit": "https://github.com/openclaw/skills/commit/50be0ab36ab955ebabeb47ca41886b138fd11665"
+    "version": "2.2.0",
+    "publishedAt": 1773421112068,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773202683501,
+      "commit": "https://github.com/openclaw/skills/commit/50be0ab36ab955ebabeb47ca41886b138fd11665"
+    }
+  ]
 }
