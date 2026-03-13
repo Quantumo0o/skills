@@ -3,7 +3,6 @@ import pkg from "enquirer";
 import fs from "fs/promises";
 import path from "path";
 import { encrypt } from "./lib/crypto.ts";
-import { spawn } from "child_process";
 
 const { prompt } = pkg;
 

@@ -1,5 +1,5 @@
 import { loadWallet } from "../lib/wallet.ts";
-import { changePrivateWall, getWalletNonce, loginWalletInbox, saveLoginToken } from "../lib/ethermail.ts"
+import { completeOnboarding, getWalletNonce, loginWalletInbox, saveLoginToken } from "../lib/ethermail.ts"
 
 const WEB3_LOGIN_MESSAGE = "By signing this message you agree to the Terms and Conditions and Privacy Policy";
 
@@ -16,8 +16,9 @@ const main = async () => {
 
     await saveLoginToken(token);
 
+    // nonce <= 1 indicates a first-time login (new account), so complete onboarding.
     if (nonce <= 1) {
-        await changePrivateWall('FILTER_ANY_EMAIL_WEB3');
+        await completeOnboarding(wallet.address);
     }
 
     return token;

@@ -8,6 +8,7 @@ const DOMAIN = "moltmail.io";
 
 const STATE_DIR = path.resolve(process.cwd(), "state");
 const AUTH_PATH = path.join(STATE_DIR, "auth.json");
+const CONFIG_PATH = path.join(STATE_DIR, "config.enc.json");
 
 type AuthData = {
     token: string;
@@ -100,32 +101,22 @@ export const saveLoginToken = async (token: string) => {
     );
 }
 
-export const changePrivateWall = async (privacySetting: PrivacyWallType) => {
-    const headers = await getRequestHeaders();
-    const response = await axios.put(
-        `${ENDPOINT_URL}/paywall/configuration-paywall`,
-        {
-            paywall: {
-                typeWeb: "WEB3",
-                configurationPaywall: privacySetting
-            }
-        },
-        { headers }
-    );
-
-    return response.data;
-}
-
 export const getLoginToken = async (): Promise<string> => {
     try {
         const raw = await fs.readFile(AUTH_PATH, "utf8");
         const data: AuthData = JSON.parse(raw);
 
-        if (typeof data.token === "string" && data.token.length > 0) {
-            return data.token;
+        if (typeof data.token !== "string" || data.token.length === 0) {
+            return "";
         }
 
-        return "";
+        const payload = decodeJwtPayload<{ exp?: number }>(data.token);
+        if (payload.exp && Date.now() >= payload.exp * 1000) {
+            console.warn("Login token has expired. Please run `npm run login` again.");
+            return "";
+        }
+
+        return data.token;
     } catch {
         return "";
     }
@@ -144,6 +135,148 @@ export const getRequestHeaders = async () => {
 
     return headers;
 }
+
+export type AuthInfo = { token: string; userId: string };
+
+export const loadAuth = async (): Promise<AuthInfo> => {
+    const raw = await fs.readFile(AUTH_PATH, "utf8");
+    const data = JSON.parse(raw);
+    const token = data.token;
+    if (!token) throw new Error("No auth token found. Run `npm run login` first.");
+
+    const payload = decodeJwtPayload<{ exp?: number; sub?: string }>(token);
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+        throw new Error("Auth token expired. Run `npm run login` again.");
+    }
+
+    const userId = data.userId || payload.sub;
+    if (!userId) throw new Error("No userId in auth data. Run `npm run login` again.");
+
+    return { token, userId };
+};
+
+export const getConfiguredAddress = async (): Promise<string> => {
+    const raw = await fs.readFile(CONFIG_PATH, "utf8");
+    const config = JSON.parse(raw);
+    if (!config.address) throw new Error("No address in config. Run `npm run setup` first.");
+    return config.address;
+};
+
+export type EmailAddress = { name: string; address: string };
+
+export type SendEmailPayload = {
+    from: EmailAddress;
+    to: EmailAddress[];
+    cc?: EmailAddress[];
+    bcc?: EmailAddress[];
+    subject: string;
+    html: string;
+    text?: string;
+};
+
+export type ReplyEmailPayload = SendEmailPayload & {
+    reference: { action: "reply"; id: string; mailbox: string };
+};
+
+export const listMailboxes = async (userId: string) => {
+    const headers = await getRequestHeaders();
+    const response = await axios.get(
+        `${ENDPOINT_URL}/users/${userId}/mailboxes`,
+        { headers, params: { counters: true } }
+    );
+    return response.data;
+};
+
+export const searchEmails = async (
+    userId: string,
+    mailboxId: string,
+    page: number = 1,
+    limit: number = 10,
+    next?: string
+) => {
+    const headers = await getRequestHeaders();
+    const params: Record<string, string | number> = { page, limit, mailbox: mailboxId };
+    if (next) params.next = next;
+
+    const response = await axios.get(
+        `${ENDPOINT_URL}/users/${userId}/search`,
+        { headers, params }
+    );
+    return response.data;
+};
+
+export const getEmailContent = async (userId: string, mailboxId: string, messageId: string) => {
+    const headers = await getRequestHeaders();
+    const response = await axios.get(
+        `${ENDPOINT_URL}/users/${userId}/mailboxes/${mailboxId}/messages/${messageId}`,
+        { headers }
+    );
+    return response.data;
+};
+
+export const markEmailAsRead = async (userId: string, mailboxId: string, messageId: string) => {
+    const headers = await getRequestHeaders();
+    const response = await axios.put(
+        `${ENDPOINT_URL}/users/${userId}/mailboxes/${mailboxId}/messages/${messageId}`,
+        { seen: true },
+        { headers }
+    );
+    return response.data;
+};
+
+export const sendEmail = async (userId: string, payload: SendEmailPayload) => {
+    const headers = await getRequestHeaders();
+    const response = await axios.post(
+        `${ENDPOINT_URL}/users/${userId}/submit`,
+        {
+            uploadOnly: false,
+            isDraft: false,
+            from: payload.from,
+            to: payload.to,
+            cc: payload.cc || [],
+            bcc: payload.bcc || [],
+            attachments: [],
+            subject: payload.subject,
+            date: "",
+            text: payload.text || "",
+            html: payload.html,
+        },
+        { headers }
+    );
+    return response.data;
+};
+
+export const replyToEmail = async (userId: string, payload: ReplyEmailPayload) => {
+    const headers = await getRequestHeaders();
+    const response = await axios.post(
+        `${ENDPOINT_URL}/users/${userId}/submit`,
+        {
+            reference: payload.reference,
+            uploadOnly: false,
+            isDraft: false,
+            from: payload.from,
+            to: payload.to,
+            cc: payload.cc || [],
+            bcc: payload.bcc || [],
+            attachments: [],
+            subject: payload.subject,
+            date: "",
+            text: payload.text || "",
+            html: payload.html,
+        },
+        { headers }
+    );
+    return response.data;
+};
+
+export const listAddreses = async () => {
+    const headers = await getRequestHeaders();
+    const response = await axios.get(
+        `${ENDPOINT_URL}/addresses`,
+        { headers }
+    );
+    return response.data;
+};
 
 export const getEmailFromWallet = (walletAddress: string) => {
     if (!ethers.isAddress(walletAddress)) {
