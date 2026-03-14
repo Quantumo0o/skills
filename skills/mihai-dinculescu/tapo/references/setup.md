@@ -2,6 +2,8 @@
 
 Detailed guide for connecting a [Tapo MCP](https://github.com/mihai-dinculescu/tapo/tree/main/tapo-mcp) server to OpenClaw via mcporter.
 
+For deploying the Tapo MCP server itself (Docker, Kubernetes, configuration), see [tapo-mcp-setup.md](tapo-mcp-setup.md).
+
 ## Prerequisites
 
 - A running [Tapo MCP](https://github.com/mihai-dinculescu/tapo/tree/main/tapo-mcp) server on your network (HTTP transport)
