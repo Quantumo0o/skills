@@ -1,6 +1,6 @@
 ---
 name: Employee Survey
-description: >-
+description: "📋 员工满意度调研工具. Use when you need employee survey capabilities. Triggers on: employee survey."
   员工满意度调查。问卷设计、eNPS、分析模板、改进方案、匿名反馈、趋势追踪。Employee satisfaction survey. 员工调查、满意度。
 ---
 # Employee Survey
@@ -28,3 +28,6 @@ description: >-
 
 ---
 *Employee Survey by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
