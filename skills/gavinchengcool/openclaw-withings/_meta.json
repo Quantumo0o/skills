@@ -1,0 +1,11 @@
+{
+  "owner": "gavinchengcool",
+  "slug": "openclaw-withings",
+  "displayName": "Withings (Official API)",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773386789692,
+    "commit": null
+  },
+  "history": []
+}
