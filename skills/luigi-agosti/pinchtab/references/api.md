@@ -7,15 +7,15 @@ Base URL for all examples: `http://localhost:9867`
 ## Navigate
 
 ```bash
-# CLI: pinchtab nav https://example.com [--new-tab] [--block-images]
+# CLI: pinchtab nav https://pinchtab.com [--new-tab] [--block-images]
 curl -X POST /navigate \
   -H 'Content-Type: application/json' \
-  -d '{"url": "https://example.com"}'
+  -d '{"url": "https://pinchtab.com"}'
 
 # With options: custom timeout, block images, open in new tab
 curl -X POST /navigate \
   -H 'Content-Type: application/json' \
-  -d '{"url": "https://example.com", "timeout": 60, "blockImages": true, "newTab": true}'
+  -d '{"url": "https://pinchtab.com", "timeout": 60, "blockImages": true, "newTab": true}'
 ```
 
 ## Snapshot (accessibility tree)
@@ -87,7 +87,7 @@ curl -X POST /action -H 'Content-Type: application/json' \
 
 # Fill (set value directly, no keystrokes)
 curl -X POST /action -H 'Content-Type: application/json' \
-  -d '{"kind": "fill", "selector": "#email", "text": "user@example.com"}'
+  -d '{"kind": "fill", "selector": "#email", "text": "user@pinchtab.com"}'
 
 # Hover (trigger dropdowns/tooltips)
 curl -X POST /action -H 'Content-Type: application/json' \
@@ -137,24 +137,67 @@ Returns `{url, title, text}`. Cheapest option (~1K tokens for most pages).
 
 ## PDF export
 
+Prefer returning base64 or raw bytes unless the user explicitly wants a file written to disk.
+When writing to disk, use a safe temporary or workspace path.
+
 ```bash
-# CLI: pinchtab pdf [-o file.pdf] [--landscape] [--scale 0.8]
+# CLI: pinchtab pdf --tab TAB_ID [-o file.pdf] [--landscape] [--scale 0.8]
 # Returns base64 JSON
-curl /pdf
+curl "/tabs/TAB_ID/pdf"
 
 # Raw PDF bytes
-curl "/pdf?raw=true" -o page.pdf
+curl "/tabs/TAB_ID/pdf?raw=true" -o page.pdf
 
-# Save to disk
-curl "/pdf?output=file&path=/tmp/page.pdf"
+# Save to disk in a safe temp location
+curl "/tabs/TAB_ID/pdf?output=file&path=/tmp/pinchtab-page.pdf"
 
 # Landscape with custom scale
-curl "/pdf?landscape=true&scale=0.8&raw=true" -o page.pdf
+curl "/tabs/TAB_ID/pdf?landscape=true&scale=0.8&raw=true" -o page.pdf
+
+# Custom paper size (Letter: 8.5x11, A4: 8.27x11.69)
+curl "/tabs/TAB_ID/pdf?paperWidth=8.5&paperHeight=11&marginTop=0.5&marginLeft=0.5&raw=true" -o custom.pdf
+
+# Export specific pages
+curl "/tabs/TAB_ID/pdf?pageRanges=1-5&raw=true" -o pages.pdf
+
+# With header/footer
+curl "/tabs/TAB_ID/pdf?displayHeaderFooter=true&headerTemplate=%3Cspan%20class=title%3E%3C/span%3E&raw=true" -o header.pdf
+
+# Accessible PDF with document outline
+curl "/tabs/TAB_ID/pdf?generateTaggedPDF=true&generateDocumentOutline=true&raw=true" -o accessible.pdf
+
+# Honor CSS page size
+curl "/tabs/TAB_ID/pdf?preferCSSPageSize=true&raw=true" -o css-sized.pdf
 ```
+
+**Query Parameters:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `paperWidth` | float | 8.5 | Paper width in inches |
+| `paperHeight` | float | 11.0 | Paper height in inches |
+| `landscape` | bool | false | Landscape orientation |
+| `marginTop` | float | 0.4 | Top margin in inches |
+| `marginBottom` | float | 0.4 | Bottom margin in inches |
+| `marginLeft` | float | 0.4 | Left margin in inches |
+| `marginRight` | float | 0.4 | Right margin in inches |
+| `scale` | float | 1.0 | Print scale (0.1–2.0) |
+| `pageRanges` | string | all | Pages to export (e.g., `1-3,5`) |
+| `displayHeaderFooter` | bool | false | Show header and footer |
+| `headerTemplate` | string | — | HTML template for header |
+| `footerTemplate` | string | — | HTML template for footer |
+| `preferCSSPageSize` | bool | false | Honor CSS `@page` size |
+| `generateTaggedPDF` | bool | false | Generate accessible/tagged PDF |
+| `generateDocumentOutline` | bool | false | Embed document outline |
+| `output` | string | JSON | `file` to save to disk, default returns base64 |
+| `path` | string | auto | Destination path (prefer temp or workspace paths with `output=file`) |
+| `raw` | bool | false | Return raw PDF bytes instead of JSON |
 
 Wraps `Page.printToPDF`. Prints background graphics by default.
 
 ## Download files
+
+Prefer raw bytes or base64 responses unless the user explicitly asks for a saved file.
 
 ```bash
 # Returns base64 JSON by default (uses browser session/cookies/stealth)
@@ -163,16 +206,18 @@ curl "/download?url=https://site.com/report.pdf"
 # Raw bytes (pipe to file)
 curl "/download?url=https://site.com/image.jpg&raw=true" -o image.jpg
 
-# Save directly to disk
-curl "/download?url=https://site.com/export.csv&output=file&path=/tmp/export.csv"
+# Save directly to disk in a safe temp location
+curl "/download?url=https://site.com/export.csv&output=file&path=/tmp/pinchtab-export.csv"
 ```
 
 ## Upload files
 
+Only upload local files the user explicitly provided or approved for the task.
+
 ```bash
 # Upload a local file to a file input
 curl -X POST "/upload?tabId=TAB_ID" -H "Content-Type: application/json" \
-  -d '{"selector": "input[type=file]", "paths": ["/tmp/photo.jpg"]}'
+  -d '{"selector": "input[type=file]", "paths": ["/tmp/user-approved-photo.jpg"]}'
 
 # Upload base64-encoded data
 curl -X POST /upload -H "Content-Type: application/json" \
@@ -191,6 +236,9 @@ curl "/screenshot?raw=true&quality=50" -o screenshot.jpg
 
 ## Evaluate JavaScript
 
+Use this sparingly. Prefer `text`, `snapshot`, and normal actions first.
+Default to read-only DOM inspection and avoid reading cookies, localStorage, or unrelated page secrets unless the user explicitly asks for that behavior.
+
 ```bash
 # CLI: pinchtab eval "document.title"
 curl -X POST /evaluate -H 'Content-Type: application/json' \
@@ -206,7 +254,7 @@ curl /tabs
 
 # Open new tab
 curl -X POST /tab -H 'Content-Type: application/json' \
-  -d '{"action": "new", "url": "https://example.com"}'
+  -d '{"action": "new", "url": "https://pinchtab.com"}'
 
 # Close tab
 curl -X POST /tab -H 'Content-Type: application/json' \
@@ -214,6 +262,39 @@ curl -X POST /tab -H 'Content-Type: application/json' \
 ```
 
 Multi-tab: pass `?tabId=TARGET_ID` to snapshot/screenshot/text, or `"tabId"` in POST body.
+
+## Tab-specific endpoints
+
+All read/action endpoints have tab-scoped variants using `/tabs/{id}/...`:
+
+```bash
+# Navigate a specific tab
+curl -X POST /tabs/TARGET_ID/navigate \
+  -H 'Content-Type: application/json' \
+  -d '{"url": "https://pinchtab.com"}'
+
+# Snapshot a specific tab
+curl "/tabs/TARGET_ID/snapshot"
+curl "/tabs/TARGET_ID/snapshot?filter=interactive&format=compact"
+
+# Screenshot a specific tab
+curl "/tabs/TARGET_ID/screenshot?raw=true" -o tab-screenshot.jpg
+
+# Extract text from a specific tab
+curl "/tabs/TARGET_ID/text"
+
+# Action on a specific tab
+curl -X POST /tabs/TARGET_ID/action \
+  -H 'Content-Type: application/json' \
+  -d '{"kind": "click", "ref": "e5"}'
+
+# Batch actions on a specific tab
+curl -X POST /tabs/TARGET_ID/actions \
+  -H 'Content-Type: application/json' \
+  -d '{"actions": [{"kind": "click", "ref": "e3"}, {"kind": "type", "ref": "e3", "text": "hello"}]}'
+```
+
+These are equivalent to using `?tabId=TARGET_ID` on top-level endpoints but follow REST conventions. The tab ID comes from `/tabs` or from the `tabId` field in navigate/tab creation responses.
 
 ## Tab locking (multi-agent)
 
@@ -237,7 +318,7 @@ curl /cookies
 
 # Set cookies
 curl -X POST /cookies -H 'Content-Type: application/json' \
-  -d '{"url":"https://example.com","cookies":[{"name":"session","value":"abc123"}]}'
+  -d '{"url":"https://pinchtab.com","cookies":[{"name":"session","value":"abc123"}]}'
 ```
 
 ## Stealth

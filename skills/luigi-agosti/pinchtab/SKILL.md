@@ -1,165 +1,344 @@
 ---
 name: pinchtab
-description: >
-  Control a headless or headed Chrome browser via Pinchtab's HTTP API. Use for web automation,
-  scraping, form filling, navigation, and multi-tab workflows. Pinchtab exposes the accessibility
-  tree as flat JSON with stable refs — optimized for AI agents (low token cost, fast).
-  Use when the task involves: browsing websites, filling forms, clicking buttons, extracting
-  page text, taking screenshots, or any browser-based automation. Requires a running Pinchtab
-  instance (Go binary).
-homepage: https://pinchtab.com
-metadata:
-  openclaw:
-    emoji: "🦀"
-    requires:
-      bins: ["pinchtab"]
-      env:
-        - name: BRIDGE_TOKEN
-          secret: true
-          optional: true
-          description: "Bearer auth token for Pinchtab API"
-        - name: BRIDGE_PORT
-          optional: true
-          description: "HTTP port (default: 9867)"
-        - name: BRIDGE_HEADLESS
-          optional: true
-          description: "Run Chrome headless (true/false)"
+description: "Use this skill when a task needs browser automation through PinchTab: open a website, inspect interactive elements, click through flows, fill out forms, scrape page text, log into sites with a persistent profile, export screenshots or PDFs, manage multiple browser instances, or fall back to the HTTP API when the CLI is unavailable. Prefer this skill for token-efficient browser work driven by stable accessibility refs such as `e5` and `e12`."
 ---
 
-# Pinchtab
+# Browser Automation with PinchTab
 
-Fast, lightweight browser control for AI agents via HTTP + accessibility tree.
+PinchTab gives agents a browser they can drive through stable accessibility refs, low-token text extraction, and persistent profiles or instances. Treat it as a CLI-first browser skill; use the HTTP API only when the CLI is unavailable or you need profile-management routes that do not exist in the CLI yet.
 
-**Security Note:** Pinchtab runs a local Chrome browser under your control. It does not access your credentials, exfiltrate data, or connect to external services. All interactions stay local unless you explicitly navigate to external sites. Binary distributed via [GitHub releases](https://github.com/pinchtab/pinchtab/releases) with checksums. See [TRUST.md](TRUST.md) for full security model and VirusTotal flag explanation.
+Preferred tool surface:
 
-## Quick Start (Agent Workflow)
+- Use `pinchtab` CLI commands first.
+- Use `curl` for profile-management routes or non-shell/API fallback flows.
+- Use `jq` only when you need structured parsing from JSON responses.
 
-The 30-second pattern for browser tasks:
+## Safety Defaults
 
-```bash
-# 1. Start Pinchtab (runs forever, local on :9867)
-pinchtab &
-
-# 2. In your agent, follow this loop:
-#    a) Navigate to a URL
-#    b) Snapshot the page (get refs like e0, e5, e12)
-#    c) Act on a ref (click e5, type e12 "search text")
-#    d) Snapshot again to see the result
-#    e) Repeat step c-d until done
-```
-
-**That's it.** Refs are stable—you don't need to re-snapshot before every action. Only snapshot when the page changes significantly.
-
-## Setup
-
-```bash
-# Headless (default) — no visible window
-pinchtab &
-
-# Headed — visible Chrome window for human debugging
-BRIDGE_HEADLESS=false pinchtab &
-
-# With auth token
-BRIDGE_TOKEN="your-secret-token" pinchtab &
-
-# Custom port
-BRIDGE_PORT=8080 pinchtab &
-
-# Dashboard/orchestrator — profile manager + tab launcher
-pinchtab dashboard &
-```
-
-Default: **port 9867**, no auth required (local). Set `BRIDGE_TOKEN` for remote access.
-
-For advanced setup, see [references/profiles.md](references/profiles.md) and [references/env.md](references/env.md).
-
-## What a Snapshot Looks Like
-
-After calling `/snapshot`, you get the page's accessibility tree as JSON—flat list of elements with refs:
-
-```json
-{
-  "refs": [
-    {"id": "e0", "role": "link", "text": "Sign In", "selector": "a[href='/login']"},
-    {"id": "e1", "role": "textbox", "label": "Email", "selector": "input[name='email']"},
-    {"id": "e2", "role": "button", "text": "Submit", "selector": "button[type='submit']"}
-  ],
-  "text": "... readable text version of page ...",
-  "title": "Login Page"
-}
-```
-
-Then you act on refs: `click e0`, `type e1 "user@example.com"`, `press e2 Enter`.
+- Default to `http://localhost` targets. Only use a remote PinchTab server when the user explicitly provides it and, if needed, a token.
+- Prefer read-only operations first: `text`, `snap -i -c`, `snap -d`, `find`, `click`, `fill`, `type`, `press`, `select`, `hover`, `scroll`.
+- Do not evaluate arbitrary JavaScript unless a simpler PinchTab command cannot answer the question.
+- Do not upload local files unless the user explicitly names the file to upload and the destination flow requires it.
+- Do not save screenshots, PDFs, or downloads to arbitrary paths. Use a user-specified path or a safe temporary/workspace path.
+- Never use PinchTab to inspect unrelated local files, browser secrets, stored credentials, or system configuration outside the task.
 
 ## Core Workflow
 
-The typical agent loop:
+Every PinchTab automation follows this pattern:
 
-1. **Navigate** to a URL
-2. **Snapshot** the accessibility tree (get refs)
-3. **Act** on refs (click, type, press)
-4. **Snapshot** again to see results
+1. Ensure the correct server, profile, or instance is available for the task.
+2. Navigate with `pinchtab nav <url>` or `pinchtab instance navigate <instance-id> <url>`.
+3. Observe with `pinchtab snap -i -c`, `pinchtab snap --text`, or `pinchtab text`, then collect the current refs such as `e5`.
+4. Interact with those fresh refs using `click`, `fill`, `type`, `press`, `select`, `hover`, or `scroll`.
+5. Re-snapshot or re-read text after any navigation, submit, modal open, accordion expand, or other DOM-changing action.
 
-Refs (e.g. `e0`, `e5`, `e12`) are cached per tab after each snapshot — no need to re-snapshot before every action unless the page changed significantly.
+Rules:
 
-### Quick examples
+- Never act on stale refs after the page changes.
+- Default to `pinchtab text` when you need content, not layout.
+- Default to `pinchtab snap -i -c` when you need actionable elements.
+- Use screenshots only for visual verification, UI diffs, or debugging.
+- Start multi-site or parallel work by choosing the right instance or profile first.
+
+## Command Chaining
+
+Use `&&` only when you do not need to inspect intermediate output before deciding the next step.
+
+Good:
+
+```bash
+pinchtab nav https://example.com && pinchtab snap -i -c
+pinchtab click --wait-nav e5 && pinchtab snap -i -c
+pinchtab nav https://example.com --block-images && pinchtab text
+```
+
+Run commands separately when you must read the snapshot output first:
 
 ```bash
 pinchtab nav https://example.com
-pinchtab snap -i -c                    # interactive + compact
-pinchtab click e5
-pinchtab type e12 hello world
-pinchtab press Enter
-pinchtab text                          # readable text (~1K tokens)
-pinchtab text | jq .text               # pipe to jq
-pinchtab ss -o page.jpg                # screenshot
-pinchtab eval "document.title"         # run JavaScript
-pinchtab pdf -o page.pdf               # export PDF
+pinchtab snap -i -c
+# Read refs, choose the correct e#
+pinchtab click e7
+pinchtab snap -i -c
 ```
 
-For the full HTTP API (curl examples, download, upload, cookies, stealth, batch actions), see [references/api.md](references/api.md).
+## Handling Authentication and State
 
-## Token Cost Guide
+Pick one of these five patterns before you start interacting with the site.
 
-| Method | Typical tokens | When to use |
-|---|---|---|
-| `/text` | ~800 | Reading page content |
-| `/snapshot?filter=interactive` | ~3,600 | Finding buttons/links to click |
-| `/snapshot?diff=true` | varies | Multi-step workflows (only changes) |
-| `/snapshot?format=compact` | ~56-64% less | One-line-per-node, best efficiency |
-| `/snapshot` | ~10,500 | Full page understanding |
-| `/screenshot` | ~2K (vision) | Visual verification |
+### 1. One-off public browsing
 
-**Strategy**: Start with `?filter=interactive&format=compact`. Use `?diff=true` on subsequent snapshots. Use `/text` when you only need readable content. Full `/snapshot` only when needed.
-
-## Agent Optimization
-
-**Validated Feb 2026**: Testing with AI agents revealed a critical pattern for reliable, token-efficient scraping.
-
-**See the full guide:** [docs/agent-optimization.md](../../docs/agent-optimization.md)
-
-### Quick Summary
-
-**The 3-second pattern** — wait after navigate before snapshot:
+Use a temporary instance for public pages, scraping, or tasks that do not need login persistence.
 
 ```bash
-curl -X POST http://localhost:9867/navigate \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}' && \
-sleep 3 && \
-curl http://localhost:9867/snapshot | jq '.nodes[] | select(.name | length > 15) | .name'
+pinchtab instance start
+pinchtab instances
+# Point CLI commands at the instance port you want to use.
+PINCHTAB_URL=http://localhost:9868 pinchtab nav https://example.com
+PINCHTAB_URL=http://localhost:9868 pinchtab text
 ```
 
-**Token savings:** 93% reduction (3,842 → 272 tokens) when using prescriptive instructions vs. exploratory agent approach.
+### 2. Reuse an existing named profile
 
-For detailed findings, system prompt templates, and site-specific notes, see [docs/agent-optimization.md](../../docs/agent-optimization.md).
+Use this for recurring tasks against the same authenticated site.
 
-## Tips
+```bash
+pinchtab profiles
+pinchtab instance start --profile work --mode headed
+PINCHTAB_URL=http://localhost:9868 pinchtab nav https://mail.google.com
+```
 
-- **Always pass `tabId` explicitly** when working with multiple tabs
-- Refs are stable between snapshot and actions — no need to re-snapshot before clicking
-- After navigation or major page changes, take a new snapshot for fresh refs
-- Pinchtab persists sessions — tabs survive restarts (disable with `BRIDGE_NO_RESTORE=true`)
-- Chrome profile is persistent — cookies/logins carry over between runs
-- Use `BRIDGE_BLOCK_IMAGES=true` or `"blockImages": true` on navigate for read-heavy tasks
-- **Wait 3+ seconds after navigate before snapshot** — Chrome needs time to render 2000+ accessibility tree nodes
+If the login is already stored in that profile, you can switch to headless later:
+
+```bash
+pinchtab instance stop inst_ea2e747f
+pinchtab instance start --profile work --mode headless
+```
+
+### 3. Create a dedicated auth profile over HTTP
+
+Use this when you need a durable profile and it does not exist yet.
+
+```bash
+curl -X POST http://localhost:9867/profiles \
+  -H "Content-Type: application/json" \
+  -d '{"name":"billing","description":"Billing portal automation","useWhen":"Use for billing tasks"}'
+
+curl -X POST http://localhost:9867/profiles/billing/start \
+  -H "Content-Type: application/json" \
+  -d '{"headless":false}'
+```
+
+Then target the returned port with `PINCHTAB_URL`.
+
+### 4. Human-assisted headed login, then agent reuse
+
+Use this for CAPTCHA, MFA, or first-time setup.
+
+```bash
+pinchtab instance start --profile work --mode headed
+# Human completes login in the visible Chrome window.
+PINCHTAB_URL=http://localhost:9868 pinchtab nav https://app.example.com/dashboard
+PINCHTAB_URL=http://localhost:9868 pinchtab snap -i -c
+```
+
+Once the session is stored, reuse the same profile for later tasks.
+
+### 5. Remote or non-shell agent with tokenized HTTP API
+
+Use this when the agent cannot call the CLI directly.
+
+```bash
+curl http://localhost:9867/health
+curl -X POST http://localhost:9867/instances/launch \
+  -H "Content-Type: application/json" \
+  -d '{"name":"work","headless":true}'
+curl -X POST http://localhost:9868/action \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"click","ref":"e5"}'
+```
+
+If the server is exposed beyond localhost, require a token and use a dedicated automation profile. See [TRUST.md](./TRUST.md) and [config.md](../../docs/reference/config.md).
+
+## Essential Commands
+
+### Server and targeting
+
+```bash
+pinchtab server
+pinchtab daemon
+pinchtab health
+pinchtab instances
+pinchtab profiles
+PINCHTAB_URL=http://localhost:9868 pinchtab snap -i -c
+```
+
+### Navigation and tabs
+
+```bash
+pinchtab nav <url>
+pinchtab nav <url> --new-tab
+pinchtab nav <url> --tab <tab-id>
+pinchtab nav <url> --block-images
+pinchtab nav <url> --block-ads
+pinchtab tab
+pinchtab tab new <url>
+pinchtab tab close <tab-id>
+pinchtab instance navigate <instance-id> <url>
+```
+
+### Observation
+
+```bash
+pinchtab snap
+pinchtab snap -i
+pinchtab snap -i -c
+pinchtab snap -d
+pinchtab snap --selector <css>
+pinchtab snap --max-tokens <n>
+pinchtab snap --text
+pinchtab text
+pinchtab text --raw
+pinchtab find <query>
+pinchtab find --ref-only <query>
+```
+
+Guidance:
+
+- `snap -i -c` is the default for finding actionable refs.
+- `snap -d` is the default follow-up snapshot for multi-step flows.
+- `text` is the default for reading articles, dashboards, reports, or confirmation messages.
+- `find --ref-only` is useful when the page is large and you already know the semantic target.
+
+### Interaction
+
+```bash
+pinchtab click <ref>
+pinchtab click --wait-nav <ref>
+pinchtab click --css <selector>
+pinchtab type <ref> <text>
+pinchtab fill <ref|selector> <text>
+pinchtab press <key>
+pinchtab hover <ref>
+pinchtab select <ref> <value>
+pinchtab scroll <ref|pixels>
+```
+
+Rules:
+
+- Prefer `fill` for deterministic form entry.
+- Prefer `type` only when the site depends on keystroke events.
+- Prefer `click --wait-nav` when a click is expected to navigate.
+- Re-snapshot immediately after `click`, `press Enter`, `select`, or `scroll` if the UI can change.
+
+### Export, debug, and verification
+
+```bash
+pinchtab screenshot
+pinchtab screenshot -o /tmp/pinchtab-page.jpg
+pinchtab screenshot -q 60
+pinchtab pdf
+pinchtab pdf -o /tmp/pinchtab-report.pdf
+pinchtab pdf --landscape
+```
+
+### Advanced operations: explicit opt-in only
+
+Use these only when the task explicitly requires them and safer commands are insufficient.
+
+```bash
+pinchtab eval "document.title"
+pinchtab download <url> -o /tmp/pinchtab-download.bin
+pinchtab upload /absolute/path/provided-by-user.ext -s <css>
+```
+
+Rules:
+
+- `eval` is for narrow, read-only DOM inspection unless the user explicitly asks for a page mutation.
+- `download` should prefer a safe temporary or workspace path over an arbitrary filesystem location.
+- `upload` requires a file path the user explicitly provided or clearly approved for the task.
+
+### HTTP API fallback
+
+```bash
+curl -X POST http://localhost:9868/navigate \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com"}'
+
+curl "http://localhost:9868/snapshot?filter=interactive&format=compact"
+
+curl -X POST http://localhost:9868/action \
+  -H "Content-Type: application/json" \
+  -d '{"kind":"fill","ref":"e3","text":"ada@example.com"}'
+
+curl http://localhost:9868/text
+```
+
+Use the API when:
+
+- the agent cannot shell out,
+- profile creation or mutation is required,
+- or you need explicit instance- and tab-scoped routes.
+
+## Common Patterns
+
+### Open a page and inspect actions
+
+```bash
+pinchtab nav https://pinchtab.com && pinchtab snap -i -c
+```
+
+### Fill and submit a form
+
+```bash
+pinchtab nav https://example.com/login
+pinchtab snap -i -c
+pinchtab fill e3 "user@example.com"
+pinchtab fill e4 "correct horse battery staple"
+pinchtab click --wait-nav e5
+pinchtab text
+```
+
+### Search, then extract the result page cheaply
+
+```bash
+pinchtab nav https://example.com
+pinchtab snap -i -c
+pinchtab fill e2 "quarterly report"
+pinchtab press Enter
+pinchtab text
+```
+
+### Use diff snapshots in a multi-step flow
+
+```bash
+pinchtab nav https://example.com/checkout
+pinchtab snap -i -c
+pinchtab click e8
+pinchtab snap -d -i -c
+```
+
+### Bootstrap an authenticated profile
+
+```bash
+pinchtab profiles
+pinchtab instance start --profile work --mode headed
+# Human signs in once.
+PINCHTAB_URL=http://localhost:9868 pinchtab text
+```
+
+### Run separate instances for separate sites
+
+```bash
+pinchtab instance start --profile work --mode headless
+pinchtab instance start --profile staging --mode headless
+pinchtab instances
+```
+
+Then point each command stream at its own `PINCHTAB_URL`.
+
+## Security and Token Economy
+
+- Use a dedicated automation profile, not a daily browsing profile.
+- If PinchTab is reachable off-machine, require a token and bind conservatively.
+- Prefer `text`, `snap -i -c`, and `snap -d` before screenshots, PDFs, eval, downloads, or uploads.
+- Use `--block-images` for read-heavy tasks that do not need visual assets.
+- Stop or isolate instances when switching between unrelated accounts or environments.
+
+## Diffing and Verification
+
+- Use `pinchtab snap -d` after each state-changing action in long workflows.
+- Use `pinchtab text` to confirm success messages, table updates, or navigation outcomes.
+- Use `pinchtab screenshot` only when visual regressions, CAPTCHA, or layout-specific confirmation matters.
+- If a ref disappears after a change, treat that as expected and fetch fresh refs instead of retrying the stale one.
+
+## References
+
+- Command surface: [commands.md](../../docs/commands.md)
+- CLI overview: [cli.md](../../docs/reference/cli.md)
+- Profiles: [profiles.md](../../docs/reference/profiles.md)
+- Instances: [instances.md](../../docs/reference/instances.md)
+- Full API: [api.md](./references/api.md)
+- Minimal env vars: [env.md](./references/env.md)
+- Config reference: [config.md](../../docs/reference/config.md)
+- Security model: [TRUST.md](./TRUST.md)
