@@ -1,0 +1,11 @@
+{
+  "owner": "duclawbot",
+  "slug": "opsec",
+  "displayName": "clawguard",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1773491103954,
+    "commit": null
+  },
+  "history": []
+}
