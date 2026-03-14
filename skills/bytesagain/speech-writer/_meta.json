@@ -1,11 +1,17 @@
 {
   "owner": "bytesagain",
   "slug": "speech-writer",
-  "displayName": "speech-writer",
+  "displayName": "Speech Writer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773245901691,
-    "commit": "https://github.com/openclaw/skills/commit/5b4929cf43b699481272b6960e1000bd9393961f"
+    "version": "2.2.0",
+    "publishedAt": 1773421828474,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773245901691,
+      "commit": "https://github.com/openclaw/skills/commit/5b4929cf43b699481272b6960e1000bd9393961f"
+    }
+  ]
 }
