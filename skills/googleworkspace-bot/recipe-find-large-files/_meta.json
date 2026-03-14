@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "recipe-find-large-files",
+  "displayName": "Recipe Find Large Files",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773400374764,
+    "commit": null
+  },
+  "history": []
+}
