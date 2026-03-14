@@ -3,9 +3,15 @@
   "slug": "news-scout",
   "displayName": "news-scout 热点新闻聚合简报",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773366995157,
-    "commit": "https://github.com/openclaw/skills/commit/ba8e0ed8663d0c00e0207588df61b1ecd099bec9"
+    "version": "1.1.0",
+    "publishedAt": 1773373668765,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773366995157,
+      "commit": "https://github.com/openclaw/skills/commit/ba8e0ed8663d0c00e0207588df61b1ecd099bec9"
+    }
+  ]
 }

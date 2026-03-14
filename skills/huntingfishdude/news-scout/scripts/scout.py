@@ -3,7 +3,7 @@
 """
 新闻斥候 (News Scout) - 自动化新闻抓取工具
 ===========================================
-功能：从 RSS 源和搜索引擎抓取 AI 和投资领域的最新新闻
+功能：从 RSS 源和 Bing 新闻搜索抓取 AI 和投资领域的最新新闻
 输出：JSON 格式的新闻列表
 
 使用方法:
@@ -12,7 +12,7 @@
     python3 scout.py --category investing
 
 依赖安装:
-    pip3 install feedparser duckduckgo-search requests
+    pip3 install feedparser requests
 """
 
 import json
@@ -29,15 +29,10 @@ warnings.filterwarnings("ignore")
 try:
     import feedparser
     import requests
-    # 优先尝试导入 ddgs (适应 OpenClaw 环境)
-    try:
-        from ddgs import DDGS
-    except ImportError:
-        from duckduckgo_search import DDGS
 except ImportError as e:
     print(json.dumps({
         "error": f"缺少必要的依赖库：{e}",
-        "solution": "请运行：pip3 install feedparser duckduckgo-search requests (如果在 OpenClaw 环境中，请确保 ddgs 已安装)"
+        "solution": "请运行：pip3 install feedparser requests"
     }, ensure_ascii=False))
     sys.exit(1)
 
@@ -102,69 +97,60 @@ def fetch_rss(feed_info, hours=48):
     return results
 
 
-def fetch_search(query, type="news", debug=False):
+def fetch_search(query, debug=False):
     """
-    从 DuckDuckGo 搜索新闻
-    
+    通过 Bing News RSS 搜索新闻（国内可直接访问，无需 API Key）
+
     参数:
         query: 搜索关键词
-        type: 搜索类型（"news" 或 "text"）
         debug: 是否输出调试信息
-    
+
     返回:
         新闻列表
     """
     results = []
     try:
-        # 获取系统代理配置
-        proxies = None
-        http_proxy = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
-        https_proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy")
-        
-        if http_proxy or https_proxy:
-            proxies = {}
-            if http_proxy: proxies["http://"] = http_proxy
-            if https_proxy: proxies["https://"] = https_proxy
-            
-            if debug:
-                print(f"[DEBUG] DuckDuckGo 搜索使用代理: {proxies}", file=sys.stderr)
-                
-        # 初始化 DDGS (带代理支持)
-        ddgs = DDGS(proxies=proxies) if proxies else DDGS()
-        
-        if type == "news":
-            # 新闻搜索
-            news_res = ddgs.news(query, max_results=CONFIG["max_search_results"])
-            for r in news_res:
-                results.append({
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "source": r.get("source", "DDG Source"),
-                    "priority": "P2",  # 搜索结果默认优先级
-                    "snippet": r.get("body", ""),
-                    "date": r.get("date", "Unknown"),
-                    "category": "search"
-                })
-        else:
-            # 网页搜索
-            text_res = ddgs.text(query, max_results=2)
-            for r in text_res:
-                results.append({
-                    "title": r.get("title", ""),
-                    "url": r.get("href", ""),
-                    "source": "DDG Search",
-                    "priority": "P2",
-                    "snippet": r.get("body", ""),
-                    "date": "Unknown",
-                    "category": "search"
-                })
+        # 构建 Bing News RSS 搜索 URL
+        encoded_query = requests.utils.quote(query)
+        rss_url = f"https://www.bing.com/news/search?q={encoded_query}&format=rss"
+
+        if debug:
+            print(f"[DEBUG] Bing News RSS 搜索: {rss_url}", file=sys.stderr)
+
+        # 使用 feedparser 解析 Bing RSS（国内可正常访问）
+        d = feedparser.parse(rss_url)
+
+        if d.bozo and debug:
+            print(f"[DEBUG] Bing RSS 解析警告: {d.bozo_exception}", file=sys.stderr)
+
+        for entry in d.entries[:CONFIG["max_search_results"]]:
+            # 尝试解析日期
+            entry_date = None
+            if hasattr(entry, 'published_parsed') and entry.published_parsed:
+                from time import mktime
+                try:
+                    entry_date = datetime.fromtimestamp(
+                        mktime(entry.published_parsed),
+                        timezone.utc
+                    ).isoformat()
+                except (ValueError, OSError):
+                    pass
+
+            results.append({
+                "title": entry.get("title", ""),
+                "url": entry.get("link", ""),
+                "source": entry.get("source", {}).get("value", "Bing News") if hasattr(entry, "source") else "Bing News",
+                "priority": "P2",
+                "snippet": entry.get("summary", ""),
+                "date": entry_date or "Unknown",
+                "category": "search"
+            })
+
     except Exception as e:
         if debug:
-            print(f"[DEBUG] DuckDuckGo 搜索失败 '{query}': {e}", file=sys.stderr)
-            print("[DEBUG] 提示：国内网络环境通常无法直接访问 DuckDuckGo，请配置 HTTPS_PROXY 环境变量或检查网络连通性。", file=sys.stderr)
-        # 静默失败，避免搜索失败影响整体
+            print(f"[DEBUG] Bing News RSS 搜索失败 '{query}': {e}", file=sys.stderr)
         pass
-    
+
     return results
 
 
@@ -299,7 +285,7 @@ def main():
             
             # 提交搜索任务（限制数量避免触发反爬）
             search_futures = [
-                executor.submit(fetch_search, query, "news", args.debug) 
+                executor.submit(fetch_search, query, args.debug) 
                 for query in search_list[:CONFIG["max_search_queries"]]
             ]
             
