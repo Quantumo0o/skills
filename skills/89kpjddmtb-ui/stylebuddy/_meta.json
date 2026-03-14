@@ -3,9 +3,15 @@
   "slug": "stylebuddy",
   "displayName": "StyleBuddy",
   "latest": {
-    "version": "0.3.2",
-    "publishedAt": 1773466982138,
-    "commit": "https://github.com/openclaw/skills/commit/d8cb445ff75700f84629d6423cb79385958c2439"
+    "version": "0.3.3",
+    "publishedAt": 1773508212306,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.3.2",
+      "publishedAt": 1773466982138,
+      "commit": "https://github.com/openclaw/skills/commit/d8cb445ff75700f84629d6423cb79385958c2439"
+    }
+  ]
 }

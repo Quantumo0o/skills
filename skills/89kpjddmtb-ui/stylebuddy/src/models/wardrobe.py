@@ -59,16 +59,39 @@ class WardrobeManager:
         
         # 检查是否有图片
         image_path = None
+        vision_result = None
         if context and 'image' in context:
             image_path = self._save_item_image(context['image'], name)
+            
+            # 使用 Vision 服务分析图片
+            if image_path:
+                vision_result = self._analyze_clothing_image(image_path)
+                
+                # 用识别结果补充/覆盖手动输入的信息
+                if vision_result:
+                    # 如果用户没指定颜色，用识别结果
+                    if color == "其他" and vision_result.get('color'):
+                        color = vision_result['color']
+                    # 如果用户没指定类别，用识别结果
+                    if category == "top" and vision_result.get('category'):
+                        category = vision_result['category']
+                    # 更新名称
+                    if vision_result.get('name') and vision_result['name'] != '未识别单品':
+                        name = vision_result['name']
         
-        # 创建单品记录
+        # 创建单品记录（包含吊牌信息）
         item = {
             "name": name,
             "category": category,
             "color": color,
             "style": style,
-            "season": self._guess_season(name, category),
+            "season": vision_result.get('season', self._guess_season(name, category)) if vision_result else self._guess_season(name, category),
+            "material": vision_result.get('material', '') if vision_result else '',
+            "fit": vision_result.get('fit', '') if vision_result else '',  # 版型
+            "brand": vision_result.get('brand', '') if vision_result else '',  # 品牌
+            "price": vision_result.get('price', '') if vision_result else '',  # 价格
+            "size": vision_result.get('size', '') if vision_result else '',  # 尺码
+            "fabric": vision_result.get('fabric', '') if vision_result else '',  # 面料成分
             "image_path": image_path,
             "tags": [color, style] if style else [color]
         }
@@ -95,8 +118,32 @@ class WardrobeManager:
         result += f"   颜色：{color}\n"
         if style:
             result += f"   风格：{style}\n"
+        # 吊牌信息
+        if vision_result:
+            if vision_result.get('brand'):
+                result += f"   🏷️ 品牌：{vision_result['brand']}\n"
+            if vision_result.get('price'):
+                result += f"   💰 价格：{vision_result['price']}\n"
+            if vision_result.get('size'):
+                result += f"   📏 尺码：{vision_result['size']}\n"
+            if vision_result.get('fabric'):
+                result += f"   🧵 面料：{vision_result['fabric']}\n"
+        if vision_result and vision_result.get('material'):
+            result += f"   材质：{vision_result['material']}\n"
         if image_path:
             result += f"   图片：已保存\n"
+            # 显示识别来源
+            if vision_result:
+                source = vision_result.get('source', 'unknown')
+                if source == 'base_model':
+                    result += f"   🤖 识别：AI 智能识别（基座模型）\n"
+                elif source == 'api':
+                    result += f"   🔮 识别：AI 智能识别（Vision API）\n"
+                elif source == 'local':
+                    result += f"   🎨 识别：本地颜色提取\n"
+                    # 只有本地识别时才提示升级
+                    if not vision_result.get('has_advanced_vision', False):
+                        result += f"   💡 提示：当前使用本地识别。如需更精准识别，可配置 Vision API，或使用支持多模态的基座模型（如 Kimi K2.5）\n"
         if action == "更新":
             result += f"   💡 该单品已存在，已更新信息"
         
@@ -257,20 +304,27 @@ class WardrobeManager:
         return result
     
     def _analyze_clothing_image(self, image_path: str) -> dict:
-        """分析衣服图片（外观 + 吊牌）"""
-        # 这里实际会调用 Vision API
-        # 返回结构化数据
-        return {
-            "name": "待识别",
-            "category": "top",
-            "color": "待识别",
-            "material": "",
-            "price": "",
-            "brand": "",
-            "season": "四季",
-            "style": "",
-            "styling_tips": ""
-        }
+        """分析衣服图片 - 优先Vision API，降级本地识别"""
+        # 导入 Vision 服务
+        from ..services.vision import create_vision_service
+        import yaml
+        
+        # 读取配置
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config.yaml')
+        config = {}
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+        
+        # 创建 Vision 服务并分析
+        vision_service = create_vision_service(config)
+        result = vision_service.analyze_image(image_path)
+        
+        # 补充 styling_tips
+        if not result.get('styling_tips'):
+            result['styling_tips'] = f"{result.get('color', '')}{result.get('name', '单品')}百搭实用，可搭配牛仔裤或半裙"
+        
+        return result
     
     def _save_item_image(self, image_data, item_name: str):
         """保存单品图片"""

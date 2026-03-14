@@ -40,6 +40,11 @@ class Database:
                     style TEXT,
                     season TEXT,
                     material TEXT,
+                    fit TEXT,  -- 版型：宽松/修身/长款等
+                    brand TEXT,  -- 品牌
+                    price TEXT,  -- 价格
+                    size TEXT,  -- 尺码
+                    fabric TEXT,  -- 面料成分
                     image_path TEXT,
                     tags TEXT,  -- JSON array
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -97,6 +102,24 @@ class Database:
                     purchased BOOLEAN DEFAULT 0,
                     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     purchased_at TIMESTAMP
+                )
+            """)
+            
+            # 用户画像表（新增）
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    nickname TEXT DEFAULT '',
+                    gender TEXT DEFAULT 'female',
+                    height INTEGER,
+                    weight INTEGER,
+                    body_type TEXT DEFAULT '',
+                    style_preference TEXT,  -- JSON array
+                    color_preference TEXT,  -- JSON array
+                    avoid_colors TEXT,      -- JSON array
+                    price_preference TEXT DEFAULT '中端',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
@@ -479,3 +502,86 @@ class Database:
             result = conn.execute("DELETE FROM wishlist WHERE id = ?", (item_id,))
             conn.commit()
             return result.rowcount > 0
+    
+    # ===== 用户画像操作 =====
+    
+    def get_user_profile(self) -> Optional[Dict]:
+        """获取用户画像"""
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM user_profiles WHERE id = 1"
+            ).fetchone()
+            
+            if row:
+                profile = self._row_to_dict(row)
+                # 解析 JSON 字段
+                for key in ['style_preference', 'color_preference', 'avoid_colors']:
+                    if key in profile and profile[key]:
+                        try:
+                            profile[key] = json.loads(profile[key])
+                        except:
+                            profile[key] = []
+                return profile
+            return None
+    
+    def save_user_profile(self, profile: Dict) -> bool:
+        """保存或更新用户画像"""
+        # 将列表转为 JSON 字符串
+        style_pref = json.dumps(profile.get('style_preference', []), ensure_ascii=False)
+        color_pref = json.dumps(profile.get('color_preference', []), ensure_ascii=False)
+        avoid_colors = json.dumps(profile.get('avoid_colors', []), ensure_ascii=False)
+        
+        with self._get_connection() as conn:
+            # 检查是否已存在
+            existing = conn.execute(
+                "SELECT id FROM user_profiles WHERE id = 1"
+            ).fetchone()
+            
+            if existing:
+                # 更新
+                conn.execute("""
+                    UPDATE user_profiles 
+                    SET nickname = ?, gender = ?, height = ?, weight = ?,
+                        body_type = ?, style_preference = ?, color_preference = ?,
+                        avoid_colors = ?, price_preference = ?, updated_at = ?
+                    WHERE id = 1
+                """, (
+                    profile.get('nickname', ''),
+                    profile.get('gender', 'female'),
+                    profile.get('height'),
+                    profile.get('weight'),
+                    profile.get('body_type', ''),
+                    style_pref,
+                    color_pref,
+                    avoid_colors,
+                    profile.get('price_preference', '中端'),
+                    datetime.now().isoformat()
+                ))
+            else:
+                # 新建
+                conn.execute("""
+                    INSERT INTO user_profiles 
+                    (id, nickname, gender, height, weight, body_type,
+                     style_preference, color_preference, avoid_colors, price_preference)
+                    VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    profile.get('nickname', ''),
+                    profile.get('gender', 'female'),
+                    profile.get('height'),
+                    profile.get('weight'),
+                    profile.get('body_type', ''),
+                    style_pref,
+                    color_pref,
+                    avoid_colors,
+                    profile.get('price_preference', '中端')
+                ))
+            conn.commit()
+            return True
+    
+    def has_user_profile(self) -> bool:
+        """检查是否已设置用户画像"""
+        with self._get_connection() as conn:
+            row = conn.execute(
+                "SELECT id FROM user_profiles WHERE id = 1"
+            ).fetchone()
+            return row is not None

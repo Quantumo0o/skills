@@ -14,6 +14,7 @@ from src.core.analyzer import WardrobeAnalyzer
 from src.services.visualizer import OutfitVisualizer
 from src.services.weather import WeatherService
 from src.models.wardrobe import WardrobeManager
+from src.models.user_profile import UserProfileManager, create_profile_manager
 from src.services.shopping import ShoppingConsultant
 import json
 
@@ -29,12 +30,14 @@ class StyleBuddy:
         self.weather = WeatherService()
         self.wardrobe = WardrobeManager(self.db)
         self.shopping = ShoppingConsultant(self.db, self.wardrobe)
+        self.user_profile = create_profile_manager(self.db)
         self.capabilities = self.router.detect()
         
     def _is_first_time(self) -> bool:
-        """检查是否是首次使用"""
+        """检查是否是首次使用（无单品且无用户画像）"""
         items = self.db.get_all_items()
-        return len(items) == 0
+        has_profile = self.user_profile.has_profile()
+        return len(items) == 0 and not has_profile
     
     def _get_welcome_message(self) -> str:
         """首次使用欢迎语"""
@@ -43,32 +46,31 @@ class StyleBuddy:
 我是你的 AI 穿搭闺蜜，帮你管理衣橱、智能搭配，让穿搭变得更简单～
 
 ━━━━━━━━━━━━━━━━━━━━━━
-📸 **录入衣服**
-   拍照或文字描述，我会自动识别材质、颜色、风格
-   👉 试试：拍张照片发给我，或说"录入一件蓝色卫衣"
+👤 **第一步：创建你的穿搭档案**
+   告诉我你的身高、体重、体型、喜欢的风格...
+   这样我能给你更精准的推荐！
+   👉 试试："我是小李，女，165cm，50kg，梨型身材"
+   或者说："开始设置个人档案"
 
-👗 **查看衣橱**  
-   随时了解你有什么衣服
-   👉 试试："我有什么衣服"
+📸 **第二步：录入衣服**
+   拍照或文字描述，自动识别材质、颜色、风格
+   👉 试试：拍张照片，或"录入一件蓝色卫衣"
 
-✨ **智能搭配**
-   根据天气、场合推荐穿搭
+👗 **第三步：获取推荐**
+   根据天气、场合、你的体型推荐穿搭
    👉 试试："今天穿什么" 或 "明天约会怎么搭"
 
-🛍️ **种草咨询**
-   逛街看中衣服？发给我，帮你对比衣橱、给建议
-   👉 试试：拍商场衣服照片
-
-📊 **衣橱分析**
-   分析你的穿衣习惯，优化衣橱
-   👉 试试："帮我分析衣橱"
-
 ━━━━━━━━━━━━━━━━━━━━━━
-💡 **小技巧**
-   • 拍照时带上吊牌，我能识别材质和价格
-   • 逛街种草 vs 录入衣橱，我会自动判断或询问你
+💡 **其他功能**
+🛍️ 种草咨询 - 逛街发图，帮你对比给建议
+📊 衣橱分析 - 分析穿衣习惯，优化衣橱
 
-**现在，录入你的第一件衣服吧！** 📸"""
+**先从创建档案开始吧！** 👇
+输入你的基本信息，或直接发照片录入衣服～"""
+    
+    def _get_profile_setup_message(self) -> str:
+        """获取用户画像设置引导"""
+        return self.user_profile.create_profile_wizard()
     
     def _detect_intent(self, user_input: str, has_image: bool) -> str:
         """
@@ -164,9 +166,19 @@ class StyleBuddy:
     
     def process(self, user_input: str, context: dict = None):
         """处理用户输入"""
-        # 首次使用检测
+        user_input_lower = user_input.lower().strip()
+        
+        # 首次使用检测（无单品且无画像）
         if self._is_first_time() and user_input in ["开始", "你好", "hi", "hello", "?", "帮助", "怎么用"]:
             return self._get_welcome_message()
+        
+        # 用户画像相关
+        if any(kw in user_input_lower for kw in ["设置", "个人", "档案", "资料", "画像", "信息", "身高", "体重", "体型", "喜好"]):
+            return self._handle_user_profile(user_input)
+        
+        # 查看用户画像
+        if any(kw in user_input_lower for kw in ["我的档案", "我的信息", "穿搭档案"]):
+            return self.user_profile.get_profile_summary()
         
         # 检测是否有图片
         has_image = context and 'image' in context
@@ -186,8 +198,6 @@ class StyleBuddy:
             else:
                 # 询问用户意图
                 return self._ask_intent_clarification()
-        
-        user_input_lower = user_input.lower().strip()
         
         # 路由到不同功能 - 更精确的关键词匹配
         if any(kw in user_input_lower for kw in ["录入", "添加", "新买", "我有件", "买了件", "买了", "买了双"]) and \
@@ -227,7 +237,7 @@ class StyleBuddy:
         return self.wardrobe.get_wardrobe_summary()
     
     def _handle_recommendation(self, user_input, context):
-        """处理搭配推荐"""
+        """处理搭配推荐（考虑用户画像）"""
         # 获取天气
         weather = None
         if self.capabilities.get("weather_api"):
@@ -236,14 +246,26 @@ class StyleBuddy:
         # 获取场合
         occasion = self._extract_occasion(user_input)
         
+        # 获取用户画像
+        user_profile = self.user_profile.get_profile()
+        
         # 生成推荐
         recommendations = self.recommender.recommend(
             occasion=occasion,
             weather=weather,
-            count=3
+            count=3,
+            user_profile=user_profile
         )
         
-        return self._format_recommendations(recommendations, weather)
+        # 格式化输出
+        result = self._format_recommendations(recommendations, weather)
+        
+        # 如果没有用户画像，提示设置
+        if not user_profile:
+            result += "\n\n💡 **提示**：设置你的穿搭档案（身高/体重/体型），我能给你更精准的推荐！\n"
+            result += "👉 试试：\"我是小李，女，165cm，50kg\""
+        
+        return result
     
     def _handle_record_outfit(self, user_input, context):
         """记录今日穿搭"""
@@ -283,18 +305,46 @@ class StyleBuddy:
 有什么穿搭问题随时问我！"""
     
     def _extract_occasion(self, user_input):
-        """提取场合"""
+        """提取场合 - 增强版场景映射"""
+        user_input_lower = user_input.lower()
+        
+        # 详细场景映射表
         occasions = {
-            "约会": "约会", "见面": "约会", "date": "约会",
+            # 约会类
+            "约会": "约会", "见面": "约会", "date": "约会", "相亲": "约会", 
+            "看电影": "约会", "吃饭": "约会", "喝咖啡": "约会",
+            
+            # 职场类
             "上班": "职场", "工作": "职场", "职场": "职场", "面试": "职场",
-            "运动": "运动", "健身": "运动", "跑步": "运动",
+            "会议": "职场", "见客户": "职场", "商务": "职场", "正式": "职场",
+            
+            # 运动类
+            "运动": "运动", "健身": "运动", "跑步": "运动", "瑜伽": "运动",
+            "打球": "运动", "游泳": "运动", "户外": "运动", "爬山": "运动",
+            
+            # 休闲类（包含公园、散步等）
             "逛街": "休闲", "日常": "休闲", "周末": "休闲", "休闲": "休闲",
-            "聚会": "聚会", "party": "聚会", "派对": "聚会",
-            "旅行": "旅行", "旅游": "旅行", "度假": "旅行"
+            "公园": "休闲", "散步": "休闲", "遛狗": "休闲", "买菜": "休闲",
+            "在家": "休闲", "宅": "休闲", "休息": "休闲",
+            
+            # 聚会类
+            "聚会": "聚会", "party": "聚会", "派对": "聚会", "ktv": "聚会",
+            "唱歌": "聚会", "喝酒": "聚会", "朋友": "聚会", "生日": "聚会",
+            "庆祝": "聚会", "聚餐": "聚会",
+            
+            # 旅行类
+            "旅行": "旅行", "旅游": "旅行", "度假": "旅行", "出游": "旅行",
+            "踏青": "旅行", "春游": "旅行", "秋游": "旅行", "周边游": "旅行"
         }
+        
         for key, value in occasions.items():
-            if key in user_input:
+            if key in user_input_lower:
                 return value
+        
+        # 检查是否是疑问句（如"今天穿什么"没有特定场景）
+        if any(kw in user_input_lower for kw in ["今天", "明天", "现在", ""]):
+            return "日常"
+        
         return "日常"
     
     def _extract_item_name(self, user_input):
@@ -311,7 +361,7 @@ class StyleBuddy:
         return None
     
     def _format_recommendations(self, recommendations, weather):
-        """格式化推荐结果"""
+        """格式化推荐结果（包含个性化建议）"""
         if not recommendations:
             return "还没有足够的单品来推荐搭配，先录入一些衣服吧！"
         
@@ -329,6 +379,10 @@ class StyleBuddy:
             if items:
                 result += "搭配：" + " + ".join(items) + "\n"
             result += f"💡 {outfit.get('tips', '')}\n"
+            
+            # 显示个性化建议
+            if outfit.get('personalized_tips'):
+                result += f"\n{outfit['personalized_tips']}\n"
             
             # 收集图片路径
             img_path = outfit.get('image_path')
@@ -366,6 +420,47 @@ class StyleBuddy:
             result += f"   💡 {style.get('tips', '')}\n\n"
         
         return result
+
+    def _handle_user_profile(self, user_input: str) -> str:
+        """处理用户画像设置"""
+        # 检查是否是设置引导请求
+        if any(kw in user_input.lower() for kw in ["设置", "创建", "建立", "填写", "开始"]):
+            if not self.user_profile.has_profile():
+                return self._get_profile_setup_message()
+            else:
+                return "你已设置过档案，如需修改请直接告诉我新的信息！"
+        
+        # 解析用户输入的画像信息
+        profile_updates = self.user_profile.parse_profile_input(user_input)
+        
+        # 检查是否有有效更新
+        has_updates = any([
+            profile_updates.get('nickname'),
+            profile_updates.get('height'),
+            profile_updates.get('weight'),
+            profile_updates.get('body_type'),
+            profile_updates.get('style_preference'),
+            profile_updates.get('color_preference')
+        ])
+        
+        if not has_updates:
+            return "请提供更详细的信息，例如：\n\"我是小李，女，165cm，50kg，梨型身材，喜欢简约风格\""
+        
+        # 获取现有档案或创建新档案
+        existing_profile = self.user_profile.get_profile() or {}
+        existing_profile.update(profile_updates)
+        
+        # 保存档案
+        success = self.user_profile.save_profile(existing_profile)
+        
+        if success:
+            return f"✅ **档案已更新！**\n\n{self.user_profile.get_profile_summary()}\n\n💡 现在你可以：\n• 录入衣服，我会根据你的体型和喜好推荐\n• 说\"今天穿什么\"获取个性化搭配"
+        else:
+            return "❌ 保存失败，请重试"
+
+    def _get_profile_setup_message(self) -> str:
+        """获取用户画像设置引导"""
+        return self.user_profile.create_profile_wizard()
 
 
 def main():

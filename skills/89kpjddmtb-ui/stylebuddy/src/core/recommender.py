@@ -78,7 +78,7 @@ class OutfitRecommender:
             {"name": "海军蓝白", "colors": ["藏青", "白色", "条纹"], "style": "清爽", "occasions": ["休闲", "度假"]}
         ]
     
-    def recommend(self, occasion: str = "日常", weather: Dict = None, count: int = 3) -> List[Dict]:
+    def recommend(self, occasion: str = "日常", weather: Dict = None, count: int = 3, user_profile: Dict = None) -> List[Dict]:
         """
         生成搭配推荐
         
@@ -86,6 +86,7 @@ class OutfitRecommender:
             occasion: 场合
             weather: 天气信息
             count: 推荐数量
+            user_profile: 用户画像（可选）
         
         Returns:
             推荐方案列表
@@ -94,13 +95,75 @@ class OutfitRecommender:
         items = self.db.get_all_items()
         
         if not items:
-            # 没有单品，返回纯模板推荐
-            return self._get_template_recommendations(occasion, count)
+            # 没有单品，返回纯模板推荐（考虑用户画像）
+            return self._get_template_recommendations(occasion, count, user_profile)
         
-        # 有单品，基于模板+实际单品生成
-        return self._generate_personalized_recommendations(items, occasion, weather, count)
+        # 有单品，基于模板+实际单品生成（考虑用户画像）
+        return self._generate_personalized_recommendations(items, occasion, weather, count, user_profile)
     
-    def _get_template_recommendations(self, occasion: str, count: int) -> List[Dict]:
+    def _filter_templates_by_profile(self, templates: List[Dict], user_profile: Dict) -> List[Dict]:
+        """根据用户画像过滤模板"""
+        if not user_profile:
+            return templates
+        
+        filtered = []
+        for template in templates:
+            score = 0
+            
+            # 1. 风格匹配
+            if user_profile.get('style_preference'):
+                template_style = template.get('style', '')
+                if template_style in user_profile['style_preference']:
+                    score += 3
+            
+            # 2. 颜色偏好匹配
+            if user_profile.get('color_preference'):
+                template_colors = template.get('colors', {})
+                primary_colors = template_colors.get('primary', [])
+                for color in primary_colors:
+                    if color in user_profile['color_preference']:
+                        score += 2
+            
+            # 3. 避开颜色检查
+            if user_profile.get('avoid_colors'):
+                template_colors = template.get('colors', {})
+                all_colors = template_colors.get('primary', []) + template_colors.get('secondary', [])
+                has_avoid_color = any(c in user_profile['avoid_colors'] for c in all_colors)
+                if has_avoid_color:
+                    score -= 5  # 大幅减分
+            
+            # 4. 价格档次匹配
+            if user_profile.get('price_preference'):
+                template_price = template.get('price_level', '中端')
+                if template_price == user_profile['price_preference']:
+                    score += 1
+            
+            # 5. 体型适配
+            if user_profile.get('body_type') and template.get('body_type'):
+                body_type = user_profile['body_type']
+                suitable = template['body_type'].get('suitable', [])
+                avoid = template['body_type'].get('avoid', [])
+                
+                if body_type in suitable:
+                    score += 2
+                if body_type in avoid:
+                    score -= 3
+            
+            # 6. 性别匹配
+            if user_profile.get('gender'):
+                template_gender = template.get('gender', 'female')
+                if template_gender == user_profile['gender']:
+                    score += 1
+            
+            # 保存得分
+            template['_match_score'] = score
+            filtered.append(template)
+        
+        # 按得分排序
+        filtered.sort(key=lambda x: x.get('_match_score', 0), reverse=True)
+        return filtered
+    
+    def _get_template_recommendations(self, occasion: str, count: int, user_profile: Dict = None) -> List[Dict]:
         """纯模板推荐（无单品时）"""
         # 过滤适合该场合的模板
         matching = [t for t in self.templates if occasion in t.get('occasions', [])]
@@ -108,15 +171,25 @@ class OutfitRecommender:
         if not matching:
             matching = self.templates
         
-        # 随机选择
-        selected = random.sample(matching, min(count, len(matching)))
+        # 根据用户画像排序
+        if user_profile:
+            matching = self._filter_templates_by_profile(matching, user_profile)
+        
+        # 选择前 count 个
+        selected = matching[:count]
+        
+        # 如果没有足够的匹配模板，随机补充
+        if len(selected) < count:
+            remaining = [t for t in self.templates if t not in selected]
+            additional = random.sample(remaining, min(count - len(selected), len(remaining)))
+            selected.extend(additional)
         
         # 格式化输出 - 确保使用中文名称
         return [self._format_template(t) for t in selected]
     
     def _generate_personalized_recommendations(self, items: List[Dict], occasion: str, 
-                                                 weather: Dict, count: int) -> List[Dict]:
-        """个性化推荐"""
+                                                 weather: Dict, count: int, user_profile: Dict = None) -> List[Dict]:
+        """个性化推荐（考虑用户画像）"""
         recommendations = []
         
         # 按类别分组
@@ -136,18 +209,60 @@ class OutfitRecommender:
         if not matching_templates:
             matching_templates = self.templates
         
-        selected_templates = random.sample(matching_templates, min(count * 2, len(matching_templates)))
+        # 根据用户画像排序和过滤
+        if user_profile:
+            matching_templates = self._filter_templates_by_profile(matching_templates, user_profile)
+        
+        # 选择前 count*2 个进行匹配
+        selected_templates = matching_templates[:count * 2]
         
         for template in selected_templates[:count]:
             outfit = self._match_items_to_template(template, by_category, need_outer)
             if outfit:
+                # 添加个性化提示
+                if user_profile:
+                    outfit = self._add_personalized_tips(outfit, user_profile, weather)
                 recommendations.append(outfit)
         
-        # 如果匹配不够，补充纯模板
-        while len(recommendations) < count:
-            recommendations.append(random.choice(templates))
+        # 如果匹配不够，补充纯模板（也考虑用户画像）
+        if len(recommendations) < count:
+            template_recs = self._get_template_recommendations(occasion, count - len(recommendations), user_profile)
+            recommendations.extend(template_recs)
         
         return recommendations[:count]
+    
+    def _add_personalized_tips(self, outfit: Dict, user_profile: Dict, weather: Dict) -> Dict:
+        """根据用户画像添加个性化建议"""
+        tips = outfit.get('tips', '')
+        personalized_tips = []
+        
+        # 体型建议
+        if user_profile.get('body_type'):
+            body_type = user_profile['body_type']
+            if body_type == '苹果型':
+                personalized_tips.append(f"【{body_type}穿搭建议】选择宽松上衣+修身下装，突出腿部线条")
+            elif body_type == '梨型':
+                personalized_tips.append(f"【{body_type}穿搭建议】强调上半身，选择A字裙/阔腿裤平衡下半身")
+            elif body_type == 'H型':
+                personalized_tips.append(f"【{body_type}穿搭建议】创造腰线，选择收腰款式或腰带点缀")
+            elif body_type == '沙漏型':
+                personalized_tips.append(f"【{body_type}穿搭建议】突出腰部曲线，选择修身款式")
+        
+        # 颜色偏好提示
+        if user_profile.get('color_preference'):
+            colors = '、'.join(user_profile['color_preference'][:3])
+            personalized_tips.append(f"你偏爱的{colors}单品会让这套搭配更适合你")
+        
+        # 天气+体型综合建议
+        if weather and user_profile.get('height'):
+            temp = weather.get('temp', 20)
+            if temp < 15 and user_profile['height'] < 160:
+                personalized_tips.append("【小个子保暖技巧】选择高腰裤+短款外套，既保暖又显高")
+        
+        if personalized_tips:
+            outfit['personalized_tips'] = '\n'.join(personalized_tips)
+        
+        return outfit
     
     def _match_items_to_template(self, template: Dict, by_category: Dict, need_outer: bool) -> Optional[Dict]:
         """将模板与用户单品匹配"""

@@ -44,19 +44,33 @@ class ShoppingConsultant:
         }
     
     def _analyze_shopping_item(self, image_path: str) -> Dict:
-        """分析商品图片（外观+吊牌）"""
-        # 这里会调用 Vision API 分析
-        # 返回结构化数据
-        return {
-            "name": "待识别商品",
-            "category": "top",
-            "color": "待识别",
-            "material": "",
-            "price": "",
-            "brand": "",
-            "style": "",
-            "unique_features": []
-        }
+        """分析商品图片 - 使用 Vision 服务"""
+        # 导入 Vision 服务
+        from .vision import create_vision_service
+        import yaml
+        import os
+        
+        # 读取配置
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config.yaml')
+        config = {}
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+        
+        # 创建 Vision 服务并分析
+        vision_service = create_vision_service(config)
+        result = vision_service.analyze_image(image_path)
+        
+        # 补充购物相关字段
+        if 'unique_features' not in result:
+            result['unique_features'] = []
+        if 'price' not in result:
+            result['price'] = ''
+        
+        # 记录识别来源
+        result['analysis_source'] = result.get('source', 'unknown')
+        
+        return result
     
     def _compare_with_wardrobe(self, new_item: Dict) -> Dict:
         """对比新商品与现有衣橱"""

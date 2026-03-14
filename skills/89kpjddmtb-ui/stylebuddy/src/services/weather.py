@@ -13,12 +13,13 @@ class WeatherService:
     
     # 天气代码映射
     WEATHER_CODES = {
-        0: "晴天", 1: " mainly clear", 2: "多云", 3: "阴天",
+        0: "晴天", 1: "大部晴朗", 2: "多云", 3: "阴天",
         45: "雾", 48: "雾凇",
         51: "毛毛雨", 53: "中雨", 55: "大雨",
         61: "小雨", 63: "中雨", 65: "大雨",
         71: "小雪", 73: "中雪", 75: "大雪",
-        95: "雷雨", 96: "雷雨伴冰雹"
+        80: "阵雨", 81: "强阵雨", 82: "暴雨",
+        95: "雷雨", 96: "雷雨伴冰雹", 99: "雷暴伴冰雹"
     }
     
     def __init__(self, lat: float = 39.9, lon: float = 116.4):
@@ -57,6 +58,9 @@ class WeatherService:
         
         except Exception as e:
             return None
+    
+    # 别名方法，兼容旧代码
+    get_weather = get_current
     
     def get_forecast(self, days: int = 3) -> Optional[Dict]:
         """获取天气预报"""

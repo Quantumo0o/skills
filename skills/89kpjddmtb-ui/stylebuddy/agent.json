@@ -1,7 +1,7 @@
 {
   "id": "stylebuddy",
   "name": "StyleBuddy",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "AI 穿搭助手 - 智能衣橱管理与搭配推荐",
   "author": "OpenClaw",
   "entry": "main.py",
