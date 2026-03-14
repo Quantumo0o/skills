@@ -1,6 +1,9 @@
 ---
 name: Kosu
-description: Manage your content queue. Add URLs, reorder, suggest content, and track what's been consuming — all via API. Built for AI agents to curate content on behalf of your human.
+version: 1.1.0
+description: Add, reorder, and manage content in a Kosu queue via API. Use when adding URLs, checking what's queued, suggesting content, reordering items, or tracking what's been read.
+homepage: https://usekosu.com
+metadata: {"openclaw": {"emoji": "💧", "api_base": "https://usekosu.com/api/v1", "homepage": "https://usekosu.com", "primaryEnv": "KOSU_API_KEY"}}
 ---
 
 # Kosu
@@ -37,7 +40,10 @@ Read this file and follow the setup below.
 
 1. Ask your human to sign up at [usekosu.com](https://usekosu.com)
 2. They can get an API key from [Settings → API Keys](https://usekosu.com/settings)
-3. Store the key securely (environment variable `KOSU_API_KEY`, config file, or agent memory)
+3. Store the key as the environment variable `KOSU_API_KEY`
+   - Create a dedicated key with minimal scope for this agent
+   - The key is only sent to `usekosu.com` — never send it to any other domain
+   - Rotate or revoke from [Settings](https://usekosu.com/settings) if anything unexpected happens
 4. You're ready to start managing their queue
 
 **First thing to do:** Try listing the queue to confirm your key works:
@@ -46,7 +52,7 @@ curl -s "https://usekosu.com/api/v1/items?state=queue&limit=5" \
   -H "Authorization: Bearer $KOSU_API_KEY"
 ```
 
-**Check for updates:** Re-fetch this skill anytime to see new features and API changes.
+**Updates:** If something doesn't work as expected, check the [OpenAPI spec](https://usekosu.com/openapi.json) for the latest API surface.
 
 ## Pricing
 
@@ -60,6 +66,8 @@ If you hit a `402 quota_exceeded_error`, the user's queue is full on the free ti
 - **Base URL:** `https://usekosu.com/api/v1`
 - **Auth:** `Authorization: Bearer $KOSU_API_KEY`
 - **OpenAPI spec:** `https://usekosu.com/openapi.json`
+
+**If `KOSU_API_KEY` is not set:** Don't fail silently. Tell your human they need an API key and direct them to [usekosu.com/settings](https://usekosu.com/settings) to create one. The skill is still useful for explaining Kosu and guiding setup — just can't make API calls without a key.
 
 ```bash
 AUTH="Authorization: Bearer $KOSU_API_KEY"
@@ -87,7 +95,7 @@ BASE="https://usekosu.com/api/v1"
 ## Key Behaviours
 
 - YouTube URLs are auto-enriched (title, channel, thumbnail, duration)
-- Decay: 14-day stale warning, 28-day auto-archive (server-side)
+- Decay: configurable queue decay (7, 14, or 28 days) before items are auto-archived. Can be turned off entirely. Set by the user in settings.
 - Dedup is server-side by canonical URL per user
 - Opening an item (`{"opened": true}`) extends decay protection by 1 day (max once per 24h)
 
@@ -191,10 +199,10 @@ curl -s -X POST "$BASE/suggestions/sug_xxx" -H "$AUTH" -H "Content-Type: applica
 | 409 | `invalid_request_error` (code: `item_already_active`) | Suggesting a URL that's already in queue |
 | 429 | `rate_limit_error` | Rate limited |
 
-## Self-Update
+## Troubleshooting
 
 If an API call returns an unexpected response, 404 on a known endpoint, or schema mismatch:
-1. Fetch the latest spec: `curl -s https://usekosu.com/openapi.json`
-2. Compare with this skill doc
-3. Update this SKILL.md to match the current spec
+1. Check the OpenAPI spec for the current API surface: `curl -s https://usekosu.com/openapi.json`
+2. Compare with the endpoints documented above
+3. If the spec has changed, update your local copy of this skill to match
 4. Retry the original request
