@@ -3,9 +3,15 @@
   "slug": "dispute-letter",
   "displayName": "Dispute Letter",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773310665957,
-    "commit": "https://github.com/openclaw/skills/commit/9257692b036ae47b3fa399f3cadee6d4cd7a356b"
+    "version": "2.3.0",
+    "publishedAt": 1773447569510,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773310665957,
+      "commit": "https://github.com/openclaw/skills/commit/9257692b036ae47b3fa399f3cadee6d4cd7a356b"
+    }
+  ]
 }
