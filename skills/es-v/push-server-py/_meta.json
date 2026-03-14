@@ -1,0 +1,11 @@
+{
+  "owner": "es-v",
+  "slug": "push-server-py",
+  "displayName": "push-server-py",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773280382903,
+    "commit": null
+  },
+  "history": []
+}
