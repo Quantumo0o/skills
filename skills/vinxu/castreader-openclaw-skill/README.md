@@ -43,61 +43,55 @@ clawhub install castreader
 ### Extract text from a URL
 
 ```bash
-node scripts/extract.js https://en.wikipedia.org/wiki/Text-to-speech
+node scripts/read-url.js https://en.wikipedia.org/wiki/Text-to-speech 0
 ```
 
-Returns structured JSON:
+Returns structured JSON with article info and all paragraph texts (no audio generated):
 
 ```json
 {
-  "success": true,
   "title": "Text-to-speech - Wikipedia",
-  "paragraphs": ["Speech synthesis is the artificial production of human speech...", "..."],
   "language": "en",
-  "method": "visible-text-block",
   "totalParagraphs": 42,
-  "totalCharacters": 18500
+  "totalCharacters": 18500,
+  "paragraphs": ["Speech synthesis is the artificial production of human speech...", "..."]
 }
 ```
 
-### Generate audio from a URL
+### Generate full article audio
 
 ```bash
-node scripts/generate-audio.js https://medium.com/@user/some-article /tmp/my-article
+node scripts/read-url.js https://en.wikipedia.org/wiki/Text-to-speech all
 ```
 
-Extracts content, generates speech with Kokoro TTS, saves per-paragraph MP3 files + combined audio:
-
-```
-/tmp/my-article/
-├── 001.mp3          # paragraph 1
-├── 002.mp3          # paragraph 2
-├── ...
-└── full.mp3         # all paragraphs combined
-```
-
-Returns JSON manifest mapping each paragraph to its text + audio file:
+Extracts content + generates a single MP3 file for the entire article:
 
 ```json
 {
-  "title": "Article Title",
-  "paragraphs": [
-    { "index": 1, "text": "First paragraph text...", "audioFile": "/tmp/my-article/001.mp3" },
-    { "index": 2, "text": "Second paragraph text...", "audioFile": "/tmp/my-article/002.mp3" }
-  ],
-  "fullAudio": "/tmp/my-article/full.mp3"
+  "title": "Text-to-speech - Wikipedia",
+  "language": "en",
+  "totalParagraphs": 42,
+  "totalCharacters": 18500,
+  "audioFile": "/tmp/castreader-abc123/full.mp3",
+  "fileSizeBytes": 2450000
 }
 ```
 
-**Messaging platforms:** Send each paragraph as a separate audio message with `text` as caption, or send `full.mp3` as a single file.
+### Generate summary audio
 
-**Environment variables:**
+```bash
+echo "Your summary text here..." > /tmp/summary.txt
+node scripts/generate-text.js /tmp/summary.txt en
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `CASTREADER_VOICE` | `af_heart` | TTS voice selection |
-| `CASTREADER_SPEED` | `1.5` | Playback speed |
-| `CASTREADER_API_URL` | `http://api.castreader.ai:8123` | API endpoint |
+Generates audio from any text file:
+
+```json
+{
+  "audioFile": "/tmp/summary.mp3",
+  "fileSizeBytes": 284588
+}
+```
 
 ### Read aloud in the browser (with highlighting)
 
@@ -107,6 +101,38 @@ node scripts/read-aloud.js https://notion.so/my-page
 
 Opens the URL in your browser and triggers CastReader to read with real-time paragraph-level highlighting. Requires the [CastReader Chrome extension](https://chromewebstore.google.com/detail/castreader-tts-reader/foammmkhpbeladledijkdljlechlclpb) installed.
 
+## Messaging Platform Flow (Telegram/Slack/Discord)
+
+When a user sends a URL, CastReader follows a two-step flow:
+
+```
+User: https://example.com/article
+
+Bot: 📖 Article Title
+     🌐 English · 📝 12 paragraphs · 📊 2,450 chars
+
+     📋 Summary:
+     This article explores how AI is transforming industries...
+
+     Reply a number to choose:
+     1️⃣ Listen to full article (~2,450 chars, ~12 sec to generate)
+     2️⃣ Listen to summary only (~150 chars, ~1 sec to generate)
+
+User: 1
+
+Bot: 🎙️ Generating full audio (~2,450 chars, ~12 seconds)...
+Bot: [🔊 full.mp3]
+Bot: ✅ Done!
+```
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CASTREADER_VOICE` | `af_heart` | TTS voice selection |
+| `CASTREADER_SPEED` | `1.5` | Playback speed |
+| `CASTREADER_API_URL` | `http://api.castreader.ai:8123` | API endpoint |
+
 ## Comparison with Other TTS Skills
 
 | Feature | CastReader | kokoro-tts | openai-tts | mac-tts |
@@ -114,6 +140,7 @@ Opens the URL in your browser and triggers CastReader to read with real-time par
 | URL to audio | Yes | No | No | No |
 | Web content extraction | Yes (15+ platforms) | No | No | No |
 | Canvas/font-scrambled sites | Yes | No | No | No |
+| Full article or summary | Yes | N/A | N/A | N/A |
 | Plain text to speech | Yes | Yes | Yes | Yes |
 | Paragraph highlighting | Yes | No | No | No |
 | API key required | No | No | Yes | No |
@@ -127,7 +154,7 @@ Opens the URL in your browser and triggers CastReader to read with real-time par
    - Tier 2: Learned CSS selector rules from automated evaluation
    - Tier 3: Visible-Text-Block algorithm — a fusion of Readability.js, Boilerpipe, JusText, and CETD techniques
 2. **Generate** — Extracted text is sent to the Kokoro TTS API, which returns natural speech with word-level timestamps
-3. **Play** — Audio plays with synchronized paragraph highlighting that scrolls the page as you listen
+3. **Deliver** — Full article audio as a single MP3, or summary-only audio for quick listening
 
 ## Links
 

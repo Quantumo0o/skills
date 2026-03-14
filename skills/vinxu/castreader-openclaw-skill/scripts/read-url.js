@@ -1,48 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * read-url.js — Extract article from URL and generate audio for one paragraph
+ * read-url.js — Extract article from URL and generate audio
  *
  * Usage:
- *   node scripts/read-url.js <url> [paragraph-index]
+ *   node scripts/read-url.js <url> <mode>
  *
- * paragraph-index is 0-based for extract-only, 1-based for audio generation.
- *   - index=0: Extract only, no TTS. Returns article info + all paragraph texts.
- *   - index=1+: Extract (or reuse cache) + generate audio for that paragraph.
+ * Modes:
+ *   0    — Extract only, no TTS. Returns article info + paragraph texts.
+ *   all  — Extract + generate audio for ALL paragraphs (full article).
+ *   1-N  — Extract + generate audio for one paragraph (1-based).
  *
- * What it does:
- *   1. If extract cache exists for this URL, reuse it. Otherwise extract.
- *   2. If index=0, return extract info only (no audio generation).
- *   3. If index>=1, generate audio for the specified paragraph.
- *   4. Print JSON result to stdout.
+ * Output JSON (mode=0):
+ *   { title, language, totalParagraphs, totalCharacters, paragraphs[], current: null }
  *
- * Output JSON (index=0, extract-only):
- *   {
- *     "title": "Article Title",
- *     "language": "en",
- *     "totalParagraphs": 12,
- *     "totalCharacters": 2450,
- *     "paragraphs": ["First paragraph...", "Second...", ...],
- *     "current": null,
- *     "hasNext": true
- *   }
+ * Output JSON (mode=all):
+ *   { title, language, totalParagraphs, totalCharacters, audioFile, fileSizeBytes }
  *
- * Output JSON (index>=1, with audio):
- *   {
- *     "title": "Article Title",
- *     "language": "en",
- *     "totalParagraphs": 26,
- *     "totalCharacters": 3565,
- *     "current": {
- *       "index": 1,
- *       "text": "First paragraph text...",
- *       "audioFile": "/tmp/castreader-<hash>/001.mp3",
- *       "fileSizeBytes": 12345
- *     },
- *     "hasNext": true
- *   }
- *
- * Call with index=0 first to get info, then index=1 on "Read Full", etc.
+ * Output JSON (mode=1+):
+ *   { title, language, totalParagraphs, totalCharacters, current: { index, text, audioFile, fileSizeBytes }, hasNext }
  */
 
 const fs = require('fs');
@@ -134,10 +110,10 @@ async function generateTTS(text, language) {
 
 async function main() {
   const url = process.argv[2];
-  const paraIndex = parseInt(process.argv[3] || '1', 10);
+  const modeArg = process.argv[3] || '1';
 
   if (!url) {
-    console.error('Usage: node scripts/read-url.js <url> [paragraph-index]');
+    console.error('Usage: node scripts/read-url.js <url> <0|all|paragraph-index>');
     process.exit(1);
   }
 
@@ -169,8 +145,8 @@ async function main() {
 
   const total = extract.paragraphs.length;
 
-  // Index 0 = extract-only mode (no TTS generation)
-  if (paraIndex === 0) {
+  // Mode: 0 = extract-only
+  if (modeArg === '0') {
     console.log(JSON.stringify({
       title: extract.title,
       language: extract.language,
@@ -178,17 +154,38 @@ async function main() {
       totalCharacters: extract.totalCharacters,
       paragraphs: extract.paragraphs.map(p => p.trim()),
       current: null,
-      hasNext: total > 0,
     }));
     return;
   }
 
-  if (paraIndex < 1 || paraIndex > total) {
-    console.error(`Index ${paraIndex} out of range (1-${total})`);
+  // Mode: all = generate audio for entire article
+  if (modeArg === 'all') {
+    const fullText = extract.paragraphs.join('\n\n');
+    const audioFile = path.join(outputDir, 'full.mp3');
+
+    process.stderr.write(`Generating audio for ${total} paragraphs, ${extract.totalCharacters} chars...\n`);
+    const audio = await generateTTS(fullText, extract.language);
+    fs.writeFileSync(audioFile, audio);
+
+    console.log(JSON.stringify({
+      title: extract.title,
+      language: extract.language,
+      totalParagraphs: total,
+      totalCharacters: extract.totalCharacters,
+      audioFile: path.resolve(audioFile),
+      fileSizeBytes: audio.length,
+    }));
+    return;
+  }
+
+  // Mode: paragraph index (1-based)
+  const paraIndex = parseInt(modeArg, 10);
+
+  if (isNaN(paraIndex) || paraIndex < 1 || paraIndex > total) {
+    console.error(`Index ${modeArg} out of range (1-${total})`);
     process.exit(1);
   }
 
-  // Step 2: Generate audio for this one paragraph
   const text = extract.paragraphs[paraIndex - 1];
   const paddedIndex = String(paraIndex).padStart(3, '0');
   const audioFile = path.join(outputDir, `${paddedIndex}.mp3`);
@@ -196,7 +193,6 @@ async function main() {
   const audio = await generateTTS(text, extract.language);
   fs.writeFileSync(audioFile, audio);
 
-  // Step 3: Output
   console.log(JSON.stringify({
     title: extract.title,
     language: extract.language,

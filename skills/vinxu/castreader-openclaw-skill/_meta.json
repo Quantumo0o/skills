@@ -3,11 +3,16 @@
   "slug": "castreader-openclaw-skill",
   "displayName": "Castreader Openclaw Skill",
   "latest": {
-    "version": "1.7.3",
-    "publishedAt": 1773369054279,
-    "commit": "https://github.com/openclaw/skills/commit/8ea29c0eb4c9aca2cad2a91af61f6c6daae036c8"
+    "version": "2.1.1",
+    "publishedAt": 1773378401436,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.3",
+      "publishedAt": 1773369054279,
+      "commit": "https://github.com/openclaw/skills/commit/8ea29c0eb4c9aca2cad2a91af61f6c6daae036c8"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1773367218167,
