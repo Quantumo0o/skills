@@ -1,0 +1,11 @@
+{
+  "owner": "crazypeace",
+  "slug": "telethon-session",
+  "displayName": "生成Telethon的session文件 可重复使用 避免登录过程中的交互 | Generate a session file for Telethon that can be reused to avoid interaction during login",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773329678366,
+    "commit": null
+  },
+  "history": []
+}
