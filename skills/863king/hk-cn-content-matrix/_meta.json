@@ -3,9 +3,15 @@
   "slug": "hk-cn-content-matrix",
   "displayName": "Hk Cn Content Matrix",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773408991964,
-    "commit": "https://github.com/openclaw/skills/commit/0660db237cc5d0a743ff1685379e3fbaaf407ff9"
+    "version": "1.0.3",
+    "publishedAt": 1773409225968,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773408991964,
+      "commit": "https://github.com/openclaw/skills/commit/0660db237cc5d0a743ff1685379e3fbaaf407ff9"
+    }
+  ]
 }
