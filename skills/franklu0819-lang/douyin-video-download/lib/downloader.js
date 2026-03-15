@@ -1,28 +1,10 @@
 /**
- * 视频下载模块 (v2.0 - 独立版)
- * 支持多种下载方式：yt-dlp、Playwright、直接下载
+ * 视频下载模块 (v2.7 - 安全加固版)
  */
 
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-
-const execAsync = promisify(exec);
-
-const USER_AGENTS = [
-  'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
-  'Mozilla/5.0 (Linux; Android 13; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-];
-
-/**
- * 获取随机 User-Agent
- */
-function getRandomUserAgent() {
-  return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-}
+const { spawn } = require('child_process');
 
 /**
  * 确保目录存在
@@ -31,171 +13,6 @@ function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
   }
-}
-
-/**
- * 检查 yt-dlp 是否安装
- */
-async function checkYtDlp() {
-  try {
-    await execAsync('yt-dlp --version', { timeout: 5000 });
-    return true;
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
- * 使用 yt-dlp 下载视频
- */
-async function downloadWithYtDlp(videoUrl, outputDir, videoId, options = {}) {
-  ensureDir(outputDir);
-  const outputPath = path.join(outputDir, options.filename || `${videoId}.mp4`);
-  
-  // 如果文件已存在且足够大，直接返回
-  if (fs.existsSync(outputPath)) {
-    const stats = fs.statSync(outputPath);
-    if (stats.size > 1000) { // 大于 1KB 认为是有效文件
-      console.log(`  📁 视频已存在: ${outputPath}`);
-      return { success: true, filePath: outputPath, size: stats.size };
-    }
-  }
-  
-  try {
-    console.log(`  🔄 使用 yt-dlp 下载视频...`);
-    
-    // 构建 yt-dlp 命令
-    let command = `yt-dlp -o "${outputPath}" --no-warnings --newline`;
-    
-    // 添加代理（如果配置）
-    if (options.proxy) {
-      command += ` --proxy ${options.proxy}`;
-    }
-    
-    // 添加 cookies（如果配置）
-    if (options.cookies) {
-      command += ` --cookies ${options.cookies}`;
-    }
-    
-    command += ` "${videoUrl}"`;
-    
-    const { stdout } = await execAsync(command, { 
-      timeout: options.timeout || 120000,
-      maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-    });
-    
-    if (fs.existsSync(outputPath)) {
-      const stats = fs.statSync(outputPath);
-      console.log(`  ✅ 下载完成: ${formatBytes(stats.size)}`);
-      return { success: true, filePath: outputPath, size: stats.size };
-    } else {
-      return { success: false, error: '文件未生成' };
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * 直接下载（备用方案）
- */
-async function downloadDirect(videoUrl, outputDir, videoId) {
-  ensureDir(outputDir);
-  
-  const fileName = `${videoId}.mp4`;
-  const filePath = path.join(outputDir, fileName);
-  
-  // 如果文件已存在，直接返回
-  if (fs.existsSync(filePath)) {
-    const stats = fs.statSync(filePath);
-    if (stats.size > 1000) {
-      console.log(`  📁 视频已存在: ${filePath}`);
-      return { success: true, filePath, size: stats.size };
-    }
-  }
-  
-  return new Promise((resolve, reject) => {
-    const options = {
-      headers: {
-        'User-Agent': getRandomUserAgent(),
-        'Accept': '*/*',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-        'Referer': 'https://www.douyin.com/',
-        'Connection': 'keep-alive'
-      },
-      timeout: 60000
-    };
-    
-    const req = https.get(videoUrl, options, (res) => {
-      // 处理重定向
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        console.log(`  🔄 跟随重定向...`);
-        downloadDirect(res.headers.location, outputDir, videoId)
-          .then(resolve)
-          .catch(reject);
-        return;
-      }
-      
-      if (res.statusCode !== 200) {
-        reject(new Error(`下载失败: HTTP ${res.statusCode}`));
-        return;
-      }
-      
-      const fileStream = fs.createWriteStream(filePath);
-      let downloadedBytes = 0;
-      let totalBytes = parseInt(res.headers['content-length'], 10) || 0;
-      
-      res.on('data', (chunk) => {
-        downloadedBytes += chunk.length;
-        if (totalBytes > 0) {
-          const percent = Math.round((downloadedBytes / totalBytes) * 100);
-          process.stdout.write(`  ⬇️  下载进度: ${percent}% (${formatBytes(downloadedBytes)})\r`);
-        }
-      });
-      
-      res.pipe(fileStream);
-      
-      fileStream.on('finish', () => {
-        fileStream.close();
-        console.log(`\n  ✅ 下载完成: ${filePath}`);
-        resolve({ success: true, filePath, size: downloadedBytes });
-      });
-      
-      fileStream.on('error', (err) => {
-        fs.unlink(filePath, () => {});
-        reject(new Error(`文件写入失败: ${err.message}`));
-      });
-    });
-    
-    req.on('error', (err) => {
-      reject(new Error(`请求失败: ${err.message}`));
-    });
-    
-    req.on('timeout', () => {
-      req.destroy();
-      reject(new Error('下载超时'));
-    });
-  });
-}
-
-/**
- * 主下载函数
- */
-async function downloadVideo(videoUrl, outputDir, videoId, options = {}) {
-  // 优先使用 yt-dlp
-  const hasYtDlp = await checkYtDlp();
-  if (hasYtDlp) {
-    const result = await downloadWithYtDlp(videoUrl, outputDir, videoId, options);
-    if (result.success) {
-      return result;
-    }
-    console.log(`  ⚠️ yt-dlp 下载失败，尝试直接下载...`);
-  } else {
-    console.log(`  ⚠️ 未安装 yt-dlp，使用直接下载（推荐安装 yt-dlp）`);
-  }
-  
-  // 降级到直接下载
-  return downloadDirect(videoUrl, outputDir, videoId);
 }
 
 /**
@@ -209,11 +26,131 @@ function formatBytes(bytes) {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 }
 
+/**
+ * 安全执行外部命令 (使用 spawn 代替 exec，防止命令注入)
+ */
+function runCommand(command, args, timeout = 60000) {
+  return new Promise((resolve, reject) => {
+    const proc = spawn(command, args);
+    let errorOutput = '';
+
+    const timer = setTimeout(() => {
+      proc.kill();
+      reject(new Error(`${command} 执行超时 (${timeout}ms)`));
+    }, timeout);
+
+    proc.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`${command} 退出码 ${code}: ${errorOutput}`));
+      }
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
+/**
+ * 使用系统 curl 下载 (安全重构)
+ */
+async function downloadWithCurl(url, filePath) {
+  const ua = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1';
+  
+  // 使用 spawn 参数数组，自动处理转义，彻底杜绝注入隐患
+  const args = [
+    '-L',                // 跟踪重定向
+    '-A', ua,            // 设置 UA
+    '-s',                // 静默
+    '-g',                // 禁用 URL 通配符
+    url,                 // 目标 URL
+    '-o', filePath       // 输出路径
+  ];
+
+  try {
+    await runCommand('curl', args);
+    
+    if (fs.existsSync(filePath)) {
+      const stats = fs.statSync(filePath);
+      if (stats.size < 10000) { // 检查文件头
+          const fd = fs.openSync(filePath, 'r');
+          const buffer = Buffer.alloc(10);
+          fs.readSync(fd, buffer, 0, 10, 0);
+          const firstBytes = buffer.toString('utf8');
+          fs.closeSync(fd);
+          
+          if (firstBytes.includes('<html') || firstBytes.includes('<!DOC')) {
+            fs.unlinkSync(filePath);
+            throw new Error('抓取到了网页内容（可能是反爬虫拦截）');
+          }
+      }
+      return { success: true, size: stats.size };
+    }
+    throw new Error('下载未生成文件');
+  } catch (error) {
+    if (fs.existsSync(filePath)) try { fs.unlinkSync(filePath); } catch(e) {}
+    throw error;
+  }
+}
+
+/**
+ * 主下载入口
+ */
+async function downloadVideo(videoUrl, outputDir, videoId, options = {}) {
+  ensureDir(outputDir);
+  const filename = options.filename || `${videoId}.mp4`;
+  const filePath = path.join(outputDir, filename);
+  
+  console.log(`  🚀 正在尝试无水印解析下载...`);
+  
+  // 核心去水印链接构造 (严格白名单过滤)
+  let downloadUrl = videoUrl;
+  if (videoId && !videoUrl.includes('video_id=')) {
+      // 仅允许字母、数字和下划线的 video_id，防止非法构造
+      if (/^[a-z0-9A-Z_]+$/.test(videoId)) {
+          downloadUrl = `https://aweme.snssdk.com/aweme/v1/play/?video_id=${videoId}&ratio=1080p&line=0`;
+      }
+  }
+  
+  // 确保是 play 而不是 playwm
+  downloadUrl = downloadUrl.replace('playwm', 'play');
+
+  try {
+    const result = await downloadWithCurl(downloadUrl, filePath);
+    if (result.success) {
+      console.log(`  ✅ 下载完成: ${filename} (${formatBytes(result.size)})`);
+      return { success: true, filePath, size: result.size };
+    }
+  } catch (err) {
+    console.log(`  ⚠️ Curl 下载失败: ${err.message}`);
+    
+    // 备选方案: 安全运行 yt-dlp
+    try {
+      console.log(`  🔄 尝试 yt-dlp 备选通道...`);
+      const ytArgs = ['-o', filePath, '--user-agent', 'Mozilla/5.0', downloadUrl];
+      await runCommand('yt-dlp', ytArgs);
+      
+      if (fs.existsSync(filePath) && fs.statSync(filePath).size > 50000) {
+        return { success: true, filePath, size: fs.statSync(filePath).size };
+      }
+    } catch (ytErr) {
+      console.log(`  ❌ yt-dlp 也失败了`);
+    }
+  }
+
+  throw new Error('下载失败：所有路径均无法获取有效的视频流');
+}
+
 module.exports = {
   downloadVideo,
-  downloadWithYtDlp,
-  downloadDirect,
-  checkYtDlp,
-  formatBytes,
-  ensureDir
+  ensureDir,
+  formatBytes
 };

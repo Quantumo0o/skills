@@ -3,9 +3,15 @@
   "slug": "douyin-video-download",
   "displayName": "Douyin Video Download",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773362594312,
-    "commit": "https://github.com/openclaw/skills/commit/ea0e115fd397a6c66eee4c9090356938b85e4bd4"
+    "version": "1.1.1",
+    "publishedAt": 1773581928224,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773362594312,
+      "commit": "https://github.com/openclaw/skills/commit/ea0e115fd397a6c66eee4c9090356938b85e4bd4"
+    }
+  ]
 }

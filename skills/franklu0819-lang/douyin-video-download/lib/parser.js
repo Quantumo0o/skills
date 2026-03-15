@@ -50,19 +50,15 @@ async function resolveShortUrl(shortUrl) {
  * 从完整 URL 中提取视频 ID
  */
 function extractVideoId(url) {
-  // 匹配 /video/123456 格式
   const match = url.match(/\/video\/(\d+)/);
   if (match) return match[1];
   
-  // 匹配其他格式
   const paths = url.split('/');
   for (const path of paths) {
     if (/^\d{10,}$/.test(path)) {
       return path;
     }
   }
-  
-  // 如果没有找到，使用时间戳
   return Date.now().toString();
 }
 
@@ -79,64 +75,52 @@ async function fetchVideoInfo(url) {
       args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
   } catch (error) {
-    if (error.message.includes('executable doesn\'t exist')) {
-      return {
-        success: false,
-        error: 'Playwright 浏览器未安装。请运行: npx playwright install chromium'
-      };
-    }
-    return {
-      success: false,
-      error: error.message
-    };
+    return { success: false, error: error.message };
   }
   
   const context = await browser.newContext({
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1'
   });
   
   const page = await context.newPage();
   
   try {
-    // 尝试拦截网络请求
-    let interceptedUrl = null;
-    
-    page.on('response', async (response) => {
-      const resUrl = response.url();
-      // 检测视频文件
-      if (resUrl.includes('.mp4') || resUrl.includes('video')) {
-        interceptedUrl = resUrl;
-      }
-    });
-    
-    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
-    await page.waitForTimeout(3000);
-    
-    // 获取页面源码并尝试用正则提取 video_id (针对新版抖音页面)
-    const content = await page.content();
     let videoId = null;
     
-    // 方案 1: 从内容中正则表达式提取 video_id (playAddr 或 vid)
-    const vidMatch = content.match(/video_id=([a-z0-9A-Z_]+)/i) || 
-                     content.match(/\"vid\":\"([a-z0-9A-Z_]+)\"/i) ||
-                     content.match(/vid=([a-z0-9A-Z_]+)/i);
-    if (vidMatch) {
-      videoId = vidMatch[1].replace(/\"/g, '');
+    // 关键优化：优先通过拦截 XHR/Fetch 请求来获取真正的 video_id 或 play_addr
+    page.on('response', async (response) => {
+      const resUrl = response.url();
+      if (resUrl.includes('aweme/v1/web/aweme/detail')) {
+          try {
+              const json = await response.json();
+              if (json?.aweme_detail?.video?.play_addr?.uri) {
+                  videoId = json.aweme_detail.video.play_addr.uri;
+              }
+          } catch (e) {}
+      }
+    });
+
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+    
+    // 方案 2: 从内容中正则表达式提取 video_id
+    const content = await page.content();
+    if (!videoId) {
+        const vidMatch = content.match(/\"vid\":\"([a-z0-9A-Z_]+)\"/i) ||
+                         content.match(/video_id=([a-z0-9A-Z_]+)/i) || 
+                         content.match(/vid=([a-z0-9A-Z_]+)/i) ||
+                         content.match(/\"uri\":\"([a-z0-9A-Z_]+)\"/i);
+        if (vidMatch) videoId = vidMatch[1];
     }
     
-    // 方案 2: 如果正则没拿到，尝试从 URL 路径提取 (如果是完整视频页)
+    // 方案 3: 路径提取
     if (!videoId) {
       const urlMatch = url.match(/\/video\/(\d+)/);
       if (urlMatch) videoId = urlMatch[1];
     }
 
-    // 构建高清下载链接 (aweme/v1/play 接口通常不需要很复杂的签名即可获取 720p/1080p)
-    let finalDownloadUrl = interceptedUrl;
-    if (videoId) {
-      finalDownloadUrl = `https://aweme.snssdk.com/aweme/v1/play/?video_id=${videoId}&ratio=1080p&line=0`;
-    }
+    // 统一构造无水印 1080P 下载链接
+    let finalDownloadUrl = videoId ? `https://aweme.snssdk.com/aweme/v1/play/?video_id=${videoId}&ratio=1080p&line=0` : null;
     
-    // 提取页面信息
     const videoInfo = await page.evaluate(() => {
       return {
         title: document.title,
@@ -147,17 +131,14 @@ async function fetchVideoInfo(url) {
     await browser.close();
     
     return {
-      success: true,
+      success: !!finalDownloadUrl,
       downloadUrl: finalDownloadUrl,
       videoId,
       info: videoInfo
     };
   } catch (error) {
     await browser.close();
-    return {
-      success: false,
-      error: error.message
-    };
+    return { success: false, error: error.message };
   }
 }
 
@@ -166,25 +147,20 @@ async function fetchVideoInfo(url) {
  */
 async function parseDouyinUrl(inputUrl) {
   try {
-    // 如果是短链接，先解析
     let targetUrl = inputUrl;
     if (inputUrl.includes('v.douyin.com')) {
       targetUrl = await resolveShortUrl(inputUrl);
     }
     
-    // 提取视频 ID
-    const videoId = extractVideoId(targetUrl);
-    
-    // 获取视频信息
     const result = await fetchVideoInfo(targetUrl);
     
-    // 提取并重写目标 URL 以抓取 1080P
+    // 最终兜底：强制转换任何链接为无水印版
     if (result.downloadUrl) {
       result.downloadUrl = result.downloadUrl.replace('playwm', 'play');
     }
 
     return {
-      videoId,
+      videoId: result.videoId || extractVideoId(targetUrl),
       originalUrl: inputUrl,
       targetUrl,
       ...result
