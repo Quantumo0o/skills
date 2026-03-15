@@ -4,8 +4,8 @@ description: Oscar prediction market intelligence from waitingformacguffin.com. 
 allowed-tools: Bash(curl *), Read
 homepage: https://github.com/sonderspot/waitingformacguffin-public
 metadata:
-  version: "1.2.0"
-  last_updated: "2026-02-26"
+  version: "1.3.0"
+  last_updated: "2026-03-13"
   clawdbot:
     requires:
       bins:
@@ -77,10 +77,25 @@ curl -s "https://waitingformacguffin.com/api/oscar/brief?hours=24&sensitivity=me
   "market_snapshot": {
     "frontrunners": { "best-picture": { "name": "...", "price": 45 } },
     "whale_trade_count_24h": 7,
-    "overall_sentiment": "quiet | active | volatile"
+    "overall_sentiment": "quiet | active | volatile",
+    "whale_leaderboard": [
+      {
+        "rank": 1,
+        "nominee": "Jessie Buckley",
+        "category": "best-actress",
+        "categoryName": "Best Actress",
+        "totalVolumeUsd": 4850.00,
+        "tradeCount": 1,
+        "yesVolumeUsd": 4850.00,
+        "noVolumeUsd": 0,
+        "sentiment": "bullish | bearish | mixed"
+      }
+    ]
   }
 }
 ```
+
+The `whale_leaderboard` ranks nominees by total whale trade volume within the lookback window. Use it to answer questions like "who has the most whale activity?" or "where is the smart money going?". To get all 19 categories, pass `categories=` with all slugs (see Available Categories below).
 
 ### How to Present Results
 
@@ -89,6 +104,7 @@ curl -s "https://waitingformacguffin.com/api/oscar/brief?hours=24&sensitivity=me
 - Show signals grouped by severity (major first)
 - If `signals` is empty, say "Markets are quiet -- no significant moves"
 - Use severity icons: major = !!!, significant = !!, notable = !, info = i
+- When asked about whale activity rankings, use `whale_leaderboard` -- present as a ranked list with nominee, category, volume, trade count, and sentiment
 
 ### Example
 
