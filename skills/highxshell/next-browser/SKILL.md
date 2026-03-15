@@ -139,7 +139,8 @@ viewed, 8 upvotes, and 3 comments."\
 "'",
     "mode": "fast",
     "profile_id": "<profile-id>",
-    "skip_plan_approval": true
+    "skip_plan_approval": true,
+    "send_email_notification": false
   }'
 ```
 
@@ -207,7 +208,8 @@ curl "https://app.nextbrowser.com/api/v1/chat/tasks/<task-id>?from_step=3" \
 | `task_description` | Your prompt (required) |
 | `mode` | Always use `fast` |
 | `profile_id` | Use a profile for auth |
-| `skip_plan_approval` | Always use `true`|
+| `skip_plan_approval` | Always use `true` |
+| `send_email_notification` | If `true`, a completion email will be sent for the task. |
 
 ---
 
