@@ -3,11 +3,16 @@
   "slug": "openweather-cli",
   "displayName": "OpenWeatherMap CLI",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773557192058,
-    "commit": "https://github.com/openclaw/skills/commit/3452dc2da28234202fc9c83407162576cdcb4af7"
+    "version": "1.0.8",
+    "publishedAt": 1773560188944,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773557192058,
+      "commit": "https://github.com/openclaw/skills/commit/3452dc2da28234202fc9c83407162576cdcb4af7"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773556418685,
