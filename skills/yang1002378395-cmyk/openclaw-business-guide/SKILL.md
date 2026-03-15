@@ -1,6 +1,6 @@
 ---
 name: openclaw-business-guide
-version: 1.0.17
+version: 1.0.21
 description: OpenClaw 商业变现指南 - 教你用 OpenClaw 赚钱。适合：自由职业者、创业者、副业者。
 metadata:
   openclaw:
