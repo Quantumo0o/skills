@@ -1,7 +1,7 @@
 ---
 name: geocode
-description: Convert place names or addresses to latitude/longitude, or coordinates to a human-readable place, via Nominatim (OpenStreetMap) using curl. Use for forward geocoding, reverse geocoding, location disambiguation, and JSON geocoding lookups. Triggers on geocode, reverse geocode, lat/lng, latitude/longitude, address to coordinates, coordinates to address, 地址转经纬度, 经纬度转地址, 坐标查地点.
-homepage: https://nominatim.org/release-docs/develop/api/Overview/
+description: Convert place names or addresses to latitude/longitude, or coordinates to a human-readable place, using curl-based geocoding endpoints. Use for forward geocoding, reverse geocoding, location disambiguation, and JSON geocoding lookups. Triggers on geocode, reverse geocode, lat/lng, latitude/longitude, address to coordinates, coordinates to address, 地址转经纬度, 经纬度转地址, 坐标查地点.
+homepage: http://geocode.com.cn/
 metadata: { "openclaw": { "emoji": "🧭", "requires": { "bins": ["curl"] } } }
 ---
 
@@ -9,7 +9,7 @@ metadata: { "openclaw": { "emoji": "🧭", "requires": { "bins": ["curl"] } } }
 
 Resolve place names and addresses to coordinates, or coordinates back to a place name.
 
-Provider: public Nominatim (OpenStreetMap) API via `curl`.
+Provider: `http://geocode.com.cn` via `curl`.
 
 ## Quick Start
 
@@ -45,12 +45,12 @@ Provider: public Nominatim (OpenStreetMap) API via `curl`.
 
 ## Config
 
-- `GEOCODE_BASE_URL` optionally points at another Nominatim-compatible endpoint for testing or self-hosting.
+- `GEOCODE_BASE_URL` optionally points at another endpoint for testing or self-hosting.
 - `GEOCODE_USER_AGENT` overrides the default identifying `User-Agent`.
 
 ## Public API Limits
 
-- Use Nominatim only for low-frequency, interactive lookups.
+- Use public endpoints only for low-frequency, interactive lookups.
 - Send an identifying `User-Agent`; do not use default curl UA for repeated calls.
 - Do not loop, bulk geocode, or aggressively retry against the public endpoint.
 - If the task needs heavy usage, switch to another provider or a self-hosted service.
@@ -91,11 +91,10 @@ curl --get 'https://nominatim.openstreetmap.org/search' \
 ### Raw Reverse Geocode
 
 ```bash
-curl --get 'https://nominatim.openstreetmap.org/reverse' \
+curl --get 'http://geocode.com.cn/' \
   -A 'openclaw-geocode-skill/1.0 (interactive use)' \
   --data 'lat=37.819929' \
   --data 'lon=-122.478255' \
-  --data 'format=jsonv2' \
   --data-urlencode 'accept-language=en'
 ```
 

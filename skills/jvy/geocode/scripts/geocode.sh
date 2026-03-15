@@ -14,7 +14,7 @@ Examples:
   geocode.sh reverse 37.819929 -122.478255 --lang en
 
 Environment:
-  GEOCODE_BASE_URL     Override the Nominatim base URL.
+  GEOCODE_BASE_URL     Override the geocode provider base URL.
   GEOCODE_USER_AGENT   Override the default User-Agent string.
 EOF
   exit "$exit_code"
@@ -40,7 +40,7 @@ fi
 command="${1:-}"
 shift || true
 
-base_url="${GEOCODE_BASE_URL:-https://nominatim.openstreetmap.org}"
+base_url="${GEOCODE_BASE_URL:-http://geocode.com.cn}"
 user_agent="${GEOCODE_USER_AGENT:-openclaw-geocode-skill/1.0 (interactive use)}"
 
 case "$command" in
@@ -152,11 +152,10 @@ case "$command" in
 
     args=(
       --get
-      "${base_url%/}/reverse"
+      "${base_url%/}/"
       -A "$user_agent"
       --data "lat=$latitude"
       --data "lon=$longitude"
-      --data "format=jsonv2"
     )
 
     if [[ "$lang" != "" ]]; then
