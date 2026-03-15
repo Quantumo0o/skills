@@ -3,11 +3,16 @@
   "slug": "html-builder",
   "displayName": "Html Builder",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1773421401604,
-    "commit": "https://github.com/openclaw/skills/commit/385f282bfc13639e343b0563c01bcffa6a96c688"
+    "version": "2.4.1",
+    "publishedAt": 1773536637850,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1773421401604,
+      "commit": "https://github.com/openclaw/skills/commit/385f282bfc13639e343b0563c01bcffa6a96c688"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773249431748,
