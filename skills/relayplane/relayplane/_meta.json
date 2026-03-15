@@ -1,13 +1,18 @@
 {
   "owner": "relayplane",
   "slug": "relayplane",
-  "displayName": "Relayplane",
+  "displayName": "RelayPlane",
   "latest": {
-    "version": "3.4.0",
-    "publishedAt": 1771233188919,
-    "commit": "https://github.com/openclaw/skills/commit/88261406030aae877885af2014d4948c951e4eb0"
+    "version": "4.1.0",
+    "publishedAt": 1773361732205,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.4.0",
+      "publishedAt": 1771233188919,
+      "commit": "https://github.com/openclaw/skills/commit/88261406030aae877885af2014d4948c951e4eb0"
+    },
     {
       "version": "3.1.0",
       "publishedAt": 1771143430907,
