@@ -3,11 +3,16 @@
   "slug": "plume-image",
   "displayName": "PlumeImage",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773586200053,
-    "commit": "https://github.com/openclaw/skills/commit/3ac70751452b112937ef5e9c1021e75ad39cde15"
+    "version": "1.0.9",
+    "publishedAt": 1773648207309,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773586200053,
+      "commit": "https://github.com/openclaw/skills/commit/3ac70751452b112937ef5e9c1021e75ad39cde15"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773485198971,

@@ -96,7 +96,7 @@ def is_video_file(file_path: str) -> bool:
 
 
 def get_video_suffix(url: str) -> str | None:
-    """Extract video extension from URL"""
+    """Extract video suffix from URL"""
     url_lower = url.lower()
     for ext in (".mp4", ".mov", ".webm", ".avi"):
         if ext in url_lower:

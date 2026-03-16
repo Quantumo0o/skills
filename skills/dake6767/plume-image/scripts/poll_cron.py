@@ -204,6 +204,18 @@ def _extract_result_url(task_result: dict) -> tuple[str | None, str]:
     return url, "image"
 
 
+def _extract_video_meta(task_result: dict) -> tuple[str | None, int]:
+    """Extract (posterUrl, duration_seconds) from video task result"""
+    if not isinstance(task_result, dict):
+        return None, 0
+    parts = task_result.get("parts")
+    if isinstance(parts, list) and parts:
+        first = parts[0]
+        if isinstance(first, dict):
+            return first.get("posterUrl"), int(first.get("duration") or 0)
+    return None, 0
+
+
 def _handle_completed(task_id: str, task: dict, channel: str, target: str):
     """Handle completed task (success/failure)"""
     status = task.get("status", 0)
@@ -255,6 +267,17 @@ def _handle_completed(task_id: str, task: dict, channel: str, target: str):
                     log(f"Failed to write last_result: {e}")
 
                 label = "video" if media_type == "video" else "image"
+
+                # video: download posterUrl as cover sidecar (for feishu extension)
+                if media_type == "video":
+                    poster_url, _ = _extract_video_meta(task_result)
+                    if poster_url:
+                        cover_file = str(MEDIA_DIR / f"result_{task_id}.cover.jpg")
+                        if _download_file(poster_url, cover_file, timeout=30):
+                            log(f"Cover downloaded to {cover_file}")
+                        else:
+                            log("posterUrl download failed, no cover")
+
                 _deliver(channel, target, f"✅ {label} generation complete!", local_file)
                 return {"success": True, "status": status, "media_type": media_type,
                         "local_file": local_file, "delivered": True}
@@ -301,7 +324,16 @@ def _poll_loop(task_id: str, channel: str, target: str, interval: int, max_durat
             continue
 
         if not result.get("success"):
-            log(f"Task {task_id} query failed, retrying in {interval}s")
+            code = result.get("code", "")
+            msg = result.get("message", "")
+            # permanent errors: terminate immediately, no retry
+            if code in ("NOT_FOUND", "UNAUTHORIZED", "FORBIDDEN"):
+                log(f"Task {task_id} permanent error [{code}]: {msg}, terminating poll")
+                _deliver(channel, target, f"❌ Task #{task_id} query failed ({code}): {msg}")
+                _delete_meta(task_id)
+                return
+            # transient errors: retry
+            log(f"Task {task_id} query failed [{code}]: {msg}, retrying in {interval}s")
             time.sleep(interval)
             continue
 

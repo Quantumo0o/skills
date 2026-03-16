@@ -4,7 +4,6 @@ Image processing orchestration script
 Subcommands:
   transfer  -- relay image to R2
   create    -- create AI task
-  poll      -- poll task status, download result on success
 
 All commands output JSON for Agent parsing.
 """
@@ -13,7 +12,6 @@ import argparse
 import json
 import os
 import sys
-import time
 import urllib.request
 import urllib.error
 import ssl
@@ -45,23 +43,6 @@ def ensure_media_dir() -> Path:
     """Ensure media directory exists"""
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     return MEDIA_DIR
-
-
-def _download_feishu_image(image_key: str, token: str, output_path: str) -> bool:
-    """Download Feishu image to local via Feishu API (requires externally-provided token)"""
-    url = f"https://open.feishu.cn/open-apis/im/v1/images/{image_key}"
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"Bearer {token}",
-    })
-    try:
-        with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as resp:
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "wb") as f:
-                f.write(resp.read())
-        return True
-    except Exception as e:
-        log(f"Feishu image download failed: {e}")
-        return False
 
 
 def download_file(url: str, output_path: str, timeout: int = 120) -> bool:
@@ -115,54 +96,24 @@ def _upload_to_r2(file_path: str) -> dict:
 
 def cmd_transfer(args):
     """
-    Relay image to R2, supports two sources:
-    1. --image-key: Feishu image_key, download via Feishu API then upload to R2
-    2. --file: local file path (e.g. OpenClaw inbound image), upload directly to R2
+    Relay image to R2, upload local file (e.g. OpenClaw inbound image) directly to R2.
     """
     local_file = args.file
-    image_key = args.image_key
 
-    if not local_file and not image_key:
-        output({"success": False, "error": "Must specify either --image-key or --file"})
+    if not local_file:
+        output({"success": False, "error": "Must specify --file"})
         return
 
-    # mode A: upload local file directly
-    if local_file:
-        # strip file:// prefix if present
-        if local_file.startswith("file://"):
-            local_file = local_file[7:]
+    # strip file:// prefix if present
+    if local_file.startswith("file://"):
+        local_file = local_file[7:]
 
-        if not os.path.exists(local_file):
-            output({"success": False, "error": f"File not found: {local_file}"})
-            return
-
-        log(f"transfer: uploading local file to R2, file={local_file}")
-        output(_upload_to_r2(local_file))
+    if not os.path.exists(local_file):
+        output({"success": False, "error": f"File not found: {local_file}"})
         return
 
-    # mode B: download Feishu image_key then upload
-    token = os.environ.get("FEISHU_TENANT_TOKEN")
-    if not token:
-        output({"success": False, "error": "FEISHU_TENANT_TOKEN env var not set, cannot download Feishu image. Use --file instead."})
-        return
-
-    media_dir = ensure_media_dir()
-    tmp_path = str(media_dir / f"transfer_{image_key}.jpg")
-
-    try:
-        if not _download_feishu_image(image_key, token, tmp_path):
-            output({"success": False, "step": "download_from_feishu",
-                     "error": "Feishu image download failed"})
-            return
-
-        output(_upload_to_r2(tmp_path))
-
-    finally:
-        try:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-        except OSError:
-            pass
+    log(f"transfer: uploading local file to R2, file={local_file}")
+    output(_upload_to_r2(local_file))
 
 
 # ─── create subcommand ──────────────────────────────────────────
@@ -390,168 +341,6 @@ def cmd_create(args):
         })
 
 
-# ─── poll subcommand ─────────────────────────────────────────────
-
-def _extract_result_url(task_result: dict) -> tuple[str | None, str]:
-    """Extract result URL and media type from task result.
-    Returns (url, media_type), media_type is 'image' or 'video'
-    """
-    if not isinstance(task_result, dict):
-        return None, "image"
-    # check video field first (veo returns: {"parts": [{"videoUrl": "https://...", "duration": 6}]})
-    if task_result.get("parts"):
-        parts = task_result["parts"]
-        if isinstance(parts, list) and len(parts) > 0:
-            first_part = parts[0]
-            if isinstance(first_part, dict) and first_part.get("videoUrl"):
-                return first_part["videoUrl"], "video"
-    # then check image field
-    url = task_result.get("imageUrl") or task_result.get("url")
-    if not url and task_result.get("imageUrls"):
-        url = task_result["imageUrls"][0]
-    if not url and task_result.get("parts"):
-        parts = task_result["parts"]
-        if isinstance(parts, list) and len(parts) > 0:
-            first_part = parts[0]
-            if isinstance(first_part, dict):
-                url = first_part.get("imageUrl") or first_part.get("url")
-    # check nested data.file structure (e.g. remove-watermark returns: {"status": 200, "data": {"file": "https://..."}})
-    if not url:
-        data = task_result.get("data")
-        if isinstance(data, dict):
-            url = data.get("file") or data.get("imageUrl") or data.get("url")
-    return url, "image"
-
-
-def cmd_poll(args):
-    """
-    Poll task status until completion, auto-download result to ~/.openclaw/media/plume/ on success.
-    Returns local file path for Agent to send to user.
-    """
-    task_id = args.task_id
-    max_attempts = args.max_attempts or 60
-    interval = args.interval or 3
-    log(f"poll: task_id={task_id}, max_attempts={max_attempts}, interval={interval}")
-
-    for attempt in range(1, max_attempts + 1):
-        result = plume_api.get_task(task_id)
-
-        if not result.get("success"):
-            output({
-                "success": False,
-                "error": result.get("message", "Task query failed"),
-                "attempt": attempt,
-            })
-            return
-
-        task = result.get("data", {})
-        status = task.get("status", 0)
-
-        # terminal state check
-        if status >= 3:
-            if status == 3:
-                # parse result
-                task_result = task.get("result")
-                if isinstance(task_result, str):
-                    try:
-                        task_result = json.loads(task_result)
-                    except json.JSONDecodeError:
-                        pass
-
-                result_url, media_type = _extract_result_url(task_result)
-
-                if result_url:
-                    # detect file extension (check video first, then image)
-                    video_suffix = video_utils.get_video_suffix(result_url)
-                    if video_suffix:
-                        suffix = video_suffix
-                        media_type = "video"
-                    elif ".jpg" in result_url.lower() or ".jpeg" in result_url.lower():
-                        suffix = ".jpg"
-                    elif ".webp" in result_url.lower():
-                        suffix = ".webp"
-                    else:
-                        suffix = ".png"
-
-                    media_dir = ensure_media_dir()
-                    local_file = str(media_dir / f"result_{task_id}{suffix}")
-
-                    # use larger timeout for video files
-                    dl_timeout = 300 if media_type == "video" else 120
-                    if download_file(result_url, local_file, timeout=dl_timeout):
-                        file_size = os.path.getsize(local_file)
-                        label = "video" if media_type == "video" else "image"
-                        log(f"OK: {label} downloaded to {local_file} ({file_size} bytes)")
-
-                        # save last_result for subsequent image-to-image use
-                        try:
-                            last_result = {
-                                "task_id": task_id,
-                                "result_url": result_url,
-                                "local_file": local_file,
-                                "media_type": media_type,
-                                "created_at": time.time(),
-                            }
-                            (MEDIA_DIR / "last_result.json").write_text(
-                                json.dumps(last_result, ensure_ascii=False), encoding="utf-8"
-                            )
-                        except Exception as e:
-                            log(f"Failed to write last_result: {e}")
-
-                        output({
-                            "success": True,
-                            "status": status,
-                            "status_text": "success",
-                            "media_type": media_type,
-                            "local_file": local_file,
-                            "result_url": result_url,
-                            "attempts": attempt,
-                            "IMPORTANT": f"Use this full absolute path as filePath when sending the {label}: {local_file}",
-                        })
-                    else:
-                        log(f"WARN: download failed, returning URL")
-                        output({
-                            "success": True,
-                            "status": status,
-                            "status_text": "success",
-                            "media_type": media_type,
-                            "result_url": result_url,
-                            "download_failed": True,
-                            "attempts": attempt,
-                        })
-                else:
-                    log("WARN: result_url not found")
-                    output({
-                        "success": True,
-                        "status": status,
-                        "status_text": "success",
-                        "result": task_result,
-                        "attempts": attempt,
-                    })
-            else:
-                status_map = {4: "failed", 5: "timeout", 6: "cancelled"}
-                output({
-                    "success": False,
-                    "status": status,
-                    "status_text": status_map.get(status, f"unknown({status})"),
-                    "result": task.get("result"),
-                    "attempts": attempt,
-                })
-            return
-
-        # not terminal, wait and continue polling
-        if attempt < max_attempts:
-            time.sleep(interval)
-
-    # exceeded max poll attempts
-    output({
-        "success": False,
-        "error": f"Poll timeout: task not completed within {max_attempts * interval}s",
-        "task_id": task_id,
-        "attempts": max_attempts,
-    })
-
-
 # ─── CLI entry point ────────────────────────────────────────────────
 
 def main():
@@ -559,9 +348,8 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # transfer
-    p_transfer = subparsers.add_parser("transfer", help="Relay image to R2 (Feishu image_key or local file)")
-    p_transfer.add_argument("--image-key", help="Feishu image_key (requires FEISHU_TENANT_TOKEN env var)")
-    p_transfer.add_argument("--file", help="Local file path (e.g. OpenClaw inbound image)")
+    p_transfer = subparsers.add_parser("transfer", help="Relay local file to R2")
+    p_transfer.add_argument("--file", required=True, help="Local file path (e.g. OpenClaw inbound image)")
 
     # create
     p_create = subparsers.add_parser("create", help="Create AI task")
@@ -581,18 +369,11 @@ def main():
     p_create.add_argument("--project-id", help="Associated project ID")
     p_create.add_argument("--widget-mapping", help="Widget mapping (JSON string)")
 
-    # poll
-    p_poll = subparsers.add_parser("poll", help="Poll task status and download result")
-    p_poll.add_argument("--task-id", required=True, help="Task ID")
-    p_poll.add_argument("--max-attempts", type=int, default=60, help="Max poll attempts")
-    p_poll.add_argument("--interval", type=int, default=3, help="Poll interval in seconds")
-
     args = parser.parse_args()
 
     commands = {
         "transfer": cmd_transfer,
         "create": cmd_create,
-        "poll": cmd_poll,
     }
 
     try:
