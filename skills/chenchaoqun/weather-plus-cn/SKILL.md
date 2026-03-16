@@ -1,6 +1,6 @@
 ---
 name: weather-plus
-version: 1.0.0
+version: 1.0.2
 description: 查询中国城市天气信息并提供穿衣建议。使用中国天气网 (weather.com.cn) 数据。Use when: 用户询问天气、温度、穿衣建议、天气预报、出行天气准备等场景。
 ---
 
