@@ -1,11 +1,17 @@
 {
   "owner": "kostja94",
   "slug": "creator-program",
-  "displayName": "Creator Program",
+  "displayName": "creator-program",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773228762533,
-    "commit": "https://github.com/openclaw/skills/commit/f8efa37fbbdccb985e97cefd9e4a8c16594c8127"
+    "version": "1.1.0",
+    "publishedAt": 1773679076154,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773228762533,
+      "commit": "https://github.com/openclaw/skills/commit/f8efa37fbbdccb985e97cefd9e4a8c16594c8127"
+    }
+  ]
 }
