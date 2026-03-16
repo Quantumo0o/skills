@@ -1,11 +1,12 @@
 #!/bin/bash
 # 上下文监控脚本（API版）
 # 创建时间：2026-03-04
-# 更新时间：2026-03-06 18:52
+# 更新时间：2026-03-06 10:19
 # 功能：通过OpenClaw API监控真实上下文使用率，超过85%自动发送飞书通知
 
-# 修复PATH问题（cron环境）
-export PATH="/root/.nvm/versions/node/v22.22.0/bin:/root/.local/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+# ⭐ 修复cron环境问题（2026-03-06）
+export HOME="/home/zhaog"
+export PATH="/home/zhaog/.npm-global/bin:$PATH"
 
 THRESHOLD=85
 LOG_FILE="$HOME/.openclaw/workspace/logs/context-monitor.log"
