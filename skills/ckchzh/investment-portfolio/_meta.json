@@ -3,11 +3,16 @@
   "slug": "investment-portfolio",
   "displayName": "Investment Portfolio",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447167628,
-    "commit": "https://github.com/openclaw/skills/commit/15cd8f784a3afda03155ecc11a4d1cdc4cb02e9a"
+    "version": "2.3.4",
+    "publishedAt": 1773666270694,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447167628,
+      "commit": "https://github.com/openclaw/skills/commit/15cd8f784a3afda03155ecc11a4d1cdc4cb02e9a"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421439643,
