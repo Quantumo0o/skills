@@ -3,11 +3,16 @@
   "slug": "debt-payoff",
   "displayName": "Debt Payoff",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773538830656,
-    "commit": "https://github.com/openclaw/skills/commit/f8a7f51049df30e125713c77ac4a71e7191e44f6"
+    "version": "1.0.5",
+    "publishedAt": 1773663579054,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773538830656,
+      "commit": "https://github.com/openclaw/skills/commit/f8a7f51049df30e125713c77ac4a71e7191e44f6"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773446854166,

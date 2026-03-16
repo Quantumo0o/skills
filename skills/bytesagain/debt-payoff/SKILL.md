@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: debt-payoff
 description: "还债策略工具。还款计划、雪球法、雪崩法、债务合并、协商技巧、还清时间线。Debt payoff planner with payment plan, snowball, avalanche, consolidation, negotiation tips, payoff timeline. Use when you need debt payoff capabilities. Triggers on: debt payoff."
+author: BytesAgain
 ---
 # debt-payoff
 
@@ -25,7 +27,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 - **mortgage** — mortgage
 - **medical** — medical
 
-
 ## 专业建议
 
 - 雪球法**（Snowball）：先还最小的债务 → 快速获得成就感 → 适合需要心理激励的人
@@ -39,7 +40,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
-
 
 ## Examples
 
