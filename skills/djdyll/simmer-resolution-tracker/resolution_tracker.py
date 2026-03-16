@@ -15,9 +15,11 @@ Optional:
     POLY_MODE            — set to "sim" to skip on-chain redemptions
     DATA_DIR             — override data directory (default: ./data/live)
 """
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+
 import json
 import os
-import sys
 import time
 import urllib.request
 import urllib.error
@@ -44,6 +46,7 @@ WEBHOOK_URL  = os.environ.get("DISCORD_WEBHOOK", "")
 IS_SIM       = os.environ.get("POLY_MODE", "live").lower() == "sim"
 API_BASE     = "https://api.simmer.markets"
 SKILL_SLUG   = "simmer-resolution-tracker"
+TRADE_SOURCE = "sdk:simmer-resolution-tracker"
 
 # Data directory — defaults to ./data/live (or ./data/sim in sim mode)
 _default_data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "sim" if IS_SIM else "live")
@@ -252,6 +255,7 @@ def run():
     resolved_positions = get_resolved_positions()
     if not resolved_positions:
         print("  No resolved positions")
+        print(json.dumps({"automaton": {"signals": 0, "trades_attempted": 0, "trades_executed": 0}}))
         return
 
     already_reported = load_id_set(RESOLVED_IDS_PATH)
@@ -439,6 +443,14 @@ def run():
     if redeemed_count:
         print(f"  💰 {redeemed_count} position(s) redeemed | Total: ${total_redeemed:.2f}")
 
+    print(json.dumps({"automaton": {"signals": new_count, "trades_attempted": 0, "trades_executed": redeemed_count}}))
+
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Simmer Resolution Tracker")
+    parser.add_argument("--live", action="store_true", help="Enable live mode (default: uses POLY_MODE env)")
+    args = parser.parse_args()
+    if args.live:
+        os.environ["POLY_MODE"] = "live"
     run()
