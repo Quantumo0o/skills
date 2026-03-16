@@ -1,9 +1,8 @@
 ---
+version: "2.0.0"
 name: youtube-script
-version: 1.0.0
-description: "YouTube视频脚本、标题A/B测试、缩略图文案、SEO优化、开头Hook、章节标记。YouTube script writer with title testing, thumbnail copy, SEO optimization, hooks, chapter markers."
+description: "YouTube视频脚本、标题A/B测试、缩略图文案、SEO优化、开头Hook、章节标记。YouTube script writer with title testing, thumbnail copy, SEO optimization, hooks, chapter markers. Use when you need youtube script capabilities. Triggers on: youtube script."
 author: BytesAgain
-tags: [youtube, video, script, seo, thumbnails, content-creation]
 ---
 # youtube-script
 
@@ -26,7 +25,6 @@ YouTube视频脚本、标题A/B测试、缩略图文案、SEO优化、开头Hook
 | `hook` | hook |
 | `chapter` | chapter |
 
-
 ## 专业建议
 
 - Click-Through Rate (CTR)** and **Watch Time** are the two most important metrics
@@ -37,3 +35,20 @@ YouTube视频脚本、标题A/B测试、缩略图文案、SEO优化、开头Hook
 
 ---
 *youtube-script by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Quick start
+youtube-script help
+
+# Run main function
+youtube-script run
+```
+
+## Commands
+
+Run `youtube-script help` to see all available commands.
