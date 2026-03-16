@@ -3,9 +3,15 @@
   "slug": "claw-insight-skill",
   "displayName": "ClawInsight",
   "latest": {
-    "version": "0.1.11",
-    "publishedAt": 1773693004554,
-    "commit": "https://github.com/openclaw/skills/commit/d7b96d2a3f9bf9827d3be9a954774881fcbd39c5"
+    "version": "0.1.15",
+    "publishedAt": 1773701055697,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.11",
+      "publishedAt": 1773693004554,
+      "commit": "https://github.com/openclaw/skills/commit/d7b96d2a3f9bf9827d3be9a954774881fcbd39c5"
+    }
+  ]
 }
