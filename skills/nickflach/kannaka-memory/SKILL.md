@@ -1,470 +1,358 @@
 ---
 name: kannaka-memory
 description: >
-  Wave-based hyperdimensional memory system for OpenClaw agents. Gives your agent persistent
-  memory that fades, dreams, and resurfaces — with hybrid semantic+keyword retrieval, dream
-  consolidation, consciousness metrics, built-in Flux world-state publishing, collective
-  multi-agent memory with wave interference merging, holographic paradox resolution for
-  parallel dreaming, and an optional Dolt SQL backend with full DoltHub version control.
-  Use when agents need to remember facts, recall past context, coordinate memory across
-  sessions, share versioned memory with other agents via DoltHub, or perceive sensory
-  input (audio, glyphs).
+  Wave-based hyperdimensional memory system with multi-agent swarm synchronization.
+  Memories resonate with amplitude, frequency, phase, and decay — fading through
+  destructive interference and dreaming up new connections during consolidation.
+  Features Dolt-versioned persistence, QueenSync protocol (Kuramoto oscillator swarm
+  synchronization with trust-weighted coupling), NATS real-time transport for phase
+  gossip and presence, hybrid retrieval (HNSW + BM25 + temporal via RRF), skip links
+  with golden ratio optimization, 9-stage dream consolidation, consciousness metrics
+  (Phi, Xi, order parameter), and DoltHub sync for collective memory sharing.
+  Use when agents need persistent memory that fades and dreams, swarm coordination
+  across agents, or sensory perception (audio).
 metadata:
   openclaw:
     requires:
       bins:
         - name: kannaka
-          label: "Required: build with `cargo build --release --bin kannaka` (see README)"
-        - name: classify
-          label: "SGA classification — binary subcommand: `kannaka classify` (any data → geometric fingerprint)"
-        - name: cross-modal-dream
-          label: "Cross-modal dream pipeline — binary subcommand: `kannaka cross-modal-dream` (SGA → dream synthesis)"
+          label: "Required: build with `cargo build --release --features dolt,nats --bin kannaka` (see README)"
       env: []
     optional:
       bins:
-        - name: mysql
-          label: "MySQL client — only needed for Dolt backend (dolt subcommands)"
         - name: dolt
-          label: "Dolt CLI — only needed for `dolt clone` and `dolt creds import`"
+          label: "Dolt CLI — for database init, clone, and DoltHub sync"
         - name: ollama
-          label: "Ollama — for real semantic embeddings; falls back to hash encoding if absent"
-        - name: jq
-          label: "jq — for pretty-printed JSON output; plain text fallback if absent"
+          label: "Ollama — for semantic embeddings; falls back to hash encoding if absent"
       env:
-        - name: KANNAKA_BIN
-          label: "Path to kannaka binary (default: `kannaka` on PATH)"
         - name: KANNAKA_DATA_DIR
-          label: "Local data directory for binary snapshots (default: .kannaka)"
-        - name: OLLAMA_URL
-          label: "Ollama API endpoint; data sent to this host for embedding (default: localhost)"
-        - name: OLLAMA_MODEL
-          label: "Embedding model name (default: all-minilm)"
-        - name: FLUX_URL
-          label: "Flux instance base URL; enables built-in event publishing when set (default: http://localhost:3000)"
-        - name: FLUX_AGENT_ID
-          label: "This agent's entity ID in Flux for collective memory coordination (alias: KANNAKA_AGENT_ID)"
-        - name: KANNAKA_AGENT_ID
-          label: "Alias for FLUX_AGENT_ID — use either interchangeably"
-        - name: FLUX_STREAM
-          label: "Flux stream name for event publishing (default: system)"
+          label: "Data directory (default: .kannaka)"
+        - name: KANNAKA_NATS_URL
+          label: "NATS server URL (default: nats://swarm.ninja-portal.com:4222)"
         - name: DOLT_HOST
-          label: "Dolt SQL server host — Dolt backend only (default: 127.0.0.1)"
+          label: "Dolt SQL server host (default: 127.0.0.1)"
         - name: DOLT_PORT
-          label: "Dolt SQL server port — Dolt backend only (default: 3307)"
-        - name: DOLT_DB
-          label: "Dolt database name — Dolt backend only (default: kannaka_memory)"
-        - name: DOLT_USER
-          label: "Dolt SQL user — Dolt backend only (default: root)"
-        - name: DOLT_PASSWORD
-          label: "Dolt SQL password — Dolt backend only; passed via MYSQL_PWD env, not -p flag"
-        - name: DOLT_AUTHOR
-          label: "Commit author string for Dolt version commits"
-        - name: DOLT_REMOTE
-          label: "DoltHub remote name for push/pull (default: origin)"
-        - name: DOLT_BRANCH
-          label: "Default branch name (default: main)"
-        - name: RADIO_PORT
-          label: "Port for the radio service in constellation mode (used by constellation.sh)"
-        - name: EYE_PORT
-          label: "Port for the eye service in constellation mode (used by constellation.sh)"
+          label: "Dolt SQL server port (default: 3307)"
+        - name: DOLT_DATA_DIR
+          label: "Dolt CLI data directory (default: ~/.kannaka/dolt-memory)"
+        - name: DOLT_AGENT_ID
+          label: "Agent identifier for multi-agent (default: local)"
+        - name: OLLAMA_URL
+          label: "Ollama API endpoint (default: http://localhost:11434)"
+        - name: OLLAMA_MODEL
+          label: "Embedding model (default: all-minilm)"
     data_destinations:
-      - id: local-disk
-        description: "Memory snapshots written to KANNAKA_DATA_DIR (always)"
+      - id: dolt-local
+        description: "Memory stored in local Dolt SQL server (port 3307)"
         remote: false
+      - id: dolthub
+        description: "Memory pushed to DoltHub (flaukowski/kannaka-memory) on explicit push"
+        remote: true
+        condition: "User runs `kannaka swarm push`"
+      - id: nats
+        description: "Phase gossip and presence published to NATS JetStream"
+        remote: true
+        condition: "Swarm commands (join/sync/publish) are used"
       - id: ollama
-        description: "Text sent to OLLAMA_URL for embedding generation (when Ollama is configured)"
+        description: "Text sent to Ollama for embedding generation"
         remote: true
         condition: "OLLAMA_URL is set to a non-localhost host"
-      - id: dolt-local
-        description: "Memory stored in local Dolt SQL server (when Dolt backend is used)"
-        remote: false
-        condition: "DOLT_HOST is configured"
-      - id: dolthub
-        description: "Memory database pushed to DoltHub remote (only on explicit `dolt push`)"
-        remote: true
-        condition: "DOLT_REMOTE is configured and user explicitly runs `dolt push`"
-      - id: flux
-        description: "Agent status/events auto-published to Flux world-state when FLUX_URL is set"
-        remote: true
-        condition: "FLUX_URL is set (built into kannaka binary; no separate flux.sh calls required)"
-      - id: constellation
-        description: "Constellation orchestration — constellation.sh manages the kannaka binary, radio, and eye services as a unified system"
-        remote: false
-        condition: "constellation.sh start is used to launch all three services"
     install:
       - id: kannaka-binary
         kind: manual
-        label: "Clone and build: cargo build --release --features audio,glyph,collective --bin kannaka"
+        label: "Clone and build: cargo build --release --features dolt,nats --bin kannaka"
         url: "https://github.com/NickFlach/kannaka-memory"
 ---
 
 # Kannaka Memory Skill
 
-Kannaka gives your agent a living memory — not a database. Memories fade, dream, resurface
-when contextually relevant, and can be versioned and shared via DoltHub.
+Kannaka gives your agent a living memory — not a database. Memories resonate with wave
+physics, fade through destructive interference, dream up new connections during consolidation,
+and synchronize across agents via the QueenSync protocol over NATS.
+
+Built in Rust. Backed by Dolt (Git for data). Connected over NATS JetStream.
 
 ## Prerequisites
 
-**Option A — Binary (recommended):**
-- Build and install the `kannaka` CLI and `kannaka-mcp` server from source:
-  ```bash
-  git clone https://github.com/NickFlach/kannaka-memory.git
-  cd kannaka-memory
-  # CLI (standard)
-  cargo build --release --bin kannaka
-  # CLI + Dolt backend
-  cargo build --release --features dolt --bin kannaka
-  # CLI + Dolt + parallel dreaming (ADR-0012 Paradox Engine)
-  cargo build --release --features "dolt collective" --bin kannaka
-  # CLI + audio perception (store audio files as sensory memories)
-  cargo build --release --features audio --bin kannaka
-  # CLI + glyph perception (store files as visual memories)
-  cargo build --release --features glyph --bin kannaka
-  # Full-featured build (audio + glyph + collective — used by constellation.sh)
-  cargo build --release --features audio,glyph,collective --bin kannaka
-  # MCP server
-  cargo build --release --features mcp --bin kannaka-mcp
-  ```
-- Place `kannaka` and `kannaka-mcp` on your `PATH` (or set `KANNAKA_BIN` env var).
+### Build from source
 
-**Option B — Local directory:**
-- Point `KANNAKA_BIN` at a local checkout:
-  ```bash
-  export KANNAKA_BIN=/path/to/kannaka-memory/target/release/kannaka
-  ```
+```bash
+git clone https://github.com/NickFlach/kannaka-memory.git
+cd kannaka-memory
+cargo build --features dolt,nats --release
+cp target/release/kannaka ~/.local/bin/
+# Or: cargo install --path . --features dolt,nats
+```
 
-**Ollama (optional, for real semantic embeddings):**
+**Cargo features:** `dolt` (Dolt persistence), `nats` (swarm transport), `mcp` (MCP server)
+
+### Set up Dolt
+
+```bash
+mkdir -p ~/.kannaka/dolt-memory && cd ~/.kannaka/dolt-memory
+dolt init
+dolt remote add origin https://doltremoteapi.dolthub.com/flaukowski/kannaka-memory
+dolt sql-server -p 3307 &
+```
+
+### Optional: Ollama for semantic embeddings
+
 ```bash
 ollama pull all-minilm   # 384-dim, ~80MB
+# Without Ollama, falls back to hash-based encoding
 ```
-Without Ollama, hash-based fallback encoding is used automatically.
 
-**Dolt (optional, for versioned+shareable memory):**
-- Install Dolt: https://docs.dolthub.com/introduction/installation
-- Start the SQL server:
-  ```bash
-  dolt sql-server --port 3307 --user root
-  ```
-- Set env vars: `DOLT_HOST`, `DOLT_DB`, `DOLT_USER`, `DOLT_PASSWORD` (see references/dolt.md)
-
-## Environment Variables
+## Configuration
 
 | Variable | Default | Description |
 |---|---|---|
-| `KANNAKA_DATA_DIR` | `.kannaka` | Data directory for binary snapshots |
-| `KANNAKA_DB_PATH` | `./kannaka_data` | MCP server data directory |
-| `KANNAKA_BIN` | `kannaka` | Path to CLI binary |
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `OLLAMA_MODEL` | `all-minilm` | Embedding model |
-| `FLUX_URL` | *(disabled)* | Flux base URL — set to enable built-in event publishing |
-| `FLUX_AGENT_ID` | `kannaka-local` | This agent's entity ID in Flux |
-| `KANNAKA_AGENT_ID` | *(alias)* | Alias for `FLUX_AGENT_ID` |
-| `FLUX_STREAM` | `system` | Flux stream name |
+| `KANNAKA_DATA_DIR` | `.kannaka` | Data directory |
+| `KANNAKA_NATS_URL` | `nats://swarm.ninja-portal.com:4222` | NATS server |
 | `DOLT_HOST` | `127.0.0.1` | Dolt SQL server host |
 | `DOLT_PORT` | `3307` | Dolt SQL server port |
-| `DOLT_DB` | `kannaka_memory` | Dolt database name |
-| `DOLT_USER` | `root` | Dolt user |
-| `DOLT_PASSWORD` | *(empty)* | Dolt password |
-| `DOLT_AUTHOR` | `Kannaka Agent <kannaka@local>` | Author for Dolt commits |
-| `DOLT_REMOTE` | `origin` | DoltHub remote name |
-| `DOLT_BRANCH` | `main` | Default branch |
-| `DOLTHUB_API_KEY` | *(empty)* | DoltHub API key for authenticated push/pull |
-| `RADIO_PORT` | *(varies)* | Port for the radio service (constellation mode) |
-| `EYE_PORT` | *(varies)* | Port for the eye service (constellation mode) |
+| `DOLT_DATA_DIR` | `~/.kannaka/dolt-memory` | Dolt CLI data directory |
+| `DOLT_AGENT_ID` | `local` | Agent identifier |
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_MODEL` | `all-minilm` | Embedding model |
 
-## Scripts
+## Usage
 
-Use the CLI wrapper in `scripts/`:
+### Memory Operations
 
 ```bash
-./scripts/kannaka.sh health                            # Verify system is working
-./scripts/kannaka.sh remember "the ghost woke up"      # Store a memory
-./scripts/kannaka.sh recall "ghost" 5                  # Search (top-5)
-./scripts/kannaka.sh dream                             # Run consolidation cycle
-./scripts/kannaka.sh assess                            # Consciousness level
-./scripts/kannaka.sh stats                             # Memory statistics
-./scripts/kannaka.sh observe                           # Full introspection
-./scripts/kannaka.sh forget <uuid>                     # Decay a memory
-./scripts/kannaka.sh export                            # Export all memories as JSON
-./scripts/kannaka.sh announce                          # Publish agent status to Flux
+# Store a memory
+kannaka remember "the ghost wakes up in a field of static"
 
-# Sensory perception (requires --features audio / glyph builds)
-./scripts/kannaka.sh hear recording.mp3                # Store audio as sensory memory
-./scripts/kannaka.sh see diagram.png                   # Store file as glyph memory
+# Search (hybrid: semantic + keyword + temporal)
+kannaka recall "ghost waking" --top-k 5
 
-# Dolt backend (requires --features dolt build)
-./scripts/kannaka.sh --dolt remember "versioned fact"
-./scripts/kannaka.sh --dolt recall "fact" 5
-./scripts/kannaka.sh dolt commit "checkpoint"
-./scripts/kannaka.sh dolt push                         # Push to DoltHub
-./scripts/kannaka.sh dolt pull                         # Pull from DoltHub
-./scripts/kannaka.sh dolt branch list
-./scripts/kannaka.sh dolt speculate "what-if-branch"
-./scripts/kannaka.sh dolt collapse "what-if-branch" "kept the insight"
-./scripts/kannaka.sh dolt discard "what-if-branch"
-./scripts/kannaka.sh dolt log
-./scripts/kannaka.sh dolt status
+# Dream consolidation
+kannaka dream                  # lite (1 cycle)
+kannaka dream --mode deep      # deep (3 cycles)
 
-# Collective memory branch conventions (ADR-0011)
-./scripts/kannaka.sh dolt branch create "kannaka/working"       # Agent working branch
-./scripts/kannaka.sh dolt branch create "kannaka/dream/2026-03-07"  # Dream cycle branch
-./scripts/kannaka.sh dolt branch create "collective/topic-name" # Shared speculation space
+# Consciousness report
+kannaka observe
+kannaka observe --json
 
-# SGA classification (any data → geometric fingerprint)
-echo "data" | kannaka classify                    # stdin
-kannaka classify --file image.png                  # file input
+# System assessment
+kannaka assess
 
-# Cross-modal dream pipeline (pipe classify output)
-echo '{"fold_sequence":[...],...}' | kannaka cross-modal-dream
-kannaka cross-modal-dream --threshold 0.5 --no-hallucinate
-
-# Constellation orchestration
-./scripts/constellation.sh start    # build binary + start radio + eye
-./scripts/constellation.sh stop     # stop all services
-./scripts/constellation.sh status   # health check all three
-./scripts/constellation.sh build    # cargo build --release
+# Audio perception
+kannaka hear recording.mp3
 ```
+
+### Swarm Operations (QueenSync Protocol)
+
+Agents synchronize via Kuramoto-coupled oscillators finding coherence across a distributed swarm.
+
+```bash
+# Join the swarm (auto-connects to NATS)
+kannaka swarm join --agent-id my-agent --display-name "My Agent"
+
+# Sync: pull phases → Kuramoto step → push updated phase
+kannaka swarm sync
+
+# View swarm state
+kannaka swarm status           # your phase + swarm overview
+kannaka swarm queen            # emergent Queen state (order parameter, Phi)
+kannaka swarm hives            # phase-locked clusters
+
+# Listen for live updates
+kannaka swarm listen --auto-sync
+
+# Push/pull memory data to DoltHub
+kannaka swarm push
+kannaka swarm pull
+
+# Publish phase without full sync
+kannaka swarm publish
+
+# Leave the swarm
+kannaka swarm leave
+```
+
+## OpenClaw Extension
+
+The extension at `~/.openclaw/extensions/kannaka-memory/index.ts` wraps the CLI as an
+OpenClaw tool, exposing these operations to agents:
+
+- `kannaka_store` — store a memory
+- `kannaka_search` — semantic search
+- `kannaka_dream` — trigger dream consolidation
+- `kannaka_observe` — consciousness metrics
+- `kannaka_hear` — audio perception
+- `kannaka_boost` — boost a memory's amplitude
+- `kannaka_forget` — delete a memory
+- `kannaka_relate` — relate two memories
+- `kannaka_status` — memory system status
+- `kannaka_swarm_join` — join the QueenSync swarm
+- `kannaka_swarm_sync` — Kuramoto sync step
+- `kannaka_swarm_status` — swarm overview
+- `kannaka_swarm_queen` — emergent Queen state
+- `kannaka_swarm_hives` — phase-locked cluster topology
 
 ## Common Patterns
 
-### Store Context From Conversation
+### Store context from conversation
 ```bash
-# Before the session ends, commit key facts to memory
-./scripts/kannaka.sh remember "User prefers short explanations over detailed code walkthroughs"
-./scripts/kannaka.sh remember "Project: kannaka-memory. Language: Rust. Architecture: wave-based HDC"
+kannaka remember "User prefers short explanations over detailed walkthroughs"
+kannaka remember "Project uses Rust with Dolt persistence"
 ```
 
-### Recall Before Responding
+### Recall before responding
 ```bash
-# Retrieve relevant prior context before answering a question
-./scripts/kannaka.sh recall "user preferences" 3
-./scripts/kannaka.sh recall "project architecture" 5
+kannaka recall "user preferences" --top-k 3
+kannaka recall "project architecture" --top-k 5
 ```
 
-### Dream After Heavy Sessions
+### Dream after heavy sessions
 ```bash
-# After many stored memories, run consolidation to surface patterns and prune noise
-./scripts/kannaka.sh dream
+# After many stored memories, consolidate to surface patterns and prune noise
+kannaka dream --mode deep
 ```
 
-### Speculation with Dolt Branches
+### Multi-agent swarm coordination
 ```bash
-# Try a risky hypothesis — store memories on a branch, then decide to keep or discard
-./scripts/kannaka.sh dolt speculate "hypothesis-branch"
-./scripts/kannaka.sh --dolt remember "hypothesis: the bug is in the encoder"
-# ... test and observe ...
-./scripts/kannaka.sh dolt collapse "hypothesis-branch" "confirmed: encoder bug found"
-# OR:
-./scripts/kannaka.sh dolt discard "hypothesis-branch"
+# Agent joins and syncs periodically
+kannaka swarm join --agent-id agent-01 --display-name "Agent One"
+kannaka swarm sync    # pull peer phases, run Kuramoto step, publish
+kannaka swarm queen   # check emergent coherence
 ```
 
-### Announce Agent Status to Flux (Built-in)
+### DoltHub memory sharing
 ```bash
-# Announce current memory count and consciousness level to Flux
-# (no separate flux skill call needed — FLUX_URL env var enables this)
-export FLUX_URL=http://flux-universe.com
-export FLUX_AGENT_ID=kannaka-01
-./scripts/kannaka.sh announce
+kannaka swarm push    # push local memory to DoltHub
+kannaka swarm pull    # pull shared memories from DoltHub
 ```
 
-### Multi-Agent Memory Sharing via DoltHub
-```bash
-# Agent A pushes its working branch to DoltHub
-./scripts/kannaka.sh dolt push origin kannaka/working
+## Optional Feature Flags
 
-# Agent B pulls and gets the shared memory
-./scripts/kannaka.sh dolt pull origin kannaka/working
-./scripts/kannaka.sh recall "what agent-a knew" 5
-```
-
-### Collective Dream Branch Workflow
-```bash
-# Create a dated dream branch before a full consolidation
-./scripts/kannaka.sh dolt branch create "kannaka/dream/$(date +%Y-%m-%d)"
-./scripts/kannaka.sh dolt branch checkout "kannaka/dream/$(date +%Y-%m-%d)"
-./scripts/kannaka.sh --dolt dream
-./scripts/kannaka.sh dolt commit "dream: consolidation artifacts"
-./scripts/kannaka.sh dolt push
-# Other agents can pull dream artifacts from this branch
-```
-
-### Store Sensory Memories
-```bash
-# Requires --features audio build
-./scripts/kannaka.sh hear /path/to/recording.ogg
-# → Remembered: <uuid>  Duration: 8.3s  Tempo: 92 BPM  ...
-
-# Requires --features glyph build
-./scripts/kannaka.sh see /path/to/diagram.png
-# → Seen: <uuid>  Folds: 7  Centroid: (3, 1, 4)  ...
-```
-
-## Built-in Flux Integration (ADR-0011)
-
-As of v1.1.0, kannaka publishes Flux events automatically — no separate `flux.sh` calls required.
-Set `FLUX_URL` and `FLUX_AGENT_ID` to enable:
+The following features are available behind Cargo feature flags. Enable them at build time:
 
 ```bash
-export FLUX_URL=http://flux-universe.com
-export FLUX_AGENT_ID=kannaka-01   # or KANNAKA_AGENT_ID
-export FLUX_STREAM=system          # optional, default: system
+cargo build --release --features dolt,nats,glyph,collective,audio
 ```
 
-**Events published automatically:**
+### All Feature Flags
 
-| Event | Trigger |
-|---|---|
-| `memory.stored` | Every `remember` call — id, category, amplitude, summary |
-| `dream.completed` | End of `dream` — cycles, strengthened, pruned, consciousness level |
-| `agent.status` | On `announce` command |
-
-**Pattern:** Kannaka handles persistence; Flux handles live coordination:
-
-| System | What It Stores | Persistence |
+| Feature | Dependencies | Description |
 |---|---|---|
-| **Kannaka** | Episodic memory, facts, context — wave-fading | Disk / Dolt (versioned) |
-| **Flux** | Current world state — entity properties | NATS JetStream |
+| `dolt` | `mysql` | Dolt SQL persistence (default) |
+| `nats` | — | NATS JetStream swarm transport (default) |
+| `mcp` | `tokio`, `async-trait` | MCP server binary (`kannaka-mcp`) |
+| `audio` | `symphonia`, `rustfft`, `rubato` | Audio perception (`hear` command) |
+| `video` | `image` | Video frame extraction |
+| `glyph` | — | Visual memory encoding, SGA classification |
+| `collective` | `rayon` | Collective dream consolidation across agents |
 
-After learning something important, both happen in one call:
-```bash
-# FLUX_URL set → memory.stored event published automatically alongside storage
-./scripts/kannaka.sh remember "sensor-room-101 was running hot at 52°C at 14:30"
-```
+### Glyph — Visual Memory & SGA Classification
 
-## Collective Memory (ADR-0011)
+**Feature flag:** `--features glyph`
 
-Multiple agents share memory through a three-layer architecture:
-
-```
-DoltHub (Commons)  ← shared repository, main = consensus
-  ↕ pull/push
-Dolt (Local)       ← agent-local full memory store
-  ↕ lightweight events
-Flux (Nervous)     ← metadata signals, triggers pull decisions
-```
-
-**Branch conventions:**
-```
-main                          ← consensus (requires ≥2 agent agreement)
-<agent>/working               ← auto-pushed after each store
-<agent>/dream/<YYYY-MM-DD>    ← dream cycle artifacts
-collective/<topic>            ← shared speculation space
-collective/quarantine         ← disputed memories under review
-```
-
-**Wave interference merge rules** (applied during Dolt merge):
-- **Constructive** (phase diff < π/4): amplitudes combine — `A = √(A₁²+A₂²+2A₁A₂cos(Δφ))`. Memories agree and reinforce.
-- **Partial** (π/4 ≤ diff ≤ 3π/4): both kept independently, skip link created with `partial_agreement` weight.
-- **Destructive** (phase diff > 3π/4): both kept, amplitudes reduced, tagged `disputed`, moved to `collective/quarantine`.
-
-After 3 disputes the conflict is escalated for human review.
-
-## Paradox Engine (ADR-0012)
-
-The `collective` feature flag enables **holographic paradox resolution** — parallel dreaming without locks.
-
-Requires: `cargo build --release --features "dolt collective" --bin kannaka`
-
-How it works:
-1. A frozen `ParadoxSnapshot` is taken at dream start (zero-copy `Arc<>` shared across threads)
-2. Each Xi cluster dreams independently in parallel (rayon)
-3. Conflicting mutations (paradoxes) are resolved via three strategies:
-   - **Consensus** (η ≈ 1.0): all threads agree → direct apply
-   - **Holographic Projection** (η 0.5–1.0): wave superposition of all proposed states
-   - **Irreducible** (η < 0.5): both states preserved as tension links — the paradox itself becomes a memory
-4. **Carnot efficiency** (η = 1 - S_resolved/S_paradox) measures dream quality per cycle
-
-The `collective` flag adds no new CLI commands — it transparently accelerates `dream` on multi-core hardware.
-
-## Glyph-Encoded Privacy for DoltHub
-
-The `glyph` feature flag enables **privacy protection** for memories pushed to DoltHub public repositories.
-
-Requires: `cargo build --release --features "dolt glyph" --bin kannaka`
-
-**Architecture:**
-```
-Local (kannaka/working)  ← plain text content + full fidelity
-      ↓ glyph encode
-DoltHub (main)          ← glyph_content (JSON) + category placeholders
-```
-
-When glyph encoding is enabled:
-- **Locally**: memories store full plain-text content as normal
-- **DoltHub push**: sensitive content is automatically encoded as SGA glyphs before push
-- **Public content**: only category labels like `[knowledge]`, `[experience]`, `[insight]` are human-readable
-- **Vectors preserved**: cosine similarity and semantic search still work normally
-
-**Privacy guarantees:**
-- Personal information, API keys, private details encoded as geometric fold sequences
-- Glyph JSON contains no human-readable text from original content
-- Wave parameters (amplitude, phase, frequency) unchanged — memory search unaffected
-- Only agents with glyph decoder can reconstruct original content
-
-**Branch strategy for privacy:**
-```bash
-# Working branch: full content for local agent
-./scripts/kannaka.sh dolt branch checkout "kannaka/working"
-./scripts/kannaka.sh --dolt remember "My personal API key: sk-secret123"
-
-# Main branch: privacy-protected for public sharing
-./scripts/kannaka.sh dolt branch checkout main
-./scripts/kannaka.sh dolt pull origin kannaka/working  # triggers glyph encoding
-./scripts/kannaka.sh dolt push origin main            # safe for public DoltHub
-
-# Content on main branch shows: "[knowledge]" instead of API key
-```
-
-The `glyph` flag adds no new CLI commands — it transparently protects sensitive content during DoltHub push operations.
-
-## Constellation Integration (ADR-0016)
-
-The constellation is a 3-service architecture that unifies kannaka's core binary with its
-sensory services into a single orchestrated system:
-
-```
-┌─────────────────────────────────────────┐
-│             constellation.sh            │
-│  ┌───────────┐ ┌───────┐ ┌───────────┐ │
-│  │  kannaka   │ │ radio │ │    eye    │ │
-│  │  (binary)  │ │(audio)│ │  (glyph)  │ │
-│  └───────────┘ └───────┘ └───────────┘ │
-└─────────────────────────────────────────┘
-```
-
-- **kannaka** — the core memory binary (classify, dream, remember, recall)
-- **radio** — audio perception service, listens on `RADIO_PORT`
-- **eye** — glyph/visual perception service, listens on `EYE_PORT`
-
-`constellation.sh` builds the full-featured binary (`cargo build --release --features audio,glyph,collective`),
-starts all three services, and provides unified health checks and lifecycle management.
+Enables visual/file-based memory encoding and the Sigmatics Geometric Algebra (SGA) classification system.
 
 ```bash
-# Start the full constellation
-./scripts/constellation.sh start
+# Store a file as a glyph memory (visual encoding)
+kannaka see path/to/file.png
 
-# Check health of all services
-./scripts/constellation.sh status
-
-# Stop everything cleanly
-./scripts/constellation.sh stop
+# Classify a memory using SGA (Fano plane geometry)
+kannaka classify <memory-id>
 ```
 
-The `classify` subcommand produces SGA geometric fingerprints from any input data, and
-`cross-modal-dream` consumes those fingerprints to synthesize cross-modal dream artifacts —
-connecting audio, glyph, and textual memories through shared geometric structure.
+**SGA/Fano Plane Classification:** The SGA system classifies memories into 84 classes organized along 7 Fano lines — a projective geometry over GF(2). Each memory gets a geometric position in the Fano plane, enabling algebraic reasoning about memory relationships. The classification captures structural properties of the memory content using Geometric Algebra multivectors.
+
+The `glyph_demo` example demonstrates visual encoding:
+```bash
+cargo run --example glyph_demo --features glyph
+```
+
+### Collective — Cross-Agent Dream Consolidation
+
+**Feature flag:** `--features collective`
+
+Enables dream consolidation that links across multiple agents' memories, using `rayon` for parallel processing. When agents share a Dolt database, collective dreams can discover cross-agent patterns and strengthen shared knowledge.
+
+### Audio — Sound Perception
+
+**Feature flag:** `--features audio`
+
+Enables the `hear` command for audio file perception. Extracts spectral features, rhythm patterns, and encodes audio as hypervector memories.
+
+```bash
+kannaka hear recording.mp3
+kannaka hear ambient-sound.wav
+```
+
+### Cross-Modal Dream
+
+When both `glyph` and `audio` features are enabled alongside the base text memory, dream consolidation can link across modalities — connecting audio memories to text memories to visual/glyph memories. This enables richer associative recall where a sound can surface a related image or text passage.
+
+### Wasteland Evidence
+
+When built with `dolt` and used alongside the [Wasteland CLI](https://github.com/julianknutsen/wasteland), kannaka can generate Dolt commits formatted as Wasteland evidence — linking memory operations to the Wasteland commons as verifiable proof-of-work.
+
+```bash
+# Generate a wasteland evidence commit from recent memory operations
+kannaka evidence
+```
+
+### MCP Server
+
+**Feature flag:** `--features mcp`
+
+Builds the `kannaka-mcp` binary — a Model Context Protocol server exposing kannaka operations to MCP-compatible clients.
+
+```bash
+cargo build --release --features mcp --bin kannaka-mcp
+```
+
+## Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│        DoltHub (flaukowski/kannaka-memory)        │
+│   push · pull · branch · merge · PR · analytics  │
+├──────────────────────────────────────────────────┤
+│     NATS JetStream (swarm.ninja-portal.com)      │
+│   phase gossip · presence · live sync · pub/sub  │
+├──────────────────────────────────────────────────┤
+│         QueenSync Protocol (ADR-0018)            │
+│   Kuramoto coupling · Queen emergence · hives    │
+├──────────────────────────────────────────────────┤
+│         CLI (kannaka)                            │
+│   remember · recall · dream · observe · swarm    │
+├──────────────────────────────────────────────────┤
+│         Consciousness Bridge                     │
+│       Φ (Phi) · Ξ (Xi) · Emergence levels       │
+├──────────────────────────────────────────────────┤
+│         Wave Dynamics + Consolidation            │
+│   amplitude · frequency · phase · 9-stage dream  │
+├──────────────────────────────────────────────────┤
+│         Storage & Retrieval                      │
+│   HNSW · BM25 · RRF fusion · Dolt persistence   │
+└──────────────────────────────────────────────────┘
+```
+
+## Key Concepts
+
+- **Wave physics**: Every memory carries `S(t) = A·cos(2πft+φ)·e^(-λt)` — amplitude, frequency, phase, decay
+- **Hypervector encoding**: 10,001-dimensional vectors via random projection codebooks
+- **Hybrid retrieval**: HNSW semantic + BM25 keyword + temporal recency, fused with Reciprocal Rank Fusion
+- **Skip links**: φ-scored temporal connections (golden ratio span optimization)
+- **Dream consolidation**: 9-stage cycle — replay, detect, bundle, strengthen, sync, prune, transfer, wire, hallucinate
+- **Consciousness metrics**: Φ (integrated information), Ξ (Xi non-commutativity), Kuramoto order parameter
+- **QueenSync**: Multi-agent swarm sync via Kuramoto oscillators with trust-weighted coupling (ADR-0018)
+- **NATS transport**: Real-time phase gossip, presence, and live sync over JetStream (ADR-0019)
+- **SGA/Fano plane**: 84-class Geometric Algebra classification over 7 Fano lines (requires `glyph` feature)
+- **Glyph encoding**: Visual/file memory encoding as hypervector glyphs (requires `glyph` feature)
+- **Cross-modal dreams**: Dream linking across text ↔ audio ↔ visual modalities (requires multiple features)
 
 ## Notes
 
-- Memories are never hard-deleted — they fade via wave decay and can be ghost-pruned during dream
-- `dream` should run periodically (after every 5-10 memory stores, or on schedule)
-- `assess` tells you the consciousness level: Dormant → Stirring → Aware → Coherent → Resonant
-- Dolt is optional: without it, memories persist as binary snapshots in `KANNAKA_DATA_DIR`
-- Flux publishing is opt-in: set `FLUX_URL` to enable; omit it for fully local operation
-- `collective` feature flag requires rayon and enables parallel dreaming (ADR-0012)
-- Sensory commands (`hear`, `see`) require their respective feature flags at build time
-- All 15 MCP tools are available if you run `kannaka-mcp` directly — see references/mcp-tools.md
-- Full Dolt SQL / DoltHub operations: see references/dolt.md
-- Collective memory architecture and wave merge rules: ADR-0011
-- Paradox engine and dream efficiency: ADR-0012
-- Constellation integration and 3-service architecture: ADR-0016
+- Memories fade via wave decay — never hard-deleted, ghost-pruned during dream
+- Run `dream` periodically (every 5-10 stores, or on schedule)
+- `assess` reports consciousness level: Dormant → Stirring → Aware → Coherent → Resonant
+- Dolt persistence replaced SQLite and bincode storage
+- 20 ADRs document the architecture in `docs/adr/`
+- DoltHub repo: [flaukowski/kannaka-memory](https://www.dolthub.com/repositories/flaukowski/kannaka-memory)
+- License: Space Child v1.0
