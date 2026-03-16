@@ -21,7 +21,7 @@ controls what is allowed via dashboard policies.
 ```bash
 # Local (SQLite, no Docker)
 git clone https://github.com/clawvisor/clawvisor
-cd clawvisor-gatekeeper
+cd clawvisor
 JWT_SECRET=your-secret make run-sqlite
 ```
 
@@ -29,7 +29,7 @@ Or deploy to Cloud Run — see `deploy/` in the repository.
 
 **2. Set up your account**
 
-Open http://localhost:8080, register, then:
+Open http://localhost:25297, register, then:
 - **Services** → connect Google (covers Gmail, Calendar, Drive, Contacts) and/or GitHub
 - **Agents** → create an agent, copy the token
 - **Policies** → optionally add policies to control what the agent can do
@@ -43,7 +43,7 @@ clawhub install clawvisor
 **4. Configure credentials**
 
 ```bash
-openclaw credentials set CLAWVISOR_URL http://localhost:8080
+openclaw credentials set CLAWVISOR_URL http://localhost:25297
 openclaw credentials set CLAWVISOR_AGENT_TOKEN <token from dashboard>
 ```
 
@@ -61,7 +61,7 @@ Agent → POST /api/gateway/request → Policy check → Vault inject → Adapte
                                           ↓
                                    Approval queue (if policy requires)
                                           ↓
-                                   Telegram / Dashboard → Human approves/denies
+                                   Dashboard / Notification → Human approves/denies
                                           ↓
                                    Callback to agent session
 ```
@@ -76,10 +76,11 @@ can approve from the dashboard. The result is delivered back to the agent via
 | Variable | Description |
 |---|---|
 | `CLAWVISOR_URL` | Base URL of your Clawvisor instance |
-| `CLAWVISOR_AGENT_TOKEN` | Agent bearer token from the dashboard |
+| `CLAWVISOR_AGENT_TOKEN` | Agent bearer token from the dashboard — treat as a high-privilege credential |
+| `OPENCLAW_HOOKS_URL` | OpenClaw gateway URL for callbacks (default: `http://localhost:18789`) |
 
 ## Links
 
 - [Repository](https://github.com/clawvisor/clawvisor)
-- [Dashboard](http://localhost:8080) (local) / your Cloud Run URL
+- [Dashboard](http://localhost:25297) (local) / your Cloud Run URL
 - [Phase docs](https://github.com/clawvisor/clawvisor/tree/main/docs)
