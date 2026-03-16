@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: doc-summarize-pro
-description: "Enhanced document summarizer. Smart summary, bullet extraction, executive summary, chapter breakdown, multi-doc comparison, translate+summarize, action item extraction, timeline extraction. Use when summarizing documents, extracting key points, generating executive summaries, or pulling action items from meeting notes."
+description: "Enhanced document summarizer. Smart summary, bullet extraction, executive summary, chapter breakdown, multi-doc comparison, translate+summarize, action item extraction, timeline extraction. Use when summarizing documents, extracting key points, generating executive summaries, or pulling action items from meeting notes. Triggers on: doc summarize pro."
+author: BytesAgain
 ---
 
 # 📝 Summarize Pro — Enhanced Document Summarizer
@@ -40,3 +42,20 @@ Works with any language input. `translate-summary` can translate while summarizi
 ## 📂 Scripts
 
 - `scripts/summarize.sh` — Main script, bash + python3 heredoc
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Quick start
+doc-summarize-pro help
+
+# Run main function
+doc-summarize-pro run
+```
+
+## Commands
+
+Run `doc-summarize-pro help` to see all available commands.
