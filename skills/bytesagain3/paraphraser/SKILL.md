@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: paraphraser
 description: "文本改写/降重、学术改写、简化表达、正式化、扩写、前后对比。Paraphrase, rewrite for academic tone, simplify, formalize, expand, and compare text versions. Use when you need paraphraser capabilities. Triggers on: paraphraser."
+author: BytesAgain
 ---
 # paraphraser
 
@@ -23,7 +25,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
 - **expand** — expand
 - **compare** — compare
 
-
 ## 专业建议
 
 - 降重改写**：替换同义词 + 调整句式 + 改变语序，三管齐下效果最佳
@@ -37,3 +38,17 @@ A: 主要输出Markdown格式，方便复制和编辑。
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+paraphraser help
+
+# Run
+paraphraser run
+```
+
+## Commands
+
+Run `paraphraser help` to see all available commands.
