@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
 import requests
 import os
 import sys
 import argparse
+from typing import Union
 
 API_URL = "https://api.trunkate.ai"
 
-def optimize_prompt(prompt: str, budget: int = 1000, model: str = "gpt-4o") -> str:
+def optimize_prompt(prompt: str, budget: Union[int, str] = 1000, model: str = "gpt-4o") -> str:
     """Optimizes a prompt using the private Trunkate AI API."""
     api_url = os.environ.get("TRUNKATE_API_URL", API_URL).rstrip("/")
     api_key = os.environ.get("TRUNKATE_API_KEY")
@@ -26,10 +26,11 @@ def optimize_prompt(prompt: str, budget: int = 1000, model: str = "gpt-4o") -> s
         print(f"Error optimizing prompt: {e}", file=sys.stderr)
         return prompt
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trunkate AI CLI")
     parser.add_argument("--text", required=True, help="The text to optimize")
-    parser.add_argument("--budget", type=int, default=1000, help="Max token budget")
+    parser.add_argument("--budget", default="1000", help="Max token budget (int or '20%')")
     parser.add_argument("--model", default="gpt-4o", help="Target model")
     
     args = parser.parse_args()

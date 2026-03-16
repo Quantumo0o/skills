@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.20.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.19.0...openclaw-v0.20.0) (2026-03-16)
+
+
+### Features
+
+* fix warning ([846659d](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/846659df5696c85ee40856cf4ef9140375106bfd))
+
+## [0.19.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.18.0...openclaw-v0.19.0) (2026-03-16)
+
+
+### Features
+
+* fix warning ([32a4300](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/32a4300e771e86d73cf807a71fd403dc44771628))
+
 ## [0.18.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.17.0...openclaw-v0.18.0) (2026-03-16)
 
 
