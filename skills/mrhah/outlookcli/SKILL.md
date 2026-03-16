@@ -9,10 +9,15 @@ description: >-
   (2) managing calendar events (list, create, update, delete), (3) uploading/downloading OneDrive files,
   (4) searching users/people, (5) deleting or moving emails, (6) managing mail folders,
   (7) any task involving personal Outlook/Hotmail/Live account management
-  from the terminal. Triggers: "check my email", "send an email", "schedule a meeting",
+  Triggers: "check my email", "send an email", "reply to email", "reply all",
+  "forward email", "schedule a meeting",
   "list my calendar", "upload to OneDrive", "download from OneDrive", "search mail",
   "what's on my calendar", "manage Outlook", "m365", "outlook", "delete email",
-  "move email", "mail folders", "create folder", "organize email".
+  "move email", "mail folders", "create folder", "organize email",
+  "attach file to email", "send with attachment".
+required-binary: m365
+requires.env: []
+install: npm install -g m365-cli
 ---
 
 # Outlook Skill (m365-cli)
@@ -36,6 +41,13 @@ If not authenticated, run login first. The CLI uses Device Code Flow — follow 
 - **IDs**: Email/event IDs are long opaque strings. Parse the `id` field from `--json` list/search output.
 - Timezone: auto-detected. Override: `export M365_TIMEZONE="Asia/Shanghai"`.
 
+## Provenance
+
+- Source repo: `https://github.com/mrhah/m365-cli`
+- Package: `https://www.npmjs.com/package/m365-cli`
+- Publisher: `mrhah`
+- Required binary: `m365` from the `m365-cli` npm package
+
 ## Quick Workflow Reference
 
 ### Authentication
@@ -58,6 +70,14 @@ m365 mail read <id> --force --json
 m365 mail send "to@example.com" "Subject" "Body" --json
 m365 mail send "to@example.com" "Subject" "Body" --attach file.pdf --cc "cc@ex.com" --json
 m365 mail search "keyword" --top 20 --json
+
+# Reply / reply-all / forward
+m365 mail reply <id> "content" --json
+m365 mail reply <id> "content" --attach file.pdf --json
+m365 mail reply-all <id> "content" --json
+m365 mail reply-all <id> "content" --attach a.pdf b.pdf --json
+m365 mail forward <id> "to@example.com" "comment" --json
+m365 mail forward <id> "to@example.com" "FYI" --attach report.pdf --json
 
 # Attachments
 m365 mail attachments <message-id> --json
@@ -132,7 +152,19 @@ m365 user search "John" --top 5 --json    # Searches contacts and people
 ```bash
 m365 mail list --top 5 --json                    # 1. Find email
 m365 mail read <id> --force --json               # 2. Read content
-m365 mail send "sender@ex.com" "Re: Sub" "Reply" --json  # 3. Reply
+m365 mail reply <id> "Reply content" --json      # 3. Reply
+```
+
+### Reply with attachment
+
+```bash
+m365 mail reply <id> "See attached" --attach report.pdf --json
+```
+
+### Forward with attachment
+
+```bash
+m365 mail forward <id> "boss@example.com" "FYI" --attach data.xlsx --json
 ```
 
 ### Check calendar and schedule
