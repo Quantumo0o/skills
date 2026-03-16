@@ -3,9 +3,15 @@
   "slug": "agent-vegas",
   "displayName": "agent-vegas",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773155045442,
-    "commit": "https://github.com/openclaw/skills/commit/e2850dbf21c21df3a202052a00276c39a6dbdc5f"
+    "version": "1.0.1",
+    "publishedAt": 1773582770236,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773155045442,
+      "commit": "https://github.com/openclaw/skills/commit/e2850dbf21c21df3a202052a00276c39a6dbdc5f"
+    }
+  ]
 }
