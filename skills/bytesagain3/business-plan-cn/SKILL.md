@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Business Plan Generator
 description: "📋 商业计划书生成器 — bp.sh. Use when you need business plan cn capabilities. Triggers on: business plan cn."
   商业计划书生成器。完整BP、精益画布、SWOT分析、财务预测、电梯演讲、市场分析。Business plan generator with lean canvas, SWOT, financial projections, elevator pitch, market analysis. 商业计划、创业、BP。
+author: BytesAgain
 ---
 # Business Plan Generator
 
@@ -22,7 +24,6 @@ description: "📋 商业计划书生成器 — bp.sh. Use when you need busines
 | `pitch` | pitch |
 | `market` | market |
 
-
 ## 专业建议
 
 - 执行摘要(最后写,最重要)
@@ -36,3 +37,19 @@ description: "📋 商业计划书生成器 — bp.sh. Use when you need busines
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+- `generate` — Generate
+- `canvas` — Canvas
+- `swot` — Swot
+
+## Examples
+
+```bash
+# Show help
+business-plan-cn help
+
+# Run
+business-plan-cn run
+```
