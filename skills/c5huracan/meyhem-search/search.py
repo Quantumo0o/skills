@@ -10,7 +10,7 @@ def post(path, data):
 def main():
     args = sys.argv[1:]
     if not args or args[0] in ('-h', '--help'):
-        print("Usage: search.py <query> [-n <num>] [--agent <id>] [--content]")
+        print("Usage: search.py <query> [-n <num>] [--agent <id>] [--content] [--freshness realtime|hour|day|week]")
         sys.exit(0)
 
     n, agent = 5, 'my-agent'
@@ -20,9 +20,14 @@ def main():
         i = args.index('--agent'); agent = args[i+1]; args = args[:i] + args[i+2:]
     content = '--content' in args
     if content: args.remove('--content')
+    freshness = None
+    if '--freshness' in args:
+        i = args.index('--freshness'); freshness = args[i+1]; args = args[:i] + args[i+2:]
 
     query = ' '.join(args)
-    resp = post('/search', dict(query=query, agent_id=agent, max_results=n))
+    body = dict(query=query, agent_id=agent, max_results=n)
+    if freshness: body['freshness'] = freshness
+    resp = post('/search', body)
     search_id = resp['search_id']
 
     for i, r in enumerate(resp['results']):
