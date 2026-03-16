@@ -14,7 +14,12 @@ env:
 
 # Polymarket Simmer FastLoop Sync Pulse
 
-A professional-grade quantitative execution skill for Polymarket's 5-minute binary options. Uses a Triple-Trigger strategy combining Binance momentum, NOFX institutional flow, and L2 Wall detection to time entries with high precision.
+> [!TIP]
+> **This is a template.** The default signal is a **Triple-Trigger** strategy combining Binance momentum, NOFX institutional flow, and L2 Wall detection.
+> Remix it with alternative signals like technical indicators (RSI/MACD), different CEX feeds, or custom LLM-based sentiment.
+> The skill handles all the **plumbing** (market pre-caching, Simmer execution, budget safeguards). Your agent provides the **alpha**.
+
+A professional-grade quantitative execution skill for Polymarket's 5-minute binary options.
 
 ## 🌟 Core Strategy: Triple-Trigger Sniper
 
@@ -105,6 +110,21 @@ python fastloop_improved.py --live
 | `No tradeable markets found` | No Polymarket market is scheduled in this window | Normal. Cache is being updated. Wait for the next market window. |
 | `Failed to fetch signal data` | Network or API rate limit | Check Binance / NOFX connectivity. |
 | `401 Unauthorized` | Invalid API key | Verify `SIMMER_API_KEY` is set correctly. |
+
+## 🎨 Remixing the Signal
+
+This skill is designed as a **remixable template**. We separate the **Structural Plumbing** (Discovery, Execution, Budget) from the **Signal Alpha**.
+
+### Implementation Architecture:
+*   **The Plumbing (Structural)**: Functions like `discover_fast_market_markets`, `get_client`, and the daily budget logic are core infrastructure. 
+*   **The Alpha (Replaceable)**: The decision brain lives in `run_fast_market_strategy` (~lines 570-580). 
+
+### How to Remix:
+1. **Find the Brain**: Modify `is_trend` or `is_reversion` in `fastloop_improved.py`.
+2. **Swap Data Sources**: Replace `fetch_nofx_oi` or `fetch_binance_orderbook` with your own API calls (e.g., Glassnode, Santiment, or a custom model).
+3. **Customize Sizing**: Edit `calculate_position_size` to implement Kelly Criterion or fixed-lot strategies.
+
+*The default "Triple-Trigger" is just one example of a high-conviction setup — use this template to wire your own strategy into Polymarket's pipes.*
 
 ## 🤖 AI Operator Policy
 

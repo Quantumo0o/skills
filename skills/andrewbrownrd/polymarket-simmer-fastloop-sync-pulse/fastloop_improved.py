@@ -602,8 +602,8 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, quiet=False):
             market_id=target_market_id,
             side=side,
             amount=p_size,
-            source="sdk:fastloop",
-            skill_slug="polymarket-fast-loop",
+            source=TRADE_SOURCE,
+            skill_slug=SKILL_SLUG,
             reasoning=reason
         )
         if result.success:
