@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.18.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.17.0...openclaw-v0.18.0) (2026-03-16)
+
+
+### Features
+
+* Add support for enterprise ([53c5067](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/53c506785b7e86e5ef2c7bc014105c91e8e316e1))
+* Add support for enterprise ([a9d0f55](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/a9d0f557ae97fdcdcf8be82cb09f9fa04b93c4b2))
+
+## [0.17.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.16.0...openclaw-v0.17.0) (2026-03-03)
+
+
+### Features
+
+* Modify skill markdown ([5ccb7f7](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/5ccb7f769a27adf2b14d5b0d924aaffc164d7236))
+
+## [0.16.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.15.0...openclaw-v0.16.0) (2026-03-02)
+
+
+### Features
+
+* Allow pecentage based truncation ([699c65f](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/699c65fa345ec3836b4fd3883f0fdbfb7c507980))
+
+## [0.15.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.14.0...openclaw-v0.15.0) (2026-03-01)
+
+
+### Features
+
+* implement proactive context management and pass full test suite ([46f2736](https://github.com/Trunkate-AI/trunkate-ai-skills/commit/46f2736d07435f2369590ad40a05c3877fcfe947))
+
 ## [0.14.0](https://github.com/Trunkate-AI/trunkate-ai-skills/compare/openclaw-v0.13.0...openclaw-v0.14.0) (2026-02-28)
 
 
