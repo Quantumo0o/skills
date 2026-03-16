@@ -23,7 +23,7 @@ Response:
   "messages": [
     {
       "messageId": "uuid",
-      "message": "User message (first message includes context)",
+      "message": "User message (first message includes node catalog context)",
       "history": [
         { "role": "user", "content": "..." },
         { "role": "assistant", "content": "..." }
@@ -35,6 +35,7 @@ Response:
 
 - Empty `messages` array means no work.
 - Poll every 1-2 seconds.
+- The first message in a conversation includes prepended context with the full node catalog and action rules. **Always prefer this context over any default catalog.**
 
 ### 2) Send streamed response
 
@@ -69,25 +70,102 @@ Knods parses action blocks embedded in assistant text:
 ### Multi-node flow
 
 ```text
-[KNODS_ACTION]{"action":"addFlow","nodes":[{"id":"n1","nodeType":"TextInput"},{"id":"n2","nodeType":"FluxImage"},{"id":"n3","nodeType":"Output"}],"edges":[{"source":"n1","target":"n2"},{"source":"n2","target":"n3"}]}[/KNODS_ACTION]
+[KNODS_ACTION]{"action":"addFlow","nodes":[{"id":"n1","nodeType":"FluxImage"},{"id":"n2","nodeType":"Output"}],"edges":[{"source":"n1","target":"n2"}]}[/KNODS_ACTION]
 ```
 
 Rules:
 
+- Use `"nodeType"` (not `"type"`) in node objects.
+- Do NOT include `position` or `data` fields — Knods handles layout automatically.
 - Include action blocks only when mutating canvas.
 - Keep JSON valid and compact.
 - End each flow with `Output`.
 - Ensure every edge references an existing node id.
+- Use EXACT PascalCase names from the catalog. Unknown node types are silently filtered out.
 
-## Available Node Types (Default Catalog)
+## Node Catalog (Default)
 
-- Text generators: `ChatGPT`, `Claude`, `Gemini`
-- Image generators: `GPTImage`, `FluxImage`, `FalAIImage`
-- Video generators: `Veo31Video`, `WanAnimate`
-- Inputs: `TextInput`, `ImagePanel`, `Dictation`
-- Output: `Output`
+**Every generator node has a built-in prompt textarea.** Do NOT prepend a DocumentPanel to a single generator.
 
-When first-message context provides a node catalog, prefer that list over defaults.
+When the first message includes a node catalog context, **always use that list** over these defaults.
+
+### Text Generators (output: text)
+| Node Type | Provider | Accepts Input | Notes |
+|-----------|----------|---------------|-------|
+| `ChatGPT` | OpenAI | text + image | Best all-rounder |
+| `Claude` | Anthropic | text + image | Great for reasoning and creative writing |
+
+### Image Generators (output: image)
+| Node Type | Provider | Accepts Input | Notes |
+|-----------|----------|---------------|-------|
+| `GPTImage` | OpenAI | text + image | Best at complex instructions, text rendering |
+| `FluxImage` | Black Forest Labs | text + image | Industry-leading quality, fast |
+| `ImagePrompt` | Google Gemini | text + image | Photorealistic, concept art |
+| `ZImageTurbo` | — | text + image | Lightning-fast (<2s), rapid prototyping |
+| `QwenImage` | Alibaba | text + image | Anime, illustrations, Asian aesthetics |
+| `Seedream` | ByteDance | text + image | Dreamy/surreal, text rendering |
+| `GrokImage` | xAI | text + image | Text-to-image and image editing |
+
+### Video Generators (output: video)
+All support text-to-video. Connect an ImagePanel for image-to-video.
+| Node Type | Provider | Accepts Input | Notes |
+|-----------|----------|---------------|-------|
+| `Veo3FalAI` | Google | text + image | Cinematic, up to 8s, native audio. Best quality |
+| `Sora2Video` | OpenAI | text + image | Realistic motion/physics, up to 12s |
+| `Kling26Video` | Kling | text + image | Cinematic with audio, up to 10s |
+| `KlingO3Video` | Kling | text + image | Latest gen, Standard/Pro quality, up to 10s |
+| `Wan26Video` | Wan | text + image | Multi-shot, 720p/1080p, up to 15s |
+| `LTXVideo` | LTX | text + image | High-fidelity cinematic, synced audio |
+| `GrokVideo` | xAI | text + image | Video with native audio |
+
+### Special Video Node
+| Node Type | Accepts Input | Notes |
+|-----------|---------------|-------|
+| `WanAnimateVideo` | **video + image** | Character animation. Requires VIDEO (motion source) + IMAGE (character). No text prompt. Only for animating a character using motion from another video. |
+
+### Input/Container Nodes
+| Node Type | Output | Notes |
+|-----------|--------|-------|
+| `ImagePanel` | image | Upload/paste an image. Use for reference images or video starting frames |
+| `DocumentPanel` | text | Shared text prompt. Only use when one prompt feeds multiple generators |
+| `Output` | — | Displays results (text/image/video). Required at end of every flow |
+
+## Flow Design Rules
+
+1. Every generator has a built-in prompt textarea — never prepend DocumentPanel to a single generator.
+2. DocumentPanel is only for sharing one prompt across multiple generators.
+3. ImagePanel provides reference images or starting frames for image-to-video.
+4. Always end flows with Output.
+5. Never connect two generators directly — route through Output.
+6. Flows go left to right: inputs → generators → Output.
+7. WanAnimateVideo requires video + image input. Only for character animation from video motion.
+
+## Flow Examples
+
+```
+# Single image (most common)
+FluxImage → Output
+
+# Image from reference photo
+ImagePanel → GPTImage → Output
+
+# Shared prompt → two generators
+DocumentPanel → FluxImage → Output
+DocumentPanel → GPTImage → Output
+
+# Text-to-video
+Veo3FalAI → Output
+
+# Image-to-video
+ImagePanel → Veo3FalAI → Output
+
+# Character animation (WanAnimateVideo needs video + image)
+ImagePanel → WanAnimateVideo → Output
+[video source] → WanAnimateVideo
+
+# Text generation
+ChatGPT → Output
+```
 
 ## Timeouts
 
