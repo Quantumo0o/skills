@@ -3,11 +3,16 @@
   "slug": "lyrics",
   "displayName": "Lyrics",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773661596190,
-    "commit": "https://github.com/openclaw/skills/commit/5a53fdb75f6b680712890c09e26ebe09efebef27"
+    "version": "1.0.5",
+    "publishedAt": 1773663898694,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773661596190,
+      "commit": "https://github.com/openclaw/skills/commit/5a53fdb75f6b680712890c09e26ebe09efebef27"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773580307937,
