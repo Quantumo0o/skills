@@ -3,9 +3,15 @@
   "slug": "gaode",
   "displayName": "Gaode",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773534034009,
-    "commit": "https://github.com/openclaw/skills/commit/4c5212a49b3043836e9780b226efbb0f2631b062"
+    "version": "1.0.0",
+    "publishedAt": 1773652609085,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773534034009,
+      "commit": "https://github.com/openclaw/skills/commit/4c5212a49b3043836e9780b226efbb0f2631b062"
+    }
+  ]
 }
