@@ -1,0 +1,11 @@
+{
+  "owner": "jolestar",
+  "slug": "bitget-openapi-skill",
+  "displayName": "Bitget OpenAPI Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773622301462,
+    "commit": null
+  },
+  "history": []
+}
