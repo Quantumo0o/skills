@@ -3,11 +3,16 @@
   "slug": "ai-competitor-analyzer",
   "displayName": "Ai Competitor Analyzer",
   "latest": {
-    "version": "1.0.41",
-    "publishedAt": 1773631511189,
-    "commit": "https://github.com/openclaw/skills/commit/2272cf854c44972bdb5c2bc2aebb727c7757ab54"
+    "version": "1.0.52",
+    "publishedAt": 1773632965472,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.41",
+      "publishedAt": 1773631511189,
+      "commit": "https://github.com/openclaw/skills/commit/2272cf854c44972bdb5c2bc2aebb727c7757ab54"
+    },
     {
       "version": "1.0.40",
       "publishedAt": 1773631454606,
