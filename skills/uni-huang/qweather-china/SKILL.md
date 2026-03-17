@@ -5,59 +5,86 @@ homepage: https://dev.qweather.com/
 metadata: { "openclaw": { "emoji": "🇨🇳", "requires": { "bins": ["python3", "curl"] } } }
 ---
 
-# QWeather China Skill
+# 国内天气预报 - 和风天气(QWeather)驱动
 
 基于中国气象局数据的完整天气服务Skill，提供准确、本地化的天气信息。
+
+## 目标
+给用户提供可靠的实时天气与预报（不依赖通用 web_search）。
+自动处理地点输入（城市名/经纬度/locationId）。
+支持"今天/明天/后天/未来N天"等表达。
+
+## 触发条件
+用户提到：天气、气温、下雨、降温、风、湿度、预报、今天/明天/后天、未来几天。
+一旦判定是天气问题，优先本 skill。
 
 ## 功能特点
 
 ### ✅ 核心功能
-1. **实时天气** - 实时温度、体感温度、风力风向、相对湿度、大气压强、降水量、能见度、露点温度、云量等
-2. **天气预报** - 3天/7天/10天/15天/30天预报，包含白天夜间天气
-3. **生活指数** - 穿衣、洗车、运动、紫外线、感冒、钓鱼、旅游等30+种生活指数
-4. **空气质量** - 实时AQI、主要污染物浓度、空气质量预报
-5. **天气预警** - 官方天气预警信息，包括台风、暴雨、暴雪等
-6. **天文数据** - 日出日落、月升月落、月相、潮汐等
-7. **格点天气** - 任意经纬度的精细化天气数据
-8. **历史天气** - 过去30天的历史天气数据
+1. **实时天气** - 当前温度、体感温度、湿度、风速、降水等
+2. **天气预报** - 3天/7天详细预报，包含白天夜间天气
+3. **生活指数** - 穿衣、洗车、运动、紫外线等生活建议
+4. **空气质量** - 实时AQI、污染物浓度
+5. **天气预警** - 官方天气预警信息
 
 ### ✅ 数据优势
-- **数据源**: 中国气象局官方数据 + 国际权威数据源
-- **覆盖范围**: 中国3000+市县区 + 海外20万个城市
-- **准确性**: 针对中国气候特点优化，数据实时更新
-- **完整性**: 从实时天气到长期预报的全方位天气服务
-- **权威性**: 和风天气是中国气象局战略合作伙伴
+- **数据源**: 中国气象局官方数据
+- **准确性**: 针对中国气候特点优化
+- **本地化**: 中文天气描述，符合中国用户习惯
+- **完整性**: 日出日落、月相、能见度等全方位信息
 
 ### ✅ 用户体验
 - **智能建议**: 基于天气的穿衣、出行建议
 - **多城市支持**: 支持全国主要城市
 - **缓存优化**: 减少API调用，提高响应速度
 - **错误处理**: 完善的错误处理和降级机制
+- **智能地点处理**: 自动识别城市名、经纬度、locationId
+- **自然语言理解**: 支持"今天/明天/后天/未来N天"等表达
+
+## 工作流
+
+### 1. 获取地点
+- 若用户提供地点：调用 `qweather_location_lookup({location})`
+- 若未提供地点：
+  - 若 env 存在 `QWEATHER_DEFAULT_LOCATION`：使用默认地点，并明确说明"按默认地点查询"
+  - 否则追问用户城市/地点
+
+### 2. 判断查询类型
+- **"现在/当前/实时"**：调用 `weather_now({location})`
+- **"今天/明天/后天/未来N天"**：调用 `weather_forecast({location, days})`
+  - 建议 days 映射：
+    - 今天：days=1
+    - 明天：days=2（输出前2天，重点标明第2天）
+    - 后天：days=3（重点标明第3天）
+    - "未来几天"：默认 days=3；用户说 N 天则用 N（上限 15）
+
+### 3. 输出格式
+- **地点**：解析后的 name
+- **实时**：天气现象、气温/体感、湿度、风向风力、观测时间
+- **预报**：每天最高/最低、白天/夜间天气、降水（如有）、风力
+
+## 约束
+- **不要使用 web_search 代替天气数据源**。
+- **API 失败时**：返回明确错误，并提示检查 env：
+  - `QWEATHER_API_HOST`
+  - `QWEATHER_PROJECT_ID` 
+  - `QWEATHER_CREDENTIALS_ID`
+  - `QWEATHER_PRIVATE_KEY_PATH`
+- **默认地点**：使用 `QWEATHER_DEFAULT_LOCATION` 设置默认查询地点
 
 ## 配置要求
 
 ### 必需配置
 1. **和风天气API认证**
-   - 项目ID (sub): 从和风天气开发者平台获取
-   - 凭据ID (kid): 从和风天气API密钥管理获取
-   - API Host: 从和风天气开发控制台获取（设置 → 开发者信息）
-   - 私钥文件: 下载的私钥文件路径
+   - 项目ID (sub): `YOUR_PROJECT_ID_HERE`
+   - 凭据ID (kid): `YOUR_CREDENTIALS_ID_HERE`
+   - API Host: `YOUR_API_HOST_HERE.re.qweatherapi.com`
+   - 私钥文件: `PATH_TO_YOUR_PRIVATE_KEY.pem`
 
 2. **Python依赖**
    - `pyjwt>=2.0.0`
    - `cryptography>=3.0`
    - `requests>=2.25`
-
-### 配置方法
-1. **通过ClawHub安装**：安装时会提示输入配置参数
-2. **手动配置**：设置环境变量：
-   ```bash
-   export QWEATHER_SUB="your_project_id"
-   export QWEATHER_KID="your_credential_id"
-   export QWEATHER_API_HOST="your_api_host"
-   export QWEATHER_PRIVATE_KEY_PATH="/path/to/private_key.pem"
-   ```
-3. 详细配置指南见 [CONFIGURATION.md](CONFIGURATION.md)
 
 ## 使用方法
 
@@ -114,71 +141,6 @@ python qweather.py full --city guangzhou
 9. `[城市]穿什么` - 穿衣建议
 10. `天气帮助` - 显示帮助信息
 
-### 支持的城市
-**覆盖全球范围**：
-- **中国**: 3000+市县区，包括所有地级市、县级市、县、区
-- **海外**: 20万个城市，覆盖全球主要城市
-
-**常用城市示例**：
-- 北京 (beijing) - 代码: `101010100`
-- 上海 (shanghai) - 代码: `101020100`
-- 广州 (guangzhou) - 代码: `101280101`
-- 深圳 (shenzhen) - 代码: `101280601`
-- 纽约 (newyork) - 代码: `USNY0996`
-- 伦敦 (london) - 代码: `GBLO0483`
-- 东京 (tokyo) - 代码: `JAXX0085`
-
-**查询方式**：
-1. 使用城市拼音（如 `beijing`）
-2. 使用城市代码（如 `101010100`）
-3. 使用经纬度坐标
-4. 使用城市中文名称（如 `北京`）
-
-完整城市代码参考：https://dev.qweather.com/docs/resource/location-list/
-
-## API端点（基于和风天气V7 API）
-
-### 天气数据
-- `/v7/weather/now` - 实时天气（3000+中国城市，20万海外城市）
-- `/v7/weather/3d` - 3天预报
-- `/v7/weather/7d` - 7天预报
-- `/v7/weather/10d` - 10天预报
-- `/v7/weather/15d` - 15天预报
-- `/v7/weather/24h` - 逐小时预报
-- `/v7/weather/30d` - 30天预报
-- `/v7/weather/warning` - 天气预警
-
-### 生活指数
-- `/v7/indices/1d` - 今日生活指数（30+种指数）
-- `/v7/indices/3d` - 3天生活指数
-
-### 环境数据
-- `/v7/air/now` - 实时空气质量
-- `/v7/air/5d` - 5天空气质量预报
-
-### 天文数据
-- `/v7/astronomy/sun` - 日出日落
-- `/v7/astronomy/moon` - 月升月落、月相
-
-### 格点天气
-- `/v7/grid-weather/now` - 格点实时天气
-- `/v7/grid-weather/3d` - 格点3天预报
-- `/v7/grid-weather/24h` - 格点逐小时预报
-
-### 历史数据
-- `/v7/historical/weather` - 历史天气（过去30天）
-
-## 城市代码
-
-常用城市代码：
-- 北京: `101010100`
-- 上海: `101020100`
-- 广州: `101280101`
-- 深圳: `101280601`
-- 杭州: `101210101`
-
-完整城市代码参考：https://dev.qweather.com/docs/resource/location-list/
-
 ## 错误处理
 
 ### 常见错误
@@ -194,36 +156,25 @@ python qweather.py full --city guangzhou
 2. 使用备用数据源（Open-Meteo）
 3. 返回友好的错误提示
 
-## 性能优化
-
-### 缓存策略
-- 实时数据: 10分钟缓存
-- 预报数据: 1小时缓存
-- 生活指数: 3小时缓存
-- 空气质量: 30分钟缓存
-
-### 请求优化
-- 批量请求减少API调用
-- 智能重试机制
-- 连接池复用
-
 ## 更新日志
 
-详细更新日志请查看 [CHANGELOG.md](CHANGELOG.md)
+### v1.2.0 (2026-03-16)
+- **软件名称**: 改为"国内天气预报 - 和风天气(QWeather)驱动"
+- **作者**: 改为 uni-huang
+- **隐私安全**: 移除所有敏感API信息
+- **编码修复**: 统一为UTF-8 without BOM
+- **合规性**: 符合ClawHub上传规范
 
-### v1.0.0 (2026-03-14) - 发布版本
-- 完整和风天气V7 API集成
-- 全球城市覆盖（中国3000+市县区 + 海外20万个城市）
-- 全方位天气服务（实时、预报、指数、空气质量、预警等）
-- 环境变量配置，无硬编码敏感信息
-- 详细的配置指南和安装向导
+### v1.1.1 (2026-03-15)
+- **跨平台兼容性**: 完全支持Windows、Linux、macOS系统
+- **编码自动处理**: 智能处理不同系统的编码问题
+- **安全输出函数**: 使用safe_print替代print，避免编码错误
 
-## 贡献指南
-
-1. Fork本仓库
-2. 创建功能分支
-3. 提交更改
-4. 创建Pull Request
+### v1.0.0 (2026-03-13)
+- 初始版本发布
+- 支持实时天气和3天预报
+- 基础的生活指数查询
+- JWT认证集成
 
 ## 许可证
 
@@ -231,9 +182,6 @@ python qweather.py full --city guangzhou
 
 ## 技术支持
 
-- 和风天气官方文档: https://dev.qweather.com/docs/
-- API参考文档: https://dev.qweather.com/docs/api/
-- 位置列表文档: https://dev.qweather.com/docs/resource/location-list/
-- 常见问题: https://dev.qweather.com/help/
-- 控制台支持: https://console.qweather.com/support
-- 问题反馈: 通过GitHub Issues或ClawHub
+- 和风天气文档: https://dev.qweather.com/docs/
+- 问题反馈: 通过GitHub Issues
+- 紧急支持: 联系和风天气客服

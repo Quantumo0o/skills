@@ -1,11 +1,11 @@
 {
   "qweather": {
     "enabled": true,
-    "api_host": "${QWEATHER_API_HOST}",
+    "api_host": "YOUR_API_HOST_HERE.re.qweatherapi.com",
     "jwt": {
-      "kid": "${QWEATHER_KID}",
-      "sub": "${QWEATHER_SUB}",
-      "private_key_path": "${QWEATHER_PRIVATE_KEY_PATH}"
+      "kid": "YOUR_CREDENTIALS_ID_HERE",
+      "sub": "YOUR_PROJECT_ID_HERE",
+      "private_key_path": "PATH_TO_YOUR_PRIVATE_KEY.pem"
     },
     "cache": {
       "enabled": true,
@@ -15,7 +15,7 @@
         "indices": 10800,
         "air": 1800
       },
-      "directory": "${QWEATHER_CACHE_DIR:~/.openclaw/cache/qweather}"
+      "directory": "~/.cache/qweather"
     },
     "default_city": "beijing",
     "cities": {
@@ -28,12 +28,7 @@
       "wuhan": "101200101",
       "nanjing": "101190101",
       "xian": "101110101",
-      "chongqing": "101040100",
-      "newyork": "USNY0996",
-      "london": "GBLO0483",
-      "tokyo": "JAXX0085",
-      "paris": "FRXX0076",
-      "sydney": "ASXX0112"
+      "chongqing": "101040100"
     }
   },
   "openclaw_integration": {

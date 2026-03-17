@@ -1,11 +1,17 @@
 {
   "owner": "uni-huang",
   "slug": "qweather-china",
-  "displayName": "QWeather China",
+  "displayName": "国内天气预报 - 和风天气(QWeather)驱动",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773512206252,
-    "commit": "https://github.com/openclaw/skills/commit/d5e50b8896e0a2be0b89788c2f6aee578f2b0b05"
+    "version": "1.2.0",
+    "publishedAt": 1773598664399,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773512206252,
+      "commit": "https://github.com/openclaw/skills/commit/d5e50b8896e0a2be0b89788c2f6aee578f2b0b05"
+    }
+  ]
 }
