@@ -1,11 +1,17 @@
 {
   "owner": "sunjian",
   "slug": "weryai-image",
-  "displayName": "WeryAI Image",
+  "displayName": "Weryai Image",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773638087760,
-    "commit": "https://github.com/openclaw/skills/commit/b9997d08c41a5c9ab8f2a7bc2218a01e44f6f5e8"
+    "version": "1.2.0",
+    "publishedAt": 1773747847530,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773638087760,
+      "commit": "https://github.com/openclaw/skills/commit/b9997d08c41a5c9ab8f2a7bc2218a01e44f6f5e8"
+    }
+  ]
 }

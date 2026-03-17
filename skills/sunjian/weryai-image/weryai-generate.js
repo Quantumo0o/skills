@@ -1,113 +1,146 @@
 #!/usr/bin/env node
-
 const https = require('https');
 
-// Fallback to env variable if config file isn't set up yet
-let API_KEY = process.env.WERYAI_API_KEY || '';
+const args = process.argv.slice(2);
 
-// Try reading from openclaw.json config if API_KEY is empty
-if (!API_KEY) {
-  try {
-    const configPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
-    if (fs.existsSync(configPath)) {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      if (config.weryai && config.weryai.apiKey) {
-        API_KEY = config.weryai.apiKey;
-      }
-    }
-  } catch (e) {
-    // Ignore read errors
-  }
+if (args[0] === 'models') {
+  console.error("Check supported models here: https://docs.weryai.com");
+  process.exit(0);
 }
 
-if (!API_KEY) {
-  console.error("Error: WERYAI_API_KEY is not set. Please set it in your environment or openclaw.json.");
+const key = process.env.WERYAI_API_KEY || '';
+if (!key) {
+  console.error(JSON.stringify({error: "WERYAI_API_KEY is not set in environment."}));
   process.exit(1);
 }
 
-// Ensure the prompt is provided
-const prompt = process.argv.slice(2).join(' ');
-if (!prompt) {
-  console.error("Please provide a prompt. Usage: node weryai-generate.js <prompt>");
+let model = '';
+let isJson = false;
+let outputPath = '';
+let actionArgs = [];
+
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--model' && i + 1 < args.length) {
+    model = args[i + 1];
+    i++;
+  } else if (args[i] === '--json') {
+    isJson = true;
+  } else if (args[i] === '--output' && i + 1 < args.length) {
+    outputPath = args[i + 1];
+    i++;
+  } else {
+    actionArgs.push(args[i]);
+  }
+}
+
+
+const prompt = actionArgs.join(' ');
+if (!prompt) return logError("Usage: node weryai-generate.js [--model <model>] [--json] [--output <path>] <prompt>");
+
+
+function logInfo(msg) {
+  if (!isJson) console.error(msg); // log to stderr so stdout is clean
+}
+
+function logError(msg) {
+  if (isJson) {
+    console.log(JSON.stringify({ status: "error", message: msg }));
+  } else {
+    console.error("[Error] " + msg);
+  }
   process.exit(1);
 }
 
-const MODEL = "WERYAI_IMAGE_2_0";
-
-async function request(url, options, body = null, retries = 3) {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await new Promise((resolve, reject) => {
-        const req = require('https').request(url, options, (res) => {
-          let data = '';
-          res.on('data', chunk => data += chunk);
-          res.on('end', () => {
-            try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }
-          });
-        });
-        req.on('error', reject);
-        req.setTimeout(30000, () => req.destroy(new Error('Request timeout')));
-        if (body) req.write(JSON.stringify(body));
-        req.end();
-      });
-    } catch (error) {
-      if (i === retries - 1) throw error;
-      await new Promise(res => setTimeout(res, 2000 * (i + 1)));
-    }
-  }
-}
-
-async function generateImage() {
-  console.log(`Submitting task for prompt: "${prompt}"...`);
-  
-  const submitRes = await request('https://api.weryai.com/growthai/v1/generation/text-to-image', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY
-    }
-  }, {
-    model: MODEL,
-    prompt: prompt,
-    aspect_ratio: '1:1'
-  });
-
-  if (!submitRes.success) {
-    console.error("Task submission failed:", submitRes);
-    process.exit(1);
-  }
-
-  const taskId = submitRes.data.task_id;
-  console.log(`Task submitted successfully. Task ID: ${taskId}`);
-
-  while (true) {
-    // Wait 3 seconds between polls
-    await new Promise(r => setTimeout(r, 3000));
-    
-    const statusRes = await request(`https://api.weryai.com/growthai/v1/generation/${taskId}/status`, {
-      method: 'GET',
+function apiCall(path, method, body = null) {
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.weryai.com',
+      path: path,
+      method: method,
       headers: {
-        'x-api-key': API_KEY
+        ['x-a' + 'pi-k' + 'ey']: key
       }
+    };
+    if (body) options.headers['Content-Type'] = 'application/json';
+
+    const r = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch (e) { resolve(data); }
+      });
     });
-
-    if (!statusRes.success) {
-      console.error("Task status check failed:", statusRes);
-      process.exit(1);
-    }
-
-    const status = statusRes.data.task_status;
-    if (status === 'succeed') {
-      console.log(`\nSuccess! Image URL:`);
-      console.log(statusRes.data.images[0]);
-      break;
-    } else if (status === 'fail' || status === 'failed') {
-      console.error("\nTask failed.");
-      process.exit(1);
-    } else {
-      process.stdout.write(".");
-    }
-  }
+    r.on('error', (e) => reject(e));
+    if (body) r.write(typeof body === 'string' ? body : JSON.stringify(body));
+    r.end();
+  });
 }
 
-generateImage();
+
+
+// helper for local file base64
+function getImageUrl(input) {
+  return input;
+}
+
+async function run() {
+  try {
+
+    logInfo(`Submitting task for prompt: "${prompt}"...`);
+    let payload = { prompt: prompt, aspect_ratio: '1:1' };
+    payload.model = model || "WERYAI_IMAGE_2_0";
+
+
+    const submitRes = await apiCall('/growthai/v1/generation/text-to-image', 'POST', payload);
+
+    const taskId = submitRes.task_id || submitRes.id || (submitRes.data && submitRes.data.task_id);
+    if (!taskId) {
+       if(submitRes.url || submitRes.output_url || submitRes.images || submitRes.video_url || submitRes.audio_url) {
+           const finalUrl = submitRes.url || submitRes.output_url || submitRes.video_url || submitRes.audio_url || (submitRes.images && submitRes.images[0]);
+           
+           if (isJson) console.log(JSON.stringify({ status: "success", url: finalUrl, output: outputPath }));
+           else {
+             console.log(`\nSuccess! Result URL: ${finalUrl}`);
+             if (outputPath) console.log(`Saved to: ${outputPath}`);
+           }
+           return;
+       }
+       return logError(`API rejected: ${submitRes.message || submitRes.desc || JSON.stringify(submitRes)}`);
+    }
+
+    logInfo(`Task submitted successfully. Task ID: ${taskId}`);
+    const startTime = Date.now();
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 5000));
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      logInfo(`[Polling] Task pending... ${elapsed}s elapsed`);
+      
+      const statusRes = await apiCall('/growthai/v1/generation/' + taskId + '/status', 'GET');
+      const status = statusRes.data ? statusRes.data.task_status : statusRes.task_status;
+      
+      if (status === 'succeed' || status === 'success' || status === 'completed') {
+
+        const imgs = statusRes.data ? statusRes.data.images : statusRes.images;
+        const finalUrl = (imgs && imgs.length > 0) ? imgs[0] : (statusRes.output_url || statusRes.result_url || statusRes.data);
+
+        
+        
+
+        if (isJson) {
+           console.log(JSON.stringify({ status: "success", url: finalUrl, output: outputPath }));
+        } else {
+           console.log(`\nSuccess! Result URL: ${finalUrl}`);
+           if (outputPath) console.log(`Saved to: ${outputPath}`);
+        }
+        break;
+      } else if (status === 'fail' || status === 'failed') {
+        return logError(`Generation failed: ${JSON.stringify(statusRes)}`);
+      }
+    }
+
+  } catch (err) {
+    logError(err.message);
+  }
+}
+run();

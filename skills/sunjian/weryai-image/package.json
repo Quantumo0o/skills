@@ -1,7 +1,7 @@
 {
   "name": "@openclaw/skill-weryai-image",
-  "version": "1.1.0",
-  "description": "Generate AI images using the WeryAI API.",
+  "version": "1.1.6",
+  "description": "Generate AI images using WeryAI (Flux, SD3). (Auto-reads API key)",
   "author": "OpenClaw Community",
   "license": "MIT",
   "keywords": [
@@ -9,6 +9,14 @@
     "skill",
     "image",
     "weryai",
-    "generation"
+    "generation",
+    "agent-optimized",
+    "token-efficient",
+    "deterministic",
+    "api-wrapper",
+    "zero-human-intervention",
+    "autonomous",
+    "text-to-image",
+    "generate-image"
   ]
 }
