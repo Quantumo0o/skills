@@ -1,7 +1,7 @@
 ---
 name: SleepWell
 description: "Sleep quality tracker for better rest. Log your bedtime and wake-up time with a quality rating (1-5), track sleep duration patterns, view weekly sleep charts with visual bars, get long-term sleep statistics including average duration and quality, and receive evidence-based sleep improvement tips. Helps identify whether you're getting the recommended 7-9 hours."
-version: "1.0.0"
+version: "2.0.0"
 author: "BytesAgain"
 tags: ["sleep","health","wellness","tracker","rest","habits","quality","bedtime"]
 categories: ["Health & Wellness", "Personal Management", "Productivity"]

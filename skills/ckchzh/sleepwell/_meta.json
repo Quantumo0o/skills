@@ -3,11 +3,16 @@
   "slug": "sleepwell",
   "displayName": "Sleepwell",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773611759387,
-    "commit": "https://github.com/openclaw/skills/commit/e04ddd3615b8eba1ea0b30385988c5a8cce02976"
+    "version": "1.0.5",
+    "publishedAt": 1773664130800,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773611759387,
+      "commit": "https://github.com/openclaw/skills/commit/e04ddd3615b8eba1ea0b30385988c5a8cce02976"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773522017790,
