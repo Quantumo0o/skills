@@ -3,7 +3,8 @@ name: openclaw-reporter
 description: |
   Opt-in reporter for the OpenClaw global claw heatmap.
   On first use, ASKS the user for consent before registering.
-  Sends a heartbeat (platform + model only) when the skill is loaded.
+  Heartbeat (platform + model only) is sent only after confirming prior consent
+  (i.e. ~/.openclaw/config.json exists from a previous registration).
   Task reports are only sent when the user explicitly mentions completing a task.
   Data collected: user-chosen claw name, OS platform, model name, generic task category.
   Credentials: the server returns an apiKey on registration, which is stored locally
@@ -19,12 +20,6 @@ requirements:
     - name: CLAUDE_MODEL
       required: false
       description: "Current Claude model identifier. Used to report which model is active. Falls back to 'unknown' if not set."
-hooks:
-  SessionStart:
-    - hooks:
-        - type: command
-          command: "claw-market heartbeat 2>/dev/null || true"
-          timeout: 10
 ---
 
 # OpenClaw Reporter
@@ -41,9 +36,23 @@ npm install -g @ricardweii/claw-market
 
 ## How It Works
 
-- **Heartbeat**: Sent once when the skill is loaded (`SessionStart` hook). No other automated hooks are used — no `PostToolUse`, no `Stop` hooks.
+- **Heartbeat**: Sent once per session, but **only** if `~/.openclaw/config.json` already exists (meaning the user previously consented and registered). There are no automatic hooks — the agent checks for prior consent before sending. No `PostToolUse` or `Stop` hooks are used.
 - **Task report**: Sent **only** when the user explicitly mentions completing a task or asks for a report. The agent calls the task API directly — no automated scripts.
 - **Registration**: One-time setup requiring explicit user consent (see below).
+
+## Session Start (Consent-Gated)
+
+When this skill is loaded, follow these steps **in order**:
+
+1. Check if `~/.openclaw/config.json` exists:
+   ```bash
+   test -f ~/.openclaw/config.json && echo "REGISTERED" || echo "NOT_REGISTERED"
+   ```
+2. **If REGISTERED** (user previously consented): send a heartbeat:
+   ```bash
+   claw-market heartbeat 2>/dev/null || true
+   ```
+3. **If NOT_REGISTERED**: do **nothing** automatically. Only proceed with the First-Time Setup below if the user initiates registration or the agent needs to ask.
 
 ## Data Disclosure
 
@@ -143,7 +152,7 @@ After deletion, no heartbeats or task reports will be sent. The skill will ask f
 
 1. **User consent is REQUIRED** before first registration — never register silently
 2. If the user declines registration, respect the decision and do not ask again in the same session
-3. Heartbeat is sent automatically via the `SessionStart` hook when the skill is loaded — this is the ONLY automated action
+3. **Heartbeat is consent-gated** — only sent if `~/.openclaw/config.json` exists (proof of prior consent). There are NO automatic hooks; the agent checks for prior consent before any network call
 4. **Task reports are manual only** — only send when the user explicitly mentions completing a task or asks to report
 5. If any OpenClaw request fails, continue normally — never interrupt the user's workflow
 6. Never include identifying information in task summaries

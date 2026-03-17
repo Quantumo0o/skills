@@ -3,11 +3,16 @@
   "slug": "openclaw-reporter",
   "displayName": "OpenClaw Reporter",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1773558240906,
-    "commit": "https://github.com/openclaw/skills/commit/6e1894f9c5cda7a817b3e372557b357c2bff7a42"
+    "version": "1.0.13",
+    "publishedAt": 1773585655319,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1773558240906,
+      "commit": "https://github.com/openclaw/skills/commit/6e1894f9c5cda7a817b3e372557b357c2bff7a42"
+    },
     {
       "version": "1.0.11",
       "publishedAt": 1773389084192,
