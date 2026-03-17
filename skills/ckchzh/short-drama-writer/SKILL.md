@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Short Drama Writer
 description: "Short Drama Writer. Use when you need short drama writer capabilities. Triggers on: short drama writer."
   短剧剧本生成器。竖屏短剧、微短剧、剧情设计、角色塑造。Short drama script generator for vertical video dramas, plot design, character building. 短剧脚本、微短剧、编剧工具。Use when writing short drama scripts.
+author: BytesAgain
 ---
 # Short Drama Writer
 
@@ -23,7 +25,6 @@ description: "Short Drama Writer. Use when you need short drama writer capabilit
 - **hook** — hook
 - **monetize** — monetize
 
-
 ## 专业建议
 
 - 钩子: 前3秒决定用户是否继续看**
@@ -37,3 +38,17 @@ description: "Short Drama Writer. Use when you need short drama writer capabilit
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+short-drama-writer help
+
+# Run
+short-drama-writer run
+```
+
+## Commands
+
+Run `short-drama-writer help` to see all available commands.
