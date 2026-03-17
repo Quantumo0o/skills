@@ -3,9 +3,15 @@
   "slug": "idiom-dictionary",
   "displayName": "Idiom Dictionary",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447596256,
-    "commit": "https://github.com/openclaw/skills/commit/5977bee8f789f6d4978e7ab9698e023e9e206d3f"
+    "version": "2.3.5",
+    "publishedAt": 1773666236436,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447596256,
+      "commit": "https://github.com/openclaw/skills/commit/5977bee8f789f6d4978e7ab9698e023e9e206d3f"
+    }
+  ]
 }
