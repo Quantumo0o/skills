@@ -1,9 +1,10 @@
 ---
 name: landing
-version: 1.0.0
+version: "2.0.0"
 author: BytesAgain
 license: MIT-0
 tags: [landing, tool, utility]
+description: "Landing - command-line tool for everyday use"
 ---
 
 # Landing
@@ -46,7 +47,6 @@ landing export json
 
 ## How It Works
 
-Processes input with built-in logic and outputs structured results. All data stays local.
 
 ## Tips
 
