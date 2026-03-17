@@ -1,0 +1,11 @@
+{
+  "owner": "gonzachee",
+  "slug": "my-firewall-v2",
+  "displayName": "My Firewall v2",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773593443909,
+    "commit": null
+  },
+  "history": []
+}
