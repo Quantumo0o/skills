@@ -2,26 +2,46 @@
 
 const https = require('https');
 
-const API_KEY = process.env.WERYAI_API_KEY;
+
+
+
+const args = process.argv.slice(2);
+if (args[0] === 'models') {
+  console.log("Check supported models here: https://www.weryai.com/api/discovery");
+  process.exit(0);
+}
+
+let API_KEY = process.env.WERYAI_API_KEY || '';
+
+
 
 if (!API_KEY) {
   console.error("Error: WERYAI_API_KEY is not set.");
   process.exit(1);
 }
 
-const prompt = process.argv.slice(2).join(' ');
+let MODEL = "WERYAI_VIDEO_1_0";
+let promptArgs = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === '--model' && i + 1 < args.length) {
+    MODEL = args[i + 1];
+    i++;
+  } else {
+    promptArgs.push(args[i]);
+  }
+}
+const prompt = promptArgs.join(' ');
+
 if (!prompt) {
-  console.error("Please provide a prompt. Usage: node weryai-video.js <prompt>");
+  console.error("Please provide a prompt. Usage: node weryai-video.js [--model <model>] <prompt>");
   process.exit(1);
 }
-
-const MODEL = "WERYAI_VIDEO_1_0";
 
 async function request(url, options, body = null, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       return await new Promise((resolve, reject) => {
-        const req = require('https').request(url, options, (res) => {
+        const req = https.request(url, options, (res) => {
           let data = '';
           res.on('data', chunk => data += chunk);
           res.on('end', () => {
@@ -41,7 +61,7 @@ async function request(url, options, body = null, retries = 3) {
 }
 
 async function generateVideo() {
-  console.log(`Submitting video task for prompt: "${prompt}"...`);
+  console.log(`Submitting video task for prompt: "${prompt}" using model: ${MODEL}...`);
   
   const submitRes = await request('https://api.weryai.com/growthai/v1/generation/text-to-video', {
     method: 'POST',

@@ -1,11 +1,17 @@
 {
   "owner": "sunjian",
   "slug": "weryai-video",
-  "displayName": "WeryAI Video Gen",
+  "displayName": "Weryai Video",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773453586969,
-    "commit": "https://github.com/openclaw/skills/commit/b9663c29dac86a654a3b1a0c71b75876d38290c0"
+    "version": "1.2.9",
+    "publishedAt": 1773717765877,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773453586969,
+      "commit": "https://github.com/openclaw/skills/commit/b9663c29dac86a654a3b1a0c71b75876d38290c0"
+    }
+  ]
 }

@@ -17,3 +17,11 @@ Generate high-quality AI videos from text prompts using the [WeryAI](https://wer
 ## Usage
 
 Simply ask your agent to generate a video. The agent will run the script, handle the asynchronous status polling, and return the final video URL.
+
+### Supported Models
+You can check all the officially supported models at: [https://www.weryai.com/api/discovery](https://www.weryai.com/api/discovery)
+
+To test it from CLI:
+```bash
+node weryai-video.js models
+```
