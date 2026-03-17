@@ -1,25 +1,23 @@
 ---
 name: bit
-description: 說明 bit-cli skill 的用途、安裝、必要設定與故障排查。
-metadata: {"openclaw": {"requires": {"bins": ["bit", "git", "go", "sudo"], "env": ["BIT_API_KEY"]}, "primaryEnv": "BIT_API_KEY"}}
+description: Explain bit-cli skill purpose, installation, required setup, and troubleshooting.
+metadata: {"openclaw": {"requires": {"bins": ["bit", "git", "go", "sudo"], "env": ["BIT_API_KEY"]}, "primaryEnv": "BIT_API_KEY", "install": [{"id": "go-install", "kind": "go", "label": "Install bit via Go", "bins": ["bit"], "module": "github.com/ParinLL/bit-cli"}]}}
 ---
 
-# Bit CLI Skill（純說明型）
+# Bit CLI Skill (Documentation-Only)
 
-## Skill 用途與觸發情境
+## Skill Purpose And Trigger Scenarios
 
-- 用途：提供 Bit URL Shortener CLI（`bit`）的使用入口，協助建立、查詢、更新、刪除短網址與查看點擊資料。
-- 觸發情境：
-- 使用者提到「短網址」、「bit-cli」、「bit create/list/get/update/delete/clicks」等需求。
-- 使用者想用 OpenClaw 執行 Bit API 相關操作。
-- 使用者需要確認 Bit API 是否可用（例如健康檢查）。
+- Purpose: Provide a usage entry point for the Bit URL Shortener CLI (`bit`) to create, query, update, delete short links, and view click data.
+- Trigger scenarios:
+- The user mentions needs like "short URL", "bit-cli", or commands such as `bit create/list/get/update/delete/clicks`.
+- The user wants to run Bit API operations with OpenClaw.
+- The user needs to verify Bit API availability (for example, a health check).
 
-## 安裝指令（或 GitHub 連結到安裝章節）
+## Installation (GitHub)
 
-- GitHub（本專案）：`https://github.com/ParinLL/bit-cli`
-- README 安裝章節：`https://github.com/ParinLL/bit-cli#build-locally`
-- 安全提醒：從原始碼建置前，先檢視來源 repo 內容與版本是否可信。
-- 安裝指令：
+- Install source: `https://github.com/ParinLL/bit-cli`
+- Install from GitHub:
 
 ```bash
 git clone https://github.com/ParinLL/bit-cli.git
@@ -28,38 +26,94 @@ go build -o bit .
 sudo mv bit /usr/local/bin/
 ```
 
-- 不使用 `sudo` 的替代方式（安裝到使用者目錄）：
+- Review the repository before building from source.
+
+## Required Environment Variables / Permissions
+
+- Required environment variables:
+- `BIT_API_KEY` (required): Bit API authentication key.
+- `BIT_API_URL` (optional): Bit API base URL, default `http://localhost:4000`.
+- Permission requirements:
+- The `bit` executable must be callable from PATH.
+- Installing to `/usr/local/bin` with `sudo mv` requires administrator privileges.
+- If the target API is remote, network connectivity to that API is required.
+
+## Using The `bit` Binary
+
+- Verify installation:
 
 ```bash
-git clone https://github.com/ParinLL/bit-cli.git
-cd bit-cli
-go build -o bit .
-mkdir -p "$HOME/.local/bin"
-mv bit "$HOME/.local/bin/"
-export PATH="$HOME/.local/bin:$PATH"
+which bit
+bit ping
 ```
 
-## 必要環境變數 / 權限
+- Configure API access before running commands:
 
-- 必要環境變數：
-- `BIT_API_KEY`（必填）：Bit API 驗證金鑰。
-- `BIT_API_URL`（選填）：Bit API Base URL，預設 `http://localhost:4000`。
-- 權限需求：
-- `bit` 可執行檔需在 PATH 中可被呼叫。
-- 若用 `sudo mv` 安裝到 `/usr/local/bin`，需要系統管理員權限。
-- 若目標 API 不是本機，需具備對該 API 的網路連線能力。
+```bash
+export BIT_API_URL="http://localhost:4000"
+export BIT_API_KEY="your-api-key"
+```
 
-## 常見錯誤排查
+- Command format:
+- `bit <command> [arguments] [flags]`
+
+- Main commands and when to use them:
+- `bit ping`
+- Use for a quick API health check before other operations.
+- `bit create <url>`
+- Creates a short link for the target URL.
+- `bit list [--limit N] [--cursor X]`
+- Lists links with optional pagination for large datasets.
+- `bit get <id>`
+- Retrieves one link and recent click details.
+- `bit update <id> <new-url>`
+- Replaces the destination URL for an existing short link.
+- `bit delete <id>`
+- Removes the short link by ID.
+- `bit clicks <id> [--limit N] [--cursor X]`
+- Shows click history for a link, with optional pagination.
+
+- Typical workflow:
+
+```bash
+# 1) Confirm service is reachable
+bit ping
+
+# 2) Create a short link
+bit create https://example.com/docs
+
+# 3) List links to find the new ID
+bit list --limit 20
+
+# 4) Inspect one link
+bit get 1
+
+# 5) Check click records
+bit clicks 1 --limit 50
+
+# 6) Update destination if needed
+bit update 1 https://example.com/new-docs
+
+# 7) Delete when no longer needed
+bit delete 1
+```
+
+- Practical tips:
+- Start with `bit ping` whenever requests fail unexpectedly.
+- Use `list`/`get` to confirm IDs before `update` or `delete`.
+- Keep `BIT_API_KEY` in environment variables, not in command history or shared scripts.
+
+## Common Troubleshooting
 
 - `bit: command not found`
-- 原因：CLI 尚未安裝或不在 PATH。
-- 排查：重新 `go build` 並確認 `which bit` 有輸出路徑。
+- Cause: The CLI is not installed or not in PATH.
+- Fix: Rebuild with `go build` and verify `which bit` returns a valid path.
 - `401 Unauthorized` / `403 Forbidden`
-- 原因：`BIT_API_KEY` 缺失或錯誤。
-- 排查：重新設定 `BIT_API_KEY`，並確認伺服器端該 key 仍有效。
+- Cause: `BIT_API_KEY` is missing or invalid.
+- Fix: Reset `BIT_API_KEY` and confirm the key is still valid on the server.
 - `connection refused` / timeout
-- 原因：`BIT_API_URL` 錯誤、Bit 服務未啟動、或網路不可達。
-- 排查：先用 `bit ping` 測試，並確認 API 服務狀態與 URL。
-- 指令執行成功但資料異常
-- 原因：目標 ID 不存在、資料已刪除、或更新內容格式錯誤。
-- 排查：先 `bit list` / `bit get <id>` 驗證資料狀態，再重試操作。
+- Cause: `BIT_API_URL` is incorrect, the Bit service is not running, or the network is unreachable.
+- Fix: Run `bit ping` first, then verify API service status and URL.
+- Command succeeds but data is unexpected
+- Cause: The target ID does not exist, data was deleted, or the update payload format is incorrect.
+- Fix: Validate current state with `bit list` or `bit get <id>`, then retry.

@@ -3,9 +3,15 @@
   "slug": "bit",
   "displayName": "Bit URL Shortener",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773556857097,
-    "commit": "https://github.com/openclaw/skills/commit/2289f5623a455fbdb6666410c8940f7636227ae1"
+    "version": "1.0.5",
+    "publishedAt": 1773557543254,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773556857097,
+      "commit": "https://github.com/openclaw/skills/commit/2289f5623a455fbdb6666410c8940f7636227ae1"
+    }
+  ]
 }
