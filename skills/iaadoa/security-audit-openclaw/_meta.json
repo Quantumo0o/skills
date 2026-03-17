@@ -1,0 +1,11 @@
+{
+  "owner": "iaadoa",
+  "slug": "security-audit-openclaw",
+  "displayName": "OpenClaw Security Audit",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1773636627023,
+    "commit": null
+  },
+  "history": []
+}
