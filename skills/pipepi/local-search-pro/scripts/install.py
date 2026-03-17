@@ -36,9 +36,13 @@ use_default_settings: true
 server:
   bind_address: 0.0.0.0
   port: 8080
+  secret_key: local_search_pro_secure_2026
 
 search:
   safe_search: {safe_search}
+  formats:
+    - html
+    - json
 
 limiter:
   enabled: {limiter}
