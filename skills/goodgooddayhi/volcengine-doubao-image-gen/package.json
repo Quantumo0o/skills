@@ -1,0 +1,48 @@
+{
+  "name": "volcengine-doubao-image-gen",
+  "version": "1.0.3",
+  "description": "豆包图片生成。使用火山引擎 API 生成图片，支持文生图、图生图、单图/组图生成。",
+  "author": "Kit",
+  "license": "MIT",
+  "keywords": [
+    "image-generation",
+    "doubao",
+    "volcengine",
+    "ai-art"
+  ],
+  "main": "scripts/generate_image.py",
+  "scripts": {
+    "generate": "python3 scripts/generate_image.py"
+  },
+  "environment": {
+    "required": [
+      {
+        "name": "ARK_API_KEY",
+        "description": "火山引擎豆包 API Key，用于调用图片生成 API",
+        "type": "secret",
+        "required": true
+      }
+    ],
+    "optional": [
+      {
+        "name": "DOUBAO_MODEL",
+        "description": "豆包模型版本（默认：doubao-seedream-4-5-251128）",
+        "type": "string",
+        "required": false,
+        "default": "doubao-seedream-4-5-251128"
+      }
+    ]
+  },
+  "permissions": {
+    "network": {
+      "outbound": [
+        {
+          "host": "ark.cn-beijing.volces.com",
+          "port": 443,
+          "protocol": "https",
+          "purpose": "调用火山引擎豆包图片生成 API"
+        }
+      ]
+    }
+  }
+}
