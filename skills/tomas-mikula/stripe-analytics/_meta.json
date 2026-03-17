@@ -1,0 +1,11 @@
+{
+  "owner": "tomas-mikula",
+  "slug": "stripe-analytics",
+  "displayName": "Stripe Analytics",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1773536621883,
+    "commit": null
+  },
+  "history": []
+}
