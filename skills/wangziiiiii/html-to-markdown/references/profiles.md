@@ -1,7 +1,7 @@
-# html-to-markdown skill structure
+# html-markdown-converter skill structure
 
 ```
-html-to-markdown/
+html-markdown-converter/
 ├── SKILL.md
 ├── package.json
 ├── scripts/
