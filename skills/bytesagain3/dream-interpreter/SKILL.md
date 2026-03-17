@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Dream Interpreter
 description: "解梦助手。梦境解析、符号含义、反复梦境、清醒梦、梦境日记、心理分析。Dream interpreter with symbols, psychology. 解梦、梦境、周公解梦。. Use when you need dream interpreter capabilities. Triggers on: dream interpreter."
   解梦助手。梦境解析、符号含义、反复梦境、清醒梦、梦境日记、心理分析。Dream interpreter with symbols, psychology. 解梦、梦境、周公解梦。
+author: BytesAgain
 ---
 # Dream Interpreter
 
@@ -26,9 +28,17 @@ A: 主要输出Markdown格式，方便复制和编辑。
   psychology      psychology
 ```
 
-
 ---
 *Dream Interpreter by BytesAgain*
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+- Run `dream-interpreter help` for commands
+- No API keys needed
+
+## Commands
+
+Run `dream-interpreter help` to see all available commands.
+
+- Run `dream-interpreter help` for all commands
