@@ -10,6 +10,37 @@ import sys
 from typing import Any, Dict
 
 
+def _normalize_local_path(user_path: str, field: str) -> Dict[str, Any]:
+    """
+    规范化并限制本地文件路径，只允许在当前工作目录及其子目录内读写。
+    禁止绝对路径和目录穿越（包含 ..）。
+    """
+    if not user_path:
+        return {
+            "error": "invalid_param",
+            "message": f"field '{field}' is empty",
+        }
+
+    # 禁止绝对路径
+    if os.path.isabs(user_path):
+        return {
+            "error": "invalid_path",
+            "message": f"Absolute path is not allowed for '{field}'",
+        }
+
+    # 规范化并检查目录穿越
+    norm = os.path.normpath(user_path)
+    if norm.startswith("..") or norm == "..":
+        return {
+            "error": "invalid_path",
+            "message": f"Path traversal is not allowed for '{field}'",
+        }
+
+    base = os.getcwd()
+    full = os.path.join(base, norm)
+    return {"error": None, "path": full, "relative": norm}
+
+
 def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
     try:
         import qrcode
@@ -24,7 +55,7 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
     if not text:
         return {"error": "missing_param", "message": "text (or data/url) is required"}
 
-    out = req.get("out") or "qrcode.png"
+    out_raw = req.get("out") or "qrcode.png"
     version = req.get("version")
     box_size = int(req.get("box_size", 10))
     border = int(req.get("border", 4))
@@ -52,6 +83,11 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
 
     img = qr.make_image(fill_color=fill_color, back_color=back_color)
 
+    safe = _normalize_local_path(out_raw, "out")
+    if safe["error"]:
+        return safe
+
+    out = safe["path"]
     out_dir = os.path.dirname(out)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -61,7 +97,7 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": "save_failed", "message": str(e), "path": out}
 
     return {
-        "path": out,
+        "path": safe["relative"],
         "text": text,
         "error_correction": ec,
         "box_size": box_size,
@@ -78,26 +114,35 @@ def _decode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
             "message": "Python package 'opencv-python' is required for decode. Please install via: pip install opencv-python",
         }
 
-    path = req.get("path") or req.get("image") or req.get("file")
-    if not path:
+    path_raw = req.get("path") or req.get("image") or req.get("file")
+    if not path_raw:
         return {"error": "missing_param", "message": "path (or image/file) is required"}
 
+    safe = _normalize_local_path(path_raw, "path")
+    if safe["error"]:
+        return safe
+
+    path = safe["path"]
     if not os.path.isfile(path):
-        return {"error": "file_not_found", "message": f"File not found: {path}"}
+        return {"error": "file_not_found", "message": f"File not found: {safe['relative']}"}
 
     img = cv2.imread(path)
     if img is None:
-        return {"error": "load_failed", "message": f"Cannot read image: {path}"}
+        return {"error": "load_failed", "message": f"Cannot read image: {safe['relative']}"}
 
     detector = cv2.QRCodeDetector()
     data, points, _ = detector.detectAndDecode(img)
     if not data:
-        return {"error": "decode_failed", "message": "No QR code detected or decode failed.", "path": path}
+        return {
+            "error": "decode_failed",
+            "message": "No QR code detected or decode failed.",
+            "path": safe["relative"],
+        }
 
     return {
         "text": data,
         "points": points.tolist() if points is not None else None,
-        "path": path,
+        "path": safe["relative"],
     }
 
 
@@ -166,7 +211,7 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
     if not text:
         return {"error": "missing_param", "message": "text (or data/url) is required"}
 
-    out = req.get("out") or "qrcode.png"
+    out_raw = req.get("out") or "qrcode.png"
     version = req.get("version")
     box_size = int(req.get("box_size", 10))
     border = int(req.get("border", 4))
@@ -194,6 +239,11 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
 
     img = qr.make_image(fill_color=fill_color, back_color=back_color)
 
+    safe = _normalize_local_path(out_raw, "out")
+    if safe["error"]:
+        return safe
+
+    out = safe["path"]
     out_dir = os.path.dirname(out)
     if out_dir:
         os.makedirs(out_dir, exist_ok=True)
@@ -203,7 +253,7 @@ def _encode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
         return {"error": "save_failed", "message": str(e), "path": out}
 
     return {
-        "path": out,
+        "path": safe["relative"],
         "text": text,
         "error_correction": ec,
         "box_size": box_size,
@@ -220,26 +270,35 @@ def _decode_qr(req: Dict[str, Any]) -> Dict[str, Any]:
             "message": "Python package 'opencv-python' is required for decode. Please install via: pip install opencv-python",
         }
 
-    path = req.get("path") or req.get("image") or req.get("file")
-    if not path:
+    path_raw = req.get("path") or req.get("image") or req.get("file")
+    if not path_raw:
         return {"error": "missing_param", "message": "path (or image/file) is required"}
 
+    safe = _normalize_local_path(path_raw, "path")
+    if safe["error"]:
+        return safe
+
+    path = safe["path"]
     if not os.path.isfile(path):
-        return {"error": "file_not_found", "message": f"File not found: {path}"}
+        return {"error": "file_not_found", "message": f"File not found: {safe['relative']}"}
 
     img = cv2.imread(path)
     if img is None:
-        return {"error": "load_failed", "message": f"Cannot read image: {path}"}
+        return {"error": "load_failed", "message": f"Cannot read image: {safe['relative']}"}
 
     detector = cv2.QRCodeDetector()
     data, points, _ = detector.detectAndDecode(img)
     if not data:
-        return {"error": "decode_failed", "message": "No QR code detected or decode failed.", "path": path}
+        return {
+            "error": "decode_failed",
+            "message": "No QR code detected or decode failed.",
+            "path": safe["relative"],
+        }
 
     return {
         "text": data,
         "points": points.tolist() if points is not None else None,
-        "path": path,
+        "path": safe["relative"],
     }
 
 

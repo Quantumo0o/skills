@@ -27,7 +27,7 @@ pip install "qrcode[pil]" opencv-python
 
 ## 脚本路径
 
-脚本文件：`skill/qrcode2/qrcode.py`
+脚本文件：`skills/qrcode2/qrcode.py`
 
 ## 使用方式与子命令
 
@@ -39,13 +39,13 @@ pip install "qrcode[pil]" opencv-python
 ### 1. 生成二维码（encode）
 
 ```bash
-python3 skill/qrcode2/qrcode.py encode '{"text":"https://www.jisuapi.com","out":"out/qrcode-jisuapi.png"}'
+python3 skills/qrcode2/qrcode.py encode '{"text":"https://www.jisuapi.com","out":"out/qrcode-jisuapi.png"}'
 ```
 
 也可以使用 `data` 或 `url` 字段代替 `text`：
 
 ```bash
-python3 skill/qrcode2/qrcode.py encode '{
+python3 skills/qrcode2/qrcode.py encode '{
   "url": "https://www.jisuapi.com",
   "out": "out/jisuapi-qr.png",
   "error_correction": "M",
@@ -82,7 +82,7 @@ python3 skill/qrcode2/qrcode.py encode '{
 ### 2. 识别二维码（decode）
 
 ```bash
-python3 skill/qrcode2/qrcode.py decode '{"path":"out/jisuapi-qr.png"}'
+python3 skills/qrcode2/qrcode.py decode '{"path":"out/jisuapi-qr.png"}'
 ```
 
 请求 JSON 字段说明：
@@ -122,6 +122,6 @@ python3 skill/qrcode2/qrcode.py decode '{"path":"out/jisuapi-qr.png"}'
 
 1. 用户提问：「帮我给这个活动页生成一个可以扫码访问的二维码图片。」  
 2. 代理生成一个短 URL 或直接使用活动页 URL，然后调用：  
-   `python3 skill/qrcode2/qrcode.py encode '{"url":"https://www.jisuapi.com","out":"out/jisu-activity-qr.png"}'`  
+   `python3 skills/qrcode2/qrcode.py encode '{"url":"https://www.jisuapi.com","out":"out/jisu-activity-qr.png"}'`  
 3. 将生成的图片路径（或上传后的链接）返回给用户；若需要生成带模板、LOGO 或通过远程接口下发二维码，可再结合 `jisu-qrcode` Skill 使用极速数据的云端二维码服务。  
 
