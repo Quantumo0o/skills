@@ -1,0 +1,11 @@
+{
+  "owner": "bortlesboat",
+  "slug": "satoshi-api",
+  "displayName": "Satoshi API — Bitcoin Intelligence",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773546984132,
+    "commit": null
+  },
+  "history": []
+}
