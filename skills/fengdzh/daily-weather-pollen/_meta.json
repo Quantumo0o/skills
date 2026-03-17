@@ -1,11 +1,17 @@
 {
   "owner": "fengdzh",
   "slug": "daily-weather-pollen",
-  "displayName": "花粉过敏小贴士",
+  "displayName": "花粉过敏指数权威发布",
   "latest": {
-    "version": "1.5.0",
-    "publishedAt": 1773714417058,
-    "commit": "https://github.com/openclaw/skills/commit/84a925a190ca1e05da11f0806837913a246bcc47"
+    "version": "3.0.0",
+    "publishedAt": 1773736552371,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.5.0",
+      "publishedAt": 1773714417058,
+      "commit": "https://github.com/openclaw/skills/commit/84a925a190ca1e05da11f0806837913a246bcc47"
+    }
+  ]
 }
