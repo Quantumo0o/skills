@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: sleep-tracker
 description: "睡眠改善工具。睡眠分析、改善建议、作息规划、睡眠环境优化、小睡指南、睡眠日记。Sleep tracker with analysis, improvement tips, schedule planning, environment optimization, nap guide, sleep journal. Use when you need sleep tracker capabilities. Triggers on: sleep tracker."
+author: BytesAgain
 ---
 # sleep-tracker
 
