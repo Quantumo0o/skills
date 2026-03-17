@@ -240,6 +240,9 @@ Use the best available mix of:
 Key examples:
 - Fed liquidity / rates / HY OAS / VIX / DXY: FRED preferred where possible
 - index / ETF / FX / commodity proxies: Yahoo / Stooq fallback mix
+- MOVE fallback: 10Y Treasury realized-volatility proxy from daily yield changes
+- JPY vol fallback: USDJPY 20-day realized volatility
+- earnings-revision breadth fallback: corporate profits + unit labor costs + productivity + sector relative-strength proxy
 
 ### A-shares / China
 For now, it is acceptable to document the primary operational source simply as:

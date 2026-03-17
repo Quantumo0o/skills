@@ -610,14 +610,19 @@ def fred_latest(series_id: str) -> dict:
         if not points:
             return {"ok": False, "series": series_id, "url": url, "error": "no numeric value"}
         latest_ts, latest = points[-1]
+        prev = points[-2][1] if len(points) >= 2 else None
         date_val = datetime.fromtimestamp(latest_ts, tz=timezone.utc).date().isoformat()
-        return {
+        out = {
             "ok": True,
             "series": series_id,
             "date": date_val,
             "value": latest,
             "url": url,
         }
+        if prev is not None:
+            out["prev"] = prev
+            out["chg"] = latest - prev
+        return out
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "series": series_id, "url": url, "error": str(exc)}
 
@@ -684,6 +689,38 @@ def calc_breadth_proxy(flat: dict[str, dict]) -> dict:
         "new_lows_20d": new_lows_20d,
         "sample_size": total,
     }
+
+
+def calc_realized_vol_pct(series_close: list[float], lookback: int = 20) -> float | None:
+    if len(series_close) < lookback + 1:
+        return None
+    window = series_close[-(lookback + 1):]
+    rets = []
+    for prev, cur in zip(window[:-1], window[1:]):
+        if prev in (None, 0) or cur is None:
+            continue
+        rets.append((cur / prev) - 1.0)
+    if len(rets) < max(5, lookback // 2):
+        return None
+    mean = sum(rets) / len(rets)
+    var = sum((r - mean) ** 2 for r in rets) / len(rets)
+    return (var ** 0.5) * (252 ** 0.5) * 100.0
+
+
+def calc_realized_vol_bp(series_close: list[float], lookback: int = 20) -> float | None:
+    if len(series_close) < lookback + 1:
+        return None
+    window = series_close[-(lookback + 1):]
+    changes_bp = []
+    for prev, cur in zip(window[:-1], window[1:]):
+        if prev is None or cur is None:
+            continue
+        changes_bp.append((cur - prev) * 100.0)
+    if len(changes_bp) < max(5, lookback // 2):
+        return None
+    mean = sum(changes_bp) / len(changes_bp)
+    var = sum((x - mean) ** 2 for x in changes_bp) / len(changes_bp)
+    return (var ** 0.5) * (252 ** 0.5)
 
 
 def _to_iso_date(value) -> str:
@@ -936,6 +973,19 @@ def build_snapshot(pause_s: float = 0.25, finshare_mode: str = "first") -> dict:
 
     out["panels"]["breadth_proxy"] = calc_breadth_proxy(flat)
 
+    # Market-structure / volatility proxies for when direct series are unavailable.
+    tnx = flat.get('^TNX', {})
+    if tnx.get('ok'):
+        rv_bp = calc_realized_vol_bp(tnx.get('series_close') or [], lookback=20)
+        if rv_bp is not None:
+            out["derived"]["move_proxy_20d_realized_vol_bp_ann"] = rv_bp
+
+    usdjpy = flat.get('USDJPY=X', {})
+    if usdjpy.get('ok'):
+        jpy_rv = calc_realized_vol_pct(usdjpy.get('series_close') or [], lookback=20)
+        if jpy_rv is not None:
+            out["derived"]["usdjpy_realized_vol_20d_pct_ann"] = jpy_rv
+
     out["a_share"] = {
         "internal_structure": akshare_a_share_structure_snapshot(),
         "northbound": akshare_northbound_snapshot(),
@@ -966,6 +1016,27 @@ def build_snapshot(pause_s: float = 0.25, finshare_mode: str = "first") -> dict:
 
     if f.get("M2SL", {}).get("ok") and f.get("GDP", {}).get("ok") and f["GDP"]["value"] != 0:
         out["derived"]["m2_to_gdp_ratio"] = f["M2SL"]["value"] / f["GDP"]["value"]
+
+    # Fundamental-validation proxy for cases where daily earnings-revision breadth is unavailable.
+    if all(f.get(s, {}).get("ok") for s in ["CP", "ULCNFB", "OPHNFB"]):
+        out["derived"]["fundamental_validation_proxy"] = {
+            "corporate_profits": {
+                "value": f["CP"].get("value"),
+                "chg": f["CP"].get("chg"),
+            },
+            "unit_labor_costs": {
+                "value": f["ULCNFB"].get("value"),
+                "chg": f["ULCNFB"].get("chg"),
+            },
+            "productivity": {
+                "value": f["OPHNFB"].get("value"),
+                "chg": f["OPHNFB"].get("chg"),
+            },
+            "sector_ratios": {
+                "xly_xlp": out["ratios"].get("XLY_XLP"),
+                "smh_spy": out["ratios"].get("SMH_SPY"),
+            },
+        }
 
     return out
 

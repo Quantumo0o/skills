@@ -494,6 +494,7 @@ Focus on:
 - 2s10s / 3m10y
 - 10Y TIPS real yield
 - DXY / EURUSD / USDJPY
+- MOVE when directly available, otherwise use a Treasury realized-volatility proxy from 10Y yield changes
 
 Output:
 - one integrated rates & FX read
@@ -647,6 +648,7 @@ Focus on:
 - crowding
 - vol/gamma regime if available
 - positive vs negative reflexivity
+- if JPY implied volatility is unavailable, use USDJPY 20-day realized volatility as the default proxy for carry-stress temperature
 
 Output:
 - one integrated read
