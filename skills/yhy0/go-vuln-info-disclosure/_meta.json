@@ -1,0 +1,11 @@
+{
+  "owner": "yhy0",
+  "slug": "go-vuln-info-disclosure",
+  "displayName": "Go Vuln Info Disclosure",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773476230229,
+    "commit": null
+  },
+  "history": []
+}
