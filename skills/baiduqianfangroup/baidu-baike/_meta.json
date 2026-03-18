@@ -1,0 +1,11 @@
+{
+  "owner": "baiduqianfangroup",
+  "slug": "baidu-baike",
+  "displayName": "baidu baike search",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1770218047184,
+    "commit": null
+  },
+  "history": []
+}
