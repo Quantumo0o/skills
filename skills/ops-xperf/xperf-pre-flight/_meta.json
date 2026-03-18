@@ -1,0 +1,11 @@
+{
+  "owner": "ops-xperf",
+  "slug": "xperf-pre-flight",
+  "displayName": "AI Cluster Pre-flight Check",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773774292481,
+    "commit": null
+  },
+  "history": []
+}
