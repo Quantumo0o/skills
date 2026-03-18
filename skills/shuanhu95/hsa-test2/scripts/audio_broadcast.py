@@ -98,6 +98,56 @@ def get_env_or_arg(env_var, arg_value, default=None):
     """Get value from environment variable or command line argument"""
     return os.getenv(env_var) or arg_value or default
 
+
+def validate_text_input(text):
+    """
+    Validate text input for TTS to prevent potential injection attacks.
+    
+    SECURITY: While subprocess uses list args (safe), we still validate
+    to prevent unexpected behavior or extremely long inputs.
+    
+    Args:
+        text: Text content to validate
+        
+    Returns:
+        tuple: (is_valid: bool, error_message: str or None)
+    """
+    if not text:
+        return False, "Text content is empty"
+    
+    if len(text) > 500:
+        return False, f"Text too long ({len(text)} chars). Maximum 500 characters allowed."
+    
+    # Check for potentially dangerous patterns (defense in depth)
+    dangerous_patterns = ['`', '$(', '${', ';', '||', '&&', '|', '>', '<']
+    for pattern in dangerous_patterns:
+        if pattern in text:
+            return False, f"Invalid character sequence detected: '{pattern}'"
+    
+    return True, None
+
+
+def validate_device_serial(serial):
+    """
+    Validate device serial number format.
+    
+    Args:
+        serial: Device serial number or comma-separated list
+        
+    Returns:
+        tuple: (is_valid: bool, error_message: str or None)
+    """
+    if not serial:
+        return False, "Device serial is empty"
+    
+    # Basic format check: alphanumeric, colon, comma, underscore only
+    import re
+    if not re.match(r'^[A-Za-z0-9_:,]+$', serial):
+        return False, "Invalid device serial format. Only alphanumeric, colon, comma, underscore allowed."
+    
+    return True, None
+
+
 def text_to_speech(text, output_path):
     """Convert text to speech using system TTS (requires OpenClaw TTS capability)"""
     print(f"[INFO] Converting text to speech: '{text[:50]}{'...' if len(text) > 50 else ''}'")
@@ -323,14 +373,24 @@ def main():
     if channel_no == DEFAULT_CHANNEL_NO:
         channel_no = get_env_or_arg('EZVIZ_CHANNEL_NO', DEFAULT_CHANNEL_NO)
     
-    # Try to load from channels config if still not provided (lower priority than env vars)
+    # SECURITY: Warn if credentials not from environment variables
+    config_source = "environment"
     if not app_key or not app_secret:
+        print("[WARNING] Credentials not found in environment variables")
+        print("[WARNING] Attempting to load from OpenClaw config files...")
+        print("[WARNING] Ensure config files contain dedicated Ezviz credentials (not main account)")
+        
+        # Try to load from channels config if still not provided (lower priority than env vars)
         channels_config = load_ezviz_config_from_channels()
         if channels_config:
             if not app_key:
                 app_key = channels_config["appId"]
             if not app_secret:
                 app_secret = channels_config["appSecret"]
+            config_source = "config file"
+            print(f"[INFO] Loaded credentials from config file (AppKey prefix: {app_key[:8]}...)")
+        else:
+            print("[ERROR] No credentials found in environment or config files")
     
     # Validate required parameters
     if not all([app_key, app_secret, device_serial]):
@@ -351,6 +411,34 @@ def main():
         print("  export EZVIZ_TEXT_CONTENT=\"要播报的内容\"")
         print("  python3 audio_broadcast.py")
         sys.exit(1)
+    
+    # SECURITY: Validate inputs before processing
+    print("=" * 70)
+    print("SECURITY VALIDATION")
+    print("=" * 70)
+    
+    # Validate device serial
+    is_valid, error = validate_device_serial(device_serial)
+    if not is_valid:
+        print(f"[ERROR] Device serial validation failed: {error}")
+        sys.exit(1)
+    print(f"[OK] Device serial format validated")
+    
+    # Validate text input if using TTS
+    if text_content:
+        is_valid, error = validate_text_input(text_content)
+        if not is_valid:
+            print(f"[ERROR] Text input validation failed: {error}")
+            sys.exit(1)
+        print(f"[OK] Text input validated ({len(text_content)} chars)")
+    
+    # Validate credentials source
+    if config_source == "config file":
+        print(f"[WARNING] Using credentials from config file - ensure they are dedicated Ezviz credentials")
+    else:
+        print(f"[OK] Using credentials from environment variables")
+    
+    print()
     
     # Handle text-to-speech if needed
     temp_audio_file = None

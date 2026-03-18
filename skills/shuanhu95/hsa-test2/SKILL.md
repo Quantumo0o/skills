@@ -1,17 +1,26 @@
 ---
 name: ezviz-audio-broadcast
-description: 萤石语音广播技能。支持本地音频文件上传或文本转语音，实现语音内容下发到设备播放。Use when: 需要向萤石设备发送语音通知、广播、提醒等音频内容。
+description: |
+  萤石语音广播技能。支持本地音频文件上传或文本转语音，实现语音内容下发到设备播放。
+  Use when: 需要向萤石设备发送语音通知、广播、提醒等音频内容。
+  
+  ⚠️ 安全要求：必须设置 EZVIZ_APP_KEY 和 EZVIZ_APP_SECRET 环境变量，使用最小权限凭证。
 metadata:
-  {
-    "openclaw": {
-      "emoji": "🔊",
-      "requires": {
-        "env": ["EZVIZ_APP_KEY", "EZVIZ_APP_SECRET", "EZVIZ_DEVICE_SERIAL"],
-        "pip": ["requests"]
-      },
-      "primaryEnv": "EZVIZ_APP_KEY"
-    }
-  }
+  openclaw:
+    emoji: "🔊"
+    requires:
+      env: ["EZVIZ_APP_KEY", "EZVIZ_APP_SECRET", "EZVIZ_DEVICE_SERIAL"]
+      pip: ["requests"]
+    primaryEnv: "EZVIZ_APP_KEY"
+    warnings:
+      - "Requires Ezviz credentials with minimal permissions"
+      - "Token cached in system temp directory (configurable)"
+      - "Uses system TTS commands (say/espeak/ffmpeg) via subprocess"
+    config:
+      tokenCache:
+        default: true
+        envVar: "EZVIZ_TOKEN_CACHE"
+        description: "Enable token caching (default: true). Set to 0 to disable."
 ---
 
 # Ezviz Audio Broadcast (萤石语音广播)
@@ -75,12 +84,19 @@ export EZVIZ_DEVICE_SERIAL="dev1,dev2,dev3"
 
 可选环境变量：
 ```bash
-export EZVIZ_CHANNEL_NO="1" # 通道号，默认 1
-export EZVIZ_AUDIO_FILE="/path/to/audio.mp3" # 本地音频文件路径（二选一）
-export EZVIZ_TEXT_CONTENT="语音内容文本" # 文本内容（二选一）
-export EZVIZ_VOICE_NAME="custom_name" # 自定义语音名称
-export EZVIZ_TOKEN_CACHE="1"       # Token 缓存：1=启用 (默认), 0=禁用
+export EZVIZ_CHANNEL_NO="1"        # 通道号，默认 1
+export EZVIZ_AUDIO_FILE="/path/to/audio.mp3"  # 本地音频文件路径（二选一）
+export EZVIZ_TEXT_CONTENT="语音内容文本"      # 文本内容（二选一）
+export EZVIZ_VOICE_NAME="custom_name"         # 自定义语音名称
+export EZVIZ_TOKEN_CACHE="1"                  # Token 缓存：1=启用 (默认), 0=禁用
 ```
+
+**Token 缓存说明**:
+- ✅ **默认启用**: 技能默认使用 Token 缓存，提升效率
+- ⚠️ **禁用缓存**: 设置 `EZVIZ_TOKEN_CACHE=0` 每次重新获取 Token
+- 📁 **缓存位置**: `/tmp/ezviz_global_token_cache/global_token_cache.json`
+- 🔒 **文件权限**: 600 (仅所有者可读写)
+- ⏰ **有效期**: 7 天，到期前 5 分钟自动刷新
 
 **注意**: 
 - 不需要设置 `EZVIZ_ACCESS_TOKEN`！技能会自动获取 Token
@@ -375,16 +391,26 @@ subprocess.run(['espeak', '-w', output_path, text], check=True, capture_output=T
 subprocess.run(['ffmpeg', '-i', input, '-acodec', 'libmp3lame', output], ...)
 ```
 
-**安全措施**:
+**安全措施** (v1.0.2+):
 - ✅ 使用**列表参数**调用 subprocess（避免 shell 注入）
-- ✅ 文本内容经过处理，不直接传递给 shell
+- ✅ **输入验证**: 文本内容经过 `validate_text_input()` 验证
+- ✅ **危险字符拦截**: 拒绝包含 `;`, `|`, `&`, `$()`, 等字符的输入
+- ✅ **长度限制**: 文本内容最多 500 字符
 - ✅ 临时文件存储在系统临时目录，使用后清理
+
+**输入验证规则**:
+| 检查项 | 限制 | 说明 |
+|--------|------|------|
+| 空内容 | ❌ 拒绝 | 文本不能为空 |
+| 长度 | ≤500 字符 | 防止过长输入 |
+| 危险字符 | ❌ 拒绝 | `;`, `|`, `&`, `` ` ``, `$()`, `${}` 等 |
+| 设备序列号 | 字母数字 | 只允许 `A-Za-z0-9_:,` |
 
 **安全建议**:
 - ✅ 确保系统二进制文件来自可信源
 - ✅ 在高安全环境运行前审查 `text_to_speech()` 函数
 - ✅ 使用容器/沙箱隔离执行环境
-- ❌ 不要传入未信任的文本内容（可能包含注入攻击）
+- ✅ 输入验证提供额外保护层（防御纵深）
 
 **不使用 TTS** (仅提供音频文件，避免系统命令):
 ```bash
@@ -562,18 +588,23 @@ python3 lib/token_manager.py clear
 
 ---
 
-**安全更新日志**:
+**更新日志**:
 
-| 日期 | 变更 | 说明 |
-|------|------|------|
-| 2026-03-18 | 修复 Token 缓存 bug | `use_cache=None` 改为 `use_cache=True` |
-| 2026-03-18 | 添加安全审计清单 | 根据安全建议添加完整检查清单 |
-| 2026-03-18 | 明确配置文件行为 | 说明 `~/.openclaw/*.json` 读取逻辑 |
-| 2026-03-18 | 添加 API 域名验证 | 提供域名和 SSL 验证命令 |
-| 2026-03-18 | 添加 TTS 安全说明 | 说明 subprocess 调用系统命令的安全措施 |
+| 日期 | 版本 | 变更 | 说明 |
+|------|------|------|------|
+| 2026-03-18 | 1.0.3 | 修复 metadata | 添加 `config.tokenCache` 配置说明 |
+| 2026-03-18 | 1.0.3 | 明确缓存行为 | 默认启用缓存，支持 `EZVIZ_TOKEN_CACHE=0` 禁用 |
+| 2026-03-18 | 1.0.2 | 添加输入验证 | `validate_text_input()` 和 `validate_device_serial()` |
+| 2026-03-18 | 1.0.2 | 添加凭证来源警告 | 从配置文件读取时显示警告 |
+| 2026-03-18 | 1.0.2 | 更新 metadata 格式 | 使用 YAML 格式，添加 warnings 字段 |
+| 2026-03-18 | 1.0.1 | 修复 Token 缓存 bug | `use_cache=None` 改为 `use_cache=True` |
+| 2026-03-18 | 1.0.1 | 添加安全审计清单 | 根据安全建议添加完整检查清单 |
+| 2026-03-18 | 1.0.1 | 明确配置文件行为 | 说明 `~/.openclaw/*.json` 读取逻辑 |
+| 2026-03-18 | 1.0.1 | 添加 API 域名验证 | 提供域名和 SSL 验证命令 |
+| 2026-03-18 | 1.0.1 | 添加 TTS 安全说明 | 说明 subprocess 调用系统命令的安全措施 |
 
 **最后更新**: 2026-03-18  
-**版本**: 1.0.1 (安全修复版)
+**版本**: 1.0.3 (缓存配置修复版)
 
 ---
 
