@@ -3,9 +3,15 @@
   "slug": "nodpay",
   "displayName": "NodPay",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1773806997908,
-    "commit": "https://github.com/openclaw/skills/commit/abc3b2d42d5f71a8146beb4a3cda36727482cf15"
+    "version": "0.2.23",
+    "publishedAt": 1773817610739,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1773806997908,
+      "commit": "https://github.com/openclaw/skills/commit/abc3b2d42d5f71a8146beb4a3cda36727482cf15"
+    }
+  ]
 }
