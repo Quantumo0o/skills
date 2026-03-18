@@ -1,0 +1,11 @@
+{
+  "owner": "roojenkins",
+  "slug": "uplo-legal",
+  "displayName": "Uplo Legal",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773794181964,
+    "commit": null
+  },
+  "history": []
+}
