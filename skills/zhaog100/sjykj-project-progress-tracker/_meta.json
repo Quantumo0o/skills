@@ -3,9 +3,15 @@
   "slug": "sjykj-project-progress-tracker",
   "displayName": "Project Progress Tracker",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773720263519,
-    "commit": "https://github.com/openclaw/skills/commit/56e04991b5ab97097983e02753bdce883877001d"
+    "version": "1.0.2",
+    "publishedAt": 1773720755623,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773720263519,
+      "commit": "https://github.com/openclaw/skills/commit/56e04991b5ab97097983e02753bdce883877001d"
+    }
+  ]
 }
