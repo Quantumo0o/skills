@@ -1,0 +1,11 @@
+{
+  "owner": "samledger67-dotcom",
+  "slug": "bank-reconciliation",
+  "displayName": "Bank Reconciliation",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773800333140,
+    "commit": null
+  },
+  "history": []
+}
