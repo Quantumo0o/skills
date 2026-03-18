@@ -1,0 +1,11 @@
+{
+  "owner": "crystaria",
+  "slug": "mcp-hello-world",
+  "displayName": "Mcp Hello World",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1773728884384,
+    "commit": null
+  },
+  "history": []
+}
