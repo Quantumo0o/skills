@@ -1,0 +1,11 @@
+{
+  "owner": "icesumer-lgtm",
+  "slug": "feishu-send-file-safe",
+  "displayName": "飞书文件发送技能（安全版）",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1773807584372,
+    "commit": null
+  },
+  "history": []
+}
