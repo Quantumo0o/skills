@@ -1,0 +1,31 @@
+name: dida-coach
+description: 滴答清单任务教练，负责目标拆解、时间盒安排、复盘分析与闭环支持
+version: 1.0.0
+author: openclaw
+
+setup:
+  required_mcp:
+    - name: dida365
+      url: https://mcp.dida365.com
+      description: 滴答清单 MCP，用于任务读写和状态同步
+
+entry_points:
+  default:
+    prompt: prompts/system.md
+    tools:
+      - tools.mcp_client
+      - tools.config_manager
+      - tools.task_parser
+      - tools.timebox_calculator
+      - tools.work_method_recommender
+      - tools.review_analyzer
+
+triggers:
+  - pattern: "(我想|我要|计划|目标).*"
+    prompt: prompts/task_breakdown.md
+  - pattern: "(做|完成|准备|安排).*"
+    prompt: prompts/timebox_creation.md
+  - pattern: "(复盘|回顾|总结).*"
+    prompt: prompts/daily_review.md
+  - pattern: "(改|调整|延后|提前|取消).*"
+    prompt: prompts/rescheduling.md
