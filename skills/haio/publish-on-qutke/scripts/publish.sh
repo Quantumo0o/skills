@@ -232,11 +232,11 @@ if echo "$RESPONSE" | "$JQ_BIN" -e '.error' >/dev/null 2>&1; then
 fi
 
 OUT_SLUG=$(echo "$RESPONSE" | "$JQ_BIN" -r '.slug')
-VERSION_ID=$(echo "$RESPONSE" | "$JQ_BIN" -r '.upload.versionId')
-FINALIZE_URL=$(echo "$RESPONSE" | "$JQ_BIN" -r '.upload.finalizeUrl')
+VERSION_ID=$(echo "$RESPONSE" | "$JQ_BIN" -r '.versionId // .upload.versionId')
+FINALIZE_URL=$(echo "$RESPONSE" | "$JQ_BIN" -r '.finalizeUrl // .upload.finalizeUrl')
 SITE_URL=$(echo "$RESPONSE" | "$JQ_BIN" -r '.siteUrl')
-UPLOAD_COUNT=$(echo "$RESPONSE" | "$JQ_BIN" '.upload.uploads | length')
-SKIPPED_COUNT=$(echo "$RESPONSE" | "$JQ_BIN" '.upload.skipped // [] | length')
+UPLOAD_COUNT=$(echo "$RESPONSE" | "$JQ_BIN" 'if .files then .files | length elif .upload then .upload.uploads | length else 0 end')
+SKIPPED_COUNT=$(echo "$RESPONSE" | "$JQ_BIN" 'if .skipped then .skipped | length elif .upload then .upload.skipped // [] | length else 0 end')
 
 [[ "$OUT_SLUG" != "null" ]] || die "unexpected response: $RESPONSE"
 
@@ -248,10 +248,10 @@ else
 fi
 upload_errors=0
 
-for i in $(seq 0 $((UPLOAD_COUNT - 1))); do
-  upload_path=$(echo "$RESPONSE" | "$JQ_BIN" -r ".upload.uploads[$i].path")
-  upload_url=$(echo "$RESPONSE" | "$JQ_BIN" -r ".upload.uploads[$i].url")
-  upload_ct=$(echo "$RESPONSE" | "$JQ_BIN" -r ".upload.uploads[$i].headers[\"Content-Type\"] // empty")
+for i in $([ "$UPLOAD_COUNT" -gt 0 ] && seq 0 $((UPLOAD_COUNT - 1))); do
+  upload_path=$(echo "$RESPONSE" | "$JQ_BIN" -r "if .files then .files[$i].path else .upload.uploads[$i].path end")
+  upload_url=$(echo "$RESPONSE" | "$JQ_BIN" -r "if .files then .files[$i].uploadUrl else .upload.uploads[$i].url end")
+  upload_ct=$(echo "$RESPONSE" | "$JQ_BIN" -r "if .files then (.files[$i].headers[\"Content-Type\"] // empty) else (.upload.uploads[$i].headers[\"Content-Type\"] // empty) end")
 
   if [[ -f "$TARGET" && ! -d "$TARGET" ]]; then
     local_file="$TARGET"
