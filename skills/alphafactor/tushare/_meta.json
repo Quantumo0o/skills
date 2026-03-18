@@ -1,13 +1,18 @@
 {
   "owner": "alphafactor",
   "slug": "tushare",
-  "displayName": "tushare",
+  "displayName": "Tushare Pro",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1773331036659,
-    "commit": "https://github.com/openclaw/skills/commit/23b09dddfc62ea4c1f1b4c4926af073617e4d7b0"
+    "version": "1.0.9",
+    "publishedAt": 1773796777210,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1773331036659,
+      "commit": "https://github.com/openclaw/skills/commit/23b09dddfc62ea4c1f1b4c4926af073617e4d7b0"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773117233029,

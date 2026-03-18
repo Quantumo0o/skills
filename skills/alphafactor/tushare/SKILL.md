@@ -1,5 +1,6 @@
 ---
-name: tushare
+name: Tushare Pro
+slug: tushare
 description: Fetch Chinese stock and futures market data via Tushare API. Supports stock quotes, futures data, company fundamentals, and macroeconomic indicators. Use when the user needs financial data from Chinese markets. Requires TUSHARE_TOKEN environment variable.
 metadata:
   {
@@ -28,7 +29,7 @@ metadata:
 
 ### 1. 注册 Tushare 账号
 
-访问 https://tushare.pro/register 注册账号并获取 API Token。
+访问 https://tushare.pro/weborder/#/login?reg=503098 注册账号并获取 API Token。
 
 ### 2. 配置 Token
 
