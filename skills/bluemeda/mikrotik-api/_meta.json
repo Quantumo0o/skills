@@ -1,0 +1,11 @@
+{
+  "owner": "bluemeda",
+  "slug": "mikrotik-api",
+  "displayName": "MikroTik API",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773789003251,
+    "commit": null
+  },
+  "history": []
+}
