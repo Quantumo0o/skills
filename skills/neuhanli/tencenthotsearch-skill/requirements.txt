@@ -1,2 +1,7 @@
-tencentcloud-sdk-python>=3.0.0
-pandas>=2.0.0
+# TencentHotSearch-skill dependencies
+# Note: This skill uses only Python standard libraries for HTTP requests and manual signing
+# No external dependencies are required for core functionality
+
+# Optional: pandas is only needed if you want to export results to CSV format
+# Install only if CSV export is needed:
+# pip install pandas>=2.0.0

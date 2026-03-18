@@ -27,6 +27,20 @@ class TencentCloudHotSearch:
         """Initialize TencentCloudHotSearch with configuration."""
         self.config = self._load_config(config_path)
         self.results = []
+    
+    def _mask_secret(self, secret: str) -> str:
+        """
+        Mask secret key for safe logging/error messages.
+        
+        Args:
+            secret: Secret string to mask
+            
+        Returns:
+            Masked secret string
+        """
+        if not secret or len(secret) < 8:
+            return "***"
+        return secret[:4] + "..." + secret[-4:]
         
     def _load_config(self, config_path: str) -> Dict:
         """Load configuration from JSON file."""
@@ -34,19 +48,35 @@ class TencentCloudHotSearch:
         if not config_file.exists():
             raise FileNotFoundError(
                 f"Configuration file not found: {config_path}\n"
-                "Please create a config.json file with your Tencent Cloud API credentials."
+                "Please create a config.json file with your Tencent Cloud API credentials.\n"
+                "See CONFIG.md for detailed setup instructions."
             )
         
-        with open(config_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            
+            # Validate required fields
+            if 'secret_id' not in config or 'secret_key' not in config:
+                raise ValueError(
+                    "Missing required credentials in config.json.\n"
+                    "Please add 'secret_id' and 'secret_key' fields."
+                )
+            
+            return config
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Invalid JSON format in config.json: {e}\n"
+                "Please ensure the file contains valid JSON."
+            )
     
     def _sign_request(self, params: Dict, secret_id: str, secret_key: str) -> Dict:
         """Sign the request using Tencent Cloud signature method."""
-        from datetime import datetime
+        from datetime import datetime, timezone
         
         # Get current timestamp
         timestamp = int(time.time())
-        date = datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d")
+        date = datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime("%Y-%m-%d")
         
         # Build canonical request
         service = "wsa"
@@ -152,7 +182,7 @@ class TencentCloudHotSearch:
         secret_key = self.config.get('secret_key')
         
         if not secret_id or not secret_key:
-            raise ValueError("Tencent Cloud API credentials (secret_id and secret_key) not found in config.json")
+            raise ValueError("Tencent Cloud API credentials not found in config.json")
         
         try:
             # Build request parameters
@@ -162,7 +192,7 @@ class TencentCloudHotSearch:
             }
             
             # Add optional parameters
-            if site and mode != 1:  # Site 参数在 mode=1 时无效
+            if site and mode != 1:  # Site parameter is invalid when mode=1
                 params["Site"] = site
             
             # Use valid limit value
@@ -218,7 +248,7 @@ class TencentCloudHotSearch:
                         results.append({
                             "title": page.get('title', ''),
                             "summary": page.get('passage', ''),
-                            "dynamic_summary": page.get('content', ''),  # 尊享版字段
+                            "dynamic_summary": page.get('content', ''),  # Premium version field
                             "source": page.get('site', ''),
                             "publishTime": page.get('date', ''),
                             "url": page.get('url', ''),
@@ -231,9 +261,70 @@ class TencentCloudHotSearch:
             
             return results
             
-        except Exception as e:
-            print(f"Error searching Tencent Cloud: {e}")
+        except urllib.error.HTTPError as e:
+            # Handle HTTP errors without exposing sensitive information
+            error_msg = f"API request failed with status {e.code}"
+            if e.code == 401:
+                error_msg = "API authentication failed. Please check your credentials."
+            elif e.code == 403:
+                error_msg = "Access denied. Please verify your API permissions."
+            elif e.code == 429:
+                error_msg = "Rate limit exceeded. Please try again later."
+            elif e.code >= 500:
+                error_msg = "Tencent Cloud API error. Please try again later."
+            print(f"Error: {error_msg}")
             return []
+        except urllib.error.URLError as e:
+            # Handle network errors
+            print(f"Network error: Unable to connect to Tencent Cloud API. Please check your internet connection.")
+            return []
+        except Exception as e:
+            # Generic error handling - avoid exposing sensitive information
+            error_type = type(e).__name__
+            print(f"Error occurred during search ({error_type}). Please check your configuration and try again.")
+            return []
+    
+    def _validate_output_path(self, output_path: str) -> Path:
+        """
+        Validate and sanitize output path to prevent directory traversal attacks.
+        
+        Args:
+            output_path: Path to validate
+            
+        Returns:
+            Validated Path object
+            
+        Raises:
+            ValueError: If path is invalid or attempts directory traversal
+        """
+        output_file = Path(output_path).resolve()
+        
+        # Get the configured output directory
+        config_output_dir = Path(self.config.get('output_dir', './output')).resolve()
+        
+        # Ensure the output file is within the configured output directory
+        try:
+            output_file.relative_to(config_output_dir)
+        except ValueError:
+            # If output_file is not relative to config_output_dir, check if it's an absolute path
+            # For absolute paths, just ensure it doesn't contain suspicious patterns
+            if '..' in str(output_path):
+                raise ValueError(
+                    f"Invalid output path: Directory traversal detected. "
+                    f"Path must be within the configured output directory ({config_output_dir})"
+                )
+        
+        # Check for suspicious patterns
+        if '..' in str(output_path):
+            raise ValueError(
+                f"Invalid output path: Directory traversal not allowed. "
+                f"Use paths within {config_output_dir}"
+            )
+        
+        # Ensure parent directory exists
+        output_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        return output_file
     
     def save_results(self, output_path: str, format: str = "md"):
         """
@@ -247,8 +338,8 @@ class TencentCloudHotSearch:
             print("No results to save. Please run a search first.")
             return
         
-        output_file = Path(output_path)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
+        # Validate and sanitize output path
+        output_file = self._validate_output_path(output_path)
         
         if format == "json":
             with open(output_file, 'w', encoding='utf-8') as f:
@@ -280,14 +371,14 @@ class TencentCloudHotSearch:
                 
                 for i, result in enumerate(self.results, 1):
                     f.write(f"[{i}] {result['title']}\n")
-                    f.write(f"摘要: {result['summary']}\n")
+                    f.write(f"Summary: {result['summary']}\n")
                     if result.get('dynamic_summary'):
-                        f.write(f"动态摘要: {result['dynamic_summary']}\n")
-                    f.write(f"来源: {result['source']}\n")
-                    f.write(f"时间: {result['publishTime']}\n")
-                    f.write(f"链接: {result['url']}\n")
+                        f.write(f"Dynamic Summary: {result['dynamic_summary']}\n")
+                    f.write(f"Source: {result['source']}\n")
+                    f.write(f"Time: {result['publishTime']}\n")
+                    f.write(f"Link: {result['url']}\n")
                     if result.get('score'):
-                        f.write(f"相关度: {result['score']:.4f}\n")
+                        f.write(f"Relevance: {result['score']:.4f}\n")
                     f.write("-" * 80 + "\n\n")
             print(f"Results saved to: {output_file}")
             
@@ -300,16 +391,16 @@ class TencentCloudHotSearch:
                 
                 for i, result in enumerate(self.results, 1):
                     f.write(f"## {i}. {result['title']}\n\n")
-                    f.write(f"**摘要:** {result['summary']}\n\n")
+                    f.write(f"**Summary:** {result['summary']}\n\n")
                     if result.get('dynamic_summary'):
-                        f.write(f"**动态摘要:** {result['dynamic_summary']}\n\n")
-                    f.write(f"**来源:** {result['source']}\n\n")
-                    f.write(f"**时间:** {result['publishTime']}\n\n")
-                    f.write(f"**链接:** [{result['url']}]({result['url']})\n\n")
+                        f.write(f"**Dynamic Summary:** {result['dynamic_summary']}\n\n")
+                    f.write(f"**Source:** {result['source']}\n\n")
+                    f.write(f"**Time:** {result['publishTime']}\n\n")
+                    f.write(f"**Link:** [{result['url']}]({result['url']})\n\n")
                     if result.get('score'):
-                        f.write(f"**相关度:** {result['score']:.4f}\n\n")
+                        f.write(f"**Relevance:** {result['score']:.4f}\n\n")
                     if result.get('images') and len(result['images']) > 0:
-                        f.write(f"**图片:** {', '.join(result['images'])}\n\n")
+                        f.write(f"**Images:** {', '.join(result['images'])}\n\n")
                     f.write("---\n\n")
             print(f"Results saved to: {output_file}")
             
@@ -325,14 +416,14 @@ class TencentCloudHotSearch:
         print(f"\nFound {len(self.results)} results:\n")
         for i, result in enumerate(self.results, 1):
             print(f"[{i}] {result['title']}")
-            print(f"    摘要: {result['summary'][:100]}...")
+            print(f"    Summary: {result['summary'][:100]}...")
             if result.get('dynamic_summary'):
-                print(f"    动态摘要: {result['dynamic_summary'][:100]}...")
-            print(f"    来源: {result['source']}")
-            print(f"    时间: {result['publishTime']}")
-            print(f"    链接: {result['url']}")
+                print(f"    Dynamic Summary: {result['dynamic_summary'][:100]}...")
+            print(f"    Source: {result['source']}")
+            print(f"    Time: {result['publishTime']}")
+            print(f"    Link: {result['url']}")
             if result.get('score'):
-                print(f"    相关度: {result['score']:.4f}")
+                print(f"    Relevance: {result['score']:.4f}")
             print()
 
 
@@ -419,7 +510,7 @@ def main():
         if args.output:
             searcher.save_results(args.output, args.format)
         else:
-            # 如果未指定输出路径，使用配置文件中的默认路径
+            # If output path is not specified, use the default path from config file
             config = searcher.config
             default_output_dir = config.get('output_dir', './output')
             default_filename = f"search_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{args.format}"
@@ -430,8 +521,23 @@ def main():
         mode_info = f" (mode: {args.mode})"
         print(f"\n✅ Successfully retrieved {len(results)} results from Tencent Cloud{site_info}{mode_info}")
         
+    except FileNotFoundError as e:
+        # Handle missing config file
+        print(f"❌ Configuration file not found. Please create config.json with your Tencent Cloud API credentials.", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as e:
+        # Handle validation errors (including path traversal attempts)
+        error_msg = str(e)
+        # Don't expose sensitive information in error messages
+        if 'secret' in error_msg.lower() or 'key' in error_msg.lower():
+            print(f"❌ Configuration error: Invalid or missing API credentials.", file=sys.stderr)
+        else:
+            print(f"❌ {error_msg}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"❌ Error: {e}", file=sys.stderr)
+        # Generic error handling - avoid exposing sensitive information
+        error_type = type(e).__name__
+        print(f"❌ An error occurred ({error_type}). Please check your configuration and try again.", file=sys.stderr)
         sys.exit(1)
 
 
