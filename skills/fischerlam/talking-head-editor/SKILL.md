@@ -3,7 +3,7 @@ name: talking-head-editor
 display_name: Talking-head Editor
 description: >
   Use this skill when the user asks to edit talking-head videos, presenter clips, interview-style footage, direct-to-camera content, or explainer videos. Requires SPARKI_API_KEY. Powered by https://sparki.io.
-version: 1.0.6
+version: 1.0.7
 metadata:
   clawdbot:
     requires:
@@ -46,7 +46,14 @@ This Skill requires a `SPARKI_API_KEY`.
 echo "Key status: ${SPARKI_API_KEY:+configured}${SPARKI_API_KEY:-MISSING}"
 ```
 
-If missing, request one at `enterprise@sparki.io`, then configure it with:
+This Skill also supports an optional `SPARKI_API_BASE` override.
+If your Sparki account uses a different API environment, set it explicitly before running:
+
+```bash
+export SPARKI_API_BASE="https://business-agent-api.sparki.io/api/v1"
+```
+
+If missing, request credentials at `enterprise@sparki.io`, then configure them with:
 
 ```bash
 openclaw config set env.SPARKI_API_KEY "sk_live_your_key_here"
@@ -66,14 +73,6 @@ bash scripts/edit_video.sh <file_path> <tips> [user_prompt] [aspect_ratio] [dura
 | `user_prompt` | No | Free-text creative direction |
 | `aspect_ratio` | No | `9:16` (default), `1:1`, `16:9` |
 | `duration` | No | Target output duration in seconds |
-
-**Suggested tips for this scenario:**
-
-| ID | Style | Category |
-|----|-------|----------|
-| `25` | Funny Commentary | Commentary |
-| `21` | Daily Vlog | Vlog |
-| `24` | TikTok Trending Recap | Commentary |
 
 **Example:**
 

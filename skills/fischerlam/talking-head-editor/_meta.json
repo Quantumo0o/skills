@@ -3,9 +3,15 @@
   "slug": "talking-head-editor",
   "displayName": "Talking-head Editor",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773822475168,
-    "commit": "https://github.com/openclaw/skills/commit/103aaf6cd25fa65302c42185e64d97243d9fbc76"
+    "version": "1.0.8",
+    "publishedAt": 1773825869292,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773822475168,
+      "commit": "https://github.com/openclaw/skills/commit/103aaf6cd25fa65302c42185e64d97243d9fbc76"
+    }
+  ]
 }
