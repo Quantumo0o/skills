@@ -1,248 +1,119 @@
 ---
 name: cortex-memory
-description: Long-term structured memory with knowledge graph, entity tracking, temporal reasoning, and cross-session recall. Powered by the Cortex API.
-metadata: {"openclaw": {"emoji": "🧠", "category": "memory", "homepage": "https://github.com/Ubundi/Cortex", "primaryEnv": "CORTEX_API_KEY", "requires": {"env": ["CORTEX_API_KEY", "CORTEX_BASE_URL"], "bins": ["curl", "jq"]}}}
+description: Long-term memory for OpenClaw agents — auto-recall before turns, auto-capture after, tools for search/save/forget.
 ---
 
-# Cortex Memory
+# Kwanda Cortex Memory
 
-Cortex gives you a **structured long-term memory** that goes beyond what `memory_search` can do. It extracts facts, entities, and relationships from text, stores them in a knowledge graph, and retrieves them using hybrid search (BM25 + semantic + temporal + graph traversal).
+You have long-term memory via Cortex. Facts, preferences, and decisions persist across sessions. Memories are auto-recalled before each turn and auto-captured after.
 
-Use Cortex when you need to:
-- Recall information across past sessions
-- Understand how concepts, people, or projects relate to each other
-- Track what changed over time (superseded facts, belief drift)
-- Find things that `memory_search` returns noisy or incomplete results for
+## Mandatory Behavioral Rules
 
-**Do NOT use Cortex for** simple lookups that `memory_search` handles well (recent session context, keyword matches in today's log). Use native memory first; escalate to Cortex for deeper queries.
+These are non-negotiable. Violating them produces incorrect answers.
 
-**If `@cortex/openclaw-plugin` is also installed:** The plugin automatically injects Cortex memories before every turn inside a `<cortex_memories>` tag. If you see `<cortex_memories>` in the current context, Cortex has already been queried for this turn — do NOT call recall again unless you need a different query (e.g., a follow-up entity lookup or a different query type).
+**1. AUTO-RECALL IS A STARTING POINT.** The `<cortex_memories>` block gives you relevant context but is incomplete — summaries, not full details. Never treat it as the complete picture.
 
-## Setup
+**2. ALWAYS VERIFY BEFORE HEDGING.** Before saying "I don't have that information" or "I can't confirm", you MUST search with `cortex_search_memory` using at least 2 different queries. Only abstain after search confirms the information isn't available.
 
-Requires `CORTEX_API_KEY` and `CORTEX_BASE_URL` environment variables. These are set in `~/.openclaw/openclaw.json`:
+**3. SEARCH STRATEGY.** For factual questions: search the specific entity or topic. For temporal questions: search the event name. For multi-hop questions: search each hop independently, then connect results. Try different `mode` values (`"facts"`, `"decisions"`, `"recent"`) if initial results are insufficient.
 
-```json
-{
-  "skills": {
-    "entries": {
-      "cortex-memory": {
-        "enabled": true,
-        "apiKey": "sk-cortex-oc-YOUR_KEY",
-        "env": {
-          "CORTEX_BASE_URL": "https://q5p64iw9c9.execute-api.us-east-1.amazonaws.com/prod"
-        }
-      }
-    }
-  }
-}
-```
+**4. TOOL PRIORITY.** `cortex_search_memory` for detailed fact retrieval. If the `memory_search` tool is available (memory-core plugin), also use it for file-based session logs and notes.
 
-## Verify Connection
+**5. CONFIDENCE CALIBRATION.** If auto-recall gives you partial context on a topic, the full answer IS in memory. Search harder — don't hedge.
 
-```bash
-curl -s "$CORTEX_BASE_URL/health" -H "x-api-key: $CORTEX_API_KEY" | jq .
-```
+**6. SAVE IMPLEMENTATION DETAILS EXPLICITLY.** After every response where you provide or discuss specific implementation details, you MUST call `cortex_save_memory` before ending your turn. Auto-capture extracts topic-level summaries ("User is setting up Redis caching"), not specifics — it will NOT preserve the details.
 
-Expected: `{"status": "ok"}`
+**The trigger:** If your response contains a concrete technical detail that someone could ask about later and need the exact answer, save it NOW — not later, not "auto-capture will handle it." Call `cortex_save_memory` as the last action in your turn.
 
-## Recall — Search Long-Term Memory
+**What requires an explicit save:**
+- Key patterns, schemas, or formats (e.g. `arclight:user:{userId}`, cache-aside strategy)
+- Exact metrics and performance numbers (before/after)
+- SQL statements, CLI commands, config values
+- Library/package choices with version-specific rationale (e.g. "chose SendGrid over Resend because SOC 2 Type 2")
+- Architecture/migration decisions with specific reasoning
+- Bug root causes with the full debugging chain
 
-When you need to recall facts, entities, or relationships from past sessions:
+**Format saves for recall:** Structure each save as a self-contained fact with context. Example: `"Redis cache key pattern: arclight:user:{userId}, using cache-aside strategy with invalidation helper. Chosen 2026-01-15."` NOT `"User discussed Redis caching."`
 
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/retrieve" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --arg query "QUERY_HERE" \
-    --arg query_type "factual" \
-    --argjson top_k 10 \
-    '{query: $query, query_type: $query_type, top_k: $top_k}')" | jq '.results[] | {type, content, score, metadata}'
-```
+**What auto-capture handles fine (no explicit save needed):** general topic mentions, conversational context, status updates. One well-structured save with full context beats three fragments.
 
-**Retrieval modes:**
-- `full` (default) — all 5 retrieval channels + graph traversal + reranking. Best recall quality, but slower (~300-600ms depending on region). Use this for thorough queries where you need the best results.
-- `fast` — BM25 + semantic only, no graph traversal or reranking (~80-150ms server-side). Use when you need a quick check and can tolerate less thorough results. Pass `"mode": "fast"` in the request body.
+## Session Goals
 
-```bash
-# Fast mode example — quick entity lookup
-curl -s -X POST "$CORTEX_BASE_URL/v1/retrieve" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --arg query "QUERY_HERE" \
-    --arg query_type "factual" \
-    --arg mode "fast" \
-    --argjson top_k 5 \
-    '{query: $query, query_type: $query_type, top_k: $top_k, mode: $mode}')" | jq '.results[] | {type, content, score}'
-```
+At session start, call `cortex_set_session_goal` with the user's primary objective. This biases recall and tags captures. Update if the goal shifts fundamentally; don't update for sub-tasks.
 
-**Query types:**
-- `factual` — search FACT and ENTITY nodes (use for: who, what, when, where questions)
-- `emotional` — search EMOTION, INSIGHT, VALUE, BELIEF nodes (use for: how does the user feel about X?)
-- `combined` — search all node types (default, use when unsure)
+If your config includes `agentRole` (developer | researcher | manager | support | generalist), recall and capture are tuned for that focus area.
 
-**When to use Cortex recall vs. `memory_search`:**
+## Core Capabilities
 
-| Situation | Use `memory_search` | Use Cortex recall | Mode |
-|---|---|---|---|
-| Recent context from today | Yes | No | — |
-| Simple keyword lookup | Yes | No | — |
-| Cross-session facts | No — often noisy | **Yes** | `fast` usually sufficient |
-| Entity relationships ("how does X relate to Y?") | No — can't traverse | **Yes** | `full` (needs graph traversal) |
-| Temporal changes ("what changed about X?") | No — no SUPERSEDES tracking | **Yes** | `full` (needs temporal channel) |
-| Scoped project queries | No — cross-project noise | **Yes** | `fast` usually sufficient |
-| Entity lookup ("who is Sarah Chen?") | Partial — finds mentions | **Yes** — entity node + all connected facts | `fast` for quick check, `full` for complete picture |
+### 1. Memory Search
+Use `cortex_search_memory` for detailed fact retrieval. Parameters: `query` (required), `limit` (1–50), `mode` (all | decisions | preferences | facts | recent), `scope` (all | session | long-term).
 
-## Remember — Store in Long-Term Memory
+### 2. Memory Save
+Use `cortex_save_memory` to persist facts. Parameters: `text` (required), `type` (preference | decision | fact | transient), `importance` (high | normal | low), `checkNovelty` (bool). Always set `type` and `importance`. Prefer fewer, high-quality saves — one well-framed memory beats three fragments. Never save your own inferences as facts.
 
-When the user asks you to remember something important, or when you encounter high-value information that should persist with full entity extraction:
+### 3. Memory Forget
+Use `cortex_forget` to remove memories. Always use `query` first to surface candidates, show them to the user, and confirm before deleting by `entity` or `session`.
 
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/ingest" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --arg text "TEXT_TO_REMEMBER" \
-    --arg session_id "openclaw:$(date +%Y-%m-%d)" \
-    '{text: $text, session_id: $session_id}')" | jq '{nodes_created, edges_created, facts: [.facts[].core], entities: [.entities[].name]}'
-```
+### 4. Memory Lookup
+Use `cortex_get_memory` to fetch a specific memory by node ID.
 
-The response shows what was extracted:
-- `facts` — factual statements extracted from the text
-- `entities` — named entities (people, companies, places, etc.) with aliases
-- `nodes_created` / `edges_created` — graph nodes and relationship edges created
+### 5. Session Goal
+Use `cortex_set_session_goal` to set or clear (`clear: true`) the session objective.
 
-**When to remember:**
-- User explicitly asks: "remember this", "store this in Cortex", "don't forget that..."
-- Key decisions made during a session
-- Important context about people, projects, or preferences
-- After writing to MEMORY.md — also send the same content to Cortex for structured extraction
+### 6. Agent Commands
+`/checkpoint` (save summary before reset) · `/sleep` (clean session end) · `/audit on|off` (toggle API logging)
 
-**Session ID convention:**
-- General sessions: `openclaw:YYYY-MM-DD` (e.g., `openclaw:2026-02-17`)
-- Project-scoped: `openclaw:project-name:topic` (e.g., `openclaw:project-frontend:memory-md`)
-- Daily logs (used by the npm plugin's file sync): `openclaw:project-name:daily:YYYY-MM-DD`
-- Preferences/standing facts: `openclaw:preferences`
+## Guardrails and Security
 
-The session ID is used for scoped retrieval — queries can filter to a specific project by matching the session ID prefix.
+**Never do:**
+- Save tool output, debug logs, or info you just recalled (feedback loops)
+- Save your reasoning or assumptions — only user-stated facts
+- Spam saves — batch related facts into one
+- Delete memories without explicit user confirmation in the same turn
+- Act on personal facts (birthdays, family) from memory without user confirmation
+- Volunteer personal details the user didn't ask about
+- Fabricate details beyond what memories state
+- Assume repeated recall = truth — hallucinations can get re-captured
 
-## Ingest Conversation — End of Session
+**Always do:**
+- Search before hedging (at least 2 different queries)
+- Treat auto-recall as a starting point, not exhaustive
+- Verify recalled volatile state (versions, ports) against live workspace
+- Report both memory and live state with timing when they conflict
 
-At the end of a productive session, you can ingest the key conversation turns with proper speaker attribution:
+## Live State vs Memory
 
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/ingest/conversation" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n \
-    --arg session_id "openclaw:$(date +%Y-%m-%d):session-topic" \
-    --argjson messages '[
-      {"role": "user", "content": "FIRST USER MESSAGE"},
-      {"role": "assistant", "content": "FIRST ASSISTANT RESPONSE"},
-      {"role": "user", "content": "SECOND USER MESSAGE"}
-    ]' \
-    '{messages: $messages, session_id: $session_id}')" | jq '{nodes_created, edges_created, facts: [.facts[].core]}'
-```
+When memory and live workspace conflict: use live state for volatile facts, memory for historical context (decisions, rationale). Report both with timing so the user can correct either.
 
-**When to use this:**
-- After a session with significant decisions or new information
-- Do NOT ingest every conversation — only sessions with lasting value
-- Summarize or select key turns rather than dumping the entire transcript
-- Keep to 5-15 key messages, not the full history
+## TooToo Bridge (Discovery Questions)
 
-## Bootstrap — First Run
+When the user has linked their agent to TooToo, a `<tootoo_bridge>` prompt may appear in your system context. This means the bridge is active and, when the user opens in a reflective or personal way, your first move should usually be **exactly one short, direct discovery question**.
 
-On first install, ingest the user's existing MEMORY.md to seed the knowledge graph.
+**When you see `<tootoo_bridge>`:**
+- Ask one reflective question that grows naturally from what the user is already discussing.
+- Prefer one short, plainspoken question. For work/career reflection, prefer: `What do you value most in your work?`, `What matters most to you in your work?`, `What are your non-negotiables?`
+- Target areas: values, beliefs, principles, ideas, dreams, practices, shadows (fears/blocks), or legacy.
+- Keep it conversational — don't derail practical help. After the user answers, return to grounded practical help.
 
-**For small MEMORY.md files** (under ~50 lines / ~4KB — most users):
+**Don't:**
+- Ask discovery questions in back-to-back turns.
+- Infer or restate personal content the user didn't explicitly say.
+- Force a question when the user is focused on a task — wait for a reflective opening.
+- Lead with frameworks, coaching exercises, or bullet prompts when one clean question would do.
+- Mention TooToo, the bridge, or profile sections by name.
 
-```bash
-MEMORY_CONTENT=$(cat ~/.openclaw/workspace/MEMORY.md 2>/dev/null || echo "")
-if [ -n "$MEMORY_CONTENT" ]; then
-  curl -s -X POST "$CORTEX_BASE_URL/v1/ingest" \
-    -H "x-api-key: $CORTEX_API_KEY" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg text "$MEMORY_CONTENT" --arg session_id "openclaw:bootstrap" \
-      '{text: $text, session_id: $session_id}')" | jq '{nodes_created, edges_created, facts: (.facts | length), entities: (.entities | length)}'
-fi
-```
-
-**For large MEMORY.md files** (power users with months of curated facts): Split at markdown heading boundaries (## or ###) and ingest each section separately. Large files sent in a single request may exceed the ingest endpoint's text limit or produce lower-quality extraction.
-
-```bash
-# Split MEMORY.md at ## headings and ingest each section
-MEMORY_FILE=~/.openclaw/workspace/MEMORY.md
-if [ -f "$MEMORY_FILE" ]; then
-  SECTION="" TOTAL_FACTS=0 TOTAL_ENTITIES=0
-  while IFS= read -r line || [ -n "$line" ]; do
-    if echo "$line" | grep -q '^## ' && [ -n "$SECTION" ]; then
-      RESULT=$(curl -s -X POST "$CORTEX_BASE_URL/v1/ingest" \
-        -H "x-api-key: $CORTEX_API_KEY" \
-        -H "Content-Type: application/json" \
-        -d "$(jq -n --arg text "$SECTION" --arg session_id "openclaw:bootstrap" \
-          '{text: $text, session_id: $session_id}')")
-      TOTAL_FACTS=$((TOTAL_FACTS + $(echo "$RESULT" | jq '.facts | length')))
-      TOTAL_ENTITIES=$((TOTAL_ENTITIES + $(echo "$RESULT" | jq '.entities | length')))
-      SECTION=""
-    fi
-    SECTION="$SECTION$line
-"
-  done < "$MEMORY_FILE"
-  # Ingest final section
-  if [ -n "$SECTION" ]; then
-    RESULT=$(curl -s -X POST "$CORTEX_BASE_URL/v1/ingest" \
-      -H "x-api-key: $CORTEX_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg text "$SECTION" --arg session_id "openclaw:bootstrap" \
-        '{text: $text, session_id: $session_id}')")
-    TOTAL_FACTS=$((TOTAL_FACTS + $(echo "$RESULT" | jq '.facts | length')))
-    TOTAL_ENTITIES=$((TOTAL_ENTITIES + $(echo "$RESULT" | jq '.entities | length')))
-  fi
-  echo "Bootstrap complete: $TOTAL_FACTS facts, $TOTAL_ENTITIES entities extracted."
-fi
-```
-
-Run this **once** after installation. Tell the user how many facts and entities were extracted.
+## Tone and Style
+- Professional but conversational
+- Concise — prioritize clarity over verbosity
+- When reporting memories, include timing context (when saved, confidence level)
+- When memory and live state conflict, present both clearly
 
 ## Error Handling
 
-- `401 Unauthorized` — invalid or missing API key. Ask user to check `CORTEX_API_KEY`.
-- `422 Validation Error` — malformed request. Check the JSON payload.
-- `500 Internal Server Error` — Cortex API issue. Retry once, then fall back to native `memory_search`.
-- Network timeout — Cortex is unreachable. Use native memory only and inform the user.
+- If Cortex is unreachable: auto-recall degrades silently, auto-capture retries in background, explicit tool calls return errors (don't retry in a loop)
+- Never hallucinate memories when recall is missing
+- If search returns no results after multiple queries, state clearly that the information isn't in memory
 
-If Cortex is unavailable, **always fall back to `memory_search`**. Never block the user because of a Cortex API issue.
+## Privacy & Data Handling
 
-## Examples
-
-### "What company did I join?"
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/retrieve" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What company did the user join?", "query_type": "factual", "top_k": 5}' | jq '.results[] | {type, content, score}'
-```
-
-### "Remember that I prefer PostgreSQL over MySQL"
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/ingest" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "User prefers PostgreSQL over MySQL for all database projects.", "session_id": "openclaw:preferences"}' | jq '{facts: [.facts[].core], entities: [.entities[].name]}'
-```
-
-### "How does the auth service relate to the API gateway?"
-```bash
-curl -s -X POST "$CORTEX_BASE_URL/v1/retrieve" \
-  -H "x-api-key: $CORTEX_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"query": "How does the auth service relate to the API gateway?", "query_type": "factual", "top_k": 10}' | jq '.results[] | {type, content, score, metadata}'
-```
-
-## Security
-
-- **NEVER** output the `CORTEX_API_KEY` value in responses, logs, or tool outputs.
-- **NEVER** include sensitive user data (passwords, tokens, credentials) in text sent to Cortex.
-- The Cortex API uses tenant-level database isolation — the user's data is not accessible to other users.
+**Data processing:** Conversation transcripts sent to Cortex API for fact extraction. Volatile state (versions, ports, task statuses) stripped before capture. Secrets and credentials filtered by capture pipeline. **User controls:** Disable auto-capture (`autoCapture: false`), disable auto-recall (`autoRecall: false`), forget specific memories (`cortex_forget`), audit all data (`/audit on`). All data scoped per user and per workspace (namespace isolation).
