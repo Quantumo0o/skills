@@ -117,7 +117,8 @@ def generate_link(connection_name: str, identifier: str) -> None:
     try:
         response = connect.get_or_create_connected_account(
             connection_name=connection_name,
-            identifier=identifier
+            identifier=identifier,
+            authorization_details={"oauth_token": {}}
         )
         connected_account = response.connected_account
 
@@ -136,12 +137,8 @@ def generate_link(connection_name: str, identifier: str) -> None:
             print(f"   {BLUE}{link_response.link}{RESET}")
             print()
 
-            try:
-                input(f"⎆ Press Enter after authorizing {connection_name}...")
-                print(f"\n{GREEN}✅ Done! You can now execute tools for {connection_name}.{RESET}")
-            except (KeyboardInterrupt, EOFError):
-                print(f"\n{YELLOW}(Non-interactive mode — authorize the link above, then re-run to continue.){RESET}")
-                sys.exit(0)
+            print(f"{YELLOW}Authorize the link above, then re-run to continue.{RESET}")
+            sys.exit(0)
         else:
             print(f"\n{GREEN}✅ {connection_name} is already connected and active!{RESET}")
 
@@ -195,7 +192,8 @@ def execute_tool(tool_name: str, connection_name: str, identifier: str, tool_inp
             # OAuth flow
             response = connect.get_or_create_connected_account(
                 connection_name=connection_name,
-                identifier=identifier
+                identifier=identifier,
+                authorization_details={"oauth_token": {}}
             )
             connected_account = response.connected_account
 
@@ -214,16 +212,14 @@ def execute_tool(tool_name: str, connection_name: str, identifier: str, tool_inp
                 print(f"   {BLUE}{link_response.link}{RESET}")
                 print()
 
-                try:
-                    input(f"⎆ Press Enter after authorizing {connection_name}...")
-                except (KeyboardInterrupt, EOFError):
-                    print(f"\n{YELLOW}(Non-interactive mode — authorize the link above, then re-run to execute.){RESET}")
-                    sys.exit(0)
+                print(f"{YELLOW}Authorize the link above, then re-run to execute.{RESET}")
+                sys.exit(0)
 
                 # Re-fetch connected account after authorization
                 response = connect.get_or_create_connected_account(
                     connection_name=connection_name,
-                    identifier=identifier
+                    identifier=identifier,
+                    authorization_details={"oauth_token": {}}
                 )
                 connected_account = response.connected_account
 
@@ -239,6 +235,8 @@ def execute_tool(tool_name: str, connection_name: str, identifier: str, tool_inp
         print(f"\n{GREEN}✅ Result:{RESET}")
         if isinstance(result, (dict, list)):
             print(json.dumps(result, indent=2))
+        elif hasattr(result, 'model_dump'):
+            print(json.dumps(result.model_dump(), indent=2))
         else:
             print(result)
 
@@ -664,20 +662,11 @@ Required environment variables:
         print(f"{RED}❌ Error: TOOL_ENV_URL environment variable is required{RESET}")
         sys.exit(1)
 
-    # Resolve identifier: env var → CLI arg → prompt user
+    # Resolve identifier: env var → CLI arg → error
     if not args.identifier:
         if not TOOL_IDENTIFIER:
-            print(f"{YELLOW}⚠️  Warning: TOOL_IDENTIFIER is not set in your .env config.{RESET}")
-            print(f"   Add TOOL_IDENTIFIER=<your_identifier> to .env to avoid this prompt.")
-            print()
-            try:
-                args.identifier = input("Enter identifier: ").strip()
-            except (KeyboardInterrupt, EOFError):
-                print(f"\n{RED}❌ Identifier is required. Set TOOL_IDENTIFIER in .env or pass --identifier.{RESET}")
-                sys.exit(1)
-            if not args.identifier:
-                print(f"{RED}❌ Identifier cannot be empty.{RESET}")
-                sys.exit(1)
+            print(f"{RED}❌ Identifier is required. Set TOOL_IDENTIFIER in .env or pass --identifier.{RESET}")
+            sys.exit(1)
         else:
             args.identifier = TOOL_IDENTIFIER
 

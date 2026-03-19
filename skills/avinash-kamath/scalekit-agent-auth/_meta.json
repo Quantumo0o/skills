@@ -1,13 +1,18 @@
 {
   "owner": "avinash-kamath",
   "slug": "scalekit-agent-auth",
-  "displayName": "Scalekit-Agent-Auth",
+  "displayName": "Scalekit Agent Auth",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773658352675,
-    "commit": "https://github.com/openclaw/skills/commit/d99f78285011282163c0b4196b7165e529c5f83c"
+    "version": "2.4.1",
+    "publishedAt": 1773833958881,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773658352675,
+      "commit": "https://github.com/openclaw/skills/commit/d99f78285011282163c0b4196b7165e529c5f83c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1770365771709,
