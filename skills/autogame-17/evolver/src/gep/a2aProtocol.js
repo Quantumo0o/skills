@@ -305,7 +305,9 @@ function unwrapAssetFromMessage(input) {
 function ensureDir(dir) {
   try {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[a2aProtocol] ensureDir failed:', dir, e && e.message || e);
+  }
 }
 
 function defaultA2ADir() {
@@ -337,7 +339,9 @@ function fileTransportReceive(opts) {
           if (msg && msg.protocol === PROTOCOL_NAME) messages.push(msg);
         } catch (e) {}
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[a2aProtocol] Failed to read inbox file:', files[fi], e && e.message || e);
+    }
   }
   return messages;
 }
@@ -402,8 +406,13 @@ var _heartbeatTotalFailed = 0;
 var _heartbeatFpSent = false;
 var _latestAvailableWork = [];
 var _latestOverdueTasks = [];
+var _latestSkillStoreHint = null;
+var _latestNoveltyHint = null;
+var _latestCapabilityGaps = [];
 var _pendingCommitmentUpdates = [];
 var _cachedHubNodeSecret = null;
+var _cachedHubNodeSecretAt = 0;
+var _SECRET_CACHE_TTL_MS = 60000;
 var _heartbeatIntervalMs = 0;
 var _heartbeatRunning = false;
 
@@ -425,7 +434,9 @@ function _persistNodeSecret(secret) {
       fs.mkdirSync(NODE_ID_DIR, { recursive: true, mode: 0o700 });
     }
     fs.writeFileSync(NODE_SECRET_FILE, secret, { encoding: 'utf8', mode: 0o600 });
-  } catch {}
+  } catch (e) {
+    console.warn('[a2aProtocol] Failed to persist node secret:', e && e.message || e);
+  }
 }
 
 function getHubUrl() {
@@ -461,6 +472,7 @@ function sendHelloToHub() {
         || null;
       if (secret && /^[a-f0-9]{64}$/i.test(secret)) {
         _cachedHubNodeSecret = secret;
+        _cachedHubNodeSecretAt = Date.now();
         _persistNodeSecret(secret);
       }
       return { ok: true, response: data };
@@ -470,10 +482,14 @@ function sendHelloToHub() {
 
 function getHubNodeSecret() {
   if (process.env.A2A_NODE_SECRET) return process.env.A2A_NODE_SECRET;
-  if (_cachedHubNodeSecret) return _cachedHubNodeSecret;
+  var now = Date.now();
+  if (_cachedHubNodeSecret && (now - _cachedHubNodeSecretAt) < _SECRET_CACHE_TTL_MS) {
+    return _cachedHubNodeSecret;
+  }
   var persisted = _loadPersistedNodeSecret();
   if (persisted) {
     _cachedHubNodeSecret = persisted;
+    _cachedHubNodeSecretAt = now;
     return persisted;
   }
   if (process.env.A2A_HUB_TOKEN) return process.env.A2A_HUB_TOKEN;
@@ -526,7 +542,9 @@ function sendHeartbeat() {
         meta.env_fingerprint = fp;
         _heartbeatFpSent = true;
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[a2aProtocol] Failed to capture env fingerprint:', e && e.message || e);
+    }
   }
 
   if (Object.keys(meta).length > 0) {
@@ -575,6 +593,21 @@ function sendHeartbeat() {
       if (Array.isArray(data.overdue_tasks) && data.overdue_tasks.length > 0) {
         _latestOverdueTasks = data.overdue_tasks;
         console.warn('[Commitment] ' + data.overdue_tasks.length + ' overdue task(s) detected via heartbeat.');
+      }
+      if (data.skill_store) {
+        _latestSkillStoreHint = data.skill_store;
+        if (data.skill_store.eligible && data.skill_store.published_skills === 0) {
+          console.log('[Skill Store] ' + data.skill_store.hint);
+        }
+      }
+      if (data.novelty && typeof data.novelty === 'object') {
+        _latestNoveltyHint = data.novelty;
+      }
+      if (Array.isArray(data.capability_gaps) && data.capability_gaps.length > 0) {
+        _latestCapabilityGaps = data.capability_gaps;
+      }
+      if (data.circle_experience && typeof data.circle_experience === 'object') {
+        console.log('[EvolutionCircle] Active circle: ' + (data.circle_experience.circle_id || '?') + ' (' + (data.circle_experience.member_count || 0) + ' members)');
       }
       _heartbeatConsecutiveFailures = 0;
       try {
@@ -629,10 +662,22 @@ function getOverdueTasks() {
   return _latestOverdueTasks;
 }
 
+function getSkillStoreHint() {
+  return _latestSkillStoreHint;
+}
+
 function consumeOverdueTasks() {
   var tasks = _latestOverdueTasks;
   _latestOverdueTasks = [];
   return tasks;
+}
+
+function getNoveltyHint() {
+  return _latestNoveltyHint;
+}
+
+function getCapabilityGaps() {
+  return _latestCapabilityGaps;
 }
 
 /**
@@ -746,7 +791,11 @@ module.exports = {
   consumeAvailableWork,
   getOverdueTasks,
   consumeOverdueTasks,
+  getSkillStoreHint,
   queueCommitmentUpdate,
+  getHubUrl,
   getHubNodeSecret,
   buildHubHeaders,
+  getNoveltyHint,
+  getCapabilityGaps,
 };

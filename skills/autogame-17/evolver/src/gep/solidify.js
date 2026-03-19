@@ -20,6 +20,7 @@ const { buildValidationReport } = require('./validationReport');
 const { logAssetCall } = require('./assetCallLog');
 const { recordNarrative } = require('./narrativeMemory');
 const { isLlmReviewEnabled, runLlmReview } = require('./llmReview');
+const { buildExecutionTrace } = require('./executionTrace');
 
 function nowIso() {
   return new Date().toISOString();
@@ -382,12 +383,12 @@ function readStateForSolidify() {
 }
 
 function writeStateForSolidify(state) {
-  const memoryDir = getMemoryDir();
-  const statePath = path.join(getEvolutionDir(), 'evolution_solidify_state.json');
+  const evolutionDir = getEvolutionDir();
+  const statePath = path.join(evolutionDir, 'evolution_solidify_state.json');
   try {
-    if (!fs.existsSync(memoryDir)) fs.mkdirSync(memoryDir, { recursive: true });
+    if (!fs.existsSync(evolutionDir)) fs.mkdirSync(evolutionDir, { recursive: true });
   } catch (e) {
-    console.warn('[evolver] writeStateForSolidify mkdir failed:', memoryDir, e && e.message || e);
+    console.warn('[evolver] writeStateForSolidify mkdir failed:', evolutionDir, e && e.message || e);
   }
   const tmp = `${statePath}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(state, null, 2) + '\n', 'utf8');
@@ -668,6 +669,108 @@ function buildFailureReason(constraintCheck, validation, protocolViolations, can
     reasons.push('canary_failed: ' + String(canary.err || '').slice(0, 200));
   }
   return reasons.join('; ').slice(0, 2000) || 'unknown';
+}
+
+function buildSoftFailureLearningSignals(opts) {
+  const { expandSignals } = require('./learningSignals');
+  var signals = opts && Array.isArray(opts.signals) ? opts.signals : [];
+  var failureReason = opts && opts.failureReason ? String(opts.failureReason) : '';
+  var violations = opts && Array.isArray(opts.violations) ? opts.violations : [];
+  var validationResults = opts && Array.isArray(opts.validationResults) ? opts.validationResults : [];
+  var validationText = validationResults
+    .filter(function (r) { return r && r.ok === false; })
+    .map(function (r) { return [r.cmd, r.stderr, r.stdout].filter(Boolean).join(' '); })
+    .join(' ');
+  return expandSignals(signals.concat(violations), failureReason + ' ' + validationText)
+    .filter(function (tag) {
+      return tag.indexOf('problem:') === 0 || tag.indexOf('risk:') === 0 || tag.indexOf('area:') === 0 || tag.indexOf('action:') === 0;
+    });
+}
+
+function classifyFailureMode(opts) {
+  var constraintViolations = opts && Array.isArray(opts.constraintViolations) ? opts.constraintViolations : [];
+  var protocolViolations = opts && Array.isArray(opts.protocolViolations) ? opts.protocolViolations : [];
+  var validation = opts && opts.validation ? opts.validation : null;
+  var canary = opts && opts.canary ? opts.canary : null;
+
+  if (constraintViolations.some(function (v) {
+    var s = String(v || '');
+    return /HARD CAP BREACH|CRITICAL_FILE_|critical_path_modified|forbidden_path touched|ethics:/i.test(s);
+  })) {
+    return { mode: 'hard', reasonClass: 'constraint_destructive', retryable: false };
+  }
+
+  if (protocolViolations.length > 0) {
+    return { mode: 'hard', reasonClass: 'protocol', retryable: false };
+  }
+
+  if (canary && !canary.ok && !canary.skipped) {
+    return { mode: 'hard', reasonClass: 'canary', retryable: false };
+  }
+
+  if (constraintViolations.length > 0) {
+    return { mode: 'hard', reasonClass: 'constraint', retryable: false };
+  }
+
+  if (validation && validation.ok === false) {
+    return { mode: 'soft', reasonClass: 'validation', retryable: true };
+  }
+
+  return { mode: 'soft', reasonClass: 'unknown', retryable: true };
+}
+
+function adaptGeneFromLearning(opts) {
+  var gene = opts && opts.gene && opts.gene.type === 'Gene' ? opts.gene : null;
+  if (!gene) return gene;
+
+  var outcomeStatus = String(opts && opts.outcomeStatus || '').toLowerCase();
+  var learningSignals = Array.isArray(opts && opts.learningSignals) ? opts.learningSignals : [];
+  var failureMode = opts && opts.failureMode && typeof opts.failureMode === 'object'
+    ? opts.failureMode
+    : { mode: 'soft', reasonClass: 'unknown', retryable: true };
+
+  if (!Array.isArray(gene.learning_history)) gene.learning_history = [];
+  if (!Array.isArray(gene.signals_match)) gene.signals_match = [];
+
+  var seenSignal = new Set(gene.signals_match.map(function (s) { return String(s); }));
+  if (outcomeStatus === 'success') {
+    for (var i = 0; i < learningSignals.length; i++) {
+      var sig = String(learningSignals[i] || '');
+      if (!sig || seenSignal.has(sig)) continue;
+      if (sig.indexOf('problem:') === 0 || sig.indexOf('area:') === 0) {
+        gene.signals_match.push(sig);
+        seenSignal.add(sig);
+      }
+    }
+  }
+
+  gene.learning_history.push({
+    at: nowIso(),
+    outcome: outcomeStatus || 'unknown',
+    mode: failureMode.mode || 'soft',
+    reason_class: failureMode.reasonClass || 'unknown',
+    retryable: !!failureMode.retryable,
+    learning_signals: learningSignals.slice(0, 12),
+  });
+  if (gene.learning_history.length > 20) {
+    gene.learning_history = gene.learning_history.slice(gene.learning_history.length - 20);
+  }
+
+  if (outcomeStatus === 'failed') {
+    if (!Array.isArray(gene.anti_patterns)) gene.anti_patterns = [];
+    var anti = {
+      at: nowIso(),
+      mode: failureMode.mode || 'soft',
+      reason_class: failureMode.reasonClass || 'unknown',
+      learning_signals: learningSignals.slice(0, 8),
+    };
+    gene.anti_patterns.push(anti);
+    if (gene.anti_patterns.length > 12) {
+      gene.anti_patterns = gene.anti_patterns.slice(gene.anti_patterns.length - 12);
+    }
+  }
+
+  return gene;
 }
 
 function rollbackTracked(repoRoot) {
@@ -1156,6 +1259,23 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   const ts = nowIso();
   const outcomeStatus = success ? 'success' : 'failed';
   const score = clamp01(success ? 0.85 : 0.2);
+  const failureReason = !success ? buildFailureReason(constraintCheck, validation, protocolViolations, canary) : '';
+  const failureMode = !success
+    ? classifyFailureMode({
+        constraintViolations: constraintCheck.violations,
+        protocolViolations: protocolViolations,
+        validation: validation,
+        canary: canary,
+      })
+    : { mode: 'none', reasonClass: null, retryable: false };
+  const softFailureLearningSignals = !success
+    ? buildSoftFailureLearningSignals({
+        signals,
+        failureReason,
+        violations: constraintCheck.violations,
+        validationResults: validation.results,
+      })
+    : [];
 
   const selectedCapsuleId =
     lastRun && typeof lastRun.selected_capsule_id === 'string' && lastRun.selected_capsule_id.trim()
@@ -1223,8 +1343,30 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
       protocol_ok: protocolViolations.length === 0,
       protocol_violations: protocolViolations,
       memory_graph: memoryGraphPath(),
+      soft_failure: success ? null : {
+        learning_signals: softFailureLearningSignals,
+        retryable: !!failureMode.retryable,
+        class: failureMode.reasonClass,
+        mode: failureMode.mode,
+      },
     },
   };
+  // Build desensitized execution trace for cross-agent experience sharing
+  const executionTrace = buildExecutionTrace({
+    gene: geneUsed,
+    mutation,
+    signals,
+    blast,
+    constraintCheck,
+    validation,
+    canary,
+    outcomeStatus,
+    startedAt: validation.startedAt,
+  });
+  if (executionTrace) {
+    event.execution_trace = executionTrace;
+  }
+
   event.asset_id = computeAssetId(event);
 
   let capsule = null;
@@ -1286,7 +1428,8 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
             ? 'Failed: ' + geneUsed.id + ' on signals [' + (signals.slice(0, 3).join(', ') || 'none') + ']'
             : 'Failed evolution on signals [' + (signals.slice(0, 3).join(', ') || 'none') + ']',
           diff_snapshot: diffSnapshot,
-          failure_reason: buildFailureReason(constraintCheck, validation, protocolViolations, canary),
+          failure_reason: failureReason,
+          learning_signals: softFailureLearningSignals,
           constraint_violations: constraintCheck.violations || [],
           env_fingerprint: envFp,
           blast_radius: { files: blast.files, lines: blast.lines },
@@ -1314,6 +1457,12 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   // Apply epigenetic marks to the gene based on outcome and environment
   if (!dryRun && geneUsed && geneUsed.type === 'Gene') {
     try {
+      adaptGeneFromLearning({
+        gene: geneUsed,
+        outcomeStatus: outcomeStatus,
+        learningSignals: success ? signals : softFailureLearningSignals,
+        failureMode: failureMode,
+      });
       applyEpigeneticMarks(geneUsed, envFp, outcomeStatus);
       upsertGene(geneUsed);
     } catch (e) {
@@ -1350,7 +1499,10 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   state.last_solidify = {
     run_id: runId, at: ts, event_id: event.id, capsule_id: capsuleId, outcome: event.outcome,
   };
-  if (!dryRun) writeStateForSolidify(state);
+  if (!dryRun) {
+    state.solidify_count = (state.solidify_count || 0) + 1;
+    writeStateForSolidify(state);
+  }
 
   if (!dryRun) {
     try {
@@ -1542,7 +1694,7 @@ function solidify({ intent, summary, dryRun = false, rollbackOnFailure = true } 
   // which we already do above. The Hub-side solicitLesson() handles the rest.
   // For failures without a published event (no auto-publish), we still log locally.
   if (!dryRun && !success && event && event.outcome) {
-    var failureContent = buildFailureReason(constraintCheck, validation, protocolViolations, canary);
+    var failureContent = failureReason;
     event.failure_reason = failureContent;
     event.summary = geneUsed
       ? 'Failed: ' + geneUsed.id + ' on signals [' + (signals.slice(0, 3).join(', ') || 'none') + '] - ' + failureContent.slice(0, 200)
@@ -1688,6 +1840,9 @@ module.exports = {
   classifyBlastSeverity,
   analyzeBlastRadiusBreakdown,
   compareBlastEstimate,
+  classifyFailureMode,
+  adaptGeneFromLearning,
+  buildSoftFailureLearningSignals,
   runCanaryCheck,
   applyEpigeneticMarks,
   getEpigeneticBoost,
