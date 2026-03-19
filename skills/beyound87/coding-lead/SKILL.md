@@ -35,62 +35,58 @@ Existing projects: follow current stack. New: propose first, wait for confirmati
 
 All tools are **optional**. Detect once per session:
 
-| Tool | Available? | Fallback |
-|------|-----------|----------|
+| Tool | Check | Fallback |
+|------|-------|----------|
 | **smart-agent-memory** | `node ~/.openclaw/skills/smart-agent-memory/scripts/memory-cli.js stats` ok? | `memory_search` + manual `.md` writes |
 | **qmd** | `qmd --version` ok? | `grep` (Linux/macOS) / `Select-String` (Windows) / `find` |
-| **ACP** | `sessions_spawn` succeeds? | Direct read/write/edit/exec |
+| **ACP** | See ACP detection below | Direct read/write/edit/exec |
 
 Notation: `[memory]` `[qmd]` `[acp]` = use if available, fallback if not.
 
-## ACP Agent Routing
+## ACP Detection & Routing
 
-**ACP access**: `sessions_spawn(runtime="acp")` may not be available (platform limitation). Use **acpx CLI** as the reliable path:
+**Run once per session**, stop at first success:
 
+### Step 1: Try `sessions_spawn` (timeout: 30s)
+```
+sessions_spawn(runtime: "acp", agentId: "claude", task: "say hello", mode: "run", runTimeoutSeconds: 30)
+```
+- Got a reply → `ACP_MODE = "spawn"`. Done.
+- Error or no reply within 30s → kill session, go to Step 2.
+
+### Step 2: Try acpx CLI (timeout: 30s)
 ```bash
-# Detect paths dynamically (run once per session)
-# Windows:
-#   ACPX = %APPDATA%\npm\node_modules\openclaw\extensions\acpx\node_modules\.bin\acpx.cmd
-#   AGENT = node %APPDATA%/npm/node_modules/@zed-industries/claude-agent-acp/dist/index.js
-# macOS/Linux:
-#   ACPX = $(npm root -g)/openclaw/extensions/acpx/node_modules/.bin/acpx
-#   AGENT = node $(npm root -g)/@zed-industries/claude-agent-acp/dist/index.js
+# Detect acpx path (OS-dependent)
+# Windows: %APPDATA%\npm\node_modules\openclaw\extensions\acpx\node_modules\.bin\acpx.cmd
+# macOS/Linux: $(npm root -g)/openclaw/extensions/acpx/node_modules/.bin/acpx
 
-# One-shot execution via acpx (works from any session type)
-acpx --verbose --agent "<AGENT>" exec "<your prompt>" 2>&1
+# Use exec with timeout
+acpx claude exec "say hello"   # timeout 30s
 ```
+- Got a reply → `ACP_MODE = "acpx"`. Done.
+- Error, empty output, or stuck beyond 30s → kill process, go to Step 3.
 
-If `sessions_spawn(runtime="acp")` is available in your session, use it. Otherwise fall back to acpx CLI via `exec`.
+### Step 3: No ACP available
+`ACP_MODE = "direct"`. Agent executes all coding tasks directly with read/write/edit/exec. Load team standards (see Coding Standards below).
 
-Check `acp.allowedAgents` in openclaw.json for available agents:
+### Cache the result
+Set a session variable (mental note): `ACP_MODE = "spawn" | "acpx" | "direct"`
+- **Cache lifetime = current session**. Each new session re-detects once.
+- If a cached mode fails mid-session (e.g. acpx suddenly errors), re-run detection from Step 1.
 
-| Task Type | Best Agent | Why |
-|-----------|-----------|-----|
-| Complex backend, multi-file refactor, deep reasoning | **claude** | Superior cross-file reasoning, long context |
-| Quick iteration, autonomous exploration, sandbox tasks | **codex** | Fast, autonomous, good at iterative fixes |
-| Code review | Different agent than the one that wrote it | Avoid same-bias blind spots |
+### Agent selection (when ACP available)
 
-### How to route
+| Task Type | Agent | Why |
+|-----------|-------|-----|
+| Complex backend, multi-file, deep reasoning | **claude** | Cross-file reasoning, long context |
+| Quick iteration, autonomous, sandbox | **codex** | Fast, iterative |
+| Code review | Different agent than writer | Avoid same-bias |
 
+### Parallel (max 2 ACP sessions)
+For complex tasks with independent sub-tasks:
 ```
-# Default (uses acp.defaultAgent, typically "claude"):
-sessions_spawn(runtime: "acp", task: <prompt>, cwd: <dir>)
-
-# Explicit agent:
-sessions_spawn(runtime: "acp", agentId: "claude", task: <prompt>, cwd: <dir>)
-sessions_spawn(runtime: "acp", agentId: "codex", task: <prompt>, cwd: <dir>)
-```
-
-### Fallback chain
-1. Try preferred agent → 2. Try alternate agent → 3. Direct execution
-
-If one agent fails/unavailable, try the other before falling back to direct execution.
-
-### Parallel with different agents
-For complex tasks with independent sub-tasks (max 2 parallel):
-```
-Session 1: claude → backend refactor (needs deep reasoning)
-Session 2: codex → frontend fixes (needs fast iteration)
+Session 1: claude → backend refactor
+Session 2: codex → frontend fixes
 ```
 
 ## Coding Standards — Two Layers, No Overlap
@@ -165,15 +161,17 @@ Before finishing: run linter + tests, include results.
 When done: openclaw system event --text "Done: <summary>" --mode now
 ```
 
-### Step 3: Spawn
+### Step 3: Spawn (use detected ACP_MODE)
 
 ```
-# Option A: sessions_spawn (if available in your session)
-sessions_spawn(runtime: "acp", task: <prompt>, cwd: <project-dir>, mode: "run")
+# ACP_MODE = "spawn":
+sessions_spawn(runtime: "acp", agentId: "claude", task: <prompt>, cwd: <project-dir>, mode: "run")
 
-# Option B: acpx CLI (always works, detect AGENT path per above)
-exec: acpx --agent "<AGENT>" exec "<prompt>"
-# Set cwd to project dir in exec command
+# ACP_MODE = "acpx":
+exec: cd <project-dir> && acpx claude exec "<prompt>"
+
+# ACP_MODE = "direct":
+Skip spawn, execute directly with read/write/edit/exec
 ```
 
 ### Step 4: Fallback Detection
