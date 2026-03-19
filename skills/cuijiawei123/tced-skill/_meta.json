@@ -1,0 +1,11 @@
+{
+  "owner": "cuijiawei123",
+  "slug": "tced-skill",
+  "displayName": "腾讯云企业网盘 TCED",
+  "latest": {
+    "version": "0.3.0",
+    "publishedAt": 1773907243168,
+    "commit": null
+  },
+  "history": []
+}
