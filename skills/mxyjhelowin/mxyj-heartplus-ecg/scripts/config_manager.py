@@ -8,6 +8,7 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
 from pathlib import Path
 from typing import Any, Union
 from errors import SkillError
@@ -122,7 +123,32 @@ class ConfigManager:
             return False
         return bool(session_auth_by_session_key.get(resolved_session_key, False))
 
-    def set_session_authorized(self, session_key: Any = None, authorized: bool = False) -> bool:
+    def get_session_state(self, session_key: Any = None) -> dict[str, Any]:
+        resolved_session_key = self.resolve_session_key(session_key)
+        config = self.load_json()
+        phones_by_session_key = config.get("phones_by_session_key")
+        session_auth_by_session_key = config.get("session_auth_by_session_key")
+        session_auth_meta = config.get("session_auth_meta_by_session_key")
+        if not isinstance(phones_by_session_key, dict):
+            phones_by_session_key = {}
+        if not isinstance(session_auth_by_session_key, dict):
+            session_auth_by_session_key = {}
+        if not isinstance(session_auth_meta, dict):
+            session_auth_meta = {}
+        return {
+            "session_key": resolved_session_key,
+            "has_phone": bool(str(phones_by_session_key.get(resolved_session_key, "")).strip()),
+            "authorized": bool(session_auth_by_session_key.get(resolved_session_key, False)),
+            "auth_meta": session_auth_meta.get(resolved_session_key, {}),
+        }
+
+    def set_session_authorized(
+            self,
+            session_key: Any = None,
+            authorized: bool = False,
+            updated_at: int | None = None,
+            source: str = "runtime"
+    ) -> bool:
         resolved_session_key = self.resolve_session_key(session_key)
         config = self.load_json()
         session_auth_by_session_key = config.get("session_auth_by_session_key")
@@ -130,6 +156,15 @@ class ConfigManager:
             session_auth_by_session_key = {}
         session_auth_by_session_key[resolved_session_key] = bool(authorized)
         config["session_auth_by_session_key"] = session_auth_by_session_key
+        session_auth_meta = config.get("session_auth_meta_by_session_key")
+        if not isinstance(session_auth_meta, dict):
+            session_auth_meta = {}
+        session_auth_meta[resolved_session_key] = {
+            "authorized": bool(authorized),
+            "updated_at": int(updated_at if updated_at is not None else time.time()),
+            "source": str(source).strip() or "runtime",
+        }
+        config["session_auth_meta_by_session_key"] = session_auth_meta
         return self.save_json(config)
 
     def is_dev(self):

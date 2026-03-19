@@ -56,6 +56,8 @@ class GatewayManager:
             return "macos-amd64"
 
         if system == "windows":
+            if machine in {"arm64", "aarch64"}:
+                return "windows-arm64"
             return "windows-amd64"
 
         if system == "linux":
@@ -263,7 +265,8 @@ class GatewayManager:
                     if "verify cloud error" in error_msg:
                         raise SkillError(
                             "授权校验失败，请确认用户已在心脏+APP完成授权后重试。",
-                            {"suggestion": f"先确认用户是否完成APP授权；如未完成可重新发送授权通知，完成后再重试校验。如需先下载并登录心脏+APP，请使用：{APP_DOWNLOAD_URL}"}
+                            {
+                                "suggestion": f"先确认用户是否完成APP授权；如未完成可重新发送授权通知，完成后再重试校验。如需先下载并登录心脏+APP，请使用：{APP_DOWNLOAD_URL}"}
                         )
             raise SkillError("安全校验执行未完成，请稍后重试", {"next_action": "ask_send_authorize_notify"})
 

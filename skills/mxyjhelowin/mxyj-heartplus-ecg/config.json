@@ -5,10 +5,30 @@
             "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-macos-arm64",
             "sha256": "d0b86b10dc083b14cb7e8440599401f265e00e32017de52529ce069768ead9f1"
         },
+        "macos-amd64": {
+            "arch": "macos-amd64",
+            "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-macos-amd64",
+            "sha256": "79df0956a6596ef2ae382cff97d399924d9bf7f5db2f0b6bd61136c6ed770110"
+        },
         "windows-amd64": {
             "arch": "windows-amd64",
             "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-windows-amd64.exe",
             "sha256": "ae14a5ab9318002711486783d2585091ebf2598cdee27856b7245f9c7c9e93e7"
+        },
+        "windows-arm64": {
+            "arch": "windows-arm64",
+            "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-windows-arm64.exe",
+            "sha256": "77de36726da382da656d0dac98f29ed3a9514022feaab007f56a55a8db2f9ee2"
+        },
+        "linux-amd64": {
+            "arch": "linux-amd64",
+            "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-linux-amd64",
+            "sha256": "ae9fca6200e4892e0d304d583326186ce40dff2425a0b7862ca72f11c5ca3349"
+        },
+        "linux-arm64": {
+            "arch": "linux-arm64",
+            "url": "https://aigc-online.oss-cn-hangzhou.aliyuncs.com/mxyj-skills/heartplus/binary-tool/release/v0.0.1/healthgateway-linux-arm64",
+            "sha256": "a1ac47e235fc47172f773d75424315a499a14f8c87468c1b780f5cfe05369454"
         }
     }
 }

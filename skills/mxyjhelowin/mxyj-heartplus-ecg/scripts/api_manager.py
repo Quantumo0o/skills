@@ -430,8 +430,8 @@ class ApiManager:
         result_json = self._call_common("XHJD900103002", {"mobile": phone})
         resp_head = result_json.get("respHead") or {}
         if self.is_ok(str(resp_head.get("respCode", ""))):
-            return f"✅ 心电检测通知已通过心脏+APP下发！\n\n请点击手机通知栏消息拉起心脏+APP，进入测量页面。\n心电测量操作指引：https://support.apple.com/zh-cn/120277\n测量完成后，您可以随时对我说“帮我查询最新的心电报告”来查看结果。\n{MAINLAND_USER_NOTICE}"
-        raise SkillError("通知下发失败，请稍后重试", {"respHead": resp_head})
+            return f"已为您下发心电测量通知。\n请现在按手表提示完成测量。\n完成后回复“已完成”，我马上帮您看结果。\n{MAINLAND_USER_NOTICE}"
+        raise SkillError("通知下发失败，请稍后重试；若未收到通知，请确认心脏+APP已安装并登录后再试", {"respHead": resp_head})
 
     def send_authorize_notify(self) -> dict:
         phone = self._ensure_phone()
@@ -480,7 +480,7 @@ class ApiManager:
                     "status": "1",
                     "next_action": "wait_user_confirm_then_poll_authorization",
                     "push_result": push_result,
-                    "user_message": f"已向您手机上的心脏+APP发送授权通知，请先在APP内确认授权。确认后请回复“已授权”，我再为您检查授权状态。（如未收到消息，请您确保已下载心脏+APP并完成登录：{APP_DOWNLOAD_URL} ）{MAINLAND_USER_NOTICE}",
+                    "user_message": f"已向您手机上的心脏+APP发送授权通知。请先在APP内确认授权，完成后回复“已授权”。若未收到消息，请先确认已安装并登录心脏+APP：{APP_DOWNLOAD_URL}。{MAINLAND_USER_NOTICE}",
                 }
 
             raise SkillError(
@@ -507,7 +507,7 @@ class ApiManager:
             "verify_status": verify_result.get("verify_status", "VERIFY_PENDING"),
             "next_action": verify_result.get("next_action", "ask_wait_or_resend"),
             "auth_mode": "SMS_CODE",
-            "user_message": "验证码校验未完成，请确认验证码后重试。",
+            "user_message": "验证码校验未完成，请确认验证码后重试；若暂未收到验证码，请稍后重试发送。",
         }
 
     def _verify_authorization_status(self, auth_code: str) -> dict:
@@ -557,7 +557,7 @@ class ApiManager:
             "auth_status": False,
             "verify_status": "WAITING_AUTH",
             "next_action": "ask_wait_or_resend",
-            "user_message": "暂未检测到授权，请在心脏+APP完成授权后继续。",
+            "user_message": "暂未检测到授权，请在心脏+APP完成授权后继续；若未收到通知可回复“重新发送授权通知”。",
         }
 
     def poll_ecg_authorization(self, max_wait_seconds: int = 45, interval_seconds: int = 3) -> dict:
@@ -585,7 +585,7 @@ class ApiManager:
                     "attempts": attempts,
                     "elapsed_seconds": elapsed,
                     "next_action": "ask_user_wait_or_resend",
-                    "user_hint": "暂未检测到授权。请询问用户是否继续等待，或重新发送授权通知。",
+                    "user_hint": "暂未检测到授权。请先确认心脏+APP已安装并登录且可接收通知，再询问用户是否继续等待或重新发送授权通知。",
                 }
             time.sleep(interval_seconds)
 
