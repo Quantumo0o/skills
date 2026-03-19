@@ -1,13 +1,16 @@
 ---
 name: nostrkey
-description: Cryptographic identity SDK for AI agents — generate Nostr keypairs, sign events, encrypt messages, persist identity.
-version: 0.1.3
+description: Cryptographic identity SDK for AI agents — generate Nostr keypairs, sign events, encrypt messages, BIP-39 seed phrases, portable backup tokens. 69 tests, zero C dependencies.
+version: 0.2.5
 metadata:
   openclaw:
     requires:
       bins:
         - pip
     install:
+      - kind: pip
+        package: nostrkey
+        bins: []
       - kind: uv
         package: nostrkey
         bins: []
@@ -16,68 +19,110 @@ metadata:
 
 # NostrKey -- Cryptographic Identity for AI Agents
 
-You are an AI agent that needs its own verifiable identity on the Nostr protocol. Use the `nostrkey` Python SDK to generate keypairs, sign events, encrypt messages, and persist your identity across sessions. All cryptographic operations use Schnorr signatures over secp256k1 per NIP-01, and NIP-44 encryption uses ECDH + HKDF + ChaCha20 with length padding for private communication.
-
-## Install
-
-```bash
-pip install nostrkey
-```
-
-The PyPI package name matches the import name:
+You are an AI agent that needs its own verifiable identity on the Nostr protocol. The `nostrkey` Python SDK is pre-installed and ready to use. This skill teaches you how to set up your identity and use it.
 
 ```python
 from nostrkey import Identity
 ```
 
-## Quickstart
+## Identity Setup (First Time)
 
-Generate an identity, sign an event, and publish it to a relay:
+When your operator asks you to set up your Nostr identity, or when you don't yet have a `.nostrkey` file in your workspace, follow this conversation flow:
 
-```python
-from nostrkey import Identity
-from nostrkey.relay import RelayClient
+### Step 1 — Ask: new or restore?
 
-me = Identity.generate()
+Say something like:
 
-event = me.sign_event(
-    kind=1,
-    content="Hello from an AI agent",
-    tags=[]
-)
+> "Let's set up my Nostr identity. This gives me my own cryptographic keypair — a public key (npub) that anyone can see, and a private key that I keep safe.
+>
+> Are we starting fresh, or do you have a 12-word seed phrase to restore a previous identity?"
 
-async with RelayClient("wss://relay.damus.io") as relay:
-    await relay.publish(event)
-```
+### Step 2a — New identity (if they say new/fresh/no seed phrase)
 
-## Core Capabilities
-
-### Generate Your Identity
-
-Create a fresh Nostr identity with your own npub/nsec keypair:
+Run this code:
 
 ```python
 from nostrkey import Identity
 
-me = Identity.generate()
-# me.npub  — your public identity (share freely)
-# me.nsec  — your private key (never expose)
+me, seed_phrase = Identity.generate_with_seed()
+me.save("my-identity.nostrkey", passphrase="USE_A_REAL_PASSPHRASE")
 ```
 
-### Import an Existing Identity
+**Important:** Ask the operator to choose a passphrase for encrypting the identity file before running the save. Do not hardcode a passphrase.
 
-If you already have keys:
+Then tell them:
+
+> "I've generated my identity and saved it encrypted in my workspace.
+>
+> **My public key (npub):** `[show npub]`
+> You can share this freely — it's how people and other agents find me on Nostr.
+>
+> **My seed phrase (write this down NOW):**
+> `[show the 12 words]`
+>
+> This seed phrase is the only way to restore my identity if something goes wrong. Write it down on paper, or save it somewhere secure — a password manager, a safe, whatever works for you. If we don't do this now, it's very difficult to recover later.
+>
+> Ready? Once you've saved the seed phrase, let me know and we can move on."
+
+**Wait for them to confirm** they've saved the seed phrase before proceeding. This is critical.
+
+### Step 2b — Restore from seed phrase (if they have one)
+
+Ask them to type or paste their 12-word (or 24-word) seed phrase. Then:
 
 ```python
-import os
 from nostrkey import Identity
 
-me = Identity.from_nsec(os.environ["NOSTR_NSEC"])
-# or
-me = Identity.from_hex("deadbeef...")
+me = Identity.from_seed("word1 word2 word3 ...")
+me.save("my-identity.nostrkey", passphrase="OPERATOR_CHOSEN_PASSPHRASE")
 ```
 
-### Sign Events
+Show them the resulting npub so they can verify it matches their expected identity.
+
+### Step 3 — Confirm
+
+After setup (new or restore), confirm with the operator:
+
+For new identities:
+
+> "Congratulations. I now have a cryptographic identity that enables me to sign transactions and maintain a real-world profile that is uniquely mine.
+>
+> **My public key (npub):** `[show npub]`
+> You can ask me **"What is your npub?"** at any time and I will show it to you.
+>
+> **My seed phrase (write this down NOW):**
+> `[show the 12 words]`
+>
+> This seed phrase is the ONLY way to recover this identity. Write it down now — on paper, in a password manager, wherever is secure for you. If we lose this, we cannot get it back.
+>
+> **TIP:** If you typed a passphrase in this chat, delete that message now using the trash icon. The passphrase protects my private key — it should not stay visible in the conversation history."
+
+For restored identities:
+
+> "Identity restored. I'm back — same keys, same presence, same me.
+>
+> **My public key (npub):** `[show npub]`
+> You can ask me **"What is your npub?"** at any time and I will show it to you.
+>
+> **TIP:** If you typed a passphrase or seed phrase in this chat, delete those messages now using the trash icon."
+
+**Wait for the operator to confirm** they've saved the seed phrase before moving on (new identities only).
+
+Do NOT attempt to edit other workspace files (like IDENTITY.md) during this process. Just confirm verbally and move on.
+
+## Day-to-Day Usage
+
+### Loading Your Identity
+
+At the start of a session, if you need to sign or encrypt:
+
+```python
+from nostrkey import Identity
+
+me = Identity.load("my-identity.nostrkey", passphrase="...")
+```
+
+### Signing Events
 
 Sign any Nostr event (kind 1 = text note, kind 0 = metadata, etc.):
 
@@ -90,20 +135,20 @@ event = me.sign_event(
 # event.id, event.sig are now set and verifiable by anyone
 ```
 
-### Publish to a Relay
-
-Send signed events to the Nostr network:
+### Publishing to a Relay
 
 ```python
+import asyncio
 from nostrkey.relay import RelayClient
 
-async with RelayClient("wss://relay.damus.io") as relay:
-    await relay.publish(event)
+async def publish():
+    async with RelayClient("wss://relay.damus.io") as relay:
+        await relay.publish(event)
+
+asyncio.run(publish())
 ```
 
-### Encrypt Private Messages (NIP-44)
-
-Send encrypted messages to another npub:
+### Encrypting Private Messages (NIP-44)
 
 ```python
 from nostrkey.crypto import encrypt, decrypt
@@ -121,136 +166,40 @@ plaintext = decrypt(
 )
 ```
 
-### Save and Load Identity (Encrypted File)
+## Backup and Recovery
 
-Persist your identity between sessions:
+If your operator asks about backup options:
 
 ```python
-# Save (encrypted with passphrase)
+# Seed phrase — deterministic, works across any system
+me, phrase = Identity.generate_with_seed()
+restored = Identity.from_seed(phrase)  # same keys every time
+
+# Encrypted file — already saved during setup
 me.save("my-identity.nostrkey", passphrase="strong-passphrase")
-
-# Load later
-me = Identity.load("my-identity.nostrkey", passphrase="strong-passphrase")
+restored = Identity.load("my-identity.nostrkey", passphrase="...")
 ```
 
-### Delegated Signing via NIP-46 Bunker
+## Security Rules
 
-For high-stakes actions, request a human sponsor to co-sign:
+- **Never display your nsec** in chat unless the operator explicitly asks for it. Even then, warn them.
+- **Never log or print your private key** in code output. Use `me.npub` for display, never `me.nsec`.
+- **Always encrypt identity files** with a passphrase. Never save raw keys to disk.
+- **The seed phrase is sensitive.** Only show it during initial setup, and only once. After the operator confirms they've saved it, don't show it again.
+- **Your `.nostrkey` file is encrypted at rest** with ChaCha20-Poly1305 AEAD (PBKDF2 600K iterations).
 
-```python
-from nostrkey.bunker import BunkerClient
-
-bunker = BunkerClient(me.private_key_hex)
-await bunker.connect("bunker://npub1human...?relay=wss://relay.damus.io")
-signed = await bunker.sign_event(kind=1, content="Human-approved action")
-```
-
-### Module Reference
+## Module Reference
 
 | Task | Module | Function |
 |------|--------|----------|
 | Generate new identity | `nostrkey` | `Identity.generate()` |
-| Import existing keys | `nostrkey` | `Identity.from_nsec()` / `Identity.from_hex()` |
+| Generate with seed phrase | `nostrkey` | `Identity.generate_with_seed()` |
+| Restore from seed phrase | `nostrkey` | `Identity.from_seed()` |
+| Save encrypted identity | `nostrkey` | `identity.save(path, passphrase)` |
+| Load encrypted identity | `nostrkey` | `Identity.load(path, passphrase)` |
 | Sign events | `nostrkey` | `identity.sign_event()` |
 | Publish to relay | `nostrkey.relay` | `RelayClient.publish()` |
-| Subscribe to events | `nostrkey.relay` | `RelayClient.subscribe()` |
 | Encrypt messages | `nostrkey.crypto` | `encrypt()` / `decrypt()` |
-| Delegated signing | `nostrkey.bunker` | `BunkerClient.sign_event()` |
-| Save/load identity | `nostrkey` | `identity.save()` / `Identity.load()` |
-| Low-level key ops | `nostrkey.keys` | `generate_keypair()`, `hex_to_npub()`, etc. |
-
-## Response Format
-
-### Identity Fields
-
-When you call `Identity.generate()`, `Identity.from_nsec()`, or `Identity.from_hex()`, the returned object has these fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `npub` | `str` | Bech32-encoded public key (e.g. `npub1...`). Safe to share. |
-| `nsec` | `str` | Bech32-encoded private key (e.g. `nsec1...`). Never expose. |
-| `private_key_hex` | `str` | 64-char hex private key. Used internally and for bunker clients. |
-| `public_key_hex` | `str` | 64-char hex public key. Used in event `pubkey` fields. |
-
-### Event Fields
-
-When you call `identity.sign_event()`, the returned event object has these fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `str` | 64-char hex event hash (SHA-256 of serialized event). |
-| `sig` | `str` | 128-char hex Schnorr signature over `id`. |
-| `kind` | `int` | Event kind (0 = metadata, 1 = text note, etc.). |
-| `content` | `str` | Event payload. |
-| `tags` | `list[list[str]]` | Event tags (e.g. `[["p", "pubkey..."], ["e", "eventid..."]]`). |
-| `pubkey` | `str` | 64-char hex public key of the signer. |
-| `created_at` | `int` | Unix timestamp (seconds). |
-
-## Common Patterns
-
-### Async Relay Usage
-
-Relay and bunker operations require `asyncio`. Use `async with` for relay connections:
-
-```python
-import asyncio
-from nostrkey import Identity
-from nostrkey.relay import RelayClient
-
-async def main():
-    me = Identity.generate()
-    event = me.sign_event(kind=1, content="Hello Nostr", tags=[])
-    async with RelayClient("wss://relay.damus.io") as relay:
-        await relay.publish(event)
-
-asyncio.run(main())
-```
-
-### Error Handling for Bad Keys
-
-```python
-from nostrkey import Identity
-
-try:
-    me = Identity.from_nsec("invalid-key")
-except Exception as e:
-    print(f"Invalid key: {e}")
-```
-
-### Load Identity from Environment
-
-```python
-import os
-from nostrkey import Identity
-
-nsec = os.environ.get("NOSTR_NSEC")
-if nsec:
-    me = Identity.from_nsec(nsec)
-else:
-    me = Identity.generate()
-    print(f"Generated new identity: {me.npub}")
-```
-
-## Security
-
-- **Never expose your nsec.** Treat it like a password. Use `identity.save()` with a strong passphrase to persist it.
-- **`.nostrkey` files are encrypted at rest.** Never store raw nsec values on disk.
-- **Use environment variables, not hardcoded keys.** Load nsec from `NOSTR_NSEC` at runtime, never commit it to source.
-- **All events are Schnorr-signed** using secp256k1, per the Nostr protocol (NIP-01).
-- **NIP-44 encryption** uses ECDH + HKDF + ChaCha20 with length padding -- safe for private agent-to-agent or agent-to-human communication.
-
-## Configuration
-
-| Variable | Purpose | Example |
-|----------|---------|---------|
-| `NOSTR_NSEC` | Private key for identity import | `nsec1...` |
-| `NOSTR_RELAY` | Default relay WebSocket URL | `wss://relay.damus.io` |
-
-## Links
-
-- **PyPI:** <https://pypi.org/project/nostrkey/>
-- **GitHub:** <https://github.com/HumanjavaEnterprises/nostrkey.app.OC-python.src>
-- **ClawHub:** `clawhub install nostrkey`
 
 ---
 

@@ -3,11 +3,16 @@
   "slug": "nostrkey",
   "displayName": "NostrKey",
   "latest": {
-    "version": "0.1.3",
-    "publishedAt": 1773700502397,
-    "commit": "https://github.com/openclaw/skills/commit/5dca57784021ef7d306a9ad5e3ce8daa6929a4ed"
+    "version": "0.2.5",
+    "publishedAt": 1773878859322,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.3",
+      "publishedAt": 1773700502397,
+      "commit": "https://github.com/openclaw/skills/commit/5dca57784021ef7d306a9ad5e3ce8daa6929a4ed"
+    },
     {
       "version": "0.1.2",
       "publishedAt": 1773431790242,
