@@ -26,7 +26,7 @@ RECEIPT_POLL_INTERVAL_SECONDS="${RECEIPT_POLL_INTERVAL_SECONDS:-5}"
 usage() {
   cat <<USAGE
 Usage:
-  ./scripts/mint-via-bankr.sh --token-uri <uri> --contract-mode ownership-given|own-deployed [--contract <address>] [--deploy-receipt <path>] [--receiver <address>] [--royalty-receiver <address>] [--chain mainnet|sepolia] [--broadcast] [--note <text>]
+  ./scripts/mint-via-bankr.sh --token-uri <uri> --contract-mode ownership-given|own-deployed [--contract <address>] [--deploy-receipt <path>] [--receiver <address>] [--royalty-receiver <address>] [--chain mainnet|sepolia|base|base-sepolia] [--broadcast] [--note <text>]
 USAGE
 }
 

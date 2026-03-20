@@ -3,11 +3,16 @@
   "slug": "superrare-mint",
   "displayName": "superrare-mint",
   "latest": {
-    "version": "0.2.0",
-    "publishedAt": 1773549307484,
-    "commit": "https://github.com/openclaw/skills/commit/6a36efbb6ddf31318ea87cf1ccb511bc026122d8"
+    "version": "0.3.0",
+    "publishedAt": 1773976071956,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.0",
+      "publishedAt": 1773549307484,
+      "commit": "https://github.com/openclaw/skills/commit/6a36efbb6ddf31318ea87cf1ccb511bc026122d8"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773460376915,

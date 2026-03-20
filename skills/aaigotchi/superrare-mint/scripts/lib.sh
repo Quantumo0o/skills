@@ -74,8 +74,20 @@ apply_chain_defaults() {
       RPC_URL="${ETH_SEPOLIA_RPC:-${CONFIG_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}}"
       EXPLORER_TX_BASE="https://sepolia.etherscan.io/tx/"
       ;;
+    base)
+      CHAIN="base"
+      CHAIN_ID=8453
+      RPC_URL="${BASE_MAINNET_RPC:-${CONFIG_RPC_URL:-https://base-rpc.publicnode.com}}"
+      EXPLORER_TX_BASE="https://basescan.org/tx/"
+      ;;
+    base-sepolia)
+      CHAIN="base-sepolia"
+      CHAIN_ID=84532
+      RPC_URL="${BASE_SEPOLIA_RPC:-${CONFIG_RPC_URL:-https://base-sepolia-rpc.publicnode.com}}"
+      EXPLORER_TX_BASE="https://sepolia.basescan.org/tx/"
+      ;;
     *)
-      err "Unsupported chain: ${1:-$CONFIG_CHAIN}. Use mainnet or sepolia."
+      err "Unsupported chain: ${1:-$CONFIG_CHAIN}. Use mainnet, sepolia, base, or base-sepolia."
       ;;
   esac
 }
@@ -233,6 +245,21 @@ collection_contract_from_deploy_receipt() {
   jq -r '.collectionAddress // empty' "$receipt_file"
 }
 
+validate_deploy_receipt_chain() {
+  local receipt_file="$1"
+  local receipt_chain receipt_chain_id
+
+  receipt_chain="$(jq -r '.chain // empty' "$receipt_file")"
+  receipt_chain_id="$(jq -r '.chainId // empty' "$receipt_file")"
+
+  if [ -n "$receipt_chain" ] && [ "$receipt_chain" != "$CHAIN" ]; then
+    err "Deploy receipt chain mismatch: receipt is $receipt_chain but mint chain is $CHAIN ($receipt_file)"
+  fi
+  if [ -n "$receipt_chain_id" ] && [ "$receipt_chain_id" != "$CHAIN_ID" ]; then
+    err "Deploy receipt chainId mismatch: receipt is $receipt_chain_id but mint chainId is $CHAIN_ID ($receipt_file)"
+  fi
+}
+
 require_contract_mode() {
   local mode="${1:-${CONFIG_CONTRACT_MODE:-}}"
   case "$mode" in
@@ -275,6 +302,7 @@ resolve_collection_contract() {
       ;;
     own-deployed)
       if receipt_file="$(resolve_deploy_receipt_file "$deploy_receipt_override" 2>/dev/null)"; then
+        validate_deploy_receipt_chain "$receipt_file"
         contract_value="$(collection_contract_from_deploy_receipt "$receipt_file")"
         [ -n "$contract_value" ] || err "Deploy receipt does not contain collectionAddress: $receipt_file"
         [ "$contract_value" != "$ZERO_ADDRESS" ] || err "Deploy receipt contains zero-address collection: $receipt_file"
