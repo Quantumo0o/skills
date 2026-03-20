@@ -1,197 +1,300 @@
 # Component Examples
 
-Complete, ready-to-use examples for common scenarios.
+Complete, ready-to-use examples for common scenarios. All examples use the `message` tool.
 
 ## 1. Simple Yes/No Confirmation
 
-```python
-message(
-    action="send",
-    channel="discord",
-    target="channel:1477679555148779662",
-    components={
-        "type": "container",
-        "accent_color": 0x3498db,
-        "components": [
-            {"type": "text_display", "content": "🧹 **Cleanup Request**\n\nDelete 5 temporary files (120MB)?"},
-            {"type": "action_row", "components": [
-                {"type": "button", "custom_id": "cleanup_yes", "label": "✅ Yes, clean up", "style": "success"},
-                {"type": "button", "custom_id": "cleanup_no", "label": "❌ No, keep them", "style": "secondary"}
-            ]}
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "🧹 **Cleanup Request**\n\nDelete 5 temporary files (120MB)?",
+    container: { accentColor: "#3498db" },
+    blocks: [
+      {
+        type: "actions",
+        buttons: [
+          { label: "Yes, clean up", style: "success" },
+          { label: "No, keep them", style: "secondary" }
         ]
-    }
-)
-
-# Handler
-if interaction.get("custom_id") == "cleanup_yes":
-    # Delete files
-    exec("rm -rf /tmp/old-*")
-    update_message("✅ Cleaned up 5 files")
-elif interaction.get("custom_id") == "cleanup_no":
-    update_message("❌ Cleanup cancelled")
+      }
+    ]
+  }
+}
 ```
 
-## 2. Agent Selection
+When user clicks → you receive: `Clicked "Yes, clean up".` or `Clicked "No, keep them".`
 
-```python
-message(
-    action="send",
-    channel="discord",
-    target="channel:1477679555148779662",
-    components={
-        "type": "container",
-        "accent_color": 0x667eea,
-        "components": [
-            {"type": "text_display", "content": "🎯 **Assign Task**\n\nSelect the best agent for this task:"},
-            {"type": "action_row", "components": [{
-                "type": "string_select",
-                "custom_id": "assign_agent",
-                "placeholder": "Choose an agent...",
-                "options": [
-                    {
-                        "label": "🛠️ Engineer",
-                        "value": "engineer",
-                        "description": "Python, algorithms, code review",
-                        "emoji": {"name": "🛠️"}
-                    },
-                    {
-                        "label": "🔬 Researcher",
-                        "value": "researcher",
-                        "description": "Literature, theory, analysis",
-                        "emoji": {"name": "🔬"}
-                    },
-                    {
-                        "label": "📝 Writer",
-                        "value": "writer",
-                        "description": "Documentation, LaTeX, reports",
-                        "emoji": {"name": "📝"}
-                    }
-                ]
-            }]}
-        ]
-    }
-)
+## 2. Agent Selection (Select Menu)
 
-# Handler
-agent = interaction.get("values", [])[0]
-if agent == "engineer":
-    assign_to_engineer()
-elif agent == "researcher":
-    assign_to_researcher()
-elif agent == "writer":
-    assign_to_writer()
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "🎯 **Assign Task**\n\nSelect the best agent for this task:",
+    container: { accentColor: "#667eea" },
+    blocks: [
+      {
+        type: "actions",
+        select: {
+          type: "string",
+          placeholder: "Choose an agent...",
+          options: [
+            {
+              label: "Engineer",
+              value: "engineer",
+              description: "Python, algorithms, code review",
+              emoji: { name: "🛠️" }
+            },
+            {
+              label: "Researcher",
+              value: "researcher",
+              description: "Literature, theory, analysis",
+              emoji: { name: "🔬" }
+            },
+            {
+              label: "Writer",
+              value: "writer",
+              description: "Documentation, LaTeX, reports",
+              emoji: { name: "📝" }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
 ```
+
+When user selects → you receive: `Selected engineer from "Choose an agent...".`
 
 ## 3. Task Status Card
 
-```python
-message(
-    action="send",
-    channel="discord",
-    target="channel:THREAD_ID",
-    components={
-        "type": "container",
-        "accent_color": 0xf1c40f,  # Yellow = in progress
-        "components": [
-            {
-                "type": "section",
-                "components": [
-                    {"type": "text_display", "content": "🎯 **TASK_001: Implement Filter**"},
-                    {"type": "text_display", "content": "Status: 🔵 In Progress\nAssigned: Engineer\nETA: 2 hours"}
-                ],
-                "accessory": {"type": "thumbnail", "url": "https://cdn.../task-icon.png"}
-            },
-            {"type": "separator"},
-            {"type": "action_row", "components": [
-                {"type": "button", "custom_id": "task_done", "label": "✅ Complete", "style": "success"},
-                {"type": "button", "custom_id": "task_block", "label": "🚧 Blocked", "style": "danger"},
-                {"type": "button", "custom_id": "task_update", "label": "📝 Update", "style": "primary"}
-            ]}
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:THREAD_ID",
+  components: {
+    reusable: true,
+    container: { accentColor: "#f1c40f" },
+    blocks: [
+      {
+        type: "section",
+        texts: [
+          "🎯 **TASK_001: Implement Filter**",
+          "Status: 🔵 In Progress\nAssigned: Engineer\nETA: 2 hours"
+        ],
+        accessory: { type: "thumbnail", url: "https://cdn.example.com/task-icon.png" }
+      },
+      { type: "separator" },
+      {
+        type: "actions",
+        buttons: [
+          { label: "Complete", style: "success" },
+          { label: "Blocked", style: "danger" },
+          { label: "Update", style: "primary" }
         ]
-    }
-)
+      }
+    ]
+  }
+}
 ```
 
-## 4. Priority Selection
+## 4. Priority Selection (Button Grid)
 
-```python
-message(
-    action="send",
-    channel="discord",
-    target="channel:1477679555148779662",
-    components={
-        "type": "container",
-        "accent_color": 0xe74c3c,
-        "components": [
-            {"type": "text_display", "content": "⚡ **Set Priority**\n\nHow urgent is this task?"},
-            {"type": "action_row", "components": [
-                {"type": "button", "custom_id": "prio_high", "label": "🔴 High", "style": "danger"},
-                {"type": "button", "custom_id": "prio_medium", "label": "🟡 Medium", "style": "primary"},
-                {"type": "button", "custom_id": "prio_low", "label": "🟢 Low", "style": "secondary"}
-            ]}
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "⚡ **Set Priority**\n\nHow urgent is this task?",
+    container: { accentColor: "#e74c3c" },
+    blocks: [
+      {
+        type: "actions",
+        buttons: [
+          { label: "🔴 High", style: "danger" },
+          { label: "🟡 Medium", style: "primary" },
+          { label: "🟢 Low", style: "secondary" }
         ]
-    }
-)
+      }
+    ]
+  }
+}
 ```
 
-## 5. Multi-Step Workflow
+## 5. Modal Form Collection
 
-```python
-# Step 1: Request confirmation
-msg = message(
-    action="send",
-    channel="discord",
-    target="channel:1477679555148779662",
-    components={
-        "type": "container",
-        "accent_color": 0x667eea,
-        "components": [
-            {"type": "text_display", "content": "📋 **New Request**\n\nRun full system analysis?"},
-            {"type": "action_row", "components": [
-                {"type": "button", "custom_id": "analysis_start", "label": "▶️ Start Analysis", "style": "success"},
-                {"type": "button", "custom_id": "analysis_cancel", "label": "Cancel", "style": "secondary"}
-            ]}
-        ]
-    }
-)
-
-# Step 2: When user clicks "Start"
-if interaction.get("custom_id") == "analysis_start":
-    # Update to show progress
-    message(
-        action="edit",
-        channel="discord",
-        channelId=msg["channel_id"],
-        messageId=msg["message_id"],
-        components={
-            "type": "container",
-            "accent_color": 0xf1c40f,
-            "components": [
-                {"type": "text_display", "content": "🔄 **Analysis Running...**\n\nThis may take a few minutes."}
-            ]
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "📋 **Submit a Bug Report**",
+    container: { accentColor: "#e74c3c" },
+    blocks: [
+      { type: "text", text: "Click the button below to fill out the bug report form." }
+    ],
+    modal: {
+      title: "Bug Report",
+      triggerLabel: "Report Bug",
+      triggerStyle: "danger",
+      fields: [
+        {
+          type: "text",
+          label: "Bug Title",
+          placeholder: "Brief description...",
+          required: true,
+          style: "short"
+        },
+        {
+          type: "text",
+          label: "Steps to Reproduce",
+          placeholder: "1. Go to...\n2. Click...\n3. See error",
+          required: true,
+          style: "paragraph"
+        },
+        {
+          type: "select",
+          label: "Severity",
+          options: [
+            { label: "Critical", value: "critical" },
+            { label: "Major", value: "major" },
+            { label: "Minor", value: "minor" }
+          ]
         }
-    )
-    
-    # Run analysis
-    result = run_analysis()
-    
-    # Step 3: Show results with action buttons
-    message(
-        action="edit",
-        channel="discord",
-        channelId=msg["channel_id"],
-        messageId=msg["message_id"],
-        components={
-            "type": "container",
-            "accent_color": 0x2ecc71,
-            "components": [
-                {"type": "text_display", "content": f"✅ **Analysis Complete**\n\n{result.summary}"},
-                {"type": "separator"},
-                {"type": "action_row", "components": [
-                    {"type": "button", "custom_id": "view_report", "label": "📄 View Report", "style": "primary"},
-                    {"type": "button", "custom_id": "download_csv", "label": "📥 Download CSV", "style": "secondary"}
-                ]}
-            ]
-        }
-    )
+      ]
+    }
+  }
+}
 ```
+
+## 6. Multi-Step Workflow
+
+```json5
+// Step 1: Request confirmation
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "📋 **New Request**\n\nRun full system analysis?",
+    container: { accentColor: "#667eea" },
+    blocks: [
+      {
+        type: "actions",
+        buttons: [
+          { label: "▶️ Start Analysis", style: "success" },
+          { label: "Cancel", style: "secondary" }
+        ]
+      }
+    ]
+  }
+}
+
+// Step 2: User clicks "Start Analysis" → you receive: Clicked "▶️ Start Analysis".
+// Update message to show progress:
+{
+  action: "edit",
+  channel: "discord",
+  channelId: "CHANNEL_ID",
+  messageId: "ORIGINAL_MSG_ID",
+  components: {
+    text: "🔄 **Analysis Running...**\n\nThis may take a few minutes.",
+    container: { accentColor: "#f1c40f" }
+  }
+}
+
+// Step 3: After completion, update with results:
+{
+  action: "edit",
+  channel: "discord",
+  channelId: "CHANNEL_ID",
+  messageId: "ORIGINAL_MSG_ID",
+  components: {
+    text: "✅ **Analysis Complete**\n\nFound 3 issues, 12 warnings.",
+    reusable: true,
+    container: { accentColor: "#2ecc71" },
+    blocks: [
+      { type: "separator" },
+      {
+        type: "actions",
+        buttons: [
+          { label: "View Report", style: "primary" },
+          { label: "Download CSV", style: "secondary" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## 7. Information Card (No Buttons)
+
+Components don't have to be interactive. Use them for rich formatting:
+
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    container: { accentColor: "#2ecc71" },
+    blocks: [
+      { type: "text", text: "## 📊 Daily Summary" },
+      { type: "separator", spacing: "small" },
+      {
+        type: "section",
+        texts: [
+          "**Tasks Completed:** 12",
+          "**In Progress:** 3\n**Blocked:** 1"
+        ]
+      },
+      { type: "separator", spacing: "small" },
+      { type: "text", text: "_Updated at 2026-03-09 18:00 CST_" }
+    ]
+  }
+}
+```
+
+## 8. Restricted Button Access
+
+Only specific users can click:
+
+```json5
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:1477679555148779662",
+  components: {
+    text: "🔒 **Admin Action Required**",
+    container: { accentColor: "#e74c3c" },
+    blocks: [
+      {
+        type: "actions",
+        buttons: [
+          {
+            label: "Approve Deploy",
+            style: "success",
+            allowedUsers: ["1106438955500584971"]
+          },
+          {
+            label: "Reject",
+            style: "danger",
+            allowedUsers: ["1106438955500584971"]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Users not in `allowedUsers` will see an ephemeral denial message.

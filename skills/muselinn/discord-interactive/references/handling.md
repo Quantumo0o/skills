@@ -1,150 +1,187 @@
 # Handling Component Interactions
 
-When users click buttons or select options, Discord sends interaction events. Here's how to handle them.
+When users interact with buttons, select menus, or modals, OpenClaw delivers the interaction as a normal inbound message. No special callback system needed.
 
-## Receiving Interactions
+## How Interactions Arrive
 
-Interaction appears in incoming message:
+OpenClaw converts Discord component interactions into readable text messages:
 
-```python
+| Interaction | Message You Receive |
+|---|---|
+| Button click | `Clicked "Button Label".` |
+| Select choice | `Selected value1, value2 from "Placeholder text".` |
+| Select update (no values) | `Updated "Placeholder text".` |
+| Modal submit | Form field values as structured text |
+
+## Basic Handling Pattern
+
+When a user clicks a button, you simply receive a message like:
+
+```
+Clicked "Approve".
+```
+
+Respond based on the button label:
+
+- If the message says `Clicked "Approve"` → execute the approved action
+- If the message says `Clicked "Reject"` → cancel the action
+- If the message says `Selected engineer from "Choose an agent..."` → assign to engineer
+
+No parsing of `custom_id` needed. OpenClaw handles all the plumbing.
+
+## Select Menu Handling
+
+For string selects:
+
+```
+Selected engineer from "Choose an agent...".
+```
+
+For multi-select:
+
+```
+Selected engineer, researcher from "Choose agents...".
+```
+
+## Updating After Interaction
+
+After handling an interaction, update the original message to reflect the new state:
+
+```json5
 {
-  "interaction": {
-    "type": "button",           # or "select_menu"
-    "custom_id": "approve",     # the ID you set
-    "user": {
-      "id": "1106438955500584971",
-      "username": "Linn"
-    },
-    "message": {
-      "id": "1234567890",
-      "channel_id": "1477679555148779662"
+  action: "edit",
+  channel: "discord",
+  channelId: "CHANNEL_ID",
+  messageId: "ORIGINAL_MSG_ID",
+  components: {
+    text: "✅ Approved by Linn",
+    container: { accentColor: "#2ecc71" }
+    // No blocks = just a text result card
+  }
+}
+```
+
+## Single-Use vs Reusable
+
+**Single-use (default):** After one click, the button becomes unresponsive. Good for confirmations.
+
+**Reusable (`reusable: true`):** Buttons stay active for multiple clicks until they expire. Good for:
+- Status dashboards with ongoing actions
+- Voting/polling interfaces
+- Controls that should persist
+
+```json5
+{
+  components: {
+    reusable: true,  // ← buttons stay active
+    blocks: [
+      {
+        type: "actions",
+        buttons: [
+          { label: "Refresh", style: "primary" },
+          { label: "Close", style: "danger" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Async Timing
+
+Users may click buttons minutes or hours after the message was sent. Design for this:
+
+- Don't assume the interaction happens immediately
+- Check if the context is still valid before executing
+- If expired/invalid, update the message to indicate this
+
+## Security: Restricting Access
+
+Use `allowedUsers` on buttons to restrict who can interact:
+
+```json5
+{
+  type: "actions",
+  buttons: [
+    {
+      label: "Deploy",
+      style: "success",
+      allowedUsers: ["1106438955500584971"]  // Only Linn can click
+    }
+  ]
+}
+```
+
+Unauthorized users see an ephemeral "not allowed" message. This is handled by OpenClaw automatically.
+
+## Modal Form Handling
+
+When a user submits a modal form, OpenClaw delivers the form data as a structured message. The field values are included in the inbound message for you to process.
+
+```json5
+// Send a message with a modal
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:123",
+  components: {
+    text: "Need more details",
+    modal: {
+      title: "Task Details",
+      triggerLabel: "Fill Form",
+      fields: [
+        { type: "text", label: "Task Name", required: true },
+        { type: "select", label: "Priority", options: [
+          { label: "High", value: "high" },
+          { label: "Low", value: "low" }
+        ]}
+      ]
     }
   }
 }
 ```
 
-## Basic Handler Pattern
+User clicks "Fill Form" → modal popup → user fills and submits → you receive form data as an inbound message.
 
-```python
-def handle_interaction(message):
-    interaction = message.get("interaction")
-    if not interaction:
-        return  # Not an interaction
-    
-    custom_id = interaction.get("custom_id")
-    user = interaction.get("user", {}).get("username")
-    
-    if custom_id == "approve":
-        # Execute approval logic
-        execute_task()
-        # Update message to show completed
-        update_message(interaction["message"], "✅ Approved by " + user)
-        
-    elif custom_id == "reject":
-        # Handle rejection
-        cancel_task()
-        update_message(interaction["message"], "❌ Rejected by " + user)
-        
-    elif custom_id == "later":
-        # Schedule reminder
-        schedule_reminder()
-        update_message(interaction["message"], "⏰ Snoozed by " + user)
-```
+## Pattern: Confirmation → Action → Result
 
-## Updating the Message
+The most common interactive workflow:
 
-After handling, update the component to show result:
+1. **Send** component message with action buttons
+2. **Receive** click as inbound message (`Clicked "Yes".`)
+3. **Execute** the requested action
+4. **Edit** the original message to show the result
 
-```python
-def update_message(original_msg, status_text):
-    message(
-        action="edit",
-        channel="discord",
-        channelId=original_msg["channel_id"],
-        messageId=original_msg["id"],
-        components={
-            "type": "container",
-            "accent_color": 0x2ecc71,  # Green for success
-            "components": [
-                {"type": "text_display", "content": status_text}
-            ]
-        }
-    )
-```
-
-## Select Menu Handling
-
-```python
-if interaction["type"] == "select_menu":
-    selected_value = interaction.get("values", [])[0]  # First selection
-    
-    if interaction["custom_id"] == "select_agent":
-        if selected_value == "engineer":
-            assign_to_engineer()
-        elif selected_value == "researcher":
-            assign_to_researcher()
-```
-
-## Timeout Handling
-
-Users may not click immediately. Design for delays:
-
-```python
-# Store pending confirmations with timestamp
-pending_confirmations = {
-    "msg_id_123": {
-        "created_at": time.time(),
-        "expires_at": time.time() + 3600,  # 1 hour timeout
-        "action": "cleanup"
-    }
+```json5
+// Step 1: Ask
+{
+  action: "send",
+  channel: "discord",
+  target: "channel:123",
+  components: {
+    text: "Delete 5 old log files?",
+    container: { accentColor: "#f1c40f" },
+    blocks: [{
+      type: "actions",
+      buttons: [
+        { label: "Delete", style: "danger" },
+        { label: "Keep", style: "secondary" }
+      ]
+    }]
+  }
 }
 
-# Check if expired when handling
-if time.time() > pending["expires_at"]:
-    # Show expired message
-    update_message(msg, "⏰ This request has expired")
-    return
-```
+// Step 2: User clicks "Delete" → receive: Clicked "Delete".
 
-## Acknowledgment
-
-Discord requires acknowledging the interaction quickly (within 3 seconds). OpenClaw handles this automatically, but for long operations:
-
-```python
-# For operations > 3 seconds, defer first
-def handle_with_defer(interaction):
-    # Immediate acknowledgment
-    message(
-        action="edit",  # Defer by editing
-        channel="discord",
-        channelId=interaction["message"]["channel_id"],
-        messageId=interaction["message"]["id"],
-        components={
-            "type": "container",
-            "components": [
-                {"type": "text_display", "content": "🔄 Processing..."}
-            ]
-        }
-    )
-    
-    # Then do long operation
-    result = long_operation()
-    
-    # Finally update with result
-    update_message(interaction["message"], f"✅ Done: {result}")
-```
-
-## Security Considerations
-
-1. **Verify user**: Check `interaction["user"]["id"]` matches expected user
-2. **Rate limiting**: Prevent spam by tracking clicks per user
-3. **Idempotency**: Ensure repeated clicks don't cause duplicate actions
-
-```python
-# Verify only authorized user can click
-AUTHORIZED_USERS = ["1106438955500584971"]
-
-if interaction["user"]["id"] not in AUTHORIZED_USERS:
-    # Silently ignore or show error
-    return
+// Step 3: Execute deletion, then edit:
+{
+  action: "edit",
+  channel: "discord",
+  channelId: "CHANNEL_ID",
+  messageId: "MSG_ID",
+  components: {
+    text: "✅ Deleted 5 log files (120MB freed)",
+    container: { accentColor: "#2ecc71" }
+  }
+}
 ```

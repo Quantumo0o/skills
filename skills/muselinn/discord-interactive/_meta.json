@@ -3,9 +3,15 @@
   "slug": "discord-interactive",
   "displayName": "Discord Interactive",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1772933476958,
-    "commit": "https://github.com/openclaw/skills/commit/f5de7187eed16e0e6f38e69aa273d504e98cd7c0"
+    "version": "1.1.1",
+    "publishedAt": 1773857436642,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1772933476958,
+      "commit": "https://github.com/openclaw/skills/commit/f5de7187eed16e0e6f38e69aa273d504e98cd7c0"
+    }
+  ]
 }
