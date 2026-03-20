@@ -1,14 +1,8 @@
-#!/bin/bash
-# setup_env.sh - 环境准备脚本
-
+#!/usr/bin/env bash
 set -euo pipefail
 
-unset PYENV_ROOT 2>/dev/null || true
-export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v "pyenv\|\.pyenv" | tr '\n' ':' | sed 's/:$//')
-
-# 强制使用 hf-mirror 加速 HuggingFace 下载（必须在任何下载操作之前设置）
 export HF_ENDPOINT=https://hf-mirror.com
-export HF_HUB_ENABLE_HF_TRANSFER=0  # 禁用 hf-transfer 确保使用标准下载
+export HF_HUB_ENABLE_HF_TRANSFER=0
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -21,481 +15,324 @@ log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1"; }
 
-MODEL_PATH=""
-DEFAULT_MODEL_PATH="~/model/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SKILL_DIR"
+
+BASE_MODEL_PATH="${BASE_MODEL_PATH:-~/model/Qwen3-TTS-12Hz-0.6B-Base-OpenVINO-INT8}"
+CUSTOM_MODEL_PATH="${CUSTOM_MODEL_PATH:-~/model/Qwen3-TTS-12Hz-0.6B-CustomVoice-OpenVINO-INT8}"
+BASE_CHECKPOINT_PATH="${BASE_CHECKPOINT_PATH:-}"
+BASE_MODEL_REPO="${BASE_MODEL_REPO:-aurora2035/Qwen3-TTS-12Hz-0.6B-Base-OpenVINO-INT8}"
+CUSTOM_MODEL_REPO="${CUSTOM_MODEL_REPO:-aurora2035/Qwen3-TTS-12Hz-0.6B-CustomVoice-OpenVINO-INT8}"
+BASE_CHECKPOINT_REPO="${BASE_CHECKPOINT_REPO:-}"
+TTS_PIP_SPEC="${XDP_TTS_PIP_SPEC:-xdp-tts-service}"
 FORCE=0
 SKIP_DEPS=0
 
 usage() {
-    cat << EOF
-用法: $0 [--model-path PATH] [--force] [--skip-deps]
+  cat <<EOF
+用法: $0 [--force] [--skip-deps]
+
+环境变量覆盖：
+  XDP_TTS_PIP_SPEC       Python 包安装源，默认 xdp-tts-service
+  BASE_MODEL_PATH        Base OV 模型目录
+  CUSTOM_MODEL_PATH      Custom OV 模型目录
+  BASE_CHECKPOINT_PATH   可选：Base 原始 checkpoint 目录（旧导出兼容）
+  BASE_MODEL_REPO        Base OV 模型 HF 仓库名
+  CUSTOM_MODEL_REPO      Custom OV 模型 HF 仓库名
+  BASE_CHECKPOINT_REPO   可选：Base checkpoint HF 仓库名（旧导出兼容）
 EOF
-    exit 0
 }
 
 while [[ $# -gt 0 ]]; do
-    case $1 in
-        --model-path) MODEL_PATH="$2"; shift 2 ;;
-        --force) FORCE=1; shift ;;
-        --skip-deps) SKIP_DEPS=1; shift ;;
-        -h|--help) usage ;;
-        *) log_error "未知参数: $1"; exit 1 ;;
-    esac
+  case "$1" in
+    --force) FORCE=1; shift ;;
+    --skip-deps) SKIP_DEPS=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) log_error "未知参数: $1"; usage; exit 1 ;;
+  esac
 done
 
-SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SKILL_DIR"
-
-echo "========================================"
-echo "  Xeon ASR Skill 环境准备"
-echo "========================================"
-
-detect_os() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        echo "$ID"
-    elif [ -f /etc/redhat-release ]; then
-        echo "centos"
-    else
-        echo "unknown"
-    fi
+expand_path() {
+  local value="$1"
+  if [[ "$value" == ~* ]]; then
+    value="${value/#\~/$HOME}"
+  fi
+  printf '%s\n' "$value"
 }
 
-OS=$(detect_os)
-log_info "检测到操作系统: $OS"
+detect_os() {
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    printf '%s\n' "$ID"
+    return 0
+  fi
+  printf '%s\n' unknown
+}
 
 check_sudo() {
-    if [ "$EUID" -eq 0 ]; then SUDO=""; elif command -v sudo &> /dev/null; then SUDO="sudo"; else SUDO=""; fi
+  if [[ "$EUID" -eq 0 ]]; then
+    SUDO=""
+  elif command -v sudo >/dev/null 2>&1; then
+    SUDO="sudo"
+  else
+    SUDO=""
+  fi
 }
 
 install_system_deps() {
-    [ "$SKIP_DEPS" -eq 1 ] && return 0
-    check_sudo
-    case $OS in
-        ubuntu|debian)
-            log_step "安装依赖 (Debian/Ubuntu)..."
-            $SUDO apt-get update -qq >/dev/null 2>&1 || true
-            $SUDO apt-get install -y wget curl git lsof net-tools unzip bzip2 ca-certificates >/dev/null 2>&1 || $SUDO apt-get install -y wget curl git lsof net-tools unzip bzip2 ca-certificates
-            ;;
-        centos|rhel|fedora|rocky|almalinux|ol|alibabacloud|alios)
-            log_step "安装依赖 (RHEL/CentOS/AlibabaCloud)..."
-            if command -v dnf &> /dev/null; then PKG_MGR="dnf"; else PKG_MGR="yum"; fi
-            $SUDO $PKG_MGR install -y -q epel-release >/dev/null 2>&1 || true
-            if [[ "$OS" == "alibabacloud" ]] || [[ "$OS" == "alios" ]]; then
-                $SUDO $PKG_MGR install -y -q openssl11 openssl11-devel >/dev/null 2>&1 || true
-            fi
-            $SUDO $PKG_MGR install -y wget curl git lsof net-tools unzip bzip2 ca-certificates which >/dev/null 2>&1 || $SUDO $PKG_MGR install -y wget curl git lsof net-tools unzip bzip2 ca-certificates which
-            ;;
-    esac
+  [[ "$SKIP_DEPS" -eq 1 ]] && return 0
+  check_sudo
+  local os_id
+  os_id="$(detect_os)"
+  case "$os_id" in
+    ubuntu|debian)
+      log_step "安装系统依赖 (Debian/Ubuntu)"
+      $SUDO apt-get update -qq >/dev/null 2>&1 || true
+      $SUDO apt-get install -y wget curl git lsof net-tools unzip bzip2 ca-certificates ffmpeg >/dev/null 2>&1 || \
+        $SUDO apt-get install -y wget curl git lsof net-tools unzip bzip2 ca-certificates ffmpeg
+      ;;
+    centos|rhel|fedora|rocky|almalinux|ol|alibabacloud|alios)
+      log_step "安装系统依赖 (RHEL/CentOS)"
+      local pkg_mgr="yum"
+      command -v dnf >/dev/null 2>&1 && pkg_mgr="dnf"
+      $SUDO "$pkg_mgr" install -y wget curl git lsof net-tools unzip bzip2 ca-certificates ffmpeg which >/dev/null 2>&1 || \
+        $SUDO "$pkg_mgr" install -y wget curl git lsof net-tools unzip bzip2 ca-certificates ffmpeg which
+      ;;
+    *)
+      log_warn "未知系统，跳过系统依赖自动安装"
+      ;;
+  esac
 }
 
 setup_miniconda() {
-    log_step "安装 Miniconda Python 3.10..."
-    local CONDA_DIR="$HOME/miniconda3"
-    local CONDA_URL="https://repo.anaconda.com/miniconda/Miniconda3-py310_23.11.0-2-Linux-x86_64.sh"
-    
-    if [ "$FORCE" -eq 1 ] && [ -d "$CONDA_DIR" ]; then
-        log_info "强制模式：删除旧 Miniconda"
-        rm -rf "$CONDA_DIR"
-    fi
-    
-    if [ ! -d "$CONDA_DIR" ]; then
-        log_info "下载 Miniconda..."
-        if command -v wget &> /dev/null; then
-            wget --timeout=120 -q --show-progress "$CONDA_URL" -O /tmp/miniconda.sh 2>/dev/null || curl -fSL --connect-timeout 120 --progress-bar "$CONDA_URL" -o /tmp/miniconda.sh
-        else
-            curl -fSL --connect-timeout 120 --progress-bar "$CONDA_URL" -o /tmp/miniconda.sh
-        fi
-        log_info "安装 Miniconda..."
-        bash /tmp/miniconda.sh -b -p "$CONDA_DIR" >/dev/null 2>&1
-        rm -f /tmp/miniconda.sh
-    fi
-    
-    if [ ! -f "$CONDA_DIR/bin/python" ]; then
-        log_error "Miniconda 安装失败"
-        exit 1
-    fi
-    
-    PYTHON_CMD="$CONDA_DIR/bin/python"
-    log_info "Python 就绪: $($PYTHON_CMD --version 2>&1)"
+  log_step "准备 Miniconda Python 3.10"
+  local conda_dir="$HOME/miniconda3"
+  local conda_url="https://repo.anaconda.com/miniconda/Miniconda3-py310_23.11.0-2-Linux-x86_64.sh"
+  if [[ "$FORCE" -eq 1 && -d "$conda_dir" ]]; then
+    rm -rf "$conda_dir"
+  fi
+  if [[ ! -d "$conda_dir" ]]; then
+    wget --timeout=120 -q "$conda_url" -O /tmp/miniconda.sh || curl -fsSL --connect-timeout 120 "$conda_url" -o /tmp/miniconda.sh
+    bash /tmp/miniconda.sh -b -p "$conda_dir" >/dev/null 2>&1
+    rm -f /tmp/miniconda.sh
+  fi
+  PYTHON_CMD="$conda_dir/bin/python"
+  [[ -x "$PYTHON_CMD" ]] || { log_error "Miniconda 安装失败"; exit 1; }
+  log_info "Python 就绪: $($PYTHON_CMD --version 2>&1)"
 }
 
 setup_venv() {
-    if [ "$FORCE" -eq 1 ] && [ -d "venv" ]; then
-        log_info "强制模式：删除旧虚拟环境"
-        rm -rf venv
-    fi
-    
-    if [ ! -d "venv" ]; then
-        log_step "创建虚拟环境..."
-        "$PYTHON_CMD" -m venv venv || { log_error "创建虚拟环境失败"; exit 1; }
-    fi
-    
-    source venv/bin/activate
-    pip install -q --upgrade pip
+  if [[ "$FORCE" -eq 1 && -d venv ]]; then
+    rm -rf venv
+  fi
+  if [[ ! -d venv ]]; then
+    log_step "创建虚拟环境"
+    "$PYTHON_CMD" -m venv venv
+  fi
+  source venv/bin/activate
+  pip install -q --upgrade pip
 }
 
 install_python_packages() {
-    log_step "安装 xdp-audio-service..."
-    pip install -q --upgrade xdp-audio-service || pip install -q --upgrade --no-cache-dir xdp-audio-service
-    log_info "xdp-audio-service 安装完成"
+  log_step "安装 Python TTS 服务包"
+  if ! pip install -q --upgrade "$TTS_PIP_SPEC"; then
+    log_error "安装失败: $TTS_PIP_SPEC"
+    log_error "如果包尚未发布，请设置 XDP_TTS_PIP_SPEC=/path/to/xdp_tts_service.whl 后重试"
+    exit 1
+  fi
+  log_info "已安装: $TTS_PIP_SPEC"
 }
 
-generate_config() {
-    if [ -f "audio_config.json" ] && [ "$FORCE" -ne 1 ]; then
-        log_info "audio_config.json 已存在，跳过生成"
-        return 0
-    fi
-    
-    log_step "生成 audio_config.json..."
-    if [ -f "venv/bin/xdp-asr-init-config" ]; then
-        ./venv/bin/xdp-asr-init-config --output ./audio_config.json || create_default_config
-    else
-        create_default_config
-    fi
-}
-
-create_default_config() {
-        cat > audio_config.json <<EOF
-{
-  "qwen3_asr_ov": {
-        "model": "$HOME/model/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO",
-    "device": "CPU",
-    "sample_rate": 16000,
-    "language": "zh",
-    "max_tokens": 256
-  },
-  "server": {
-    "host": "127.0.0.1",
-    "port": 5001
+verify_python_runtime() {
+  log_step "校验 Python TTS 运行时"
+  [[ -x venv/bin/xdp-tts-service ]] || {
+    log_error "安装后仍未生成 venv/bin/xdp-tts-service"
+    log_error "请检查 XDP_TTS_PIP_SPEC 是否指向包含 console entry point 的有效包"
+    exit 1
   }
-}
-EOF
-    log_info "已生成默认配置文件（模型路径: $HOME/model/...）"
-}
 
-# 展开路径中的 ~ 为实际路径
-expand_path() {
-    local path="$1"
-    if [[ "$path" == ~* ]]; then
-        path="${path/#\~/$HOME}"
-    fi
-    echo "$path"
-}
-
-# 解析可用的 Hugging Face CLI 命令
-resolve_hf_cli() {
-    export PATH="$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
-
-    if command -v hf &> /dev/null; then
-        echo "hf"
-        return 0
-    fi
-
-    if [ -x "$HOME/miniconda3/bin/hf" ]; then
-        echo "$HOME/miniconda3/bin/hf"
-        return 0
-    fi
-
-    if [ -x "$HOME/.local/bin/hf" ]; then
-        echo "$HOME/.local/bin/hf"
-        return 0
-    fi
-
-    if command -v huggingface-cli &> /dev/null; then
-        echo "huggingface-cli"
-        return 0
-    fi
-
-    if [ -x "$HOME/miniconda3/bin/huggingface-cli" ]; then
-        echo "$HOME/miniconda3/bin/huggingface-cli"
-        return 0
-    fi
-
-    if [ -x "$HOME/.local/bin/huggingface-cli" ]; then
-        echo "$HOME/.local/bin/huggingface-cli"
-        return 0
-    fi
-
-    log_info "安装 Hugging Face CLI..."
-    if pip install -q 'huggingface_hub[cli]' 2>/dev/null || pip install -q huggingface_hub 2>/dev/null; then
-        export PATH="$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
-        if command -v hf &> /dev/null; then
-            echo "hf"
-            return 0
-        fi
-        if [ -x "$HOME/miniconda3/bin/hf" ]; then
-            echo "$HOME/miniconda3/bin/hf"
-            return 0
-        fi
-        if [ -x "$HOME/.local/bin/hf" ]; then
-            echo "$HOME/.local/bin/hf"
-            return 0
-        fi
-        if command -v huggingface-cli &> /dev/null; then
-            echo "huggingface-cli"
-            return 0
-        fi
-        if [ -x "$HOME/miniconda3/bin/huggingface-cli" ]; then
-            echo "$HOME/miniconda3/bin/huggingface-cli"
-            return 0
-        fi
-        if [ -x "$HOME/.local/bin/huggingface-cli" ]; then
-            echo "$HOME/.local/bin/huggingface-cli"
-            return 0
-        fi
-    fi
-
-    return 1
-}
-
-# 下载模型（使用 HF CLI + hf-mirror）
-download_model() {
-    local target_path="$1"
-    local expanded_path
-    local hf_cli
-    expanded_path=$(expand_path "$target_path")
-    
-    log_step "自动下载模型到：$target_path"
-    log_info "使用 HF CLI + hf-mirror 加速下载..."
-    
-    # 创建目录
-    mkdir -p "$expanded_path"
-    
-    # 设置环境变量（必须在任何下载操作之前）
-    export HF_ENDPOINT=https://hf-mirror.com
-    export HF_HUB_ENABLE_HF_TRANSFER=0
-    
-    hf_cli=$(resolve_hf_cli) || {
-        log_error "未能安装或找到 Hugging Face CLI"
-        return 1
-    }
-    
-    # 使用 HF CLI 下载模型
-    log_info "正在下载模型文件（约 1.3GB，请耐心等待）..."
-    if [[ "$hf_cli" == *"hf" ]] && [[ "$hf_cli" != *"huggingface-cli" ]]; then
-        if "$hf_cli" download dseditor/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO --local-dir "$expanded_path"; then
-            log_info "✓ 模型下载完成"
-            return 0
-        fi
-    elif "$hf_cli" download dseditor/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO --local-dir "$expanded_path" --local-dir-use-symlinks False; then
-        log_info "✓ 模型下载完成"
-        return 0
-    fi
-
-    log_error "模型下载失败"
-    return 1
-}
-
-update_model_path() {
-    # 如果没有指定模型路径，使用默认值
-    if [ -z "$MODEL_PATH" ]; then
-        MODEL_PATH="$DEFAULT_MODEL_PATH"
-        log_info "使用默认模型路径: $MODEL_PATH"
-    fi
-    
-    # 展开路径（处理 ~）
-    local expanded_path
-    expanded_path=$(expand_path "$MODEL_PATH")
-    
-    # 检查模型是否存在
-    if [ ! -d "$expanded_path" ] || [ -z "$(ls -A "$expanded_path" 2>/dev/null)" ]; then
-        log_warn "模型目录不存在或为空: $MODEL_PATH"
-        
-        # 询问是否下载
-        read -p "是否自动下载模型？(Y/n): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
-            if ! download_model "$MODEL_PATH"; then
-                log_error "模型下载失败"
-                log_info "请手动下载："
-                log_info "  1. 访问: https://hf-mirror.com/dseditor/Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO"
-                log_info "  2. 下载到: $MODEL_PATH"
-                return 0
-            fi
-        else
-            log_warn "跳过模型下载，请稍后手动配置"
-            return 0
-        fi
-    fi
-    
-    log_step "配置模型路径: $MODEL_PATH"
-    
-    # 写入展开后的绝对路径，确保下游服务无需自行展开 ~
-    local config_path="$expanded_path"
-    
-    ./venv/bin/python << PYEOF
-import json
+  venv/bin/python <<'PYEOF'
+import importlib.util
 import sys
 
-try:
-    with open('./audio_config.json', 'r', encoding='utf-8') as f:
-        config = json.load(f)
-    
-    if 'qwen3_asr_ov' not in config:
-        config['qwen3_asr_ov'] = {}
-    
-    config['qwen3_asr_ov']['model'] = '$config_path'
-    
-    with open('./audio_config.json', 'w', encoding='utf-8') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-    
-    print(f"✓ 模型路径已更新: $config_path")
-except Exception as e:
-    print(f"✗ 更新失败: {e}")
+required = [
+    'xdp_tts_service',
+    'qwen_tts',
+]
+missing = []
+for name in required:
+    if importlib.util.find_spec(name) is None:
+        missing.append(name)
+
+if missing:
+    print('missing python modules:', ', '.join(missing), file=sys.stderr)
     sys.exit(1)
 PYEOF
 }
 
-# ========== 新增：复制 config.example.json ==========
 copy_node_config() {
-    if [ -f "config.json" ] && [ "$FORCE" -ne 1 ]; then
-        log_info "config.json 已存在，跳过复制"
-        return 0
-    fi
-    
-    if [ ! -f "config.example.json" ]; then
-        log_warn "未找到 config.example.json，跳过复制"
-        return 0
-    fi
-    
-    log_step "复制 config.example.json 为 config.json..."
-    
-    # 复制并去除可能的空格问题
-    cp config.example.json config.json
-    
-    # 修复 URL 中的空格（如果有的话）
-    sed -i 's|http://127.0.0.1:5001/transcribe |http://127.0.0.1:5001/transcribe|g' config.json 2>/dev/null || true
-    
-    log_info "config.json 已生成"
+  if [[ -f config.json && "$FORCE" -ne 1 ]]; then
+    log_info "config.json 已存在，跳过"
+    return 0
+  fi
+  cp config.example.json config.json
+  log_info "已生成 config.json"
 }
 
-install_node_deps() {
-    if [ ! -f "package.json" ]; then
-        log_warn "未找到 package.json，跳过 Node 依赖安装"
-        return 0
-    fi
-    
-    if [ -d "node_modules" ] && [ "$FORCE" -ne 1 ]; then
-        log_info "node_modules 已存在，跳过 npm install"
-        return 0
-    fi
-    
-    if ! command -v npm &> /dev/null; then
-        log_warn "未找到 npm，请手动安装 Node.js 后运行 npm install"
-        return 0
-    fi
-    
-    log_step "安装 Node.js 依赖..."
-    npm install || {
-        log_warn "npm install 失败，请检查网络或手动运行"
-        return 0
-    }
-    log_info "Node.js 依赖安装完成"
+generate_tts_config() {
+  if [[ -f tts_config.json && "$FORCE" -ne 1 ]]; then
+    log_info "tts_config.json 已存在，跳过"
+    return 0
+  fi
+  if [[ -x venv/bin/xdp-tts-init-config ]]; then
+    venv/bin/xdp-tts-init-config --output ./tts_config.json >/dev/null
+  else
+    cp tts_config.example.json tts_config.json
+  fi
+  log_info "已生成 tts_config.json"
 }
 
-setup_openclaw() {
-    local OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
-    
-    if [ ! -f "$OPENCLAW_CONFIG" ]; then
-        log_warn "未找到 OpenClaw 配置，跳过"
-        return 0
+resolve_hf_cli() {
+  export PATH="$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
+  if command -v hf >/dev/null 2>&1; then
+    printf '%s\n' "$(command -v hf)"
+    return 0
+  fi
+  if command -v huggingface-cli >/dev/null 2>&1; then
+    printf '%s\n' "$(command -v huggingface-cli)"
+    return 0
+  fi
+  if pip install -q 'huggingface_hub[cli]' >/dev/null 2>&1 || pip install -q huggingface_hub >/dev/null 2>&1; then
+    export PATH="$HOME/miniconda3/bin:$HOME/.local/bin:$PATH"
+    if command -v hf >/dev/null 2>&1; then
+      printf '%s\n' "$(command -v hf)"
+      return 0
     fi
-    
-    log_step "配置 OpenClaw STT (指向 9001 端口)..."
-    
-    if ! ./venv/bin/python -c "
-import json
-with open('$OPENCLAW_CONFIG', 'r') as f:
-    c = json.load(f)
-exit(0 if 'channels' in c and 'qqbot' in c['channels'] else 1)
-" 2>/dev/null; then
-        log_warn "OpenClaw 未配置 qqbot，跳过"
-        return 0
+    if command -v huggingface-cli >/dev/null 2>&1; then
+      printf '%s\n' "$(command -v huggingface-cli)"
+      return 0
     fi
-    
-    cp "$OPENCLAW_CONFIG" "$OPENCLAW_CONFIG.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
-    
-    ./venv/bin/python << PYEOF
+  fi
+  return 1
+}
+
+download_model_if_missing() {
+  local repo_id="$1"
+  local target_path
+  [[ -n "$repo_id" ]] || return 0
+  [[ -n "${2:-}" ]] || return 0
+  target_path="$(expand_path "$2")"
+  if [[ -d "$target_path" ]] && [[ -n "$(ls -A "$target_path" 2>/dev/null || true)" ]]; then
+    log_info "模型目录已存在: $target_path"
+    return 0
+  fi
+  local hf_cli
+  if ! hf_cli="$(resolve_hf_cli)"; then
+    log_warn "未找到 Hugging Face CLI，跳过自动下载: $repo_id"
+    return 0
+  fi
+  mkdir -p "$target_path"
+  log_step "尝试下载模型: $repo_id -> $target_path"
+  if [[ "$(basename "$hf_cli")" == "hf" ]]; then
+    "$hf_cli" download "$repo_id" --local-dir "$target_path" || log_warn "下载失败，请后续手工补齐: $repo_id"
+  else
+    "$hf_cli" download "$repo_id" --local-dir "$target_path" --local-dir-use-symlinks False || log_warn "下载失败，请后续手工补齐: $repo_id"
+  fi
+}
+
+update_tts_model_paths() {
+  local base_model_abs custom_model_abs base_ckpt_abs
+  base_model_abs="$(expand_path "$BASE_MODEL_PATH")"
+  custom_model_abs="$(expand_path "$CUSTOM_MODEL_PATH")"
+  base_ckpt_abs=""
+  if [[ -n "$BASE_CHECKPOINT_PATH" ]]; then
+    base_ckpt_abs="$(expand_path "$BASE_CHECKPOINT_PATH")"
+  fi
+
+  log_step "写入 TTS 模型路径到 tts_config.json"
+  venv/bin/python <<PYEOF
 import json
-try:
-    with open('$OPENCLAW_CONFIG', 'r') as f:
-        config = json.load(f)
-    if 'channels' not in config:
-        config['channels'] = {}
-    if 'qqbot' not in config['channels']:
-        config['channels']['qqbot'] = {}
-    
-    config['channels']['qqbot']['stt'] = {
-        "enabled": True,
-        "provider": "custom",
-        "baseUrl": "http://127.0.0.1:9001",
-        "model": "Qwen3-ASR-0.6B-INT8_ASYM-OpenVINO",
-        "apiKey": "not-needed"
-    }
-    
-    with open('$OPENCLAW_CONFIG', 'w') as f:
-        json.dump(config, f, indent=2, ensure_ascii=False)
-    print("✓ OpenClaw STT 配置已更新（指向 9001 端口）")
-except Exception as e:
-    print(f"✗ 配置失败: {e}")
+from pathlib import Path
+
+config_path = Path("tts_config.json")
+config = json.loads(config_path.read_text(encoding="utf-8"))
+
+legacy_base = config.pop("qwen3_tts_base", None) or {}
+legacy_custom = config.pop("qwen3_tts_custom", None) or {}
+
+base_cfg = config.setdefault("qwen3_tts_0.6b_base_openvino", {})
+custom_cfg = config.setdefault("qwen3_tts_0.6b_custom_openvino", {})
+
+if legacy_base and not base_cfg.get("model_dir"):
+  base_cfg["model_dir"] = legacy_base.get("model") or legacy_base.get("model_dir") or ""
+if legacy_custom and not custom_cfg.get("model_dir"):
+  custom_cfg["model_dir"] = legacy_custom.get("model") or legacy_custom.get("model_dir") or ""
+
+base_cfg["model_dir"] = r"$base_model_abs"
+base_cfg.setdefault("label", "Qwen3-TTS-0.6B-Base(OpenVINO)")
+base_cfg.setdefault("model_type", "Qwen3_TTS_OpenVINO")
+base_cfg.setdefault("tts_model_type", "voice_clone")
+base_cfg.setdefault("force_cpu", False)
+base_cfg.setdefault("default_mode", "voice_clone_xvector")
+base_cfg.setdefault("modes", ["voice_clone", "voice_clone_xvector"])
+base_cfg.setdefault("device", "CPU")
+base_cfg.setdefault("default_language", "Chinese")
+base_cfg.setdefault("prompt_text", "")
+base_cfg.setdefault("prompt_audio", "")
+
+custom_cfg["model_dir"] = r"$custom_model_abs"
+custom_cfg.setdefault("label", "Qwen3-TTS-0.6B-CustomVoice(OpenVINO)")
+custom_cfg.setdefault("model_type", "Qwen3_TTS_OpenVINO")
+custom_cfg.setdefault("tts_model_type", "custom_voice")
+custom_cfg.setdefault("force_cpu", False)
+custom_cfg.setdefault("default_mode", "custom_voice")
+custom_cfg.setdefault("modes", ["custom_voice"])
+custom_cfg.setdefault("device", "CPU")
+custom_cfg.setdefault("default_language", "Chinese")
+custom_cfg.setdefault("default_speaker", "Vivian")
+custom_cfg.setdefault("speakers", ["Vivian", "Serena", "Uncle_Fu", "Dylan", "Eric", "Ryan", "Aiden", "Ono_Anna", "Sohee"])
+
+base_ckpt = r"$base_ckpt_abs".strip()
+if base_ckpt:
+  base_cfg["checkpoint_path"] = base_ckpt
+else:
+  base_cfg.pop("checkpoint_path", None)
+
+config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 PYEOF
 }
 
-ensure_scripts_executable() {
-    [ -f "$SKILL_DIR/start_all.sh" ] && chmod +x "$SKILL_DIR/start_all.sh"
-    [ -f "$SKILL_DIR/start_asr_service.sh" ] && chmod +x "$SKILL_DIR/start_asr_service.sh"
-    [ -f "$SKILL_DIR/stop_asr.sh" ] && chmod +x "$SKILL_DIR/stop_asr.sh"
-}
+repair_base_checkpoint_hint() {
+  local base_model_abs hint_file resolved_hint
+  base_model_abs="$(expand_path "$BASE_MODEL_PATH")"
+  hint_file="$base_model_abs/checkpoint_path.txt"
+  [[ -f "$hint_file" ]] || return 0
 
-show_completion() {
-    echo ""
-    echo "========================================"
-    echo "  环境准备完成！"
-    echo "========================================"
-    echo ""
-    
-    echo -e "${BLUE}【模型配置】${NC}"
-    if [ -z "$MODEL_PATH" ]; then
-        MODEL_PATH="$DEFAULT_MODEL_PATH"
-    fi
-    echo "  模型路径: $MODEL_PATH"
-    echo "  支持 ~ 表示用户主目录（适配 Docker）"
-    echo ""
-    
-    echo -e "${BLUE}【启动方式】${NC}"
-    echo "  方式1 - 手动启动:"
-    echo "    ./start_asr_service.sh  # 启动 Flask ASR (5001)"
-    echo "    npm start               # 启动 ASR Skill (9001)"
-    echo ""
-    echo "  方式2 - 一键启动:"
-    echo "    ./start_all.sh          # 同时启动 5001 和 9001"
-    echo ""
-    
-    echo -e "${BLUE}【管理命令】${NC}"
-    echo "  停止服务: ./stop_asr.sh"
-    echo "  查看日志: tail -f $SKILL_DIR/asr.log"
-    echo ""
-    
-    if command -v openclaw &> /dev/null; then
-        echo -e "${BLUE}【OpenClaw】${NC}"
-        echo "  重启 Gateway: openclaw gateway restart"
-        echo ""
-    fi
+  resolved_hint="$(tr -d '\r' < "$hint_file" | head -n 1 | xargs)"
+  if [[ -z "$resolved_hint" || ! -e "$(expand_path "$resolved_hint")" ]]; then
+    printf '%s\n' "$base_model_abs" > "$hint_file"
+    log_info "已修复 Base 模型 checkpoint_path.txt: $hint_file"
+  fi
 }
 
 main() {
-    install_system_deps
-    setup_miniconda
-    setup_venv
-    install_python_packages
-    generate_config
-    update_model_path
-    copy_node_config        # ← 新增：复制 Node 配置
-    install_node_deps       # ← 新增：安装 Node 依赖
-    setup_openclaw
-    ensure_scripts_executable
-    show_completion
+  echo "========================================"
+  echo "  Xeon TTS Skill 环境准备"
+  echo "========================================"
+  install_system_deps
+  setup_miniconda
+  setup_venv
+  install_python_packages
+  verify_python_runtime
+  copy_node_config
+  generate_tts_config
+  download_model_if_missing "$BASE_MODEL_REPO" "$BASE_MODEL_PATH"
+  download_model_if_missing "$CUSTOM_MODEL_REPO" "$CUSTOM_MODEL_PATH"
+  download_model_if_missing "$BASE_CHECKPOINT_REPO" "$BASE_CHECKPOINT_PATH"
+  update_tts_model_paths
+  repair_base_checkpoint_hint
+  mkdir -p runtime outputs references
+  log_info "Xeon TTS 环境准备完成"
 }
 
-main
+main "$@"
