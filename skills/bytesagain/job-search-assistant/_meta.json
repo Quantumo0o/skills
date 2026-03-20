@@ -3,9 +3,15 @@
   "slug": "job-search-assistant",
   "displayName": "Job Search Assistant",
   "latest": {
-    "version": "2.4.7",
-    "publishedAt": 1773666295353,
-    "commit": "https://github.com/openclaw/skills/commit/602b7ee9bad3cfea48b193b38ea2f5881a58b04c"
+    "version": "2.0.1",
+    "publishedAt": 1773830713246,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.4.7",
+      "publishedAt": 1773666295353,
+      "commit": "https://github.com/openclaw/skills/commit/602b7ee9bad3cfea48b193b38ea2f5881a58b04c"
+    }
+  ]
 }
