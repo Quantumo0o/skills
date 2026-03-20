@@ -12,42 +12,21 @@
  *   infractions <id> <from> <to>    absences/infractions
  */
 
-import { readFileSync, writeFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const DIR = dirname(fileURLToPath(import.meta.url));
 
 // Normalize host: strip protocol and trailing slash so it is just the FQDN
 const HOST = (process.env.MAGISTER_HOST || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
 const USER = process.env.MAGISTER_USER;
 const PASS = process.env.MAGISTER_PASSWORD;
 
-if (process.argv[1] === fileURLToPath(import.meta.url) && (!HOST || !USER || !PASS)) {
-  console.error('Set MAGISTER_HOST, MAGISTER_USER, MAGISTER_PASSWORD before running.');
-  process.exit(1);
-}
-
-// ---------------------------------------------------------------------------
-// Token cache  (.token_cache.json, keyed by host:user)
-// ---------------------------------------------------------------------------
-
-const CACHE_FILE = join(DIR, '.token_cache.json');
-
-function loadCache() {
-  try { return JSON.parse(readFileSync(CACHE_FILE, 'utf8')); } catch { return {}; }
-}
-
-function saveCache(cache) {
-  writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
-}
-
-function isTokenExpired(token) {
-  try {
-    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
-    return (Date.now() / 1000) > (payload.exp - 60); // 60 s safety margin
-  } catch {
-    return true;
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (!HOST || !USER || !PASS) {
+    console.error('Set MAGISTER_HOST, MAGISTER_USER, MAGISTER_PASSWORD before running.');
+    process.exit(1);
+  }
+  if (!HOST.endsWith('.magister.net') && HOST !== 'magister.net') {
+    console.error('MAGISTER_HOST must be a *.magister.net domain.');
+    process.exit(1);
   }
 }
 
@@ -119,17 +98,11 @@ export async function acquireToken(host, user, pass) {
 }
 
 // ---------------------------------------------------------------------------
-// Cached token getter (uses module-level HOST/USER/PASS by default)
+// Token getter (uses module-level HOST/USER/PASS by default)
 // ---------------------------------------------------------------------------
 
 export async function getToken(host = HOST, user = USER, pass = PASS) {
-  const cache = loadCache();
-  const key   = `${host}:${user}`;
-  if (cache[key] && !isTokenExpired(cache[key])) return cache[key];
-  const token = await acquireToken(host, user, pass);
-  cache[key]  = token;
-  saveCache(cache);
-  return token;
+  return acquireToken(host, user, pass);
 }
 
 // ---------------------------------------------------------------------------
