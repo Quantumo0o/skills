@@ -1,158 +1,163 @@
 ---
 name: neta
-description: Neta API 交互技能 - 游览空间、生成图片、视频、歌曲，搜索角色/元素，管理标签内容。当需要创作 AI 内容、查询角色信息、获取标签数据时使用此技能。
+description: Neta capability index and routing skill - help choose the appropriate Neta-related skill (neta-space / neta-creative / neta-community / neta-suggest). Use this skill when you need to understand Neta's overall capabilities, decide which skill fits the current task, or migrate from older documentation that referenced the monolithic neta skill.
 ---
 
 # Neta Skill
 
-用于与 Neta API 交互，支持多媒体内容创作和角色/标签查询。
+Used for **overview and routing** of Neta-related skills, rather than executing concrete commands directly.
 
-## 前置条件
+> This skill used to be a "kitchen-sink" Neta interaction skill. It has now been split into multiple focused skills. Prefer using the skills listed below; use this skill only to understand the capability map or when migrating from older docs.
 
-确保已设置环境变量 `NETA_TOKEN`。
+## Installing sub-skills
 
-确保已安装依赖
-```
-corepack enabled
-pnpm i
-```
-
-## 命令使用
-
-### 空间
-
-**获取可供游览的空间**
+In environments that support `skills add`, install sub-skills as needed:
 
 ```bash
-pnpm start list_spaces
+# Spaces and worldbuilding
+npx skills add talesofai/neta-skills/skills/neta-space
+
+# Creative content (images/videos/songs/MVs)
+npx skills add talesofai/neta-skills/skills/neta-creative
+
+# Community browsing and interactions
+npx skills add talesofai/neta-skills/skills/neta-community
+
+# Research and content suggestions
+npx skills add talesofai/neta-skills/skills/neta-suggest
+
+# Character creation and management
+npx skills add talesofai/neta-skills/skills/neta-character
+
+# Elementum (visual style/concept) creation and management
+npx skills add talesofai/neta-skills/skills/neta-elementum
 ```
 
-**获取空间详情**
-```
-pnpm start get_hashtag_info --hashtag "空间标签名"
-```
+## Instructions
 
-**获取空间的子空间**
+1. **Identify the task type**: classify the user's need as one of: "space exploration", "content creation", "community interaction", "research/recommendation", or "character creation/management".
+2. **Choose the corresponding sub-skill**:
+   - Spaces/worldbuilding/gameplay structure → use `neta-space`
+   - Image/video/song/MV creation and idea deconstruction → use `neta-creative`
+   - Browsing feeds, viewing collection details, liking/interacting, community-centric views → use `neta-community`
+   - Keyword/tag/category research and recommendation, progressive exploration from broad to narrow → use `neta-suggest`
+   - Creating or managing anime/cultural IP/original characters (VTokens/TCP/OC) → use `neta-character`
+   - Creating or managing visual style elements (scenes, props, clothing, poses, atmospheres, memes) → use `neta-elementum`
+3. Use this skill only when boundaries are unclear or when you need to explain which sub-skill to pick.
 
-```bash
-pnpm start list_space_topics --space_uuid "空间 uuid"
-```
+## Capability map and sub-skill overview
 
-📖 [详细指南](./references/space.md) - 空间介绍
+### 1. Spaces and worldbuilding: `neta-space`
 
-### 内容创作
+Responsibilities:
 
-**生成图片**
-```bash
-pnpm start make_image --prompt "@角色名，/风格元素，参考图-全图参考-图片uuid，描述词，描述词" --aspect "3:4"
-```
-📖 [详细指南](./references/image-generation.md) - 提示词结构、宽高比选择、用例
+- List all available spaces.
+- Fetch worldbuilding (lore) for spaces/hashtags.
+- Fetch sub-spaces, characters, and gameplay collections within a space.
 
-**生成视频**
-```bash
-pnpm start make_video --image_source "图片 URL" --prompt "动作描述" --model "model_s"
-```
-📖 [详细指南](./references/video-generation.md) - 动作描述原则、模型选择
+Use when:
 
-**生成歌曲**
-```bash
-pnpm start make_song --prompt "风格描述" --lyrics "歌词内容"
-```
-📖 [详细指南](./references/song-creation.md) - 风格提示词、歌词格式
+- The user talks about "worlds/universes/spaces/scene settings".
+- They want to browse gameplay and content organized by spaces/activities.
 
-**制作 MV**
+See `skills/neta-space/SKILL.md` for full details.
 
-结合歌曲和视频生成完整 MV。
+### 2. Content creation: `neta-creative`
 
-📖 [详细指南](./references/song-mv.md) - 完整工作流程
+Responsibilities:
 
-**移除背景**
-```bash
-pnpm start remove_background --input_image "image_url"
-```
+- Generate images, videos, songs, and MVs.
+- Remove image backgrounds.
+- Search and inspect characters (in a creation context).
+- Deconstruct creative ideas from existing collections via `read_collection`.
 
-### 角色查询
+Use when:
 
-**搜索角色**
-```bash
-pnpm start search_character_or_elementum --keywords "关键词" --parent_type "character" --sort_scheme "exact"
-```
-📖 [详细指南](./references/character-search.md) - 搜索策略、参数选择
+- The user wants to "create/edit images/videos/songs/MVs".
+- They want to create based on character settings or stories.
+- They want to analyze the creative intent behind an existing work.
 
-**获取角色详情**
-```bash
-pnpm start request_character_or_elementum --name "角色名"
-```
+See `skills/neta-creative/SKILL.md` for full details.
 
-**通过 UUID 查询**
-```bash
-pnpm start request_character_or_elementum --uuid "uuid"
-```
+### 3. Community browsing and interactions: `neta-community`
 
-### 标签管理
+Responsibilities:
 
-**获取标签信息**
-```bash
-pnpm start get_hashtag_info --hashtag "标签名"
-```
-📖 [详细指南](./references/hashtag-research.md) - 调研流程、分析方法
+- Fetch interactive recommendation feeds.
+- View collection details (in a community context).
+- Like/unlike or otherwise interact with content.
+- Browse community content grouped by tags or characters.
 
-**获取标签角色**
-```bash
-pnpm start get_hashtag_characters --hashtag "标签名" --sort_by "hot"
-```
+Use when:
 
-**获取标签合集**
-```bash
-pnpm start get_hashtag_collections --hashtag "标签名"
-```
+- The user says "show me what people are doing", "scroll the feed".
+- They want to like or interact with specific works.
 
-**获取玩法信息**
-```bash
-pnpm start read_collection --uuid "玩法-uuid"
-```
+See `skills/neta-community/SKILL.md` for full details.
 
-### 内容玩法探索
+### 4. Research and recommendation engine: `neta-suggest`
 
-**玩法内容推荐列表**
-```bash
-pnpm start request_interactive_feed --page_index 0 --page_size 3
-```
-📖 [详细指南](./references/interactive-feed.md)
+Responsibilities:
 
-**社区玩法内容探索**
-```bash
-pnpm start suggest_content --page_index 0 --page_size 20 --scene agent_intent --intent exact --tax_paths "衍生创作类>同人二创"
-```
-📖 [详细指南](./references/community-exploration.md)
-**社区互动**
-```bash
-pnpm start like_collection --uuid "目标作品 UUID"
-```
-📖 [详细指南](./references/social-interactive.md)
+- Keyword suggestions (`suggest_keywords`).
+- Tag suggestions (`suggest_tags`).
+- Category navigation and path validation (`suggest_categories` / `validate_tax_path`).
+- Multi‑mode content feeds (`suggest_content`).
 
+Use when:
 
-## 参考文档
+- The user has no clear target and wants ideas/topics.
+- They want to understand popular tags/category structure/content distribution.
+- They need systematic research before creating content.
 
-| 场景 | 文档 |
-|------|------|
-| 🌍 世界观 | [space.md](./references/space.md) |
-| 🎨 图片生成 | [image-generation.md](./references/image-generation.md) |
-| 🎬 视频生成 | [video-generation.md](./references/video-generation.md) |
-| 🎵 歌曲创作 | [song-creation.md](./references/song-creation.md) |
-| 🎞️ MV 制作 | [song-mv.md](./references/song-mv.md) |
-| 👤 角色查询 | [character-search.md](./references/character-search.md) |
-| 🏷️ 标签调研 | [hashtag-research.md](./references/hashtag-research.md) |
-| 🖊️ 内容创作 | [collection-remix.md](./references/collection-remix.md) |
-| 🌏 世界观玩法 | [space.md](./references/space.md) |
-| 🗺️ 玩法内容探索 | [community-exploration.md](./references/community-exploration.md) |
-| 🎮 互动玩法推荐  | [interactive-feed.md](./references/interactive-feed.md) |
-| 💬 社区互动    | [social-interactive.md](./references/social-interactive.md) |
+See `skills/neta-suggest/SKILL.md` for full details.
 
-## 使用建议
+### 5. Character creation and management: `neta-character`
 
-1. **先查询后创作** - 使用角色查询获取标准设定，确保创作符合官方设定
-2. **先调研后规划** - 使用标签调研了解热门元素和创作方向
-3. **提示词具体化** - 避免抽象描述，使用详细的要素组合
-4. **迭代测试** - 先用快速模型测试，满意后再用高质量模型
-5. **渐进式探索** - 从宽到窄逐步探索：浏览分类 → 发现标签 → 验证路径 → 获取内容
+Responsibilities:
+
+- Create new characters as VTokens (Virtual Tokens, TCP/OC).
+- Update existing character profiles (visual appearance, backstory, persona).
+- Query and search for characters.
+- Generate character preview images before creation.
+
+Use when:
+
+- The user wants to "create a new character", "make an OC", or "design a character".
+- The user wants to "modify character settings", "update character backstory", or "change character appearance".
+- The user wants to "list my characters" or "search for characters".
+
+See `skills/neta-character/SKILL.md` for full details.
+
+### 6. Elementum (visual style/concept) creation and management: `neta-elementum`
+
+Responsibilities:
+
+- Create new Elementa (visual concepts) as VTokens (TCP/Elementum).
+- Update existing Elementum settings (representative images, prompts, descriptions).
+- Query and search for Elementa.
+- Generate visual previews before Elementum creation.
+
+Use when:
+
+- The user wants to "create a visual element", "make an Elementum", or "encapsulate a style".
+- The user wants to create reusable visual concepts (scenes, props, clothing, poses, atmospheres, memes).
+- The user wants to "list my Elementa" or "search for Elementa".
+
+See `skills/neta-elementum/SKILL.md` for full details.
+
+## Migration notes (from legacy neta skill)
+
+If you encounter older docs or scripts that call commands directly under `neta`, migrate them according to this table:
+
+| Legacy capability                           | New skill        |
+|---------------------------------------------|------------------|
+| Space/tag lore and space browsing           | `neta-space`     |
+| Image/video/song/MV creation                | `neta-creative`  |
+| Collection details, feeds, likes/interacts  | `neta-community` |
+| Keyword/tag/category/recommendation research| `neta-suggest`   |
+| Character creation and management           | `neta-character` |
+| Elementum (visual style/concept) creation   | `neta-elementum` |
+
+For new development, always prefer the focused sub-skills and avoid adding new command examples directly to this skill.
+
