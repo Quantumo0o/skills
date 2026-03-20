@@ -1,13 +1,18 @@
 {
   "owner": "vveerrgg",
   "slug": "nostrcalendar",
-  "displayName": "NostrCalendar",
+  "displayName": "nostrcalendar",
   "latest": {
-    "version": "0.2.1",
-    "publishedAt": 1773700514223,
-    "commit": "https://github.com/openclaw/skills/commit/ad4c4e3f6a1e88d3f38ab8bc6f3600eb93c5cae0"
+    "version": "0.2.3",
+    "publishedAt": 1773962183859,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.1",
+      "publishedAt": 1773700514223,
+      "commit": "https://github.com/openclaw/skills/commit/ad4c4e3f6a1e88d3f38ab8bc6f3600eb93c5cae0"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1773431802215,
