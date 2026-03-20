@@ -1,11 +1,11 @@
 ---
-name: FTShare-announcements-data
-description: 非凸科技 A 股公告、研报查询工具集，支持历史与实时公告研报信息的查询和下载，数据由公开渠道收集而来，可能会有一定延时。用户询问某天公告列表、某只股票公告或研报、下载公告/研报时使用。
+name: FTShare-ashare-announcement-data
+description: A 股公告与研报数据技能集。覆盖指定日期全市场公告/研报、单只股票公告/研报历史、通过 url_hash 下载公告/研报 PDF（market.ft.tech）。用户询问某天公告列表、某只股票公告或研报、下载公告/研报时使用。
 ---
 
-# FTshare 公告与研报数据 Skills
+# FT A-share 公告与研报数据 Skills
 
-本 skill 是 FTShare-announcements-data 的**统一路由入口**。
+本 skill 是 `FTShare-ashare-announcement-data` 的**统一路由入口**。
 
 根据用户问题，从下方「能力总览」匹配对应子 skill，然后通过 `run.py` 执行并解析响应。
 

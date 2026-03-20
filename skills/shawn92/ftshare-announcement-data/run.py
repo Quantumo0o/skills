@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ftai-ashare-announcement-data 统一调度入口。
+FTShare-ashare-announcement-data 统一调度入口。
 
 用法：
     python run.py <subskill名> [handler参数...]
