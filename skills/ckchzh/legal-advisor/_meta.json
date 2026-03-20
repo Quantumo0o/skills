@@ -3,11 +3,16 @@
   "slug": "legal-advisor",
   "displayName": "Legal Advisor",
   "latest": {
-    "version": "2.3.3",
-    "publishedAt": 1773666356090,
-    "commit": "https://github.com/openclaw/skills/commit/117fa95ee308e2060d5ca6adfd5a371e5f296215"
+    "version": "2.0.0",
+    "publishedAt": 1773773781172,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.3",
+      "publishedAt": 1773666356090,
+      "commit": "https://github.com/openclaw/skills/commit/117fa95ee308e2060d5ca6adfd5a371e5f296215"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421466885,
