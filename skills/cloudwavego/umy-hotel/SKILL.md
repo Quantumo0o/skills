@@ -1,6 +1,6 @@
 ---
 name: Umy Hotel Search
-description: 基于 Umy MCP 的智能酒店搜索技能，开箱即用。
+description: An out-of-the-box hotel search skill powered by Umy MCP.
 version: 1.0.0
 author: Umy
 ---
@@ -8,16 +8,16 @@ author: Umy
 # Umy Hotel Search
 
 ## Description
-基于 Umy MCP 的智能酒店搜索技能，开箱即用。
+An out-of-the-box hotel search skill powered by Umy MCP.
 
 ## Credentials
-本技能使用 Umy 官方提供的公共 API Key，无需用户配置。
+This skill uses a public API key provided by Umy. No user configuration is required.
 
 ## Public API Key Declaration
-- 内置 Key (`umyf1a1e67eae96d612c0d5a09e2d9cdf4f`) 是 Umy 官方提供的公共访问密钥
-- 此 Key 专为社区开发者设计，非机密凭证
-- 公共 Key 有速率限制，如需更高配额请申请专属 Key
-- 申请地址: https://mcp.umy.com/apply
+- The built-in key (`umyf1a1e67eae96d612c0d5a09e2d9cdf4f`) is a public access key officially provided by Umy.
+- This key is intended for community developers and is not a secret credential.
+- The public key is rate-limited. For higher quota, apply for a dedicated key.
+- Apply at: https://mcp.umy.com/apply
 
 ## MCP Configuration
 ```json
@@ -35,35 +35,35 @@ author: Umy
 ```
 ## Data Transmission Policy
 
-### 允许传输
-仅限酒店搜索结构化参数：
-- 地点、日期、人数、星级、预算
+### Allowed data
+Only structured hotel search parameters:
+- Location, dates, number of guests, star rating, budget
 
-### 禁止传输
-- 用户个人信息（姓名、电话、邮箱）
-- 本地文件、系统信息
-- 无关的自由文本内容
+### Prohibited data
+- Personal information (name, phone number, email)
+- Local files, system information
+- Unrelated free-form text
 
-### query 处理规则
-query 参数仅应包含酒店名，代理必须：
-- 提取酒店名相关信息
-- 移除任何个人身份信息 (PII)
-- 不得直接传递用户原始输入
+### `query` handling rules
+The `query` parameter must contain only the hotel name. The agent must:
+- Extract hotel-name-related information
+- Remove any personally identifiable information (PII)
+- Never forward the user's raw input directly
 
-代理调用工具前应过滤敏感信息。
+The agent must filter sensitive information before calling tools.
 
-### 安全责任声明
-本技能为指令型技能，不包含可执行代码。数据过滤由以下层级负责：
-1. **代理运行时**：负责执行 PII 过滤指令
-2. **MCP 服务端**：对请求进行安全校验
-3. **用户**：避免在查询中输入敏感个人信息
+### Security responsibility statement
+This skill is instruction-based and contains no executable code. Data filtering responsibilities:
+1. **Agent runtime**: executes PII filtering instructions
+2. **MCP server**: performs security validation on requests
+3. **User**: avoid entering sensitive personal information in queries
 
-本技能已尽合理告知义务，实际过滤执行由代理平台保障。
+This skill provides reasonable disclosure; actual filtering enforcement depends on the agent platform.
 
 ## Tools
-- `search_hotel`: 搜索酒店
+- `search_hotel`: search hotels
 
 ## Usage Examples
-- "找北京五星酒店"
-- "查看北京天伦王朝酒店的房型和价格"
-- "上海1000元以内的酒店"
+- "Find 5-star hotels in Beijing"
+- "Show room types and prices for Beijing Tianlun Dynasty Hotel"
+- "Hotels in Shanghai under 1000 CNY"

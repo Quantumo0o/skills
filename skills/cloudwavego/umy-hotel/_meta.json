@@ -3,11 +3,16 @@
   "slug": "umy-hotel",
   "displayName": "Umy Hotel",
   "latest": {
-    "version": "0.0.1",
-    "publishedAt": 1773145619615,
-    "commit": "https://github.com/openclaw/skills/commit/06d5e552ef27dc788b1faacd77caf40b1f8f9eb7"
+    "version": "1.1.0",
+    "publishedAt": 1773890926865,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.1",
+      "publishedAt": 1773145619615,
+      "commit": "https://github.com/openclaw/skills/commit/06d5e552ef27dc788b1faacd77caf40b1f8f9eb7"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1772681990216,

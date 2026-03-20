@@ -1,88 +1,88 @@
-# 酒店搜索提示词
+## Hotel Search Prompt
 
-当用户表达酒店搜索意图时，调用 hotel_search 工具。
+When the user expresses an intent to search for hotels, call the `hotel_search` tool.
 
-## 触发场景
-- 用户想找酒店
-- 用户提到地点+住宿需求
-- 用户询问某地酒店推荐
+## Trigger scenarios
+- The user wants to find a hotel
+- The user mentions a location + accommodation needs
+- The user asks for hotel recommendations in a place
 
-## 参数提取规则
+## Argument extraction rules
 
-从用户输入中提取以下结构化参数：
+Extract the following structured arguments from the user's message.
 
 ## Arguments
 
-| 参数名           | 类型     | 必填 | 描述 | 示例 | 默认值 |
-|------------------|----------|------|------|------|--------|
-| location         | string   | 是   | 经纬度坐标，格式：纬度,经度 | 39.9042,116.4074 | - |
-| check_in_date    | string   | 是   | 入住日期，格式：YYYY-MM-DD | 2024-12-25 | - |
-| check_out_date   | string   | 是   | 退房日期，格式：YYYY-MM-DD | 2024-12-27 | - |
-| query            | string   | 否   | 搜索关键词，如酒店名称或地区名称 | 希尔顿 | - |
-| radius           | number   | 否   | 搜索半径，单位公里 | 5.0 | 5 |
-| budget           | string   | 否   | 价格范围，格式：最低价-最高价 | 100-500 | - |
-| star_rating      | integer  | 否   | 酒店星级，1-5星 | 4 | - |
-| rating           | string   | 否   | 用户评分范围，格式：最低分-最高分 | 8.0-10.0 | - |
-| currency         | string   | 否   | 货币代码，如 CNY、USD | CNY | CNY |
+| Name            | Type     | Required | Description | Example | Default |
+|-----------------|----------|----------|-------------|---------|---------|
+| location        | string   | yes      | Coordinates in the format `lat,lon` | 39.9042,116.4074 | - |
+| check_in_date   | string   | yes      | Check-in date, `YYYY-MM-DD` | 2024-12-25 | - |
+| check_out_date  | string   | yes      | Check-out date, `YYYY-MM-DD` | 2024-12-27 | - |
+| query           | string   | no       | Search keyword such as hotel name or area | Hilton | - |
+| radius          | number   | no       | Search radius in kilometers | 5.0 | 5 |
+| budget          | string   | no       | Price range, `min-max` | 100-500 | - |
+| star_rating     | integer  | no       | Star rating, 1-5 | 4 | - |
+| rating          | string   | no       | Guest rating range, `min-max` | 8.0-10.0 | - |
+| currency        | string   | no       | Currency code, e.g. CNY / USD | CNY | CNY |
 
-## 给 AI 的参数使用说明
+## Instructions for the agent
 
-在从自然语言理解到参数时，请遵循以下规则：
+When mapping natural language to arguments, follow these rules:
 
-- **location（必填）**
-  - 用户通常用“城市名/地标/商圈”等表达地点（如“上海外滩”“北京三里屯”）。
-  - 你必须先解析出地点，然后**查询地点对应的经纬度**，以 `纬度,经度` 格式填入 `location`，例如 `"31.2400,121.4900"`。
+- **location (required)**
+  - Users often describe locations as city names / landmarks / business districts (e.g. “Shanghai Bund”, “Beijing Sanlitun”).
+  - You must resolve the place first, then **look up the coordinates**, and fill `location` as `"lat,lon"`, e.g. `"31.2400,121.4900"`.
 
-- **check_in_date / check_out_date（必填）**
-  - 将用户提到的日期（“2026-03-20”“3月20号”“下周五”“周末” 等）解析为具体公历日期，使用 `YYYY-MM-DD` 格式。
-  - 当用户只说“X号”这类相对日期时：
-    - 以“今天是 2026-03-04”为基准，选择**最近的未来日期**；
-    - 例如现在是 3 月 4 日，用户说“20号”，则使用 `2026-03-20`；如果今天已是 3 月 21 日，再说“20号”则使用 `2026-04-20`。
-  - `check_out_date` 必须晚于 `check_in_date`，若用户给出“住 2 晚”，则退房日期为入住日期后推 2 天。
+- **check_in_date / check_out_date (required)**
+  - Parse dates mentioned by the user (e.g. “2026-03-20”, “Mar 20th”, “next Friday”, “this weekend”) into concrete calendar dates using `YYYY-MM-DD`.
+  - For relative dates like “the 20th”:
+    - Use “today is 2026-03-04” as the reference and pick the **nearest future date**.
+    - Example: if today is Mar 4 and the user says “the 20th”, use `2026-03-20`. If today is Mar 21 and the user says “the 20th”, use `2026-04-20`.
+  - `check_out_date` must be later than `check_in_date`. If the user says “stay 2 nights”, set check-out to check-in + 2 days.
 
-- **budget（可选）**
-  - 用户若给出预算（如“300 到 800”“800 以内”“不超过 500”），统一转换为 `"最低价-最高价"` 字符串。
-  - 没有上限时，可以用一个合理的默认上限（例如用户只说“300 以上”，可保守填 `"300-100000"`，并在排序时优先展示更匹配的价格区间）。
+- **budget (optional)**
+  - Convert budgets like “300 to 800”, “under 800”, “no more than 500” into `"min-max"`.
+  - If there is no upper bound, use a reasonable default upper bound (e.g. “300+” → `"300-100000"`), and prioritize results closer to the intended range.
 
-- **rating（可选）**
-  - 用户若提及“评分 4 分以上”“要 4.5 分到 5 分”等，将其映射为 `"最低分-最高分"` 字符串，例如 `"4.0-5.0"`。
+- **rating (optional)**
+  - Map rating constraints like “4.0+”, “4.5 to 5.0” to `"min-max"`, e.g. `"4.0-5.0"`.
 
-- **star_rating（可选）**
-  - 若用户提到星级（“3 星以上”“四五星”“只要五星”），将其转换为数字字符串：
-    - 明确单一星级（如“五星酒店”）时，直接填 `"5"`；
-    - 区间表达时（如“三到四星”），可以选择用户期望范围内的主星级（比如 `"4"`），再结合 `rating` 做更精细过滤。
+- **star_rating (optional)**
+  - If the user mentions a star rating (“3+ stars”, “4-5 stars”, “only 5-star”), convert it to a number:
+    - For a single rating, set it directly (e.g. “5-star hotel” → `5`).
+    - For a range (e.g. “3 to 4 stars”), choose the primary star rating within the range (e.g. `4`) and use `rating` for finer filtering.
 
-- **radius（可选）**
-  - 若用户没有说明，则使用默认 5 公里；若用户提到“大概 10 公里内”“附近 3 公里内”等，按距离数值填写。
+- **radius (optional)**
+  - Use the default 5 km if not specified. If the user says “within ~10 km” or “within 3 km nearby”, set the numeric value accordingly.
 
-- **query（可选）**
-  - 用于补充关键词筛选，如酒店名、商圈、需求（“海景”“亲子”“商务出差”“地铁附近” 等）。
+- **query (optional)**
+  - Used as a keyword filter, e.g. hotel name, business district, or requirements (“ocean view”, “family-friendly”, “business trip”, “near subway”, etc.).
 
-- **currency（可选）**
-  - 若用户明确使用了某种货币（“预算 100 美金”），应将 `currency` 设置为对应的 ISO4217 代码（如 `"USD"`），并将 `budget` 按该货币解释。
-  - 若用户未说明，则使用默认值 `"USD"`。
+- **currency (optional)**
+  - If the user specifies a currency (“budget 100 USD”), set `currency` to the ISO4217 code (e.g. `"USD"`) and interpret `budget` in that currency.
+  - If not specified, use the default `"USD"`.
 
-## query 处理要求
+## `query` requirements
 
-**重要** query 不是用户原始输入，而是经过处理的酒店名搜索关键词。
+**Important**: `query` is not the user's raw input. It must be a processed hotel-name keyword.
 
-代理必须：
-1. 从用户输入中提取酒店名搜索关键词
-2. 移除任何个人身份信息（姓名、电话、邮箱、身份证等）
-3. 仅保留酒店名搜索关键词，不是城市和地标。
+The agent must:
+1. Extract the hotel-name keyword from the user input
+2. Remove any personally identifiable information (name, phone number, email, ID number, etc.)
+3. Keep only the hotel-name keyword, not the city or landmarks
 
-示例：
-- 用户输入："我叫张三，想订上海丽思卡尔顿酒店"
-- query 应为："丽思卡尔顿"（移除姓名）
+Example:
+- User: "My name is Zhang San, I want to book Shanghai Ritz-Carlton Hotel"
+- `query` should be: "Ritz-Carlton" (remove the name)
 
-## 调用示例
+## Example call
 
-用户："帮我找香港瑰丽酒店，4月1日入住2晚，"
+User: "Find Rosewood Hotel Hong Kong, check in on Apr 1 for 2 nights"
 
 ```json
 {
   "location": "22.319304,114.169361",
   "check_in_date": "2026-04-01",
   "check_out_date": "2026-04-03",
-  "originQuery": "瑰丽"
+  "originQuery": "Rosewood"
 }
