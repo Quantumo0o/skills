@@ -3,9 +3,15 @@
   "slug": "hashtag",
   "displayName": "Hashtag",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773663820844,
-    "commit": "https://github.com/openclaw/skills/commit/30635e7e227db5a6905439a03c3ef64af76c68dd"
+    "version": "2.0.1",
+    "publishedAt": 1773830657149,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773663820844,
+      "commit": "https://github.com/openclaw/skills/commit/30635e7e227db5a6905439a03c3ef64af76c68dd"
+    }
+  ]
 }
