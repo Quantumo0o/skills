@@ -3,11 +3,16 @@
   "slug": "employee-survey",
   "displayName": "Employee Survey",
   "latest": {
-    "version": "2.4.5",
-    "publishedAt": 1773663668017,
-    "commit": "https://github.com/openclaw/skills/commit/08c4ede7a393a7026900f6307294e3e3502080ca"
+    "version": "2.4.7",
+    "publishedAt": 1773830544762,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.4.5",
+      "publishedAt": 1773663668017,
+      "commit": "https://github.com/openclaw/skills/commit/08c4ede7a393a7026900f6307294e3e3502080ca"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773446874492,
