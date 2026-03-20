@@ -1,11 +1,17 @@
 {
   "owner": "idapixl",
   "slug": "cortex-query",
-  "displayName": "Cortex Query",
+  "displayName": "Cortex Query (Deprecated)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773489435315,
-    "commit": "https://github.com/openclaw/skills/commit/b7232ecfc25fb2b7ae054ac5799356b1b5ab095e"
+    "version": "1.1.0",
+    "publishedAt": 1773646939645,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773489435315,
+      "commit": "https://github.com/openclaw/skills/commit/b7232ecfc25fb2b7ae054ac5799356b1b5ab095e"
+    }
+  ]
 }
