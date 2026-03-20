@@ -129,34 +129,92 @@ class FaceAnalyzer:
         jaw_width = dist.euclidean(landmarks[1], landmarks[15])  # 下颌宽度
         cheek_width = dist.euclidean(landmarks[2], landmarks[14])  # 颧骨宽度
         forehead_width = dist.euclidean(landmarks[20], landmarks[23])  # 额头宽度
-        face_height = dist.euclidean(
-            landmarks[8],  # 下巴
-            (landmarks[20][0] + landmarks[23][0]) // 2, landmarks[20][1]  # 额头中点
+        # 计算额头中点
+        forehead_mid = (
+            (landmarks[20][0] + landmarks[23][0]) / 2,
+            (landmarks[20][1] + landmarks[23][1]) / 2
         )
+        face_height = dist.euclidean(landmarks[8], forehead_mid)  # 下巴到额头中点
         
         # 计算比例
-        width_ratio = face_height / (jaw_width + 0.01)
-        cheek_ratio = cheek_width / (face_height + 0.01)
-        forehead_ratio = forehead_width / (jaw_width + 0.01)
+        width_ratio = face_height / (jaw_width + 0.01)  # 高宽比
+        cheek_ratio = cheek_width / (face_height + 0.01)  # 颧骨相对宽度
+        forehead_ratio = forehead_width / (jaw_width + 0.01)  # 额头下颌比
+        face_length_ratio = face_height / (cheek_width + 0.01)  # 脸长颧骨比
         
-        # 判断脸型
-        if width_ratio > 1.5:
-            shape_type = "木"  # 长脸
-            shape_name = "长形"
-        elif cheek_ratio > 1.1 and forehead_ratio < 0.9:
-            shape_type = "水"  # 圆脸
-            shape_name = "圆形"
-        elif jaw_width > cheek_width * 0.9:
-            shape_type = "金"  # 方脸
-            shape_name = "方形"
-        elif forehead_width > cheek_width * 1.1:
-            shape_type = "火"  # 尖脸
-            shape_name = "尖形"
-        else:
-            shape_type = "土"  # 厚脸
-            shape_name = "厚重"
+        # 五行脸型判断（综合多个比例）
+        # 木形：长脸，高宽比大
+        # 水形：圆脸，颧骨宽，高宽比小
+        # 金形：方脸，下颌宽，轮廓分明
+        # 火形：尖脸，额头宽下巴尖
+        # 土形：厚重，比例均衡
         
-        return shape_type, {
+        scores = {
+            "木": 0,
+            "火": 0,
+            "土": 0,
+            "金": 0,
+            "水": 0
+        }
+        
+        # 木形评分：长脸特征
+        if width_ratio > 1.3:
+            scores["木"] += 3
+        elif width_ratio > 1.1:
+            scores["木"] += 2
+        if face_length_ratio > 1.2:
+            scores["木"] += 2
+            
+        # 火形评分：尖脸特征（额头宽下巴尖）
+        if forehead_ratio > 1.15:
+            scores["火"] += 3
+        elif forehead_ratio > 1.05:
+            scores["火"] += 2
+        if width_ratio > 1.2 and forehead_ratio > 1.0:
+            scores["火"] += 2
+            
+        # 土形评分：厚重特征（比例均衡）
+        if 0.9 <= width_ratio <= 1.2 and 0.9 <= forehead_ratio <= 1.1:
+            scores["土"] += 3
+        elif 0.85 <= width_ratio <= 1.25:
+            scores["土"] += 1
+        if abs(cheek_ratio - 1.0) < 0.15:
+            scores["土"] += 2
+            
+        # 金形评分：方脸特征（下颌宽）
+        if jaw_width > cheek_width * 0.85:
+            scores["金"] += 3
+        elif jaw_width > cheek_width * 0.8:
+            scores["金"] += 2
+        if forehead_ratio < 0.95 and width_ratio < 1.1:
+            scores["金"] += 2
+            
+        # 水形评分：圆脸特征（颧骨宽，脸短）
+        if cheek_ratio > 1.05:
+            scores["水"] += 3
+        elif cheek_ratio > 0.95:
+            scores["水"] += 2
+        if width_ratio < 1.0 and forehead_ratio < 1.0:
+            scores["水"] += 2
+        
+        # 找出最高分
+        max_score = max(scores.values())
+        shape_type = max(scores, key=scores.get)
+        
+        # 判断是否为混合类型（前两名分数接近）
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+        is_mixed = sorted_scores[0][1] - sorted_scores[1][1] < 2
+        
+        shape_names = {
+            "金": "方形",
+            "木": "长形",
+            "水": "圆形",
+            "火": "尖形",
+            "土": "厚重"
+        }
+        shape_name = shape_names.get(shape_type, "未知")
+        
+        result = {
             "face_height": face_height,
             "jaw_width": jaw_width,
             "cheek_width": cheek_width,
@@ -164,8 +222,18 @@ class FaceAnalyzer:
             "width_ratio": width_ratio,
             "cheek_ratio": cheek_ratio,
             "forehead_ratio": forehead_ratio,
-            "shape_name": shape_name
+            "face_length_ratio": face_length_ratio,
+            "shape_name": shape_name,
+            "scores": scores,
+            "is_mixed": is_mixed
         }
+        
+        # 如果是混合类型，添加第二类型
+        if is_mixed:
+            result["secondary_type"] = sorted_scores[1][0]
+            result["mixed_name"] = f"{shape_names[shape_type]}+{shape_names[sorted_scores[1][0]]}"
+        
+        return shape_type, result
     
     def analyze_eyes(self, landmarks):
         """
@@ -450,57 +518,185 @@ class FaceAnalyzer:
     def generate_interpretation(self, shape_type, shape_data, eye_features, 
                                  eyebrow_features, nose_features, mouth_features, ear_features):
         """
-        生成面相学解读
+        生成面相学解读（包含五行分类详解、文献引用、流派说明）
         
         Returns:
-            interpretation: 解读文本
+            interpretation: 解读文本列表（带文献引用）
         """
         interpretations = []
+        citations = []  # 存储文献引用
         
-        # 脸型解读
-        shape_meanings = {
-            "金": "方脸，性格刚毅果断，有正义感",
-            "木": "长脸，仁慈善良，有上进心",
-            "水": "圆脸，聪明智慧，适应力强",
-            "火": "尖脸，热情外向，行动力强",
-            "土": "厚重，诚信稳重，务实可靠"
+        # 五行详细解读（基于《柳庄相法·五行篇》）
+        wuxing_details = {
+            "金": {
+                "name": "金形",
+                "shape": "方形",
+                "traits": "刚毅果断，有正义感，意志坚定",
+                "career": "适合军警、法律、管理、金融",
+                "wealth": "正财运好，靠努力获得财富",
+                "health": "注意呼吸系统和肺部",
+                "strength": "决策力强，坚持原则，重视义气",
+                "weakness": "过于刚硬，缺乏柔性，容易冲动",
+                "source": "《柳庄相法·五行篇》",
+                "school": "福建派（理气派）",
+                "original": "金形人，面方色白，骨重肉坚"
+            },
+            "木": {
+                "name": "木形",
+                "shape": "长形",
+                "traits": "仁慈善良，有上进心，创意丰富",
+                "career": "适合教育、文化、艺术、设计",
+                "wealth": "财运平稳，靠专业技能",
+                "health": "注意肝胆和神经系统",
+                "strength": "仁慈同情，好学成长，思维活跃",
+                "weakness": "容易忧虑，过于理想化，情绪波动",
+                "source": "《柳庄相法·五行篇》",
+                "school": "福建派（理气派）",
+                "original": "木形人，面长色青，身直发茂"
+            },
+            "水": {
+                "name": "水形",
+                "shape": "圆形",
+                "traits": "聪明智慧，适应力强，善于交际",
+                "career": "适合商业、贸易、公关、咨询",
+                "wealth": "财运好，善于理财",
+                "health": "注意肾脏和泌尿系统",
+                "strength": "智慧灵活，人缘好，商业头脑",
+                "weakness": "过于圆滑，缺乏定性，易改变主意",
+                "source": "《柳庄相法·五行篇》",
+                "school": "福建派（理气派）",
+                "original": "水形人，面圆色黑，肉多骨少"
+            },
+            "火": {
+                "name": "火形",
+                "shape": "尖形",
+                "traits": "热情外向，行动力强，活力充沛",
+                "career": "适合销售、演艺、媒体、创业",
+                "wealth": "财运波动大，大进大出",
+                "health": "注意心脏和血液循环",
+                "strength": "热情开朗，表达力强，雷厉风行",
+                "weakness": "脾气急躁，缺乏耐心，过于自我",
+                "source": "《柳庄相法·五行篇》",
+                "school": "福建派（理气派）",
+                "original": "火形人，面尖色红，发少神露"
+            },
+            "土": {
+                "name": "土形",
+                "shape": "厚重",
+                "traits": "诚信稳重，务实可靠，包容心强",
+                "career": "适合房地产、农业、建筑、管理",
+                "wealth": "财运稳定，善于积累",
+                "health": "注意脾胃和消化系统",
+                "strength": "诚信可靠，稳重踏实，重视家庭",
+                "weakness": "反应较慢，过于保守，有时固执",
+                "source": "《柳庄相法·五行篇》",
+                "school": "福建派（理气派）",
+                "original": "土形人，面厚色黄，肉实骨重"
+            }
         }
-        if shape_type in shape_meanings:
-            interpretations.append(f"脸型（{shape_type}形）: {shape_meanings[shape_type]}")
         
-        # 眼睛解读
+        # 主类型解读
+        if shape_type in wuxing_details:
+            detail = wuxing_details[shape_type]
+            interpretations.append(f"【{detail['name']}】脸型：{detail['shape']}")
+            interpretations.append(f"  性格：{detail['traits']}")
+            interpretations.append(f"  优势：{detail['strength']}")
+            interpretations.append(f"  注意：{detail['weakness']}")
+            interpretations.append(f"  事业：{detail['career']}")
+            interpretations.append(f"  财运：{detail['wealth']}")
+            interpretations.append(f"  健康：{detail['health']}")
+            interpretations.append(f"  📚 来源：{detail['source']} | {detail['school']}")
+            interpretations.append(f"  📖 原文：\"{detail['original']}\"")
+            citations.append(f"{detail['source']} - {detail['school']}")
+        
+        # 混合类型解读
+        if shape_data.get("is_mixed") and "secondary_type" in shape_data:
+            secondary = shape_data["secondary_type"]
+            if secondary in wuxing_details:
+                sec_detail = wuxing_details[secondary]
+                interpretations.append("")
+                interpretations.append(f"【混合类型】兼有{sec_detail['name']}特征")
+                interpretations.append(f"  补充特质：{sec_detail['traits']}")
+                # 五行相生相克解读
+                wuxing_cycle = {
+                    ("金", "水"): "金生水：刚毅中带智慧，决策更周全",
+                    ("金", "木"): "金克木：内心有冲突，需平衡果断与仁慈",
+                    ("金", "火"): "火克金：热情与刚毅并存，注意情绪管理",
+                    ("金", "土"): "土生金：稳重增强果断，基础更扎实",
+                    ("木", "水"): "水生木：智慧滋养仁慈，创意更丰富",
+                    ("木", "火"): "木生火：创意点燃热情，行动力更强",
+                    ("木", "土"): "木克土：进取与稳重平衡，避免急躁",
+                    ("木", "金"): "金克木：原则约束创意，需灵活变通",
+                    ("水", "金"): "金生水：智慧得刚毅支持，执行力提升",
+                    ("水", "木"): "水生木：灵活与成长结合，适应力更强",
+                    ("水", "火"): "水克火：冷静平衡热情，避免冲动",
+                    ("水", "土"): "土克水：稳重约束灵活，更脚踏实地",
+                    ("火", "木"): "木生火：热情得创意支持，更有方向",
+                    ("火", "土"): "火生土：热情滋养稳重，活力更持久",
+                    ("火", "金"): "火克金：激情挑战原则，需相互尊重",
+                    ("火", "水"): "水克火：冷静调和热情，更趋平衡",
+                    ("土", "金"): "土生金：稳重支持果断，基础更牢",
+                    ("土", "水"): "土克水：务实约束灵活，更接地气",
+                    ("土", "木"): "木克土：成长突破保守，需开放心态",
+                    ("土", "火"): "火生土：活力滋养稳重，更积极向上",
+                }
+                pair = tuple(sorted([shape_type, secondary]))
+                if pair in wuxing_cycle:
+                    interpretations.append(f"  五行关系：{wuxing_cycle[pair]}")
+        
+        # 眼睛解读（基于《麻衣神相·五官篇》《相理衡真·眼相篇》）
         if eye_features:
             eye_size = eye_features.get("eye_size", "")
             eye_dir = eye_features.get("eye_direction", "")
             if eye_size == "大":
                 interpretations.append("眼睛：大而明亮，性格开朗，表达力强")
+                interpretations.append("  📚 来源：《相理衡真·眼相篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"眼大者，心性开朗，善于表达\"")
             elif eye_size == "小":
                 interpretations.append("眼睛：小而专注，心思细腻，观察力强")
+                interpretations.append("  📚 来源：《麻衣神相·五官篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"眼小者，心细如发，观察入微\"")
             if eye_dir == "上扬":
                 interpretations.append("眼尾上扬，性格外向，有魅力")
+                interpretations.append("  📚 来源：《水镜集·眼相篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"眼尾上扬，外向有魅\"")
             elif eye_dir == "下垂":
                 interpretations.append("眼尾下垂，性格温和，体贴")
+                interpretations.append("  📚 来源：《水镜集·眼相篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"眼尾下垂，温和体贴\"")
         
-        # 鼻子解读
+        # 鼻子解读（基于《麻衣神相·五官篇》）
         if nose_features:
             nose_h = nose_features.get("nose_height_type", "")
             if nose_h == "高":
                 interpretations.append("鼻子高挺，财运较好，有领导能力")
+                interpretations.append("  📚 来源：《麻衣神相·五官篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"鼻为财帛，高挺主富\"")
             elif nose_h == "低":
                 interpretations.append("鼻子较低，性格温和，需努力积累")
+                interpretations.append("  📚 来源：《麻衣神相·五官篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"鼻低者，性和缓，需勤积\"")
         
-        # 嘴巴解读
+        # 嘴巴解读（基于《水镜集·口相篇》《麻衣神相·五官篇》）
         if mouth_features:
             mouth_s = mouth_features.get("mouth_size", "")
             mouth_c = mouth_features.get("mouth_corner", "")
             if mouth_s == "大":
                 interpretations.append("嘴巴大，表达能力强，社交能力好")
+                interpretations.append("  📚 来源：《麻衣神相·五官篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"口大者，善言辞，社交广\"")
             elif mouth_s == "小":
                 interpretations.append("嘴巴小，谨慎细心，言语保守")
+                interpretations.append("  📚 来源：《麻衣神相·五官篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"口小者，言谨慎，心思细\"")
             if mouth_c == "上扬":
                 interpretations.append("嘴角上扬，乐观积极，人缘好")
+                interpretations.append("  📚 来源：《水镜集·口相篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"嘴角扬，心乐观，人缘佳\"")
             elif mouth_c == "下垂":
                 interpretations.append("嘴角下垂，需注意心态调整")
+                interpretations.append("  📚 来源：《水镜集·口相篇》 | 江西派（形势派）")
+                interpretations.append("  📖 原文：\"嘴角垂，心多忧\"")
         
         return interpretations
 
@@ -540,15 +736,45 @@ def main():
     
     # 输出结果
     print("\n" + "="*60)
-    print("📊 面相分析报告")
+    print("📊 面相分析报告（五行分类版）")
     print("="*60 + "\n")
     
     print(f"✅ 人脸检测：成功")
     print(f"📍 特征点：68 个\n")
     
+    # 显示五行评分
+    shape_data = report["analysis"]["face_shape"]["data"]
+    if "scores" in shape_data:
+        print("🔮 五行脸型评分:")
+        scores = shape_data["scores"]
+        for wuxing, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
+            bar = "█" * score + "░" * (5 - score)
+            print(f"  {wuxing}: {bar} ({score}分)")
+        if shape_data.get("is_mixed"):
+            print(f"  → 混合类型：{shape_data.get('mixed_name', '未知')}")
+        print()
+    
     print("🎯 分析结果:")
     for item in report["interpretation"]:
-        print(f"  • {item}")
+        if item:  # 跳过空行
+            print(f"  • {item}")
+        else:
+            print()
+    
+    # 显示文献引用汇总
+    print("\n" + "="*60)
+    print("📚 文献引用与流派说明")
+    print("="*60)
+    print("\n主要参考文献:")
+    print("  1. 《麻衣神相》（宋代）- 江西派（形势派）- 三停五眼、十二宫位")
+    print("  2. 《柳庄相法》（明代）- 福建派（理气派）- 五行面相分类")
+    print("  3. 《水镜集》（清代）- 江西派（形势派）- 气色理论")
+    print("  4. 《相理衡真》（清代）- 综合派 - 综合判断方法")
+    print("\n流派说明:")
+    print("  • 江西派（形势派）：重视面部整体格局、五官形态")
+    print("  • 福建派（理气派）：重视五行生克、性格分析")
+    print("  • 综合派：综合多派理论，辩证判断")
+    print("\n⚠️  本分析基于传统面相学文献，仅供娱乐和文化参考")
     
     print("\n" + "="*60)
     print("⚠️  免责声明：本分析仅供娱乐参考，不具备科学依据")

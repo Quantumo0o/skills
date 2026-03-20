@@ -72,6 +72,34 @@ FACE_KNOWLEDGE = {
     "颧骨有肉": {"category": "权力", "meaning": "权力稳固，人缘好", "tags": ["事业"]},
     "颧骨无肉": {"category": "权力", "meaning": "权力易失，需注意人际", "tags": ["事业"]},
     
+    # 痣相 - 十二宫位 (v1.4.0 新增)
+    # 命宫痣
+    "印堂有痣": {"category": "命宫痣", "meaning": "30岁前后运势有转折，贵人运与小人运并存，重大决策需谨慎", "tags": ["痣相", "运势", "注意"]},
+    # 兄弟宫痣
+    "眉中有痣": {"category": "兄弟宫痣", "meaning": "有贵人相助人缘好，但兄弟姐妹可能缘薄，合伙需谨慎", "tags": ["痣相", "人际", "贵人"]},
+    "眉尾有痣": {"category": "兄弟宫痣", "meaning": "朋友多但知己少，易有财务纠纷", "tags": ["痣相", "人际", "财务"]},
+    # 夫妻宫痣
+    "眼尾有痣": {"category": "夫妻宫痣", "meaning": "感情易有波折，婚姻需经营，晚婚较稳", "tags": ["痣相", "感情", "婚姻"]},
+    "眼下有痣": {"category": "夫妻宫痣", "meaning": "感情丰富易为情所困，需防烂桃花", "tags": ["痣相", "感情", "泪痣"]},
+    # 子女宫痣
+    "眼下卧蚕有痣": {"category": "子女宫痣", "meaning": "子女缘深但操心多，需注意子女健康", "tags": ["痣相", "子女", "健康"]},
+    # 财帛宫痣
+    "鼻头有痣": {"category": "财帛宫痣", "meaning": "有赚钱能力但易破财，需谨慎理财", "tags": ["痣相", "财运", "破财"]},
+    "鼻翼有痣": {"category": "财帛宫痣", "meaning": "漏财难守积蓄，合伙财务需明确", "tags": ["痣相", "财运", "漏财"]},
+    "鼻梁有痣": {"category": "财帛宫痣", "meaning": "中年财运有波折，健康需注意", "tags": ["痣相", "财运", "健康"]},
+    # 疾厄宫痣
+    "鼻梁中段有痣": {"category": "疾厄宫痣", "meaning": "脊椎肠胃需注意，健康预警", "tags": ["痣相", "健康", "注意"]},
+    # 迁移宫痣
+    "太阳穴有痣": {"category": "迁移宫痣", "meaning": "外出有机遇但需防意外，异地发展有利", "tags": ["痣相", "出行", "变动"]},
+    # 奴仆宫痣
+    "下巴中央有痣": {"category": "奴仆宫痣", "meaning": "晚年有福田宅旺，但需注意下属关系", "tags": ["痣相", "晚年", "福气"]},
+    # 官禄宫痣
+    "额头中央有痣": {"category": "官禄宫痣", "meaning": "事业有起伏，早成需防晚节", "tags": ["痣相", "事业", "起伏"]},
+    # 福德宫痣
+    "眉上有痣": {"category": "福德宫痣", "meaning": "有祖业或长辈助力，晚年有福", "tags": ["痣相", "福气", "长辈"]},
+    # 父母宫痣
+    "额头两侧有痣": {"category": "父母宫痣", "meaning": "与父母缘深但健康需注意", "tags": ["痣相", "父母", "健康"]},
+    
     # 综合特征
     "三庭均等": {"category": "整体", "meaning": "一生运势平稳，各阶段发展均衡", "tags": ["运势"]},
     "五眼协调": {"category": "整体", "meaning": "面部比例好，人际关系和谐", "tags": ["人际"]},
@@ -157,75 +185,24 @@ def analyze_multiple_features(features: list) -> dict:
     return analysis
 
 
-def calculate_score(analysis: dict) -> dict:
-    """计算面相评分"""
-    scores = {
-        "overall": 0,
-        "categories": {},
-        "level": ""
-    }
-    
-    # 基础分
-    base_score = 60
-    
-    # 根据特征数量加分
-    feature_count = len(analysis.get("features", []))
-    feature_bonus = min(feature_count * 5, 20)  # 最多加 20 分
-    
-    # 根据组合类型加分
-    combo_bonus = 10 if analysis.get("combo_type") else 0
-    
-    # 计算总分
-    total = base_score + feature_bonus + combo_bonus
-    scores["overall"] = min(total, 100)
-    
-    # 评定等级
-    if scores["overall"] >= 90:
-        scores["level"] = "上等相"
-    elif scores["overall"] >= 80:
-        scores["level"] = "中等相"
-    elif scores["overall"] >= 70:
-        scores["level"] = "普通相"
-    else:
-        scores["level"] = "需改善"
-    
-    # 分类评分
-    for category in analysis.get("categories", {}).keys():
-        cat_score = 70 + len(analysis["categories"][category]) * 5
-        scores["categories"][category] = min(cat_score, 100)
-    
-    return scores
-
-
-def generate_report(analysis: dict, detailed: bool = False) -> str:
+def generate_report(analysis: dict) -> str:
     """生成分析报告"""
     report = []
     report.append("👤 面相分析报告\n")
-    report.append("=" * 60 + "\n")
-    
-    # 评分
-    scores = calculate_score(analysis)
-    report.append(f"📊 综合评分：{scores['overall']}/100\n")
-    report.append(f"🎯 面相等级：{scores['level']}\n")
-    report.append("")
+    report.append("=" * 50 + "\n")
     
     # 特征分析
     if analysis["features"]:
         report.append("📋 特征分析:\n")
-        for i, item in enumerate(analysis["features"], 1):
-            score = min(70 + item.get("score", 0) * 2, 100)
-            report.append(f"  {i}. {item['feature']} ({item['category']})")
-            report.append(f"     含义：{item['meaning']}")
-            if detailed:
-                report.append(f"     评分：{score}/100")
-            report.append("")
+        for item in analysis["features"]:
+            report.append(f"  • {item['feature']} ({item['category']})")
+            report.append(f"    含义：{item['meaning']}\n")
     
     # 宫位汇总
     if analysis["categories"]:
         report.append("🏛️ 宫位汇总:\n")
         for category, meanings in analysis["categories"].items():
-            cat_score = scores["categories"].get(category, 70)
-            report.append(f"  {category} ({cat_score}分):")
+            report.append(f"  {category}:")
             for meaning in meanings:
                 report.append(f"    - {meaning}")
         report.append("")
@@ -234,32 +211,15 @@ def generate_report(analysis: dict, detailed: bool = False) -> str:
     if analysis["combo_type"]:
         report.append(f"🎯 面相类型：{analysis['combo_type']}\n")
         report.append(f"   {analysis['combo_analysis']}\n")
-        report.append("")
-    
-    # 详细分析（detailed 模式）
-    if detailed:
-        report.append("📈 详细分析:\n")
-        report.append("  优势特征:")
-        for item in analysis["features"][:2]:
-            report.append(f"    ✓ {item['feature']}")
-        report.append("")
-        report.append("  建议关注:")
-        if len(analysis["features"]) > 2:
-            for item in analysis["features"][2:]:
-                report.append(f"    • {item['feature']}")
-        else:
-            report.append("    • 无明显需关注特征")
-        report.append("")
     
     # 建议
     if analysis["suggestions"]:
         report.append("💡 建议:\n")
-        for i, suggestion in enumerate(analysis["suggestions"], 1):
-            report.append(f"  {i}. {suggestion}")
-        report.append("")
+        for suggestion in analysis["suggestions"]:
+            report.append(f"  • {suggestion}\n")
     
-    report.append("=" * 60 + "\n")
-    report.append("⚠️ 免责声明：本分析仅供娱乐参考，不具备科学依据\n")
+    report.append("=" * 50 + "\n")
+    report.append("⚠️ 免责声明：本分析仅供娱乐参考，不具备科学依据")
     
     return "\n".join(report)
 
@@ -332,17 +292,14 @@ def print_template():
 
 def main():
     if len(sys.argv) < 2:
-        print("👤 面相学分析工具 v1.4")
+        print("👤 面相学分析工具 v1.0")
         print("\n使用方法:")
         print("  python analyze.py \"特征描述\"")
         print("  python analyze.py \"特征 1 特征 2 特征 3\"")
         print("  python analyze.py --template")
-        print("  python analyze.py --detailed \"特征描述\"")
-        print("  python analyze.py --json \"特征描述\"")
         print("\n示例:")
         print("  python analyze.py \"鼻子高挺\"")
         print("  python analyze.py \"眉毛浓密 眼睛大\"")
-        print("  python analyze.py --detailed \"鼻子高挺 眼睛有神\"")
         print("  python analyze.py --template")
         print("\n可用特征关键词:")
         print("  鼻子：高挺、塌陷、鼻头有肉、鼻翼饱满")
@@ -357,13 +314,7 @@ def main():
         print_template()
         sys.exit(0)
     
-    # 检查是否为详细模式
-    detailed = "--detailed" in sys.argv
-    json_output = "--json" in sys.argv
-    
-    # 移除参数，保留特征描述
-    args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
-    query = " ".join(args)
+    query = " ".join(sys.argv[1:])
     features = query.split()
     
     if len(features) == 1:
@@ -383,20 +334,8 @@ def main():
     else:
         # 多个特征分析
         analysis = analyze_multiple_features(features)
-        
-        if json_output:
-            # JSON 输出
-            scores = calculate_score(analysis)
-            output = {
-                "query": query,
-                "analysis": analysis,
-                "scores": scores
-            }
-            print(json.dumps(output, ensure_ascii=False, indent=2))
-        else:
-            # 文本输出
-            report = generate_report(analysis, detailed)
-            print(report)
+        report = generate_report(analysis)
+        print(report)
 
 
 if __name__ == "__main__":
