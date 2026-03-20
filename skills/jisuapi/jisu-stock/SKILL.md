@@ -12,6 +12,9 @@ metadata: { "openclaw": { "emoji": "📈", "requires": { "bins": ["python3"], "e
 - **股票列表查询**（`/stock/list`）：按分类（沪深股市/港股/北证A股）分页获取股票列表
 - **股票详情查询**（`/stock/detail`）：根据股票代码获取单只股票详情（最新价、涨跌幅、成交量、市盈率等）
 
+如需做更深入的走势分析、K 线研究或回测，推荐配合 **股票历史行情查询 Skill（stockhistory）** 一起使用：  
+- ClawHub 链接：[`https://clawhub.ai/jisuapi/stockhistory`](https://clawhub.ai/jisuapi/stockhistory)
+
 使用技能前需要申请数据，申请地址：https://www.jisuapi.com/api/stock/
 
 ## 环境变量配置

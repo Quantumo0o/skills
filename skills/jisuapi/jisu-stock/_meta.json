@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "jisu-stock",
-  "displayName": "Chinese Stock Inquiry - 股票查询",
+  "displayName": "Stock Inquiry - 股票查询",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773719792170,
-    "commit": "https://github.com/openclaw/skills/commit/86cae464351670dc5589b39a499611fa10cb4a71"
+    "version": "1.0.4",
+    "publishedAt": 1773728748618,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773719792170,
+      "commit": "https://github.com/openclaw/skills/commit/86cae464351670dc5589b39a499611fa10cb4a71"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773659112251,
