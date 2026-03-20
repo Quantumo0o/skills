@@ -3,11 +3,16 @@
   "slug": "privacy-mask",
   "displayName": "Privacy Mask",
   "latest": {
-    "version": "0.3.3",
-    "publishedAt": 1773511580369,
-    "commit": "https://github.com/openclaw/skills/commit/942eb65f4c8c3c21c9e1105c0ed3f443b8a4b7b0"
+    "version": "0.3.4",
+    "publishedAt": 1773938462371,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.3.3",
+      "publishedAt": 1773511580369,
+      "commit": "https://github.com/openclaw/skills/commit/942eb65f4c8c3c21c9e1105c0ed3f443b8a4b7b0"
+    },
     {
       "version": "0.3.0",
       "publishedAt": 1773509058320,
