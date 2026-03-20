@@ -6,7 +6,7 @@ metadata:
   openclaw:
     emoji: ⚖
     tags: [conservation, verification, jaccard, commitment, moses, signal, provenance, falsifiability]
-    version: 0.4.1
+    version: 0.3.1
     bins:
       - python3
     stateDirs:
@@ -157,7 +157,7 @@ python3 commitment_verify.py ghost \
 | **v0.1** | `extract`, `compare`, `verify` — Conservation Law operational. ✓ Live. |
 | **v0.2** | `ghost` — Step-function leakage model, cascade risk, `ghost_pattern` fingerprint. ✓ Live. |
 | **v0.3** | `model_swap_test` — Cross-model CONSISTENT/VARIANCE/STRUCTURAL classification. ✓ Live. |
-| **v0.4** | Archival chain (`archival.py`) — pre-drop provenance. Isnad + handshake. Three-layer lineage. ✓ Live. |
+| **v0.4** | Archival chain (`archival.py`) — pre-drop provenance. Isnad + handshake. Three-layer lineage. ⏳ Planned. |
 
 ---
 
