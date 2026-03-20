@@ -172,11 +172,12 @@ def build_input_info(args):
     """
     构建输入信息。
 
-    COS 输入时：
-    - --cos-bucket 未指定则使用 TENCENTCLOUD_COS_BUCKET 环境变量
-    - --cos-region 未指定则使用 TENCENTCLOUD_COS_REGION 环境变量（默认 ap-guangzhou）
-    - --cos-object 默认应以 /input/ 开头（由用户保证，脚本提示）
+    支持三种输入方式：
+    1. URL 输入：--url
+    2. COS 对象路径（兼容旧版）：--cos-object（配合 --cos-bucket/--cos-region 或环境变量）
+    3. COS 完整路径（新版，推荐）：--cos-input-bucket + --cos-input-region + --cos-input-key
     """
+    # 方式1: URL 输入
     if args.url:
         return {
             "Type": "URL",
@@ -184,7 +185,25 @@ def build_input_info(args):
                 "Url": args.url
             }
         }
-    elif args.cos_object:
+    
+    # 方式3: COS 完整路径输入（新版，推荐）
+    # 检查是否使用了新的COS路径参数
+    cos_input_bucket = getattr(args, 'cos_input_bucket', None)
+    cos_input_region = getattr(args, 'cos_input_region', None)
+    cos_input_key = getattr(args, 'cos_input_key', None)
+    
+    if cos_input_bucket and cos_input_region and cos_input_key:
+        return {
+            "Type": "COS",
+            "CosInputInfo": {
+                "Bucket": cos_input_bucket,
+                "Region": cos_input_region,
+                "Object": cos_input_key
+            }
+        }
+    
+    # 方式2: COS 对象路径（兼容旧版）
+    if args.cos_object:
         # COS 输入模式：bucket 和 region 支持从环境变量自动获取
         bucket = args.cos_bucket or get_cos_bucket()
         region = args.cos_region or get_cos_region()
@@ -210,10 +229,13 @@ def build_input_info(args):
                 "Object": args.cos_object
             }
         }
-    else:
-        print("错误：请指定输入源，使用 --url 或 --cos-object（配合 TENCENTCLOUD_COS_BUCKET 环境变量）",
-              file=sys.stderr)
-        sys.exit(1)
+    
+    print("错误：请指定输入源：\n"
+          "  - URL: --url <URL>\n"
+          "  - COS路径(推荐): --cos-input-bucket <bucket> --cos-input-region <region> --cos-input-key <key>\n"
+          "  - COS对象(旧版): --cos-object <key>（配合环境变量或--cos-bucket/--cos-region）",
+          file=sys.stderr)
+    sys.exit(1)
 
 
 def build_output_storage(args):
@@ -444,10 +466,13 @@ def main():
   # URL输入 + 默认模板（极速高清-H265-1080P），输出到 TENCENTCLOUD_COS_BUCKET/output/
   python mps_transcode.py --url https://example.com/video.mp4
 
-  # COS输入（bucket 和 region 自动从环境变量获取）
+  # COS路径输入（推荐，本地上传后使用）
+  python mps_transcode.py --cos-input-bucket mybucket-125xxx --cos-input-region ap-guangzhou --cos-input-key /input/video/test.mp4
+
+  # COS对象输入（bucket 和 region 自动从环境变量获取）
   python mps_transcode.py --cos-object /input/video/test.mp4
 
-  # COS输入 + 显式指定 bucket（覆盖环境变量）
+  # COS对象输入 + 显式指定 bucket（覆盖环境变量）
   python mps_transcode.py --cos-bucket mybucket-125xxx --cos-region ap-guangzhou --cos-object /input/video/test.mp4
 
   # 自定义720P + 2Mbps码率上限
@@ -474,8 +499,18 @@ def main():
     )
 
     # ---- 输入源 ----
-    input_group = parser.add_argument_group("输入源（二选一）")
+    input_group = parser.add_argument_group("输入源（三选一）")
     input_group.add_argument("--url", type=str, help="视频 URL 地址")
+    
+    # COS 路径输入（新版，推荐）- 用于本地上传后直接使用COS路径
+    input_group.add_argument("--cos-input-bucket", type=str,
+                             help="输入 COS Bucket 名称（与 --cos-input-region/--cos-input-key 配合使用）")
+    input_group.add_argument("--cos-input-region", type=str,
+                             help="输入 COS Bucket 区域（如 ap-guangzhou）")
+    input_group.add_argument("--cos-input-key", type=str,
+                             help="输入 COS 对象 Key（如 /input/video.mp4）")
+    
+    # COS 对象输入（旧版，兼容）
     input_group.add_argument("--cos-bucket", type=str,
                              help="COS Bucket 名称（默认取 TENCENTCLOUD_COS_BUCKET 环境变量）")
     input_group.add_argument("--cos-region", type=str,
@@ -540,8 +575,14 @@ def main():
     args = parser.parse_args()
 
     # 校验输入
-    if not args.url and not args.cos_object:
-        parser.error("请指定输入源：--url 或 --cos-object（配合 TENCENTCLOUD_COS_BUCKET 环境变量）")
+    has_url = bool(args.url)
+    has_cos_object = bool(args.cos_object)
+    has_cos_path = bool(getattr(args, 'cos_input_bucket', None) and 
+                        getattr(args, 'cos_input_region', None) and 
+                        getattr(args, 'cos_input_key', None))
+    
+    if not has_url and not has_cos_object and not has_cos_path:
+        parser.error("请指定输入源：--url、--cos-object 或 --cos-input-bucket/--cos-input-region/--cos-input-key")
 
     # 打印环境变量信息
     cos_bucket_env = get_cos_bucket()
@@ -553,6 +594,9 @@ def main():
     print("=" * 60)
     if args.url:
         print(f"输入: URL - {args.url}")
+    elif getattr(args, 'cos_input_bucket', None):
+        # 新版COS路径输入
+        print(f"输入: COS - {args.cos_input_bucket}:{args.cos_input_key} (region: {args.cos_input_region})")
     else:
         bucket_display = args.cos_bucket or cos_bucket_env or "未设置"
         region_display = args.cos_region or cos_region_env
@@ -561,7 +605,8 @@ def main():
     # 输出信息
     out_bucket = args.output_bucket or cos_bucket_env or "未设置"
     out_region = args.output_region or cos_region_env
-    out_dir = args.output_dir or "/output/av_transcode/"
+    # 设置输出目录，默认为 /output/transcode/
+    out_dir = args.output_dir or "/output/transcode/"
     print(f"输出: COS - {out_bucket}:{out_dir} (region: {out_region})")
 
     if cos_bucket_env:

@@ -153,12 +153,28 @@ def upload_file(local_file, cos_key, bucket, region, secret_id, secret_key, verb
         # 构建文件 URL
         url = f"https://{bucket}.cos.{region}.myqcloud.com/{cos_key.lstrip('/')}"
         
+        # 生成临时访问 URL（预签名URL，有效期1小时）
+        presigned_url = None
+        try:
+            presigned_url = client.get_presigned_url(
+                Method='GET',
+                Bucket=bucket,
+                Key=cos_key,
+                Expired=3600  # 有效期1小时
+            )
+            if verbose:
+                print(f"预签名URL已生成（有效期1小时）")
+        except Exception as e:
+            if verbose:
+                print(f"生成预签名URL失败: {e}")
+        
         result = {
             "ETag": response.get("ETag", ""),
             "Key": cos_key,
             "Bucket": bucket,
             "Region": region,
             "URL": url,
+            "PresignedURL": presigned_url,
             "Size": file_size
         }
         
@@ -218,7 +234,17 @@ def main():
         print(f"大小: {result['Size'] / 1024 / 1024:.2f} MB")
         print(f"Bucket: {result['Bucket']}")
         print(f"Key: {result['Key']}")
-        print(f"URL: {result['URL']}")
+        print(f"永久URL: {result['URL']}")
+        if result.get('PresignedURL'):
+            print(f"临时URL: {result['PresignedURL']}")
+            print("\n=== AIGC脚本参数（使用临时URL）===")
+            print(f"--image-url '{result['PresignedURL']}'")
+        print("\n=== COS路径格式（用于音视频处理脚本）===")
+        print(f"--cos-input-bucket {result['Bucket']} --cos-input-region {result['Region']} --cos-input-key {result['Key']}")
+        print("\n=== AIGC图片/视频脚本参数（使用COS路径，推荐）===")
+        print(f"--image-cos-bucket {result['Bucket']} --image-cos-region {result['Region']} --image-cos-key {result['Key']}")
+        print("\n=== AIGC视频脚本参数（首帧图片使用COS路径）===")
+        print(f"--image-cos-bucket {result['Bucket']} --image-cos-region {result['Region']} --image-cos-key {result['Key']}")
         return 0
     else:
         print("\n=== 上传失败 ===", file=sys.stderr)

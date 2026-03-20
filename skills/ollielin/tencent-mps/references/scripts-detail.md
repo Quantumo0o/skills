@@ -1,5 +1,26 @@
 # 脚本详细示例
 
+## COS 输出路径约定
+
+所有脚本在处理音视频/图片任务时，默认将输出文件存储到 COS 的特定目录下。各脚本的默认输出路径如下：
+
+| 脚本 | 能力 | 默认输出路径 |
+|------|------|-------------|
+| `mps_transcode.py` | 极速高清转码 | `/output/transcode/` |
+| `mps_enhance.py` | 视频增强 | `/output/enhance/` |
+| `mps_erase.py` | 智能擦除 | `/output/erase/` |
+| `mps_subtitle.py` | 智能字幕 | `/output/subtitle/` |
+| `mps_imageprocess.py` | 图片处理 | `/output/imageprocess/` |
+| `mps_aigc_image.py` | AIGC 生图 | `/output/aigc-image/` |
+| `mps_aigc_video.py` | AIGC 生视频 | `/output/aigc-video/` |
+
+> **说明**：
+> - 所有默认路径均以 `/` 开头，表示绝对路径
+> - 可通过 `--output-dir`（音视频/图片脚本）或 `--cos-bucket-path`（AIGC 脚本）参数自定义输出路径
+> - 输出路径会自动拼接在 COS Bucket 后，如 `cos://bucket-name/output/transcode/`
+
+---
+
 ## 1. 极速高清转码 — `mps_transcode.py`
 
 ```bash
@@ -29,7 +50,7 @@ python scripts/mps_transcode.py --url https://example.com/video.mp4 --compress-t
 python scripts/mps_transcode.py --url https://example.com/video.mp4 --compress-type low_compress
 
 # 提交后查询任务状态（循环直到 FINISH）
-python scripts/mps_get_video_task.py --task-id <TaskId>
+python scripts/mps_get_video_task.py --task-id 1250017490-20260318152230-abcdef123456
 ```
 
 ## 2. 视频增强 — `mps_enhance.py`
@@ -126,7 +147,7 @@ python scripts/mps_enhance.py --url https://example.com/video.mp4 --super-resolu
     --codec h265 --width 1920 --height 1080 --bitrate 4000
 
 # 提交后查询任务状态（循环直到 FINISH）
-python scripts/mps_get_video_task.py --task-id <TaskId>
+python scripts/mps_get_video_task.py --task-id 1250017490-20260318152230-abcdef123456
 ```
 
 ## 3. 智能字幕 — `mps_subtitle.py`
@@ -145,7 +166,7 @@ python scripts/mps_subtitle.py --url https://example.com/video.mp4 --process-typ
 python scripts/mps_subtitle.py --url https://example.com/video.mp4 --src-lang zh --translate en/ja
 
 # 提交后查询任务状态（循环直到 FINISH）
-python scripts/mps_get_video_task.py --task-id <TaskId>
+python scripts/mps_get_video_task.py --task-id 1250017490-20260318152230-abcdef123456
 ```
 
 ## 4. 智能去字幕与擦除 — `mps_erase.py`
@@ -197,7 +218,7 @@ python scripts/mps_erase.py --url https://example.com/video.mp4 --ocr --translat
 python scripts/mps_erase.py --url https://example.com/video.mp4 --ocr --translate ja
 
 # 提交后查询任务状态（循环直到 FINISH）
-python scripts/mps_get_video_task.py --task-id <TaskId>
+python scripts/mps_get_video_task.py --task-id 1250017490-20260318152230-abcdef123456
 ```
 
 **区域预设（--position）说明**：
@@ -346,8 +367,8 @@ python scripts/mps_aigc_video.py --prompt "过渡动画" --model GV \
 
 # GV 多图参考生视频（最多 3 张，支持 asset/style 参考类型）
 python scripts/mps_aigc_video.py --prompt "融合风格生成视频" --model GV \
-    --ref-image-url https://example.com/img1.jpg --ref-image-type asset \
-    --ref-image-url https://example.com/img2.jpg --ref-image-type style
+    --image-url https://example.com/img1.jpg --image-ref-type asset \
+    --image-url https://example.com/img2.jpg --image-ref-type style
 
 # Kling O1 参考视频 + 保留原声
 python scripts/mps_aigc_video.py --prompt "将视频风格化" --model Kling --model-version O1 \
@@ -409,4 +430,251 @@ python scripts/mps_cos_download.py --cos-key output/photo-enhanced.jpg --local-f
 # 使用自定义密钥（覆盖环境变量）
 python scripts/mps_cos_download.py --cos-key output/result.mp4 --local-file ./result.mp4 \
     --secret-id AKIDxxx --secret-key xxxxx
+```
+
+## 12. COS 文件列表 — `mps_cos_list.py`
+
+```bash
+# 列出 Bucket 根目录下的所有文件（使用环境变量中的 bucket）
+python scripts/mps_cos_list.py
+
+# 列出指定路径下的文件
+python scripts/mps_cos_list.py --prefix output/transcode/
+
+# 模糊搜索文件名包含 "video" 的文件
+python scripts/mps_cos_list.py --prefix output/ --search video
+
+# 精确匹配文件名 "result.mp4"
+python scripts/mps_cos_list.py --prefix output/ --search "result.mp4" --exact
+
+# 显示文件完整 URL
+python scripts/mps_cos_list.py --prefix output/ --show-url
+
+# 限制返回数量（最多 1000 个）
+python scripts/mps_cos_list.py --prefix output/ --limit 50
+
+# 显示详细日志
+python scripts/mps_cos_list.py --prefix output/transcode/ --verbose
+
+# 指定 bucket 和 region（覆盖环境变量）
+python scripts/mps_cos_list.py --prefix input/ --bucket mybucket-125xxx --region ap-guangzhou
+
+# 搜索转码输出目录中包含 "test" 的视频文件
+python scripts/mps_cos_list.py --prefix /output/transcode/ --search test
+
+# 列出增强后的结果文件并显示 URL
+python scripts/mps_cos_list.py --prefix /output/enhance/ --show-url --limit 20
+```
+
+## 13. 大模型音视频理解 — `mps_av_understand.py`
+
+> **核心机制**：通过 `AiAnalysisTask.Definition=33` + `ExtendedParameter` 中的 `mvc.mode` 和 `mvc.prompt` 控制理解行为。
+> `--mode` 和 `--prompt` 是最重要的两个参数，强烈建议每次调用都明确填写。
+
+```bash
+# 基础：理解视频内容（--mode video + 提示词）
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode video \
+    --prompt "请分析这个视频的主要内容、场景和关键信息"
+
+# 音频模式：语音识别（上传视频时自动提取音频）
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode audio \
+    --prompt "请对这段音频进行语音识别，输出完整文字内容"
+
+# 纯音频文件
+python scripts/mps_av_understand.py \
+    --url https://example.com/audio.mp3 \
+    --mode audio \
+    --prompt "请识别这段音频的内容并输出文字"
+
+# 对比分析（两段音视频，--extend-url 传第二段）
+python scripts/mps_av_understand.py \
+    --url https://example.com/standard.mp4 \
+    --extend-url https://example.com/user.mp4 \
+    --mode audio \
+    --prompt "请对比这两段音频，分析演奏水平的差异，给出专业评价"
+
+# COS 对象输入
+python scripts/mps_av_understand.py \
+    --cos-object input/my-video.mp4 \
+    --mode video \
+    --prompt "总结视频的核心内容"
+
+# 异步模式：只提交任务，不等待结果
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode video --prompt "分析视频内容" --no-wait
+
+# 查询已有任务结果
+python scripts/mps_av_understand.py --task-id 2600011633-WorkflowTask-80108cc3380155d98b2e3573a48a
+
+# JSON 格式输出
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode video --prompt "分析视频内容" --json
+
+# dry-run 预览（含 ExtendedParameter 构建结果）
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode audio --prompt "语音识别" --dry-run
+
+# 将结果保存到本地目录
+python scripts/mps_av_understand.py \
+    --url https://example.com/video.mp4 \
+    --mode video --prompt "分析内容" --output-dir /output/
+```
+
+## 14. 视频去重 — `mps_vremake.py`
+
+> **核心机制**：通过 `AiAnalysisTask.Definition=29`（视频去重模板）+ `ExtendedParameter` 中的 `vremake.mode`
+> 控制去重方式。脚本**默认异步**（只提交），加 `--wait` 才等待完成。
+
+```bash
+# 画中画去重（等待结果）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode PicInPic \
+    --wait
+
+# 视频扩展去重（COS 输入）
+python scripts/mps_vremake.py \
+    --cos-object input/video.mp4 \
+    --mode BackgroundExtend \
+    --wait
+
+# 画中画 + LLM 提示词（背景图片）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode PicInPic \
+    --llm-prompt "生成一个唯美的自然风景背景图片" \
+    --wait
+
+# 垂直填充 + LLM 提示词（背景视频）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode VerticalExtend \
+    --llm-video-prompt "随机生成一个自然风景视频" \
+    --wait
+
+# 换脸模式（--src-faces 和 --dst-faces 一一对应）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode SwapFace \
+    --src-faces https://example.com/src1.png https://example.com/src2.png \
+    --dst-faces https://example.com/dst1.jpg https://example.com/dst2.jpg \
+    --wait
+
+# 换人模式（正面全身图）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode SwapCharacter \
+    --src-character https://example.com/src_fullbody.png \
+    --dst-character https://example.com/dst_fullbody.png \
+    --wait
+
+# 水平填充 + extMode=2 + 随机镜像
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode HorizontalExtend \
+    --ext-mode 2 \
+    --wait
+
+# 自定义 ExtendedParameter JSON 参数（与 --mode 合并）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode PicInPic \
+    --custom-json '{"vremake":{"picInPic":{"llmPrompt":"随机生成一张图片","randomMove":true}}}' \
+    --wait
+
+# 异步提交（默认，不加 --wait）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode PicInPic
+
+# 查询已有任务结果
+python scripts/mps_vremake.py --task-id 2600011633-WorkflowTask-xxxxx
+
+# JSON 格式输出
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode PicInPic --wait --json
+
+# dry-run 预览（含 ExtendedParameter 构建结果）
+python scripts/mps_vremake.py \
+    --url https://example.com/video.mp4 \
+    --mode BackgroundExtend --min-scene-secs 3.0 --dry-run
+```
+
+## 15. 媒体质检 — `mps_qualitycontrol.py`
+
+### 功能
+
+调用 MPS `ProcessMedia` 接口的 `AiQualityControlTask`，对音视频进行自动化质量检测。
+支持 URL 或 COS 对象输入，同步等待结果或异步提交后查询。
+
+### 质检模板
+
+| 模板 ID | 名称 | 适用场景 |
+|---------|------|---------|
+| `50` | Audio Detection | 音频质量/音频事件检测 |
+| `60` | 格式质检-Pro版（**默认**） | 画面模糊、花屏、画面受损等内容问题 |
+| `70` | 内容质检-Pro版 | 播放卡顿、播放异常、播放兼容性问题 |
+
+### 示例命令
+
+```bash
+# 基础：格式质检（默认模板 60）
+python scripts/mps_qualitycontrol.py --url https://example.com/video.mp4
+
+# 指定内容质检模板（播放问题）
+python scripts/mps_qualitycontrol.py --url https://example.com/video.mp4 --definition 70
+
+# 音频质检
+python scripts/mps_qualitycontrol.py --url https://example.com/audio.mp3 --definition 50
+
+# COS 输入
+python scripts/mps_qualitycontrol.py --cos-object input/video.mp4
+
+# 异步提交
+python scripts/mps_qualitycontrol.py --url https://example.com/video.mp4 --no-wait
+
+# 查询已有任务结果
+python scripts/mps_qualitycontrol.py --task-id 2600011633-WorkflowTask-xxxxx --json
+
+# dry-run
+python scripts/mps_qualitycontrol.py --url https://example.com/video.mp4 --definition 70 --dry-run
+```
+
+## 16. 用量统计查询 — `mps_usage.py`
+
+```bash
+# 查询最近 7 天用量（默认）
+python scripts/mps_usage.py
+
+# 查询最近 30 天所有类型
+python scripts/mps_usage.py --days 30 --all-types
+
+# 查询指定日期范围（注意：参数名是 --start / --end，不是 --start-date / --end-date）
+python scripts/mps_usage.py --start 2026-01-01 --end 2026-01-31
+
+# 查询多个任务类型
+python scripts/mps_usage.py --type Transcode Enhance AIGC
+
+# 查询大模型音视频理解用量（AvUnderstand 属于 AIAnalysis 类型，不是独立类型）
+python scripts/mps_usage.py --days 30 --type AIAnalysis
+
+# 查询数字水印相关用量
+python scripts/mps_usage.py --type AddBlindWatermark AddNagraWatermark ExtractBlindWatermark
+
+# 查询多地域用量
+python scripts/mps_usage.py --region ap-guangzhou ap-hongkong
+
+# JSON 格式输出（方便程序解析）
+python scripts/mps_usage.py --days 7 --all-types --json
+
+# dry-run 模式
+python scripts/mps_usage.py --days 30 --all-types --dry-run
 ```

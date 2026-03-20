@@ -171,7 +171,7 @@ def print_media_process_results(result_set):
 
         if task_detail:
             status = task_detail.get("Status", "")
-            err_code = task_detail.get("ErrCode", 0)
+            err_code = task_detail.get("ErrCode") or 0
             message = task_detail.get("Message", "")
             progress = task_detail.get("Progress", None)
 
@@ -260,7 +260,7 @@ def query_task(args):
         workflow_task = result.get("WorkflowTask")
         if workflow_task:
             wf_status = workflow_task.get("Status", "")
-            wf_err = workflow_task.get("ErrCode", 0)
+            wf_err = workflow_task.get("ErrCode") or 0
             wf_msg = workflow_task.get("Message", "")
 
             print(f"   工作流状态: {format_status(wf_status)}", end="")

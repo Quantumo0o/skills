@@ -88,6 +88,13 @@ except ImportError:
     print("错误：请先安装腾讯云 SDK：pip install tencentcloud-sdk-python", file=sys.stderr)
     sys.exit(1)
 
+# COS SDK（可选，用于生成临时URL）
+try:
+    from qcloud_cos import CosConfig, CosS3Client
+    _COS_SDK_AVAILABLE = True
+except ImportError:
+    _COS_SDK_AVAILABLE = False
+
 
 # =============================================================================
 # 模型信息
@@ -131,6 +138,86 @@ def get_cos_bucket():
 def get_cos_region():
     """从环境变量获取 COS Bucket 区域，默认 ap-guangzhou。"""
     return os.environ.get("TENCENTCLOUD_COS_REGION", "ap-guangzhou")
+
+
+# =============================================================================
+# COS 临时 URL 生成
+# =============================================================================
+def get_cos_presigned_url(bucket: str, region: str, key: str, 
+                          secret_id: str = None, secret_key: str = None,
+                          expired: int = 3600) -> str:
+    """
+    生成 COS 临时访问 URL（预签名 URL）
+    
+    Args:
+        bucket: COS Bucket 名称
+        region: COS Bucket 区域
+        key: COS 对象 Key
+        secret_id: 腾讯云 SecretId（默认从环境变量获取）
+        secret_key: 腾讯云 SecretKey（默认从环境变量获取）
+        expired: URL 有效期（秒），默认 3600（1小时）
+    
+    Returns:
+        预签名 URL，失败返回 None
+    """
+    if not _COS_SDK_AVAILABLE:
+        print("警告：COS SDK 未安装，无法生成临时 URL。请安装：pip install cos-python-sdk-v5", 
+              file=sys.stderr)
+        return None
+    
+    secret_id = secret_id or os.environ.get("TENCENTCLOUD_SECRET_ID")
+    secret_key = secret_key or os.environ.get("TENCENTCLOUD_SECRET_KEY")
+    
+    if not secret_id or not secret_key:
+        print("警告：缺少腾讯云密钥，无法生成临时 URL", file=sys.stderr)
+        return None
+    
+    try:
+        config = CosConfig(
+            Region=region,
+            SecretId=secret_id,
+            SecretKey=secret_key
+        )
+        client = CosS3Client(config)
+        
+        url = client.get_presigned_url(
+            Method='GET',
+            Bucket=bucket,
+            Key=key,
+            Expired=expired
+        )
+        return url
+    except Exception as e:
+        print(f"警告：生成临时 URL 失败: {e}", file=sys.stderr)
+        return None
+
+
+def resolve_cos_input(cos_bucket: str, cos_region: str, cos_key: str,
+                      secret_id: str = None, secret_key: str = None) -> str:
+    """
+    将 COS 路径解析为可访问的 URL
+    
+    Args:
+        cos_bucket: COS Bucket 名称
+        cos_region: COS Bucket 区域
+        cos_key: COS 对象 Key
+        secret_id: 腾讯云 SecretId
+        secret_key: 腾讯云 SecretKey
+    
+    Returns:
+        可访问的 URL（临时 URL 或永久 URL）
+    """
+    if not cos_bucket or not cos_region or not cos_key:
+        return None
+    
+    # 尝试生成临时 URL
+    presigned_url = get_cos_presigned_url(cos_bucket, cos_region, cos_key, 
+                                          secret_id, secret_key)
+    if presigned_url:
+        return presigned_url
+    
+    # 如果生成失败，返回永久 URL（可能无法访问）
+    return f"https://{cos_bucket}.cos.{cos_region}.myqcloud.com/{cos_key.lstrip('/')}"
 
 
 try:
@@ -202,15 +289,49 @@ def build_create_params(args):
     if args.enhance_prompt:
         params["EnhancePrompt"] = True
 
-    # 参考图片
+    # 参考图片 - 合并 URL 和 COS 路径输入
+    image_infos = []
+    ref_types = args.image_ref_type or []
+    
+    # 1. 处理直接传入的 URL
     if args.image_url:
-        image_infos = []
-        ref_types = args.image_ref_type or []
         for i, url in enumerate(args.image_url):
             info = {"ImageUrl": url}
             if i < len(ref_types):
                 info["ReferenceType"] = ref_types[i]
             image_infos.append(info)
+    
+    # 2. 处理 COS 路径输入 - 使用 CosInputInfo 结构（推荐，解决权限问题）
+    if args.image_cos_key:
+        cos_buckets = args.image_cos_bucket or []
+        cos_regions = args.image_cos_region or []
+        
+        for i, key in enumerate(args.image_cos_key):
+            # 获取对应的 bucket 和 region
+            bucket = cos_buckets[i] if i < len(cos_buckets) else (cos_buckets[0] if cos_buckets else None)
+            region = cos_regions[i] if i < len(cos_regions) else (cos_regions[0] if cos_regions else "ap-guangzhou")
+            
+            if not bucket:
+                print(f"❌ 错误: --image-cos-key[{i}] 缺少对应的 --image-cos-bucket", file=sys.stderr)
+                sys.exit(1)
+            
+            # 使用 CosInputInfo 结构传递 COS 路径（而不是拼接 URL）
+            # 这样 MPS 可以通过内部权限读取文件，不受公网访问权限限制
+            info = {
+                "CosInputInfo": {
+                    "Bucket": bucket,
+                    "Region": region,
+                    "Object": key if key.startswith("/") else f"/{key}"
+                }
+            }
+            # COS 路径输入的参考类型，如果提供了 ref_types，则使用；否则不设置
+            url_idx = len(args.image_url) if args.image_url else 0
+            ref_type_idx = url_idx + i
+            if ref_type_idx < len(ref_types):
+                info["ReferenceType"] = ref_types[ref_type_idx]
+            image_infos.append(info)
+    
+    if image_infos:
         params["ImageInfos"] = image_infos
 
     # 额外参数
@@ -300,9 +421,10 @@ def validate_args(args, parser):
     if args.task_id:
         return
 
-    # 创建模式：至少需要 prompt 或 image_url
-    if not args.prompt and not args.image_url:
-        parser.error("请至少指定 --prompt（文本描述）或 --image-url（参考图片）")
+    # 创建模式：至少需要 prompt 或 image_url 或 image_cos_key
+    has_image_input = bool(args.image_url) or bool(args.image_cos_key)
+    if not args.prompt and not has_image_input:
+        parser.error("请至少指定 --prompt（文本描述）或 --image-url/--image-cos-key（参考图片）")
 
     # 模型版本校验
     model_info = SUPPORTED_MODELS.get(args.model)
@@ -314,21 +436,35 @@ def validate_args(args, parser):
                 f"当前指定: {args.model_version}"
             )
 
-    # 多图参考校验
-    if args.image_url and model_info:
+    # 多图参考校验（合并 URL 和 COS 路径输入）
+    total_images = 0
+    if args.image_url:
+        total_images += len(args.image_url)
+    if args.image_cos_key:
+        total_images += len(args.image_cos_key)
+    
+    if total_images > 0 and model_info:
         max_images = model_info["max_images"]
-        if len(args.image_url) > max_images:
+        if total_images > max_images:
             parser.error(
                 f"模型 {args.model} 最多支持 {max_images} 张参考图片，"
-                f"当前传入 {len(args.image_url)} 张"
+                f"当前传入 {total_images} 张（URL: {len(args.image_url) if args.image_url else 0}, COS: {len(args.image_cos_key) if args.image_cos_key else 0}）"
             )
 
-    # image_ref_type 数量不能超过 image_url 数量
-    if args.image_ref_type and args.image_url:
-        if len(args.image_ref_type) > len(args.image_url):
-            parser.error("--image-ref-type 数量不能超过 --image-url 数量")
-    elif args.image_ref_type and not args.image_url:
-        parser.error("--image-ref-type 需要配合 --image-url 使用")
+    # image_ref_type 数量不能超过总图片数量
+    if args.image_ref_type:
+        if len(args.image_ref_type) > total_images:
+            parser.error("--image-ref-type 数量不能超过参考图片总数")
+    
+    # COS 路径参数校验
+    if args.image_cos_key:
+        # 检查是否提供了 bucket
+        if not args.image_cos_bucket:
+            parser.error("使用 --image-cos-key 时必须指定 --image-cos-bucket")
+        # 如果提供了 region，数量应该与 key 相同或为 1
+        if args.image_cos_region and len(args.image_cos_region) > 1:
+            if len(args.image_cos_region) != len(args.image_cos_key):
+                parser.error("--image-cos-region 数量必须与 --image-cos-key 相同，或只指定一个")
 
     # 宽高比校验
     if args.aspect_ratio and args.aspect_ratio not in SUPPORTED_ASPECT_RATIOS:
@@ -413,13 +549,35 @@ def run(args):
         print(f"反向提示词: {args.negative_prompt}")
     if args.enhance_prompt:
         print("提示词增强: 开启")
+    
+    # 显示参考图片信息（URL + COS 路径）
+    total_images = 0
     if args.image_url:
-        print(f"参考图片: {len(args.image_url)} 张")
-        for i, url in enumerate(args.image_url, 1):
-            ref_type = ""
-            if args.image_ref_type and i - 1 < len(args.image_ref_type):
-                ref_type = f"（{args.image_ref_type[i - 1]}）"
-            print(f"  图片 {i}{ref_type}: {url}")
+        total_images += len(args.image_url)
+    if args.image_cos_key:
+        total_images += len(args.image_cos_key)
+    
+    if total_images > 0:
+        print(f"参考图片: {total_images} 张")
+        # 显示直接 URL
+        if args.image_url:
+            for i, url in enumerate(args.image_url, 1):
+                ref_type = ""
+                if args.image_ref_type and i - 1 < len(args.image_ref_type):
+                    ref_type = f"（{args.image_ref_type[i - 1]}）"
+                print(f"  图片 {i}{ref_type}: {url}")
+        # 显示 COS 路径
+        if args.image_cos_key:
+            start_idx = len(args.image_url) if args.image_url else 0
+            for i, key in enumerate(args.image_cos_key, 1):
+                idx = start_idx + i
+                ref_type = ""
+                if args.image_ref_type and idx - 1 < len(args.image_ref_type):
+                    ref_type = f"（{args.image_ref_type[idx - 1]}）"
+                bucket = args.image_cos_bucket[i-1] if i-1 < len(args.image_cos_bucket) else args.image_cos_bucket[0]
+                region = args.image_cos_region[i-1] if args.image_cos_region and i-1 < len(args.image_cos_region) else "ap-guangzhou"
+                print(f"  图片 {idx}{ref_type}: [COS] {bucket}/{region}{key}")
+    
     if args.aspect_ratio:
         print(f"宽高比: {args.aspect_ratio}")
     if args.resolution:
@@ -553,6 +711,14 @@ def main():
     image_group.add_argument("--image-ref-type", type=str, action="append",
                              choices=["asset", "style"],
                              help="参考类型（与 --image-url 一一对应）: asset=素材 | style=风格")
+    
+    # COS 路径输入（用于本地上传后使用）
+    image_group.add_argument("--image-cos-bucket", type=str, action="append",
+                             help="参考图片所在 COS Bucket（与 --image-cos-region/--image-cos-key 配合使用，可多次指定）")
+    image_group.add_argument("--image-cos-region", type=str, action="append",
+                             help="参考图片所在 COS Region（如 ap-guangzhou，与 --image-cos-key 一一对应）")
+    image_group.add_argument("--image-cos-key", type=str, action="append",
+                             help="参考图片的 COS Key（如 /input/image.jpg，与 --image-cos-bucket/--image-cos-region 配合使用）")
 
     # ---- 输出配置 ----
     output_group = parser.add_argument_group("输出配置")
@@ -568,8 +734,8 @@ def main():
                            help="COS Bucket 名称（默认取 TENCENTCLOUD_COS_BUCKET 环境变量）")
     cos_group.add_argument("--cos-bucket-region", type=str,
                            help="COS Bucket 区域（默认取 TENCENTCLOUD_COS_REGION 环境变量，默认 ap-guangzhou）")
-    cos_group.add_argument("--cos-bucket-path", type=str, default="output/aigc-pic/",
-                           help="COS 存储路径前缀（默认 output/aigc-pic/）")
+    cos_group.add_argument("--cos-bucket-path", type=str, default="/output/aigc-image/",
+                          help="COS 存储桶中的输出目录路径 (默认: /output/aigc-image/)")
 
     # ---- 执行控制 ----
     control_group = parser.add_argument_group("执行控制")

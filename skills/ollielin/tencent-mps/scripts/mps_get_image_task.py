@@ -212,7 +212,7 @@ def query_task(args):
         # 解析响应
         task_type = result.get("TaskType", "")
         status = result.get("Status", "")
-        err_code = result.get("ErrCode", 0)
+        err_code = result.get("ErrCode") or 0
         err_msg = result.get("ErrMsg", "")
         message = result.get("Message", "")
         create_time = result.get("CreateTime", "")
@@ -224,7 +224,7 @@ def query_task(args):
         print(f"   TaskId:    {args.task_id}")
         print(f"   任务类型:  {task_type}")
         print(f"   状态:      {format_status(status)}", end="")
-        if err_code:
+        if err_code != 0:
             print(f" | 错误码: {err_code}", end="")
         if err_msg:
             print(f" | {err_msg}", end="")

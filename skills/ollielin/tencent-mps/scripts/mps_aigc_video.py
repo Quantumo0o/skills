@@ -112,6 +112,13 @@ except ImportError:
     print("错误：请先安装腾讯云 SDK：pip install tencentcloud-sdk-python", file=sys.stderr)
     sys.exit(1)
 
+# COS SDK（可选，用于生成临时URL）
+try:
+    from qcloud_cos import CosConfig, CosS3Client
+    _COS_SDK_AVAILABLE = True
+except ImportError:
+    _COS_SDK_AVAILABLE = False
+
 
 # =============================================================================
 # 模型信息
@@ -161,6 +168,86 @@ SCENE_TYPES = {
     "land2port": "Mingmou — 横转竖",
     "template_effect": "Vidu — 特效模板",
 }
+
+
+# =============================================================================
+# COS 临时 URL 生成
+# =============================================================================
+def get_cos_presigned_url(bucket: str, region: str, key: str, 
+                          secret_id: str = None, secret_key: str = None,
+                          expired: int = 3600) -> str:
+    """
+    生成 COS 临时访问 URL（预签名 URL）
+    
+    Args:
+        bucket: COS Bucket 名称
+        region: COS Bucket 区域
+        key: COS 对象 Key
+        secret_id: 腾讯云 SecretId（默认从环境变量获取）
+        secret_key: 腾讯云 SecretKey（默认从环境变量获取）
+        expired: URL 有效期（秒），默认 3600（1小时）
+    
+    Returns:
+        预签名 URL，失败返回 None
+    """
+    if not _COS_SDK_AVAILABLE:
+        print("警告：COS SDK 未安装，无法生成临时 URL。请安装：pip install cos-python-sdk-v5", 
+              file=sys.stderr)
+        return None
+    
+    secret_id = secret_id or os.environ.get("TENCENTCLOUD_SECRET_ID")
+    secret_key = secret_key or os.environ.get("TENCENTCLOUD_SECRET_KEY")
+    
+    if not secret_id or not secret_key:
+        print("警告：缺少腾讯云密钥，无法生成临时 URL", file=sys.stderr)
+        return None
+    
+    try:
+        config = CosConfig(
+            Region=region,
+            SecretId=secret_id,
+            SecretKey=secret_key
+        )
+        client = CosS3Client(config)
+        
+        url = client.get_presigned_url(
+            Method='GET',
+            Bucket=bucket,
+            Key=key,
+            Expired=expired
+        )
+        return url
+    except Exception as e:
+        print(f"警告：生成临时 URL 失败: {e}", file=sys.stderr)
+        return None
+
+
+def resolve_cos_input(cos_bucket: str, cos_region: str, cos_key: str,
+                      secret_id: str = None, secret_key: str = None) -> str:
+    """
+    将 COS 路径解析为可访问的 URL
+    
+    Args:
+        cos_bucket: COS Bucket 名称
+        cos_region: COS Bucket 区域
+        cos_key: COS 对象 Key
+        secret_id: 腾讯云 SecretId
+        secret_key: 腾讯云 SecretKey
+    
+    Returns:
+        可访问的 URL（临时 URL 或永久 URL）
+    """
+    if not cos_bucket or not cos_region or not cos_key:
+        return None
+    
+    # 尝试生成临时 URL
+    presigned_url = get_cos_presigned_url(cos_bucket, cos_region, cos_key, 
+                                          secret_id, secret_key)
+    if presigned_url:
+        return presigned_url
+    
+    # 如果生成失败，返回永久 URL（可能无法访问）
+    return f"https://{cos_bucket}.cos.{cos_region}.myqcloud.com/{cos_key.lstrip('/')}"
 
 # 轮询配置
 DEFAULT_POLL_INTERVAL = 10   # 秒（视频生成较慢）
@@ -250,30 +337,86 @@ def build_create_params(args):
     if args.enhance_prompt:
         params["EnhancePrompt"] = True
 
-    # 首帧图片（简单模式）
+    # 首帧图片（简单模式）- 支持 URL 或 COS 路径
     if args.image_url:
         params["ImageUrl"] = args.image_url
+    elif args.image_cos_key:
+        # 使用 CosInputInfo 结构传递 COS 路径（推荐，解决权限问题）
+        bucket = args.image_cos_bucket or get_cos_bucket()
+        region = args.image_cos_region or get_cos_region()
+        if not bucket:
+            print("❌ 错误: 使用 --image-cos-key 时必须指定 --image-cos-bucket 或设置环境变量", file=sys.stderr)
+            sys.exit(1)
+        params["CosInputInfo"] = {
+            "Bucket": bucket,
+            "Region": region,
+            "Object": args.image_cos_key if args.image_cos_key.startswith("/") else f"/{args.image_cos_key}"
+        }
 
-    # 尾帧图片
+    # 尾帧图片 - 支持 URL 或 COS 路径
     if args.last_image_url:
         params["LastImageUrl"] = args.last_image_url
+    elif args.last_image_cos_key:
+        # 使用 CosInputInfo 结构传递 COS 路径
+        bucket = args.last_image_cos_bucket or get_cos_bucket()
+        region = args.last_image_cos_region or get_cos_region()
+        if not bucket:
+            print("❌ 错误: 使用 --last-image-cos-key 时必须指定 --last-image-cos-bucket 或设置环境变量", file=sys.stderr)
+            sys.exit(1)
+        params["LastImageCosInputInfo"] = {
+            "Bucket": bucket,
+            "Region": region,
+            "Object": args.last_image_cos_key if args.last_image_cos_key.startswith("/") else f"/{args.last_image_cos_key}"
+        }
 
-    # 多图参考（ImageInfos）
+    # 多图参考（ImageInfos）- 支持 URL 或 COS 路径
+    image_infos = []
+    ref_types = args.ref_image_type or []
+    
+    # 1. 处理直接传入的 URL
     if args.ref_image_url:
-        image_infos = []
-        ref_types = args.ref_image_type or []
         for i, url in enumerate(args.ref_image_url):
             info = {"ImageUrl": url}
             if i < len(ref_types):
                 info["ReferenceType"] = ref_types[i]
             image_infos.append(info)
+    
+    # 2. 处理 COS 路径输入 - 使用 CosInputInfo 结构
+    if args.ref_image_cos_key:
+        cos_buckets = args.ref_image_cos_bucket or []
+        cos_regions = args.ref_image_cos_region or []
+        
+        for i, key in enumerate(args.ref_image_cos_key):
+            bucket = cos_buckets[i] if i < len(cos_buckets) else (cos_buckets[0] if cos_buckets else get_cos_bucket())
+            region = cos_regions[i] if i < len(cos_regions) else (cos_regions[0] if cos_regions else get_cos_region())
+            
+            if not bucket:
+                print(f"❌ 错误: --ref-image-cos-key[{i}] 缺少对应的 bucket", file=sys.stderr)
+                sys.exit(1)
+            
+            info = {
+                "CosInputInfo": {
+                    "Bucket": bucket,
+                    "Region": region,
+                    "Object": key if key.startswith("/") else f"/{key}"
+                }
+            }
+            url_idx = len(args.ref_image_url) if args.ref_image_url else 0
+            ref_type_idx = url_idx + i
+            if ref_type_idx < len(ref_types):
+                info["ReferenceType"] = ref_types[ref_type_idx]
+            image_infos.append(info)
+    
+    if image_infos:
         params["ImageInfos"] = image_infos
 
-    # 参考视频（VideoInfos）
+    # 参考视频（VideoInfos）- 支持 URL 或 COS 路径
+    video_infos = []
+    ref_types = args.ref_video_type or []
+    keep_sounds = args.keep_original_sound or []
+    
+    # 1. 处理直接传入的 URL
     if args.ref_video_url:
-        video_infos = []
-        ref_types = args.ref_video_type or []
-        keep_sounds = args.keep_original_sound or []
         for i, url in enumerate(args.ref_video_url):
             info = {"VideoUrl": url}
             if i < len(ref_types):
@@ -281,6 +424,37 @@ def build_create_params(args):
             if i < len(keep_sounds):
                 info["KeepOriginalSound"] = keep_sounds[i]
             video_infos.append(info)
+    
+    # 2. 处理 COS 路径输入 - 使用 CosInputInfo 结构
+    if args.ref_video_cos_key:
+        cos_buckets = args.ref_video_cos_bucket or []
+        cos_regions = args.ref_video_cos_region or []
+        
+        for i, key in enumerate(args.ref_video_cos_key):
+            bucket = cos_buckets[i] if i < len(cos_buckets) else (cos_buckets[0] if cos_buckets else get_cos_bucket())
+            region = cos_regions[i] if i < len(cos_regions) else (cos_regions[0] if cos_regions else get_cos_region())
+            
+            if not bucket:
+                print(f"❌ 错误: --ref-video-cos-key[{i}] 缺少对应的 bucket", file=sys.stderr)
+                sys.exit(1)
+            
+            info = {
+                "CosInputInfo": {
+                    "Bucket": bucket,
+                    "Region": region,
+                    "Object": key if key.startswith("/") else f"/{key}"
+                }
+            }
+            url_idx = len(args.ref_video_url) if args.ref_video_url else 0
+            ref_type_idx = url_idx + i
+            keep_sound_idx = url_idx + i
+            if ref_type_idx < len(ref_types):
+                info["ReferType"] = ref_types[ref_type_idx]
+            if keep_sound_idx < len(keep_sounds):
+                info["KeepOriginalSound"] = keep_sounds[keep_sound_idx]
+            video_infos.append(info)
+    
+    if video_infos:
         params["VideoInfos"] = video_infos
 
     # 时长
@@ -386,9 +560,11 @@ def validate_args(args, parser):
     if args.task_id:
         return
 
-    # 创建模式：至少需要 prompt 或 image_url
-    if not args.prompt and not args.image_url and not args.ref_image_url:
-        parser.error("请至少指定 --prompt（文本描述）或 --image-url（首帧图片）")
+    # 创建模式：至少需要 prompt 或 image_url 或 image_cos_key
+    has_image_input = bool(args.image_url) or bool(args.image_cos_key)
+    has_ref_image_input = bool(args.ref_image_url) or bool(args.ref_image_cos_key)
+    if not args.prompt and not has_image_input and not has_ref_image_input:
+        parser.error("请至少指定 --prompt（文本描述）或 --image-url/--image-cos-key（首帧图片）")
 
     # 模型版本校验
     model_info = SUPPORTED_MODELS.get(args.model)
@@ -400,35 +576,74 @@ def validate_args(args, parser):
                 f"当前指定: {args.model_version}"
             )
 
+    # COS 路径参数校验 - 首帧图片
+    if args.image_cos_key:
+        if not args.image_cos_bucket and not get_cos_bucket():
+            parser.error("使用 --image-cos-key 时必须指定 --image-cos-bucket 或设置 TENCENTCLOUD_COS_BUCKET 环境变量")
+
+    # COS 路径参数校验 - 尾帧图片
+    if args.last_image_cos_key:
+        if not args.last_image_cos_bucket and not get_cos_bucket():
+            parser.error("使用 --last-image-cos-key 时必须指定 --last-image-cos-bucket 或设置 TENCENTCLOUD_COS_BUCKET 环境变量")
+
+    # COS 路径参数校验 - 多图参考
+    if args.ref_image_cos_key:
+        if not args.ref_image_cos_bucket and not get_cos_bucket():
+            parser.error("使用 --ref-image-cos-key 时必须指定 --ref-image-cos-bucket 或设置 TENCENTCLOUD_COS_BUCKET 环境变量")
+        if args.ref_image_cos_region and len(args.ref_image_cos_region) > 1:
+            if len(args.ref_image_cos_region) != len(args.ref_image_cos_key):
+                parser.error("--ref-image-cos-region 数量必须与 --ref-image-cos-key 相同，或只指定一个")
+
+    # COS 路径参数校验 - 参考视频
+    if args.ref_video_cos_key:
+        if not args.ref_video_cos_bucket and not get_cos_bucket():
+            parser.error("使用 --ref-video-cos-key 时必须指定 --ref-video-cos-bucket 或设置 TENCENTCLOUD_COS_BUCKET 环境变量")
+        if args.ref_video_cos_region and len(args.ref_video_cos_region) > 1:
+            if len(args.ref_video_cos_region) != len(args.ref_video_cos_key):
+                parser.error("--ref-video-cos-region 数量必须与 --ref-video-cos-key 相同，或只指定一个")
+
     # 尾帧图片校验：使用 GV 时必须同时传入首帧
-    if args.last_image_url and not args.image_url:
-        parser.error("--last-image-url 需要同时指定 --image-url 作为首帧图片")
+    has_first_frame = bool(args.image_url) or bool(args.image_cos_key)
+    has_last_frame = bool(args.last_image_url) or bool(args.last_image_cos_key)
+    if has_last_frame and not has_first_frame:
+        parser.error("使用尾帧图片时需要同时指定首帧图片（--image-url 或 --image-cos-key）")
 
     # 多图参考与 ImageUrl/LastImageUrl 互斥（GV 模型限制）
-    if args.ref_image_url and (args.image_url or args.last_image_url):
+    if has_ref_image_input and has_first_frame:
         if args.model == "GV":
-            parser.error("GV 模型使用多图参考（--ref-image-url）时，不可同时使用 --image-url / --last-image-url")
+            parser.error("GV 模型使用多图参考（--ref-image-url 或 --ref-image-cos-key）时，不可同时使用首帧图片")
 
-    # ref_image_type 数量不能超过 ref_image_url 数量
-    if args.ref_image_type and args.ref_image_url:
-        if len(args.ref_image_type) > len(args.ref_image_url):
-            parser.error("--ref-image-type 数量不能超过 --ref-image-url 数量")
-    elif args.ref_image_type and not args.ref_image_url:
-        parser.error("--ref-image-type 需要配合 --ref-image-url 使用")
+    # ref_image_type 数量不能超过总参考图片数量
+    total_ref_images = 0
+    if args.ref_image_url:
+        total_ref_images += len(args.ref_image_url)
+    if args.ref_image_cos_key:
+        total_ref_images += len(args.ref_image_cos_key)
+    if args.ref_image_type:
+        if len(args.ref_image_type) > total_ref_images:
+            parser.error("--ref-image-type 数量不能超过参考图片总数")
+        elif total_ref_images == 0:
+            parser.error("--ref-image-type 需要配合 --ref-image-url 或 --ref-image-cos-key 使用")
 
     # 参考视频校验
-    if args.ref_video_url:
+    has_ref_video = bool(args.ref_video_url) or bool(args.ref_video_cos_key)
+    if has_ref_video:
         if args.model != "Kling" or args.model_version != "O1":
-            parser.error("参考视频（--ref-video-url）目前仅 Kling O1 版本支持")
+            parser.error("参考视频（--ref-video-url 或 --ref-video-cos-key）目前仅 Kling O1 版本支持")
 
-    if args.ref_video_type and args.ref_video_url:
-        if len(args.ref_video_type) > len(args.ref_video_url):
-            parser.error("--ref-video-type 数量不能超过 --ref-video-url 数量")
-    elif args.ref_video_type and not args.ref_video_url:
-        parser.error("--ref-video-type 需要配合 --ref-video-url 使用")
+    total_ref_videos = 0
+    if args.ref_video_url:
+        total_ref_videos += len(args.ref_video_url)
+    if args.ref_video_cos_key:
+        total_ref_videos += len(args.ref_video_cos_key)
+    if args.ref_video_type:
+        if len(args.ref_video_type) > total_ref_videos:
+            parser.error("--ref-video-type 数量不能超过参考视频总数")
+        elif total_ref_videos == 0:
+            parser.error("--ref-video-type 需要配合 --ref-video-url 或 --ref-video-cos-key 使用")
 
-    if args.keep_original_sound and not args.ref_video_url:
-        parser.error("--keep-original-sound 需要配合 --ref-video-url 使用")
+    if args.keep_original_sound and not has_ref_video:
+        parser.error("--keep-original-sound 需要配合 --ref-video-url 或 --ref-video-cos-key 使用")
 
     # 错峰模式仅 Vidu 支持
     if args.off_peak and args.model != "Vidu":
@@ -521,27 +736,132 @@ def run(args):
         print(f"反向提示词: {args.negative_prompt}")
     if args.enhance_prompt:
         print("提示词增强: 开启")
+    # 首帧图片（URL 或 COS 路径）
     if args.image_url:
         print(f"首帧图片: {args.image_url}")
+    elif getattr(args, 'cos_image_key', None):
+        # 新版 COS 路径
+        print(f"首帧图片: [COS] {args.cos_image_bucket}/{args.cos_image_region}{args.cos_image_key}")
+    elif getattr(args, 'image_cos_key', None):
+        # 旧版 COS 路径（兼容）
+        bucket = args.image_cos_bucket or get_cos_bucket()
+        region = args.image_cos_region or get_cos_region()
+        print(f"首帧图片: [COS] {bucket}/{region}{args.image_cos_key}")
+    
+    # 尾帧图片（URL 或 COS 路径）
     if args.last_image_url:
         print(f"尾帧图片: {args.last_image_url}")
+    elif getattr(args, 'cos_last_image_key', None):
+        # 新版 COS 路径
+        print(f"尾帧图片: [COS] {args.cos_last_image_bucket}/{args.cos_last_image_region}{args.cos_last_image_key}")
+    elif getattr(args, 'last_image_cos_key', None):
+        # 旧版 COS 路径（兼容）
+        bucket = args.last_image_cos_bucket or get_cos_bucket()
+        region = args.last_image_cos_region or get_cos_region()
+        print(f"尾帧图片: [COS] {bucket}/{region}{args.last_image_cos_key}")
+    
+    # 多图参考（URL 或 COS 路径）
+    total_ref_images = 0
     if args.ref_image_url:
-        print(f"参考图片: {len(args.ref_image_url)} 张")
-        for i, url in enumerate(args.ref_image_url, 1):
-            ref_type = ""
-            if args.ref_image_type and i - 1 < len(args.ref_image_type):
-                ref_type = f"（{args.ref_image_type[i - 1]}）"
-            print(f"  图片 {i}{ref_type}: {url}")
+        total_ref_images += len(args.ref_image_url)
+    cos_ref_keys = getattr(args, 'cos_ref_image_key', None)
+    if cos_ref_keys:
+        total_ref_images += len(cos_ref_keys)
+    if getattr(args, 'ref_image_cos_key', None):
+        total_ref_images += len(args.ref_image_cos_key)
+    
+    if total_ref_images > 0:
+        print(f"参考图片: {total_ref_images} 张")
+        # 显示直接 URL
+        if args.ref_image_url:
+            for i, url in enumerate(args.ref_image_url, 1):
+                ref_type = ""
+                if args.ref_image_type and i - 1 < len(args.ref_image_type):
+                    ref_type = f"（{args.ref_image_type[i - 1]}）"
+                print(f"  图片 {i}{ref_type}: {url}")
+        # 显示新版 COS 路径
+        if cos_ref_keys:
+            start_idx = len(args.ref_image_url) if args.ref_image_url else 0
+            cos_buckets = getattr(args, 'cos_ref_image_bucket', [])
+            cos_regions = getattr(args, 'cos_ref_image_region', [])
+            for i, key in enumerate(cos_ref_keys, 1):
+                idx = start_idx + i
+                ref_type = ""
+                if args.ref_image_type and idx - 1 < len(args.ref_image_type):
+                    ref_type = f"（{args.ref_image_type[idx - 1]}）"
+                bucket = cos_buckets[i-1] if i-1 < len(cos_buckets) else None
+                region = cos_regions[i-1] if cos_regions and i-1 < len(cos_regions) else None
+                if bucket and region:
+                    print(f"  图片 {idx}{ref_type}: [COS] {bucket}/{region}{key}")
+        # 显示旧版 COS 路径
+        if getattr(args, 'ref_image_cos_key', None):
+            start_idx = len(args.ref_image_url) if args.ref_image_url else 0
+            if cos_ref_keys:
+                start_idx += len(cos_ref_keys)
+            for i, key in enumerate(args.ref_image_cos_key, 1):
+                idx = start_idx + i
+                ref_type = ""
+                if args.ref_image_type and idx - 1 < len(args.ref_image_type):
+                    ref_type = f"（{args.ref_image_type[idx - 1]}）"
+                bucket = args.ref_image_cos_bucket[i-1] if i-1 < len(args.ref_image_cos_bucket) else (args.ref_image_cos_bucket[0] if args.ref_image_cos_bucket else get_cos_bucket())
+                region = args.ref_image_cos_region[i-1] if args.ref_image_cos_region and i-1 < len(args.ref_image_cos_region) else (args.ref_image_cos_region[0] if args.ref_image_cos_region else get_cos_region())
+                print(f"  图片 {idx}{ref_type}: [COS] {bucket}/{region}{key}")
+    
+    # 参考视频（URL 或 COS 路径）
+    total_ref_videos = 0
     if args.ref_video_url:
-        print(f"参考视频: {len(args.ref_video_url)} 个")
-        for i, url in enumerate(args.ref_video_url, 1):
-            ref_type = ""
-            if args.ref_video_type and i - 1 < len(args.ref_video_type):
-                ref_type = f"（{args.ref_video_type[i - 1]}）"
-            keep_sound = ""
-            if args.keep_original_sound and i - 1 < len(args.keep_original_sound):
-                keep_sound = f" [原声: {args.keep_original_sound[i - 1]}]"
-            print(f"  视频 {i}{ref_type}{keep_sound}: {url}")
+        total_ref_videos += len(args.ref_video_url)
+    cos_ref_video_keys = getattr(args, 'cos_ref_video_key', None)
+    if cos_ref_video_keys:
+        total_ref_videos += len(cos_ref_video_keys)
+    if getattr(args, 'ref_video_cos_key', None):
+        total_ref_videos += len(args.ref_video_cos_key)
+    
+    if total_ref_videos > 0:
+        print(f"参考视频: {total_ref_videos} 个")
+        # 显示直接 URL
+        if args.ref_video_url:
+            for i, url in enumerate(args.ref_video_url, 1):
+                ref_type = ""
+                if args.ref_video_type and i - 1 < len(args.ref_video_type):
+                    ref_type = f"（{args.ref_video_type[i - 1]}）"
+                keep_sound = ""
+                if args.keep_original_sound and i - 1 < len(args.keep_original_sound):
+                    keep_sound = f" [原声: {args.keep_original_sound[i - 1]}]"
+                print(f"  视频 {i}{ref_type}{keep_sound}: {url}")
+        # 显示新版 COS 路径
+        if cos_ref_video_keys:
+            start_idx = len(args.ref_video_url) if args.ref_video_url else 0
+            cos_buckets = getattr(args, 'cos_ref_video_bucket', [])
+            cos_regions = getattr(args, 'cos_ref_video_region', [])
+            for i, key in enumerate(cos_ref_video_keys, 1):
+                idx = start_idx + i
+                ref_type = ""
+                if args.ref_video_type and idx - 1 < len(args.ref_video_type):
+                    ref_type = f"（{args.ref_video_type[idx - 1]}）"
+                keep_sound = ""
+                if args.keep_original_sound and idx - 1 < len(args.keep_original_sound):
+                    keep_sound = f" [原声: {args.keep_original_sound[idx - 1]}]"
+                bucket = cos_buckets[i-1] if i-1 < len(cos_buckets) else None
+                region = cos_regions[i-1] if cos_regions and i-1 < len(cos_regions) else None
+                if bucket and region:
+                    print(f"  视频 {idx}{ref_type}{keep_sound}: [COS] {bucket}/{region}{key}")
+        # 显示旧版 COS 路径
+        if getattr(args, 'ref_video_cos_key', None):
+            start_idx = len(args.ref_video_url) if args.ref_video_url else 0
+            if cos_ref_video_keys:
+                start_idx += len(cos_ref_video_keys)
+            for i, key in enumerate(args.ref_video_cos_key, 1):
+                idx = start_idx + i
+                ref_type = ""
+                if args.ref_video_type and idx - 1 < len(args.ref_video_type):
+                    ref_type = f"（{args.ref_video_type[idx - 1]}）"
+                keep_sound = ""
+                if args.keep_original_sound and idx - 1 < len(args.keep_original_sound):
+                    keep_sound = f" [原声: {args.keep_original_sound[idx - 1]}]"
+                bucket = args.ref_video_cos_bucket[i-1] if i-1 < len(args.ref_video_cos_bucket) else (args.ref_video_cos_bucket[0] if args.ref_video_cos_bucket else get_cos_bucket())
+                region = args.ref_video_cos_region[i-1] if args.ref_video_cos_region and i-1 < len(args.ref_video_cos_region) else (args.ref_video_cos_region[0] if args.ref_video_cos_region else get_cos_region())
+                print(f"  视频 {idx}{ref_type}{keep_sound}: [COS] {bucket}/{region}{key}")
     if args.duration is not None:
         print(f"时长: {args.duration}s")
     if args.resolution:
@@ -618,22 +938,36 @@ def main():
   # 指定 Kling 模型 2.5 版本 + 10秒时长
   python mps_aigc_video.py --prompt "赛博朋克" --model Kling --model-version 2.5 --duration 10
 
-  # 图生视频（首帧图片）
+  # 图生视频（首帧图片 URL）
   python mps_aigc_video.py --prompt "让画面动起来" --image-url https://example.com/photo.jpg
+
+  # 图生视频（首帧图片 COS 路径 - 推荐，本地上传后使用）
+  python mps_aigc_video.py --prompt "让画面动起来" \\
+      --cos-image-bucket mybucket-125xxx --cos-image-region ap-guangzhou --cos-image-key /input/photo.jpg
 
   # 首尾帧生视频（GV 模型）
   python mps_aigc_video.py --prompt "过渡" --model GV \\
       --image-url https://example.com/start.jpg \\
       --last-image-url https://example.com/end.jpg
 
-  # GV 多图参考
+  # GV 多图参考（URL）
   python mps_aigc_video.py --prompt "融合" --model GV \\
       --ref-image-url https://example.com/img1.jpg --ref-image-type asset \\
       --ref-image-url https://example.com/img2.jpg --ref-image-type style
 
+  # GV 多图参考（COS 路径）
+  python mps_aigc_video.py --prompt "融合" --model GV \\
+      --cos-ref-image-bucket mybucket-125xxx --cos-ref-image-region ap-guangzhou --cos-ref-image-key /input/img1.jpg --ref-image-type asset \\
+      --cos-ref-image-bucket mybucket-125xxx --cos-ref-image-region ap-guangzhou --cos-ref-image-key /input/img2.jpg --ref-image-type style
+
   # Kling O1 参考视频 + 保留原声
   python mps_aigc_video.py --prompt "风格化" --model Kling --model-version O1 \\
       --ref-video-url https://example.com/video.mp4 \\
+      --ref-video-type base --keep-original-sound yes
+
+  # Kling O1 参考视频（COS 路径）
+  python mps_aigc_video.py --prompt "风格化" --model Kling --model-version O1 \\
+      --cos-ref-video-bucket mybucket-125xxx --cos-ref-video-region ap-guangzhou --cos-ref-video-key /input/video.mp4 \\
       --ref-video-type base --keep-original-sound yes
 
   # 1080P + 16:9 + 去水印 + 音频 + BGM
@@ -707,6 +1041,33 @@ def main():
                              help="首帧图片 URL（推荐 < 10M，支持 jpeg/png）")
     image_group.add_argument("--last-image-url", type=str,
                              help="尾帧图片 URL（部分模型支持，需同时传 --image-url）")
+    # COS 路径输入（本地上传后使用）
+    image_group.add_argument("--cos-image-bucket", type=str,
+                             help="首帧图片 COS Bucket（与 --cos-image-region/--cos-image-key 配合使用）")
+    image_group.add_argument("--cos-image-region", type=str,
+                             help="首帧图片 COS 区域（如 ap-guangzhou）")
+    image_group.add_argument("--cos-image-key", type=str,
+                             help="首帧图片 COS Key（如 /input/image.jpg）")
+    image_group.add_argument("--cos-last-image-bucket", type=str,
+                             help="尾帧图片 COS Bucket")
+    image_group.add_argument("--cos-last-image-region", type=str,
+                             help="尾帧图片 COS 区域")
+    image_group.add_argument("--cos-last-image-key", type=str,
+                             help="尾帧图片 COS Key")
+    # COS 路径输入（首帧图片）
+    image_group.add_argument("--image-cos-bucket", type=str,
+                             help="首帧图片所在 COS Bucket（与 --image-cos-region/--image-cos-key 配合使用）")
+    image_group.add_argument("--image-cos-region", type=str,
+                             help="首帧图片所在 COS Region（如 ap-guangzhou）")
+    image_group.add_argument("--image-cos-key", type=str,
+                             help="首帧图片的 COS Key（如 /input/image.jpg）")
+    # COS 路径输入（尾帧图片）
+    image_group.add_argument("--last-image-cos-bucket", type=str,
+                             help="尾帧图片所在 COS Bucket（与 --last-image-cos-region/--last-image-cos-key 配合使用）")
+    image_group.add_argument("--last-image-cos-region", type=str,
+                             help="尾帧图片所在 COS Region（如 ap-guangzhou）")
+    image_group.add_argument("--last-image-cos-key", type=str,
+                             help="尾帧图片的 COS Key（如 /input/last.jpg）")
 
     # ---- 多图参考（ImageInfos） ----
     multi_image_group = parser.add_argument_group("多图参考（GV / Vidu 支持，与 --image-url 互斥于 GV 模型）")
@@ -715,6 +1076,20 @@ def main():
     multi_image_group.add_argument("--ref-image-type", type=str, action="append",
                                    choices=["asset", "style"],
                                    help="参考类型（与 --ref-image-url 一一对应）: asset=素材 | style=风格")
+    # COS 路径输入（本地上传后使用）
+    multi_image_group.add_argument("--cos-ref-image-bucket", type=str, action="append",
+                                   help="参考图片 COS Bucket（与 --cos-ref-image-key 对应）")
+    multi_image_group.add_argument("--cos-ref-image-region", type=str, action="append",
+                                   help="参考图片 COS 区域")
+    multi_image_group.add_argument("--cos-ref-image-key", type=str, action="append",
+                                   help="参考图片 COS Key")
+    # COS 路径输入（多图参考）
+    multi_image_group.add_argument("--ref-image-cos-bucket", type=str, action="append",
+                                   help="参考图片所在 COS Bucket（与 --ref-image-cos-region/--ref-image-cos-key 配合使用，可多次指定）")
+    multi_image_group.add_argument("--ref-image-cos-region", type=str, action="append",
+                                   help="参考图片所在 COS Region（如 ap-guangzhou，与 --ref-image-cos-key 一一对应）")
+    multi_image_group.add_argument("--ref-image-cos-key", type=str, action="append",
+                                   help="参考图片的 COS Key（如 /input/ref.jpg，与 --ref-image-cos-bucket/--ref-image-cos-region 配合使用）")
 
     # ---- 参考视频（VideoInfos） ----
     video_ref_group = parser.add_argument_group("参考视频（仅 Kling O1 支持）")
@@ -726,6 +1101,20 @@ def main():
     video_ref_group.add_argument("--keep-original-sound", type=str, action="append",
                                  choices=["yes", "no"],
                                  help="是否保留视频原声（与 --ref-video-url 对应）")
+    # COS 路径输入（本地上传后使用）
+    video_ref_group.add_argument("--cos-ref-video-bucket", type=str, action="append",
+                                 help="参考视频 COS Bucket")
+    video_ref_group.add_argument("--cos-ref-video-region", type=str, action="append",
+                                 help="参考视频 COS 区域")
+    video_ref_group.add_argument("--cos-ref-video-key", type=str, action="append",
+                                 help="参考视频 COS Key")
+    # COS 路径输入（参考视频）
+    video_ref_group.add_argument("--ref-video-cos-bucket", type=str, action="append",
+                                 help="参考视频所在 COS Bucket（与 --ref-video-cos-region/--ref-video-cos-key 配合使用，可多次指定）")
+    video_ref_group.add_argument("--ref-video-cos-region", type=str, action="append",
+                                 help="参考视频所在 COS Region（如 ap-guangzhou，与 --ref-video-cos-key 一一对应）")
+    video_ref_group.add_argument("--ref-video-cos-key", type=str, action="append",
+                                 help="参考视频的 COS Key（如 /input/video.mp4，与 --ref-video-cos-bucket/--ref-video-cos-region 配合使用）")
 
     # ---- 视频输出配置 ----
     output_group = parser.add_argument_group("视频输出配置")
@@ -751,8 +1140,8 @@ def main():
                            help="COS Bucket 名称（默认取 TENCENTCLOUD_COS_BUCKET 环境变量）")
     cos_group.add_argument("--cos-bucket-region", type=str,
                            help="COS Bucket 区域（默认取 TENCENTCLOUD_COS_REGION 环境变量，默认 ap-guangzhou）")
-    cos_group.add_argument("--cos-bucket-path", type=str, default="output/aigc-video/",
-                           help="COS 存储路径前缀（默认 output/aigc-video/）")
+    cos_group.add_argument("--cos-bucket-path", type=str, default="/output/aigc-video/",
+                          help="COS 存储桶中的输出目录路径 (默认: /output/aigc-video/)")
 
     # ---- 附加参数 ----
     extra_group = parser.add_argument_group("附加参数")
