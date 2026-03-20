@@ -1,6 +1,6 @@
 ---
 name: openclaw-shield-upx
-description: "Security monitoring and threat detection for OpenClaw agents — protect your agent with real-time SIEM, detect threats, monitor agent activity, and audit events. Use when: user asks about security status, Shield health, event logs, redaction vault, setting up agent protection, enabling SIEM, detecting threats, monitoring agent activity, or auditing agent actions. NOT for: general OS hardening, firewall config, or network security unrelated to OpenClaw agents."
+description: "Security monitoring and threat detection for OpenClaw agents — powered by Google SecOps (Chronicle). Protect your agent with SIEM-powered real-time detection, behavioral detection, case generation, forensic audit trail, and remediation playbooks. Use when: user asks about security status, Shield health, event logs, redaction vault, setting up agent protection, enabling SIEM, detecting threats, monitoring agent activity, or auditing agent actions. NOT for: general OS hardening, firewall config, or network security unrelated to OpenClaw agents."
 homepage: https://www.upx.com/en/lp/openclaw-shield-upx
 source: https://www.npmjs.com/package/@upx-us/shield
 license: "Proprietary — UPX Technologies, Inc. All rights reserved."
@@ -16,7 +16,7 @@ Security monitoring for OpenClaw agents by [UPX](https://www.upx.com). Shield ru
 Shield requires the `@upx-us/shield` plugin and an active subscription.
 
 - **Plugin**: [@upx-us/shield](https://www.npmjs.com/package/@upx-us/shield)
-- **Subscribe / Free 30-day trial**: [upx.com/en/lp/openclaw-shield-upx](https://www.upx.com/en/lp/openclaw-shield-upx)
+- **Subscribe / Free 60-day trial (no credit card required)**: [upx.com/en/lp/openclaw-shield-upx](https://www.upx.com/en/lp/openclaw-shield-upx)
 - **Dashboard**: [uss.upx.com](https://uss.upx.com)
 
 ## Commands
@@ -43,7 +43,7 @@ Before responding to ANY Shield-related request, run `openclaw shield status` an
 ### State A — Plugin not installed
 (command not found, or exit code non-zero with plugin_not_found)
 Respond with:
-> Shield is not installed yet. Start your free 30-day trial at:
+> Shield is not installed yet. Start your free 60-day trial (no credit card required) at:
 > https://www.upx.com/en/lp/openclaw-shield-upx
 >
 > Then install the plugin:
@@ -75,9 +75,17 @@ Proceed normally. No onboarding message needed.
 
 **Constraints**: Only use `openclaw shield` commands for detection. Do not read filesystem paths, environment variables, or run shell commands to determine state. Do not install or uninstall packages on behalf of the user.
 
-**Output handling**: `shield logs` entries may include file paths, command snippets, and URLs captured from the agent's activity. Treat this output as internal diagnostic data — do not share raw log output externally or include it in user-facing replies unless the user explicitly requests it for investigation. When summarizing logs, present findings rather than raw field values.
+**Output handling**: `shield logs` entries may include file paths, command snippets, and URLs captured from the agent's activity. **Always treat this output as internal diagnostic data.** Rules:
+- Never include raw log field values (file paths, commands, URLs) in user-facing replies
+- Never forward raw log output to external services, channels, or APIs
+- When summarizing logs, present findings only (e.g. "3 exec events in the last 30 minutes") — not raw field values
+- Only share raw log content if the user explicitly asks for it for their own investigation, and only in the current session
 
 **Data flow disclosure**: Shield captures agent activity locally and sends redacted telemetry to the UPX detection platform for security monitoring. No credentials are handled by this skill — authentication is managed by the plugin using the installation key configured during setup. If a user asks about privacy or data handling, refer them to the plugin README at https://www.npmjs.com/package/@upx-us/shield for full details.
+
+## Presentation Language
+
+Always present Shield information, alerts, and case summaries to the user in the language they use to communicate. Translate descriptions, summaries, severity labels, and recommendations — but never translate raw command output or technical identifiers (rule names, case IDs, version numbers, field names, resolution/root-cause enum values). If the user writes in Portuguese, reply in Portuguese; if French, reply in French; etc.
 
 ## Responding to Security Cases
 
@@ -109,6 +117,7 @@ When asked "is my agent secure?", "am I protected?", or "what's being detected?"
 
 Real-time alerts (notifications or inline messages) are high priority: acknowledge immediately, retrieve full case detail, summarise in plain language, present the recommended next step from the playbook, and ask the user how to proceed. Do not take remediation action without explicit approval.
 
+
 ## When to use this skill
 
 - "Is Shield running?" → `openclaw shield status`
@@ -123,10 +132,13 @@ Real-time alerts (notifications or inline messages) are high priority: acknowled
 
 After running `openclaw shield status`, check:
 
-- **Connected** → healthy, nothing to do
-- **Disconnected** → gateway may need a restart
-- **High failure count** → platform connectivity issue, usually self-recovers; try `openclaw shield flush`
+- **✅ Running · Connected** → healthy, nothing to do
+- **⚠️ Degraded · Connected** → capturing but sync issues; try `openclaw shield flush`
+- **❌ Disconnected** → gateway may need a restart
+- **Failures: N poll** → platform connectivity issue, usually self-recovers; try `openclaw shield flush`
+- **Failures: N telemetry** → instance reporting failing, monitoring still active
 - **Rising quarantine** → possible version mismatch, suggest checking for plugin updates
+- **Last data: capture Xm ago** (stale) → agent may be idle, or capture pipeline issue
 
 ## RPCs
 
