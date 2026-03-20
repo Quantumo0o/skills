@@ -3,11 +3,16 @@
   "slug": "dispute-letter",
   "displayName": "Dispute Letter",
   "latest": {
-    "version": "2.3.6",
-    "publishedAt": 1773665755633,
-    "commit": "https://github.com/openclaw/skills/commit/2453314d05254333366059c53a6f314a40fc285d"
+    "version": "2.3.7",
+    "publishedAt": 1773773405140,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.6",
+      "publishedAt": 1773665755633,
+      "commit": "https://github.com/openclaw/skills/commit/2453314d05254333366059c53a6f314a40fc285d"
+    },
     {
       "version": "2.3.4",
       "publishedAt": 1773610977824,
