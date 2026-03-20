@@ -3,11 +3,16 @@
   "slug": "paraphraser",
   "displayName": "Paraphraser",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773666685073,
-    "commit": "https://github.com/openclaw/skills/commit/aadad5b36a689e2b906c5d12bbb96b3b56c7ae12"
+    "version": "2.0.0",
+    "publishedAt": 1773773929487,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773666685073,
+      "commit": "https://github.com/openclaw/skills/commit/aadad5b36a689e2b906c5d12bbb96b3b56c7ae12"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773444844330,
