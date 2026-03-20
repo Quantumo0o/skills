@@ -18,20 +18,5 @@
     "longitude": 121.4700152,
     "latitude": 31.2312707,
     "name": "上海"
-  },
-  "California,USA": {
-    "longitude": -118.755997,
-    "latitude": 36.7014631,
-    "name": "California, USA"
-  },
-  "Shanghai": {
-    "longitude": 121.4700152,
-    "latitude": 31.2312707,
-    "name": "Shanghai"
-  },
-  "喀孜": {
-    "longitude": 91.172952,
-    "latitude": 29.9038088,
-    "name": "喀孜"
   }
 }
