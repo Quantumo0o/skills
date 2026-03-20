@@ -3,9 +3,15 @@
   "slug": "orders",
   "displayName": "Orders",
   "latest": {
-    "version": "3.2.0",
-    "publishedAt": 1773716916064,
-    "commit": "https://github.com/openclaw/skills/commit/0e5541d3a577b75bb00c1eb73b5971c865db3c5d"
+    "version": "3.4.1",
+    "publishedAt": 1773774779232,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.2.0",
+      "publishedAt": 1773716916064,
+      "commit": "https://github.com/openclaw/skills/commit/0e5541d3a577b75bb00c1eb73b5971c865db3c5d"
+    }
+  ]
 }

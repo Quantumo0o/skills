@@ -1,7 +1,7 @@
 ---
 name: orders
-description: "Create, list, update, and cancel orders. Generate sales reports from local JSON storage."
-version: "3.2.0"
+description: "Track orders locally. Use when creating orders, checking status, updating quantities, canceling, or generating sales reports."
+version: "3.4.0"
 author: BytesAgain
 homepage: https://bytesagain.com
 source: https://github.com/bytesagain/ai-skills
