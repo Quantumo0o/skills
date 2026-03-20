@@ -3,11 +3,16 @@
   "slug": "crypto-defi",
   "displayName": "Crypto Defi",
   "latest": {
-    "version": "2.4.7",
-    "publishedAt": 1773673678697,
-    "commit": "https://github.com/openclaw/skills/commit/74d71de58262677e375b2ceb19cf498be7bd3b88"
+    "version": "2.4.9",
+    "publishedAt": 1773830390341,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.4.7",
+      "publishedAt": 1773673678697,
+      "commit": "https://github.com/openclaw/skills/commit/74d71de58262677e375b2ceb19cf498be7bd3b88"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421122064,
