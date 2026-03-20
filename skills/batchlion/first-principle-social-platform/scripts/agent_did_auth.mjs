@@ -1,43 +1,53 @@
 #!/usr/bin/env node
 // SECURITY MANIFEST:
-//   Environment variables accessed: SKILLS_ROOT_DIR, OPENCLAW_STATE_DIR
-//   External endpoints called: <base-url>/agent/auth/did/register/challenge, <base-url>/agent/auth/did/register, <base-url>/agent/auth/didwba/verify
-//   Local files read: explicit private key files, OpenClaw gateway device identity file, existing key files in output dir
-//   Local files written: manual bootstrap key files, optional session file, optional credential index file
+//   Environment variables accessed: SKILLS_ROOT_DIR, OPENCLAW_AGENT_DIR, OPENCLAW_ALLOWED_API_HOSTS
+//   External endpoints called: <base-url>/agent/enrollments, <base-url>/agent/enrollments/pairing/fetch, <base-url>/agent/enrollments/finalize, <base-url>/agent/auth/didwba/verify
+//   Local files read: enrollment/identity/session files
+//   Local files written: enrollment state, identity/session files
 
-import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes, sign } from "node:crypto";
+import { createHash, createPrivateKey, generateKeyPairSync, randomBytes, sign } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
+import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 import { canonicalizeJson } from "./lib/rfc8785_jcs.mjs";
 
-const DID_WBA_USER_PATTERN = /^did:wba:([a-z0-9.-]+):user:([A-Za-z0-9._~-]{1,128})$/;
-const DEFAULT_REGISTER_DID_DOMAINS = ["first-principle.com.cn"];
-const DEFAULT_LOGIN_DID_DOMAINS = ["first-principle.com.cn"];
+const DID_WBA_PATTERN = /^did:wba:([^:]+)(?::(.+))?$/i;
+const DEFAULT_ALLOWED_API_HOSTS = ["www.first-principle.com.cn", "first-principle.com.cn"];
 const SCRIPT_FILE = fileURLToPath(import.meta.url);
 const SCRIPT_DIR = path.dirname(SCRIPT_FILE);
 const SKILLS_ROOT_DIR = resolveSkillsRootDir();
 const DEFAULT_STATE_DIR = path.join(SKILLS_ROOT_DIR, ".first-principle-social-platform");
+const DEFAULT_ENROLLMENT_STATE_FILE = path.join(DEFAULT_STATE_DIR, "enrollment.json");
+const DEFAULT_IDENTITY_BASENAME = "identity.json";
+const DEFAULT_PRIVATE_JWK_BASENAME = "private.jwk";
+const DEFAULT_PUBLIC_JWK_BASENAME = "public.jwk";
+const DEFAULT_SESSION_BASENAME = "session.json";
+
+class ClaimRequiredError extends Error {
+  constructor(payload) {
+    super("Agent owner claim required");
+    this.name = "ClaimRequiredError";
+    this.payload = payload;
+  }
+}
 
 function usage() {
   console.log(`OpenClaw DID helper
 
 Usage:
-  node scripts/agent_did_auth.mjs generate-keys --out-dir <dir> --name <name>
-  node scripts/agent_did_auth.mjs sign --private-jwk <file> --challenge <text>
-  node scripts/agent_did_auth.mjs login --base-url <api> [--did <did> --private-jwk <file> | --private-pem <file>] [--device-identity <file>] [--key-id <id>] [--display-name <name>] [--save-session <file>] [--save-credential <file>] [--no-bootstrap] [--allow-bootstrap-after-explicit]
-  node scripts/agent_did_auth.mjs bootstrap --base-url <api> [--device-identity <file> | --did <did> --name <name> [--out-dir <dir>]] [--key-id <id>] [--display-name <name>] [--save-session <file>] [--save-credential <file>]
+  node scripts/agent_did_auth.mjs login --base-url <api> [--display-name <name>] [--agent-dir <dir>] [--save-enrollment <file>] [--pairing-secret <secret>] [--identity-dir <dir>] [--save-session <file>]
 
 Notes:
-  - local credential discovery/scanning is disabled
-  - login with explicit DID+key uses only user-provided key path
-  - login without explicit DID+key uses OpenClaw gateway device identity (device.json)
-  - default gateway device path: ${path.join(resolveOpenClawStateDir(), "identity", "device.json")}
+  - claim-first login is the default flow
+  - login creates enrollment ticket + claim_url and saves only non-sensitive enrollment state
+  - provide --pairing-secret after human owner completes claim to finalize DID enrollment
+  - optional env OPENCLAW_AGENT_DIR can provide the current agentDir for default path resolution
   - default local state dir: ${DEFAULT_STATE_DIR}
-  - optional env SKILLS_ROOT_DIR overrides manual key/session defaults
-  - optional env OPENCLAW_STATE_DIR overrides OpenClaw device identity location
-  - script-side DID domain defaults: login first-principle.com.cn; bootstrap first-principle.com.cn
+  - default enrollment state file: ${DEFAULT_ENROLLMENT_STATE_FILE}
+  - optional env SKILLS_ROOT_DIR overrides local state defaults
+  - optional env OPENCLAW_ALLOWED_API_HOSTS adds extra trusted API hosts (CSV)
   - backend still enforces domain allowlists server-side
 `);
 }
@@ -61,17 +71,52 @@ function parseArgs(argv) {
   return args;
 }
 
-function hasFlag(args, key) {
-  const value = String(args[key] || "").trim().toLowerCase();
-  return value === "true" || value === "1" || value === "yes";
-}
-
 function requireArg(args, key) {
   const value = args[key];
   if (!value) {
     throw new Error(`Missing required argument --${key}`);
   }
   return String(value);
+}
+
+function parseAllowedApiHosts() {
+  const raw = String(process.env.OPENCLAW_ALLOWED_API_HOSTS || "").trim();
+  const allowed = new Set(DEFAULT_ALLOWED_API_HOSTS);
+  if (!raw) {
+    return allowed;
+  }
+  for (const item of raw.split(",")) {
+    const host = item.trim().toLowerCase();
+    if (host) {
+      allowed.add(host);
+    }
+  }
+  return allowed;
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function assertAllowedApiHost(urlString) {
+  const url = new URL(urlString);
+  const hostname = url.hostname.toLowerCase();
+  if (isLoopbackHost(hostname)) {
+    return;
+  }
+  const allowed = parseAllowedApiHosts();
+  if (!allowed.has(hostname)) {
+    throw new Error(`Untrusted API host: ${hostname}`);
+  }
+}
+
+function normalizeBaseUrl(raw) {
+  const value = String(raw || "").trim().replace(/\/$/, "");
+  if (!/^https?:\/\//.test(value)) {
+    throw new Error("Invalid --base-url (must start with http:// or https://)");
+  }
+  assertAllowedApiHost(value);
+  return value;
 }
 
 function expandHome(inputPath) {
@@ -95,12 +140,16 @@ function resolveSkillsRootDir() {
   return path.resolve(SCRIPT_DIR, "../..");
 }
 
-function resolveOpenClawStateDir() {
-  const fromEnv = String(process.env.OPENCLAW_STATE_DIR || "").trim();
+function resolveCurrentAgentDir(rawPath = "") {
+  const fromArgs = String(rawPath || "").trim();
+  if (fromArgs) {
+    return path.resolve(expandHome(fromArgs));
+  }
+  const fromEnv = String(process.env.OPENCLAW_AGENT_DIR || "").trim();
   if (fromEnv) {
     return path.resolve(expandHome(fromEnv));
   }
-  return path.join(homedir(), ".openclaw");
+  return "";
 }
 
 function normalizePathForRead(filePath, sourceFile = "") {
@@ -114,34 +163,43 @@ function normalizePathForRead(filePath, sourceFile = "") {
   return path.resolve(expanded);
 }
 
+function decodeDidSegment(segment) {
+  if (!/^[A-Za-z0-9._~%-]{1,128}$/.test(segment)) {
+    throw new Error("Invalid DID path segment");
+  }
+  const decoded = decodeURIComponent(segment);
+  if (!decoded || decoded.includes("/")) {
+    throw new Error("Invalid DID path segment");
+  }
+  return decoded;
+}
+
 function parseDidDescriptor(did) {
-  const match = String(did).match(DID_WBA_USER_PATTERN);
-  if (!match) {
+  const match = String(did).trim().match(DID_WBA_PATTERN);
+  if (!match || !match[1]) {
     throw new Error("Invalid DID format");
   }
+  const rawDomain = match[1];
+  if (!/^[A-Za-z0-9.-]+(?:%3A\d+)?$/i.test(rawDomain)) {
+    throw new Error("Invalid DID domain");
+  }
+  const domain = decodeURIComponent(rawDomain).toLowerCase();
+  const rawSegments = match[2] ? match[2].split(":") : [];
+  const pathSegments = rawSegments.map((segment) => decodeDidSegment(segment));
+  const path = pathSegments.length
+    ? pathSegments.map((segment) => encodeURIComponent(segment)).join("/")
+    : ".well-known";
   return {
-    domain: match[1].toLowerCase(),
-    userId: match[2],
+    domain,
+    pathSegments,
+    path,
+    subjectId: pathSegments.at(-1) || "",
   };
 }
 
-function ensureDidFormat(did) {
-  parseDidDescriptor(did);
-}
-
-function parseRegisterAllowedDomains() {
-  return new Set(DEFAULT_REGISTER_DID_DOMAINS);
-}
-
-function parseLoginAllowedDomains() {
-  return new Set(DEFAULT_LOGIN_DID_DOMAINS);
-}
-
-function isDidDomainAllowed(domain, allowedDomains) {
-  if (allowedDomains.has("*")) {
-    return true;
-  }
-  return allowedDomains.has(String(domain || "").toLowerCase());
+function resolveDidDocumentUrl(did) {
+  const descriptor = parseDidDescriptor(did);
+  return `https://${descriptor.domain}/${descriptor.path}/did.json`;
 }
 
 function readPrivateJwk(filePath) {
@@ -212,20 +270,110 @@ function resolveOptionalPath(rawPath) {
   return normalizePathForRead(value);
 }
 
-function resolveGatewayDeviceIdentityPath(args) {
-  const fromArgs = String(args["device-identity"] || "").trim();
-  if (fromArgs) {
-    return normalizePathForRead(fromArgs);
-  }
-  return path.join(resolveOpenClawStateDir(), "identity", "device.json");
-}
-
-function resolveOutputDir(rawPath) {
+function resolveEnrollmentStatePath(rawPath) {
   const value = String(rawPath || "").trim();
   if (!value) {
-    return path.join(DEFAULT_STATE_DIR, "keys");
+    return DEFAULT_ENROLLMENT_STATE_FILE;
   }
   return normalizePathForRead(value);
+}
+
+function ensureParentDir(filePath) {
+  mkdirSync(path.dirname(filePath), { recursive: true });
+}
+
+function writePrivateJsonFile(filePath, payload) {
+  const resolved = normalizePathForRead(filePath);
+  ensureParentDir(resolved);
+  writeFileSync(resolved, JSON.stringify(payload, null, 2), { mode: 0o600 });
+  enforcePrivateFileMode(resolved);
+  return resolved;
+}
+
+function readJsonFile(filePath) {
+  return JSON.parse(readFileSync(filePath, "utf8"));
+}
+
+function loadEnrollmentState(filePath) {
+  const resolved = resolveEnrollmentStatePath(filePath);
+  if (!existsSync(resolved)) {
+    throw new Error(`Enrollment state not found: ${resolved}`);
+  }
+  const parsed = readJsonFile(resolved);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid enrollment state file: ${resolved}`);
+  }
+  return {
+    resolvedPath: resolved,
+    data: parsed,
+  };
+}
+
+function saveEnrollmentState(filePath, payload) {
+  const resolved = resolveEnrollmentStatePath(filePath);
+  return writePrivateJsonFile(resolved, payload);
+}
+
+function defaultIdentityDirForAgent(agentDir) {
+  if (!agentDir) {
+    return "";
+  }
+  return path.join(agentDir, "first-principle");
+}
+
+function buildIdentityFilePaths(identityDir) {
+  const resolvedDir = normalizePathForRead(identityDir);
+  return {
+    identityDir: resolvedDir,
+    identityPath: path.join(resolvedDir, DEFAULT_IDENTITY_BASENAME),
+    privateJwkPath: path.join(resolvedDir, DEFAULT_PRIVATE_JWK_BASENAME),
+    publicJwkPath: path.join(resolvedDir, DEFAULT_PUBLIC_JWK_BASENAME),
+    sessionPath: path.join(resolvedDir, DEFAULT_SESSION_BASENAME),
+  };
+}
+
+function saveIdentityState(filePath, payload) {
+  return writePrivateJsonFile(filePath, payload);
+}
+
+function loadIdentityState(filePath) {
+  const resolved = normalizePathForRead(filePath);
+  if (!existsSync(resolved)) {
+    throw new Error(`Identity state not found: ${resolved}`);
+  }
+  const parsed = readJsonFile(resolved);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid identity state file: ${resolved}`);
+  }
+  return {
+    resolvedPath: resolved,
+    data: parsed,
+  };
+}
+
+function resolveIdentityStateFromArgs(args) {
+  const explicitIdentityDir = resolveOptionalPath(args["identity-dir"]);
+  if (explicitIdentityDir) {
+    const paths = buildIdentityFilePaths(explicitIdentityDir);
+    const identity = loadIdentityState(paths.identityPath);
+    return { identity, identityDir: explicitIdentityDir };
+  }
+
+  const enrollmentArg = String(args["save-enrollment"] || "").trim();
+  if (!enrollmentArg) {
+    return null;
+  }
+  const enrollmentPath = resolveEnrollmentStatePath(enrollmentArg);
+  if (!existsSync(enrollmentPath)) {
+    return null;
+  }
+  const enrollment = loadEnrollmentState(enrollmentArg);
+  if (enrollment.data.state !== "active" || !enrollment.data.identity_dir) {
+    return null;
+  }
+  const identityDir = String(enrollment.data.identity_dir);
+  const identity = loadIdentityState(path.join(identityDir, DEFAULT_IDENTITY_BASENAME));
+  return { identity, identityDir };
 }
 
 function enforcePrivateFileMode(filePath) {
@@ -237,87 +385,6 @@ function enforcePrivateFileMode(filePath) {
   } catch {
     // Ignore chmod failures and preserve original write error handling behavior.
   }
-}
-
-function readGatewayDeviceIdentity(filePath) {
-  const raw = readFileSync(filePath, "utf8");
-  const parsed = JSON.parse(raw);
-  if (!parsed || typeof parsed !== "object") {
-    throw new Error("Invalid OpenClaw device identity JSON");
-  }
-
-  const publicKeyPem = pickString(parsed, ["publicKeyPem", "public_key_pem", "public_pem"]);
-  const privateKeyPem = pickString(parsed, ["privateKeyPem", "private_key_pem", "private_pem"]);
-  if (!publicKeyPem.includes("BEGIN") || !publicKeyPem.includes("PUBLIC KEY")) {
-    throw new Error("OpenClaw device identity missing valid publicKeyPem");
-  }
-  if (!privateKeyPem.includes("BEGIN") || !privateKeyPem.includes("PRIVATE KEY")) {
-    throw new Error("OpenClaw device identity missing valid privateKeyPem");
-  }
-
-  const privateKey = createPrivateKey(privateKeyPem);
-  const publicJwk = createPublicKey(publicKeyPem).export({ format: "jwk" });
-  const privateDerivedPublicJwk = createPublicKey(privateKey).export({ format: "jwk" });
-  validatePublicJwk(publicJwk);
-  validatePublicJwk(privateDerivedPublicJwk);
-  if (String(publicJwk.crv || "") !== "Ed25519" || typeof publicJwk.x !== "string") {
-    throw new Error("OpenClaw gateway device key must be Ed25519");
-  }
-  if (publicJwk.x !== privateDerivedPublicJwk.x) {
-    throw new Error("OpenClaw device identity public/private key mismatch");
-  }
-
-  const deviceId = createHash("sha256").update(Buffer.from(publicJwk.x, "base64url")).digest("hex");
-  return {
-    filePath,
-    deviceId,
-    publicJwk,
-    privateKey,
-  };
-}
-
-function buildGatewayDidMaterial(args, registerAllowedDomains) {
-  const deviceIdentityPath = resolveGatewayDeviceIdentityPath(args);
-  if (!existsSync(deviceIdentityPath)) {
-    throw new Error(`OpenClaw gateway device identity not found: ${deviceIdentityPath}`);
-  }
-  const identity = readGatewayDeviceIdentity(deviceIdentityPath);
-  const domain = Array.from(registerAllowedDomains)[0];
-  if (!domain) {
-    throw new Error("No register-allowed DID domains configured for gateway-device flow.");
-  }
-  const did = `did:wba:${domain}:user:${identity.deviceId}`;
-  const keyId = `${did}#key-1`;
-  return {
-    did,
-    keyId,
-    deviceId: identity.deviceId,
-    deviceIdentityPath,
-    privateKey: identity.privateKey,
-    publicJwk: identity.publicJwk,
-    didDocument: buildDidDocument(did, keyId, identity.publicJwk),
-  };
-}
-
-function createKeyFiles(outDir, name) {
-  mkdirSync(outDir, { recursive: true });
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const publicJwk = publicKey.export({ format: "jwk" });
-  const privateJwk = privateKey.export({ format: "jwk" });
-
-  const publicPath = path.join(outDir, `${name}-public.jwk`);
-  const privatePath = path.join(outDir, `${name}-private.jwk`);
-  writeFileSync(publicPath, JSON.stringify(publicJwk, null, 2));
-  writeFileSync(privatePath, JSON.stringify(privateJwk, null, 2), { mode: 0o600 });
-  enforcePrivateFileMode(privatePath);
-
-  return {
-    publicPath,
-    privatePath,
-    publicJwk,
-    privateJwk,
-    keySource: "generated",
-  };
 }
 
 function validatePublicJwk(jwk) {
@@ -338,22 +405,20 @@ function validatePrivateJwk(jwk) {
   }
 }
 
-function loadOrCreateKeyFiles(outDir, name) {
-  mkdirSync(outDir, { recursive: true });
-  const publicPath = path.join(outDir, `${name}-public.jwk`);
-  const privatePath = path.join(outDir, `${name}-private.jwk`);
-  const hasPublic = existsSync(publicPath);
-  const hasPrivate = existsSync(privatePath);
+function loadOrCreateIdentityKeyFiles(identityDir) {
+  const files = buildIdentityFilePaths(identityDir);
+  mkdirSync(files.identityDir, { recursive: true });
+  const hasPublic = existsSync(files.publicJwkPath);
+  const hasPrivate = existsSync(files.privateJwkPath);
 
   if (hasPublic && hasPrivate) {
-    const publicJwk = JSON.parse(readFileSync(publicPath, "utf8"));
-    const privateJwk = JSON.parse(readFileSync(privatePath, "utf8"));
+    const publicJwk = readJsonFile(files.publicJwkPath);
+    const privateJwk = readJsonFile(files.privateJwkPath);
     validatePublicJwk(publicJwk);
     validatePrivateJwk(privateJwk);
-    enforcePrivateFileMode(privatePath);
+    enforcePrivateFileMode(files.privateJwkPath);
     return {
-      publicPath,
-      privatePath,
+      ...files,
       publicJwk,
       privateJwk,
       keySource: "existing",
@@ -361,16 +426,26 @@ function loadOrCreateKeyFiles(outDir, name) {
   }
 
   if (hasPublic || hasPrivate) {
-    throw new Error(
-      `Partial key files detected in ${outDir}. Expected both ${name}-public.jwk and ${name}-private.jwk.`,
-    );
+    throw new Error(`Partial identity key files detected in ${files.identityDir}.`);
   }
 
-  return createKeyFiles(outDir, name);
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const publicJwk = publicKey.export({ format: "jwk" });
+  const privateJwk = privateKey.export({ format: "jwk" });
+  writePrivateJsonFile(files.publicJwkPath, publicJwk);
+  writePrivateJsonFile(files.privateJwkPath, privateJwk);
+
+  return {
+    ...files,
+    publicJwk,
+    privateJwk,
+    keySource: "generated",
+  };
 }
 
 function buildDidDocument(did, keyId, publicJwk) {
   return {
+    "@context": ["https://www.w3.org/ns/did/v1"],
     id: did,
     verificationMethod: [
       {
@@ -386,6 +461,36 @@ function buildDidDocument(did, keyId, publicJwk) {
     ],
     authentication: [keyId],
   };
+}
+
+function isClaimRequiredResponse(payload) {
+  return Boolean(
+    payload &&
+      typeof payload === "object" &&
+      payload.state === "claim_required" &&
+      typeof payload.ticket === "string" &&
+      typeof payload.claim_url === "string",
+  );
+}
+
+async function promptForIdentityDir() {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error("Owner rejected the default path; rerun with --identity-dir to choose a local save path.");
+  }
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+  try {
+    const answer = await rl.question("Owner rejected the default path. Enter the local identity directory: ");
+    const trimmed = String(answer || "").trim();
+    if (!trimmed) {
+      throw new Error("Missing local identity directory");
+    }
+    return normalizePathForRead(trimmed);
+  } finally {
+    rl.close();
+  }
 }
 
 function resolveServiceDomainFromBaseUrl(baseUrl) {
@@ -478,10 +583,12 @@ async function runDidWbaLogin(params) {
     Authorization: authorization,
   });
 
+  if (isClaimRequiredResponse(verifyRes)) {
+    throw new ClaimRequiredError(verifyRes);
+  }
+
   if (params.saveSession) {
-    mkdirSync(path.dirname(params.saveSession), { recursive: true });
-    writeFileSync(params.saveSession, JSON.stringify(verifyRes, null, 2), { mode: 0o600 });
-    enforcePrivateFileMode(params.saveSession);
+    writePrivateJsonFile(params.saveSession, verifyRes);
   }
 
   const accessToken = verifyRes?.session?.access_token ? String(verifyRes.session.access_token) : "";
@@ -501,422 +608,223 @@ async function runDidWbaLogin(params) {
   };
 }
 
-async function registerDidAndLogin(params) {
-  const registerChallengeRes = await postJson(`${params.baseUrl}/agent/auth/did/register/challenge`, { did: params.did });
-  const registerChallengeText = String(registerChallengeRes.challenge || "");
-  const registerChallengeId = String(registerChallengeRes.challenge_id || "");
-  if (!registerChallengeText || !registerChallengeId) {
-    throw new Error("Register challenge response missing fields");
-  }
-
-  const registerSignature = sign(null, Buffer.from(registerChallengeText, "utf8"), params.privateKey).toString("base64url");
-  const registerBody = {
-    did: params.did,
-    did_document: params.didDocument,
-    challenge_id: registerChallengeId,
-    signature: registerSignature,
-    key_id: params.keyId,
+function buildEnrollmentStateFromClaim(params) {
+  const agentDir = params.agentDir || "";
+  return {
+    state: "claim_required",
+    status: params.claim.status || "pending_claim",
+    ticket: params.claim.ticket,
+    claim_url: params.claim.claim_url,
+    created_at: params.claim.created_at || new Date().toISOString(),
+    expires_at: params.claim.expires_at || null,
+    base_url: params.baseUrl,
+    display_name: params.displayName || null,
+    agent_dir: agentDir || null,
+    default_identity_dir: defaultIdentityDirForAgent(agentDir) || null,
+    path_policy: null,
+    agent_registry_id: null,
+    agent_stable_id: null,
+    did: null,
+    key_id: null,
+    identity_dir: null,
   };
-  if (params.displayName) {
-    registerBody.display_name = params.displayName;
-  }
-
-  const registerRes = await postJson(`${params.baseUrl}/agent/auth/did/register`, registerBody);
-  const loginRes = await runDidWbaLogin({
-    baseUrl: params.baseUrl,
-    did: params.did,
-    privateKey: params.privateKey,
-    keyId: params.keyId,
-    saveSession: params.saveSession,
-    displayName: params.displayName,
-  });
-  return { registerRes, loginRes };
 }
 
-function saveDidCredential(filePath, payload) {
-  const resolvedPath = normalizePathForRead(filePath);
-  mkdirSync(path.dirname(resolvedPath), { recursive: true });
-  const body = {
-    did: payload.did,
-    key_id: payload.keyId || null,
-    private_jwk_path: payload.privateJwkPath || null,
-    private_pem_path: payload.privatePemPath || null,
+function summarizeClaimRequired(params) {
+  const accessToken = params.claim?.session?.access_token ? String(params.claim.session.access_token) : "";
+  const refreshToken = params.claim?.session?.refresh_token ? String(params.claim.session.refresh_token) : "";
+  return {
+    ok: true,
+    state: "claim_required",
+    status: params.claim.status || "pending_claim",
+    ticket: params.claim.ticket,
+    claim_url: params.claim.claim_url,
+    expires_at: params.claim.expires_at || null,
+    enrollment_saved_to: params.enrollmentSavedTo || null,
+    session_saved_to: null,
+    access_token_preview: accessToken ? `${accessToken.slice(0, 12)}...` : "",
+    refresh_token_preview: refreshToken ? `${refreshToken.slice(0, 12)}...` : "",
+  };
+}
+
+async function createClaimFirstEnrollment(args) {
+  const baseUrl = normalizeBaseUrl(requireArg(args, "base-url"));
+  const displayName = args["display-name"] ? String(args["display-name"]).trim() : "";
+  const enrollmentPath = resolveEnrollmentStatePath(args["save-enrollment"]);
+  const agentDir = resolveCurrentAgentDir(args["agent-dir"]);
+  const res = await postJson(`${baseUrl}/agent/enrollments`, displayName ? { display_name: displayName } : {});
+  const enrollmentState = buildEnrollmentStateFromClaim({
+    claim: res,
+    baseUrl,
+    displayName,
+    agentDir,
+  });
+  const enrollmentSavedTo = saveEnrollmentState(enrollmentPath, enrollmentState);
+  console.log(JSON.stringify({
+    ...summarizeClaimRequired({
+      claim: res,
+      enrollmentSavedTo,
+    }),
+    default_identity_dir: enrollmentState.default_identity_dir,
+    login_mode: "claim-first",
+  }, null, 2));
+}
+
+async function resolveIdentityDirForPairing(args, enrollmentState, pairingState) {
+  const explicitIdentityDir = resolveOptionalPath(args["identity-dir"]);
+  if (explicitIdentityDir) {
+    return explicitIdentityDir;
+  }
+
+  const agentDir = resolveCurrentAgentDir(args["agent-dir"]) || String(enrollmentState.agent_dir || "").trim();
+  if (pairingState.path_policy === "default") {
+    const computed = defaultIdentityDirForAgent(agentDir);
+    if (!computed) {
+      throw new Error("Owner accepted the default path, but agentDir is unknown. Rerun with --agent-dir or --identity-dir.");
+    }
+    return computed;
+  }
+
+  return promptForIdentityDir();
+}
+
+function resolveDidForAgent(agentStableId) {
+  const stableId = String(agentStableId || "").trim();
+  if (!stableId) {
+    throw new Error("Missing agent_stable_id from pairing response");
+  }
+  return `did:wba:first-principle.com.cn:agent:${stableId}`;
+}
+
+function buildEnrollmentFinalizeChallenge(ticket, did) {
+  return `fp.did.enrollment.finalize.v1|ticket:${ticket}|did:${did}`;
+}
+
+async function finalizeClaimFirstEnrollment(args) {
+  const pairingSecret = requireArg(args, "pairing-secret");
+  const enrollmentState = loadEnrollmentState(args["save-enrollment"]);
+  const baseUrl = normalizeBaseUrl(enrollmentState.data.base_url || requireArg(args, "base-url"));
+  const displayName = args["display-name"] ? String(args["display-name"]).trim() : String(enrollmentState.data.display_name || "").trim();
+  const pairingRes = await postJson(`${baseUrl}/agent/enrollments/pairing/fetch`, {
+    pairing_secret: pairingSecret,
+  });
+
+  const identityDir = await resolveIdentityDirForPairing(args, enrollmentState.data, pairingRes);
+  const identityFiles = loadOrCreateIdentityKeyFiles(identityDir);
+  const did = String(pairingRes.did || "").trim() || resolveDidForAgent(pairingRes.agent_stable_id);
+  const keyId = `${did}#key-auth-1`;
+  const didDocument = buildDidDocument(did, keyId, identityFiles.publicJwk);
+  const publicKeyThumbprint = createHash("sha256")
+    .update(canonicalizeJson({
+      kty: identityFiles.publicJwk.kty,
+      crv: identityFiles.publicJwk.crv,
+      x: identityFiles.publicJwk.x,
+    }))
+    .digest("hex");
+
+  const finalizeChallenge =
+    String(pairingRes.finalize_challenge || "").trim() || buildEnrollmentFinalizeChallenge(enrollmentState.data.ticket, did);
+  const privateKey = createPrivateKey({ key: identityFiles.privateJwk, format: "jwk" });
+  const signature = sign(null, Buffer.from(finalizeChallenge, "utf8"), privateKey);
+  const finalizeRes = await postJson(`${baseUrl}/agent/enrollments/finalize`, {
+    ticket: enrollmentState.data.ticket,
+    did,
+    did_document: didDocument,
+    signature: b64u(signature),
+    did_key_id: keyId,
+    public_key_thumbprint: publicKeyThumbprint,
+  });
+
+  const sessionPath = resolveOptionalPath(args["save-session"]) || identityFiles.sessionPath;
+  writePrivateJsonFile(sessionPath, finalizeRes);
+
+  const didDocumentUrl = String(pairingRes.did_document_url || "").trim() || resolveDidDocumentUrl(did);
+  const identitySavedTo = saveIdentityState(identityFiles.identityPath, {
+    did,
+    key_id: keyId,
+    identity_dir: identityFiles.identityDir,
+    private_jwk_path: identityFiles.privateJwkPath,
+    public_jwk_path: identityFiles.publicJwkPath,
+    session_path: sessionPath,
+    did_document_url: didDocumentUrl,
+    agent_registry_id: pairingRes.agent_registry_id || null,
+    agent_stable_id: pairingRes.agent_stable_id,
     saved_at: new Date().toISOString(),
-  };
-  writeFileSync(resolvedPath, JSON.stringify(body, null, 2), { mode: 0o600 });
-  enforcePrivateFileMode(resolvedPath);
-  return resolvedPath;
-}
-
-function generateKeys(args) {
-  const outDir = requireArg(args, "out-dir");
-  const name = requireArg(args, "name");
-  const generated = createKeyFiles(outDir, name);
-
-  console.log(JSON.stringify({
-    ok: true,
-    public_jwk_path: generated.publicPath,
-    private_jwk_path: generated.privatePath,
-    did_public_x: generated.publicJwk.x,
-    key_type: generated.publicJwk.kty,
-    curve: generated.publicJwk.crv,
-  }, null, 2));
-}
-
-function signChallenge(args) {
-  const privateJwkPath = requireArg(args, "private-jwk");
-  const challenge = requireArg(args, "challenge");
-  const privateJwk = readPrivateJwk(privateJwkPath);
-  const privateKey = createPrivateKey({ key: privateJwk, format: "jwk" });
-  const signature = sign(null, Buffer.from(challenge, "utf8"), privateKey);
-  console.log(JSON.stringify({ signature: b64u(signature) }, null, 2));
-}
-
-async function bootstrapDidWithManualKeys(args) {
-  const baseUrl = requireArg(args, "base-url").replace(/\/$/, "");
-  const did = requireArg(args, "did");
-  ensureDidFormat(did);
-
-  const descriptor = parseDidDescriptor(did);
-  const registerAllowedDomains = parseRegisterAllowedDomains();
-  if (!registerAllowedDomains.has(descriptor.domain)) {
-    throw new Error(
-      `Bootstrap is not allowed for DID domain "${descriptor.domain}". Allowed bootstrap domains: ${Array.from(registerAllowedDomains).join(", ")}.`,
-    );
-  }
-
-  const outDir = resolveOutputDir(args["out-dir"]);
-  const name = requireArg(args, "name");
-  const keyId = args["key-id"] ? String(args["key-id"]) : `${did}#key-1`;
-  const displayName = args["display-name"] ? String(args["display-name"]).trim() : "";
-  const saveSession = resolveOptionalPath(args["save-session"]);
-  const saveCredentialPath = resolveOptionalPath(args["save-credential"]);
-
-  const generated = loadOrCreateKeyFiles(outDir, name);
-  const didDocument = buildDidDocument(did, keyId, generated.publicJwk);
-  const privateKey = createPrivateKey({ key: generated.privateJwk, format: "jwk" });
-  let registerRes = null;
-  let registerSkipped = false;
-  let loginRes = null;
-
-  if (generated.keySource === "existing") {
-    try {
-      loginRes = await runDidWbaLogin({
-        baseUrl,
-        did,
-        privateKey,
-        keyId,
-        saveSession,
-        displayName,
-      });
-      registerSkipped = true;
-    } catch {
-      // Fall through to register flow.
-    }
-  }
-
-  if (!loginRes) {
-    const registered = await registerDidAndLogin({
-      baseUrl,
-      did,
-      keyId,
-      didDocument,
-      privateKey,
-      saveSession,
-      displayName,
-    });
-    registerRes = registered.registerRes;
-    loginRes = registered.loginRes;
-  }
-
-  let credentialSavedTo = null;
-  if (saveCredentialPath) {
-    credentialSavedTo = saveDidCredential(saveCredentialPath, {
-      did,
-      keyId,
-      privateJwkPath: generated.privatePath,
-    });
-  }
-
-  console.log(JSON.stringify({
-    ok: true,
-    bootstrap: {
-      did,
-      key_id: keyId,
-      public_jwk_path: generated.publicPath,
-      private_jwk_path: generated.privatePath,
-      private_jwk_mode: generated.privatePath ? "0600" : null,
-      key_source: generated.keySource,
-      register_skipped: registerSkipped,
-      did_document_url: registerRes?.did_document_url || null,
-      register_ok: registerRes ? Boolean(registerRes?.ok) : null,
-      credential_saved_to: credentialSavedTo,
-    },
-    login: loginRes.summary,
-  }, null, 2));
-}
-
-async function bootstrapDidWithGatewayDevice(args) {
-  const baseUrl = requireArg(args, "base-url").replace(/\/$/, "");
-  const registerAllowedDomains = parseRegisterAllowedDomains();
-  const displayName = args["display-name"] ? String(args["display-name"]).trim() : "";
-  const saveSession = resolveOptionalPath(args["save-session"]);
-  const saveCredentialPath = resolveOptionalPath(args["save-credential"]);
-  const gateway = buildGatewayDidMaterial(args, registerAllowedDomains);
-
-  let registerRes = null;
-  let registerSkipped = false;
-  let loginRes = null;
-
-  try {
-    loginRes = await runDidWbaLogin({
-      baseUrl,
-      did: gateway.did,
-      privateKey: gateway.privateKey,
-      keyId: gateway.keyId,
-      saveSession,
-      displayName,
-    });
-    registerSkipped = true;
-  } catch {
-    const registered = await registerDidAndLogin({
-      baseUrl,
-      did: gateway.did,
-      keyId: gateway.keyId,
-      didDocument: gateway.didDocument,
-      privateKey: gateway.privateKey,
-      saveSession,
-      displayName,
-    });
-    registerRes = registered.registerRes;
-    loginRes = registered.loginRes;
-  }
-
-  let credentialSavedTo = null;
-  if (saveCredentialPath) {
-    credentialSavedTo = saveDidCredential(saveCredentialPath, {
-      did: gateway.did,
-      keyId: gateway.keyId,
-      privatePemPath: gateway.deviceIdentityPath,
-    });
-  }
-
-  console.log(JSON.stringify({
-    ok: true,
-    bootstrap: {
-      did: gateway.did,
-      key_id: gateway.keyId,
-      gateway_device_id: gateway.deviceId,
-      device_identity_path: gateway.deviceIdentityPath,
-      key_source: "gateway-device",
-      register_skipped: registerSkipped,
-      did_document_url: registerRes?.did_document_url || `https://${parseDidDescriptor(gateway.did).domain}/user/${gateway.deviceId}/did.json`,
-      register_ok: registerRes ? Boolean(registerRes?.ok) : null,
-      credential_saved_to: credentialSavedTo,
-    },
-    login: loginRes.summary,
-  }, null, 2));
-}
-
-async function bootstrapDid(args) {
-  if (String(args.did || "").trim()) {
-    await bootstrapDidWithManualKeys(args);
-    return;
-  }
-  await bootstrapDidWithGatewayDevice(args);
-}
-
-async function tryExplicitLogin(args, params) {
-  const explicitDid = args.did ? String(args.did).trim() : "";
-  const explicitPrivateJwkPath = resolveOptionalPath(args["private-jwk"]);
-  const explicitPrivatePemPath = resolveOptionalPath(args["private-pem"]);
-  const explicitKeyId = args["key-id"] ? String(args["key-id"]) : undefined;
-
-  const explicitProvided = Boolean(explicitDid || explicitPrivateJwkPath || explicitPrivatePemPath || explicitKeyId);
-  if (!explicitProvided) {
-    return false;
-  }
-
-  if (explicitPrivateJwkPath && explicitPrivatePemPath) {
-    throw new Error("Use only one explicit private key input: --private-jwk or --private-pem.");
-  }
-  if (!explicitDid || (!explicitPrivateJwkPath && !explicitPrivatePemPath)) {
-    throw new Error("Explicit login requires --did and either --private-jwk or --private-pem.");
-  }
-
-  ensureDidFormat(explicitDid);
-  const descriptor = parseDidDescriptor(explicitDid);
-  if (!isDidDomainAllowed(descriptor.domain, params.allowedLoginDomains)) {
-    throw new Error(`DID domain "${descriptor.domain}" is not in script-side login allowed domains.`);
-  }
-
-  const keyIdAttempts = explicitKeyId ? [explicitKeyId] : [undefined];
-  const errors = [];
-
-  for (const keyIdAttempt of keyIdAttempts) {
-    try {
-      const privateKey = explicitPrivateJwkPath
-        ? parsePrivateKeyFromCredential({ privateJwkPath: explicitPrivateJwkPath })
-        : parsePrivateKeyFromCredential({ privatePemPath: explicitPrivatePemPath });
-
-      const loginRes = await runDidWbaLogin({
-        baseUrl: params.baseUrl,
-        did: explicitDid,
-        privateKey,
-        keyId: keyIdAttempt,
-        saveSession: params.saveSession,
-        displayName: params.displayName,
-      });
-
-      let credentialSavedTo = null;
-      if (params.saveCredentialPath) {
-        credentialSavedTo = saveDidCredential(params.saveCredentialPath, {
-          did: explicitDid,
-          keyId: keyIdAttempt || explicitKeyId,
-          privateJwkPath: explicitPrivateJwkPath,
-          privatePemPath: explicitPrivatePemPath,
-        });
-      }
-
-      console.log(JSON.stringify({
-        ...loginRes.summary,
-        did: explicitDid,
-        key_id: keyIdAttempt || explicitKeyId || null,
-        credential_saved_to: credentialSavedTo,
-        login_mode: "explicit",
-      }, null, 2));
-      return true;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      const keyLabel = keyIdAttempt ? ` (key_id=${keyIdAttempt})` : " (key_id=<auto>)";
-      errors.push(`Explicit login failed${keyLabel}: ${msg}`);
-    }
-  }
-
-  throw new Error(errors.join(" | "));
-}
-
-async function loginWithGatewayDevice(args, params) {
-  const registerAllowedDomains = parseRegisterAllowedDomains();
-  const gateway = buildGatewayDidMaterial(args, registerAllowedDomains);
-  const descriptor = parseDidDescriptor(gateway.did);
-  if (!isDidDomainAllowed(descriptor.domain, params.allowedLoginDomains)) {
-    throw new Error(`DID domain "${descriptor.domain}" is not in script-side login allowed domains.`);
-  }
-
-  try {
-    const loginRes = await runDidWbaLogin({
-      baseUrl: params.baseUrl,
-      did: gateway.did,
-      privateKey: gateway.privateKey,
-      keyId: gateway.keyId,
-      saveSession: params.saveSession,
-      displayName: params.displayName,
-    });
-
-    let credentialSavedTo = null;
-    if (params.saveCredentialPath) {
-      credentialSavedTo = saveDidCredential(params.saveCredentialPath, {
-        did: gateway.did,
-        keyId: gateway.keyId,
-        privatePemPath: gateway.deviceIdentityPath,
-      });
-    }
-
-    console.log(JSON.stringify({
-      ...loginRes.summary,
-      did: gateway.did,
-      key_id: gateway.keyId,
-      gateway_device_id: gateway.deviceId,
-      device_identity_path: gateway.deviceIdentityPath,
-      credential_saved_to: credentialSavedTo,
-      login_mode: "gateway-device-existing",
-    }, null, 2));
-    return;
-  } catch (loginError) {
-    if (params.noBootstrap) {
-      const message = loginError instanceof Error ? loginError.message : String(loginError);
-      throw new Error(`Gateway device DID login failed and bootstrap is disabled: ${message}`);
-    }
-  }
-
-  const registered = await registerDidAndLogin({
-    baseUrl: params.baseUrl,
-    did: gateway.did,
-    keyId: gateway.keyId,
-    didDocument: gateway.didDocument,
-    privateKey: gateway.privateKey,
-    saveSession: params.saveSession,
-    displayName: params.displayName,
   });
 
-  let credentialSavedTo = null;
-  if (params.saveCredentialPath) {
-    credentialSavedTo = saveDidCredential(params.saveCredentialPath, {
-      did: gateway.did,
-      keyId: gateway.keyId,
-      privatePemPath: gateway.deviceIdentityPath,
-    });
-  }
+  const updatedEnrollmentSavedTo = saveEnrollmentState(enrollmentState.resolvedPath, {
+    ...enrollmentState.data,
+    state: "active",
+    status: "active",
+    path_policy: pairingRes.path_policy || enrollmentState.data.path_policy || null,
+    agent_registry_id: pairingRes.agent_registry_id || null,
+    agent_stable_id: pairingRes.agent_stable_id || null,
+    identity_dir: identityFiles.identityDir,
+    did,
+    key_id: keyId,
+  });
 
+  const accessToken = finalizeRes?.session?.access_token ? String(finalizeRes.session.access_token) : "";
+  const refreshToken = finalizeRes?.session?.refresh_token ? String(finalizeRes.session.refresh_token) : "";
   console.log(JSON.stringify({
     ok: true,
-    bootstrap: {
-      did: gateway.did,
-      key_id: gateway.keyId,
-      gateway_device_id: gateway.deviceId,
-      device_identity_path: gateway.deviceIdentityPath,
-      key_source: "gateway-device",
-      register_skipped: false,
-      did_document_url: registered.registerRes?.did_document_url || null,
-      register_ok: Boolean(registered.registerRes?.ok),
-      credential_saved_to: credentialSavedTo,
-    },
-    login: {
-      ...registered.loginRes.summary,
-      login_mode: "gateway-device-bootstrap",
-    },
+    state: "active",
+    did,
+    key_id: keyId,
+    identity_dir: identityFiles.identityDir,
+    identity_saved_to: identitySavedTo,
+    enrollment_saved_to: updatedEnrollmentSavedTo,
+    public_jwk_path: identityFiles.publicJwkPath,
+    private_jwk_path: identityFiles.privateJwkPath,
+    session_saved_to: sessionPath,
+    access_token_preview: accessToken ? `${accessToken.slice(0, 12)}...` : "",
+    refresh_token_preview: refreshToken ? `${refreshToken.slice(0, 12)}...` : "",
+    login_mode: "claim-finalize",
   }, null, 2));
 }
 
 async function loginWithDid(args) {
-  const baseUrl = requireArg(args, "base-url").replace(/\/$/, "");
-  const saveSession = resolveOptionalPath(args["save-session"]);
-  const saveCredentialPath = resolveOptionalPath(args["save-credential"]);
-  const displayName = args["display-name"] ? String(args["display-name"]).trim() : "";
-  const noBootstrap = hasFlag(args, "no-bootstrap");
-  const allowBootstrapAfterExplicit = hasFlag(args, "allow-bootstrap-after-explicit");
-
-  const allowedLoginDomains = parseLoginAllowedDomains();
-
-  try {
-    const explicitLoggedIn = await tryExplicitLogin(args, {
-      baseUrl,
-      saveSession,
-      saveCredentialPath,
-      displayName,
-      allowedLoginDomains,
-    });
-    if (explicitLoggedIn) {
-      return;
-    }
-  } catch (error) {
-    if (!allowBootstrapAfterExplicit) {
-      throw error;
-    }
-    if (noBootstrap) {
-      throw error;
-    }
+  if (String(args["pairing-secret"] || "").trim()) {
+    await finalizeClaimFirstEnrollment(args);
+    return;
   }
 
-  await loginWithGatewayDevice(args, {
-    baseUrl,
-    saveSession,
-    saveCredentialPath,
-    displayName,
-    noBootstrap,
-    allowedLoginDomains,
-  });
+  const resolvedIdentity = resolveIdentityStateFromArgs(args);
+  if (resolvedIdentity) {
+    const identityData = resolvedIdentity.identity.data;
+    const did = String(identityData.did || "").trim();
+    if (!did) {
+      throw new Error("Identity state missing did");
+    }
+    const keyId = String(identityData.key_id || "").trim() || `${did}#key-auth-1`;
+    const privateJwkPath = identityData.private_jwk_path ? String(identityData.private_jwk_path) : "";
+    const privatePemPath = identityData.private_pem_path ? String(identityData.private_pem_path) : "";
+    const privateKey = parsePrivateKeyFromCredential({
+      privateJwkPath,
+      privatePemPath,
+    });
+    const baseUrl = normalizeBaseUrl(requireArg(args, "base-url"));
+    const saveSession = resolveOptionalPath(args["save-session"]) || (identityData.session_path ? String(identityData.session_path) : "");
+    const displayName = args["display-name"] ? String(args["display-name"]).trim() : "";
+    const loginRes = await runDidWbaLogin({
+      baseUrl,
+      did,
+      privateKey,
+      keyId,
+      saveSession,
+      displayName,
+    });
+    console.log(JSON.stringify({
+      ...loginRes.summary,
+      did,
+      key_id: keyId,
+      identity_dir: resolvedIdentity.identityDir,
+      login_mode: "reuse-identity",
+    }, null, 2));
+    return;
+  }
+
+  await createClaimFirstEnrollment(args);
 }
 
 async function main() {
@@ -929,20 +837,8 @@ async function main() {
   const args = parseArgs(rest);
 
   try {
-    if (command === "generate-keys") {
-      generateKeys(args);
-      return;
-    }
-    if (command === "sign") {
-      signChallenge(args);
-      return;
-    }
     if (command === "login") {
       await loginWithDid(args);
-      return;
-    }
-    if (command === "bootstrap") {
-      await bootstrapDid(args);
       return;
     }
     usage();

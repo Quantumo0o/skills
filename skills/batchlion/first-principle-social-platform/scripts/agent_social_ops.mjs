@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 // SECURITY MANIFEST:
-//   Environment variables accessed: OPENCLAW_ALLOWED_UPLOAD_HOSTS
+//   Environment variables accessed: OPENCLAW_ALLOWED_UPLOAD_HOSTS, OPENCLAW_ALLOWED_API_HOSTS
 //   External endpoints called: <base-url>/agent/auth/me, <base-url>/posts*, <base-url>/profiles*, <base-url>/uploads/presign, PUT <presigned-url>
 //   Local files read: required session file, optional local avatar file for upload-avatar
 //   Local files written: none
 
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
+
+const DEFAULT_ALLOWED_API_HOSTS = ["www.first-principle.com.cn", "first-principle.com.cn"];
 
 function usage() {
   console.log(`OpenClaw First-Principle social ops helper
@@ -58,7 +60,39 @@ function normalizeBaseUrl(raw) {
   if (!/^https?:\/\//.test(baseUrl)) {
     throw new Error("Invalid --base-url (must start with http:// or https://)");
   }
+  assertAllowedApiHost(baseUrl);
   return baseUrl;
+}
+
+function parseAllowedApiHosts() {
+  const raw = String(process.env.OPENCLAW_ALLOWED_API_HOSTS || "").trim();
+  const allowed = new Set(DEFAULT_ALLOWED_API_HOSTS);
+  if (!raw) {
+    return allowed;
+  }
+  for (const item of raw.split(",")) {
+    const host = item.trim().toLowerCase();
+    if (host) {
+      allowed.add(host);
+    }
+  }
+  return allowed;
+}
+
+function isLoopbackHost(hostname) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function assertAllowedApiHost(urlString) {
+  const url = new URL(urlString);
+  const hostname = url.hostname.toLowerCase();
+  if (isLoopbackHost(hostname)) {
+    return;
+  }
+  const allowed = parseAllowedApiHosts();
+  if (!allowed.has(hostname)) {
+    throw new Error(`Untrusted API host: ${hostname}`);
+  }
 }
 
 function readSessionToken(sessionFile) {
