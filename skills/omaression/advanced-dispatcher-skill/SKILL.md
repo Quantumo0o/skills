@@ -5,186 +5,123 @@ description: Route mid-session work to the right spawned model without changing 
 
 # Advanced Dispatcher
 
-Use this skill to classify work, dispatch it to the best spawned model, and return the result to the main session.
-
-## Runtime requirements
-
-This skill assumes the runtime can spawn work on these model families:
-
-- `openai-codex/*`
-- `opencode-go/*`
-- optional `anthropic/*` only when `--force-claude` is present
-
-If the host is self-managed, configure whatever provider credentials your runtime expects before using this skill. Typical setups use environment variables for OpenAI, Opencode, and optionally Anthropic, but the exact variable names depend on the host/runtime wrapper. Do not hardcode secrets into the skill package.
+Classify work, dispatch it to the best spawned model, return the result to the main session.
 
 ## Non-negotiable rules
 
 - Never use Anthropic models unless the current prompt contains `--force-claude`.
-- Reject legacy flags `--use-claude`, `--force-opus`, and `--no-opus`.
-- Treat `--force-claude` as prompt-scoped, not session-scoped.
-- Prefer deterministic routing over ad hoc judgment.
-- Use `long` cache retention for `openai-codex/*` routes.
-- Use `short` cache retention for `opencode-go/*` routes.
-- Do not use Claude in build pipelines; keep `--force-claude` limited to tradeoff proposal generation.
+- Reject `--use-claude`, `--force-opus`, `--no-opus`.
+- `--force-claude` is prompt-scoped, not session-scoped.
+- Deterministic routing over ad hoc judgment.
+- `openai-codex/*` → `long` cache retention.
+- `opencode-go/*` → `short` cache retention.
+- Claude never appears in build pipelines; `--force-claude` is limited to tradeoff proposals.
+- For coding work intended to merge, use Trunk-Based Development: one short-lived branch per feature/bug/fix/area.
+- Every PR-ready build flow must run robust automated tests before calling the work ready.
+- Keep git-visible diffs minimal, atomic, and limited to necessary files.
 
-## Standard routing
+## Routing table
 
-Choose exactly one primary route:
+| Domain | Model |
+|---|---|
+| Code & architecture | `openai-codex/gpt-5.4` |
+| Math & algorithms | `opencode-go/glm-5` |
+| Web dev & brainstorming | `opencode-go/minimax-m2.5` |
+| Research & long context | `opencode-go/kimi-k2.5` |
+| Quick scripts & formatting | `openai-codex/gpt-5.3-codex-spark` |
 
-- **Code & architecture** → `openai-codex/gpt-5.4`
-- **Math & algorithms** → `opencode-go/glm-5`
-- **Web dev & brainstorming** → `opencode-go/minimax-m2.5`
-- **Research & long context** → `opencode-go/kimi-k2.5`
-- **Quick scripts & formatting** → `openai-codex/gpt-5.3-codex-spark`
-
-If a request spans categories, route by the highest-risk deliverable:
-
-1. Architecture or production code wins.
-2. Math or algorithm correctness beats brainstorming.
-3. Long-context ingestion beats light formatting.
-4. Formatting-only tasks stay on Spark.
+Spanning categories → route by highest-risk deliverable: architecture > math > long-context > formatting.
 
 ## Tradeoff protocol
 
-Trigger tradeoff mode when the user asks to:
-- evaluate tradeoffs
-- compare approaches, options, designs, or architectures
-- choose between competing solutions
-- judge which architecture or design is better
+Trigger when the user compares approaches, evaluates tradeoffs, or asks "which is better."
 
-### Default tradeoff route
+Default proposals: `opencode-go/glm-5` + `openai-codex/gpt-5.3-codex`
+With `--force-claude`: `anthropic/claude-sonnet-4-6` + `anthropic/claude-opus-4-6`
+Judge (always): `openai-codex/gpt-5.4`
 
-Generate proposals in parallel with:
-- `opencode-go/glm-5`
-- `openai-codex/gpt-5.3-codex`
+## Build pipelines
 
-Judge both proposals with:
-- `openai-codex/gpt-5.4`
+Trigger on `buildq:`, `build:`, or `buildx:` prefix.
 
-### Tradeoff route with `--force-claude`
+Pre-step: create or verify one short-lived branch for the scoped work.
 
-Use Claude only for proposal generation:
-- `anthropic/claude-sonnet-4-6`
-- `anthropic/claude-opus-4-6`
+### buildq: (quick, 5 steps)
+1. plan → `gpt-5.4`
+2. implement → `gpt-5.4`
+3. test → `glm-5`
+4. simplify → `gpt-5.3-codex`
+5. retest → `glm-5`
 
-Keep the judge on:
-- `openai-codex/gpt-5.4`
+### build: (standard, 10 steps)
+1. parallel-plan-a → `gpt-5.4`
+2. parallel-plan-b → `glm-5`
+3. judge-plan → `gpt-5.4`
+4. boilerplate → `gpt-5.3-codex-spark`
+5. implement → `gpt-5.4`
+6. test → `glm-5`
+7. simplify → `gpt-5.3-codex`
+8. retest → `glm-5`
+9. review-resolve → `gpt-5.4`
+10. final-test → `glm-5`
 
-Do not use Claude anywhere else in the flow.
+### buildx: (strict, 12 steps)
+1. parallel-plan-a → `gpt-5.4`
+2. parallel-plan-b → `glm-5`
+3. judge-plan → `gpt-5.4`
+4. boilerplate → `gpt-5.3-codex-spark`
+5. implement → `gpt-5.4`
+6. test → `glm-5`
+7. simplify → `gpt-5.3-codex`
+8. retest → `glm-5`
+9. review-resolve-a → `gpt-5.4`
+10. test-a → `glm-5`
+11. review-resolve-b → `kimi-k2.5`
+12. final-test → `glm-5`
 
-## Build pipeline protocol
-
-Use the build pipeline when the prompt starts with one of these prefixes:
-- `buildq:` → quick pipeline
-- `build:` → standard pipeline
-- `buildx:` → strict pipeline
-
-### buildq:
-
-Use for smaller scoped coding work.
-
-Steps:
-1. plan → `openai-codex/gpt-5.4`
-2. implement → `openai-codex/gpt-5.4`
-3. test → `opencode-go/glm-5`
-4. simplify → `openai-codex/gpt-5.3-codex`
-5. retest → `opencode-go/glm-5`
-
-### build:
-
-Use for the normal serious coding workflow.
-
-Steps:
-1. parallel-plan-a → `openai-codex/gpt-5.4`
-2. parallel-plan-b → `opencode-go/glm-5`
-3. judge-plan → `openai-codex/gpt-5.4`
-4. boilerplate → `openai-codex/gpt-5.3-codex-spark`
-5. implement → `openai-codex/gpt-5.4`
-6. test → `opencode-go/glm-5`
-7. simplify → `openai-codex/gpt-5.3-codex`
-8. retest → `opencode-go/glm-5`
-9. review-resolve → `openai-codex/gpt-5.4`
-10. final-test → `opencode-go/glm-5`
-
-### buildx:
-
-Use for stricter, higher-value delivery.
-
-Steps:
-1. parallel-plan-a → `openai-codex/gpt-5.4`
-2. parallel-plan-b → `opencode-go/glm-5`
-3. judge-plan → `openai-codex/gpt-5.4`
-4. boilerplate → `openai-codex/gpt-5.3-codex-spark`
-5. implement → `openai-codex/gpt-5.4`
-6. test → `opencode-go/glm-5`
-7. simplify → `openai-codex/gpt-5.3-codex`
-8. retest → `opencode-go/glm-5`
-9. review-resolve-a → `openai-codex/gpt-5.4`
-10. test-a → `opencode-go/glm-5`
-11. review-resolve-b → `opencode-go/kimi-k2.5`
-12. final-test → `opencode-go/glm-5`
+Exit rule: do not mark the branch PR-ready until automated tests pass and the diff stays atomic.
 
 ## Judge output contract
 
-When a judge-plan step runs, require these sections:
-1. selected architecture
-2. why it won
-3. project/file structure
-4. implementation order
-5. test plan
-6. simplification targets
-7. done criteria
+Judge-plan must emit:
+1. Selected architecture
+2. Why it won
+3. Project/file structure
+4. Implementation order
+5. Branch plan (name, scope boundary)
+6. Test plan
+7. PR/CI test gates
+8. Simplification targets
+9. Done criteria
 
 For `buildx:`, also include:
-- risk list
-- likely failure modes
-- review checklist
+1. Risk list
+2. Likely failure modes
+3. Review checklist
 
 ## Simplify contract
 
-The simplify step must:
-- remove dead code
-- remove speculative abstractions
-- reduce duplication
-- shorten over-engineered interfaces
-- delete non-needed helpers
-- prefer fewer files when clarity is not lost
-- preserve tested behavior
+Must:
+- Remove dead code
+- Remove speculative abstractions
+- Remove duplication
+- Remove over-engineered interfaces
+- Prefer fewer files when clarity is preserved
 
-The simplify step must not:
-- rewrite architecture unnecessarily
-- add clever abstractions
-- expand scope
-
-## Session transitions
-
-If the user shifts into a sustained new domain, summarize the active state with `openai-codex/gpt-5.3-codex-spark` and suggest a fresh session only when repeated cross-domain dispatching would be wasteful.
-
-## Context discipline
-
-- Fetch only the files needed for the routed task.
-- Do not ingest entire repositories unless the task explicitly requires it.
-- Treat one-off quick fixes as stateless unless the user asks to preserve them.
+Must not:
+- Rewrite architecture
+- Add abstractions
+- Expand scope
 
 ## Implementation contract
 
-`dispatcher.py` is the routing source of truth. It must:
-
-- produce deterministic `RoutePlan` objects
-- expose route choice, cache retention, rationale, and pipeline steps
-- support parallel proposal generation plus a separate judge in tradeoff mode
-- support `buildq:`, `build:`, and `buildx:` pipeline modes
-- reject empty prompts, unknown domains, and legacy flags
-- keep routing updates easy by centralizing model and trigger definitions
+`dispatcher.py` must produce deterministic `RoutePlan` objects, expose route choice + cache retention + rationale + pipeline steps, support tradeoff/buildq/build/buildx, reject empty prompts and legacy flags.
 
 ## Validation checklist
 
-Before shipping updates:
-
-1. Run `tests/test_dispatcher.py`.
-2. Run one end-to-end smoke test for a tradeoff request.
-3. Run smoke tests for `buildq:`, `build:`, and `buildx:`.
-4. Confirm Claude is unreachable unless `--force-claude` is present.
-5. Confirm Claude never appears in build pipelines.
-6. Confirm all OpenAI Codex routes use `long` retention.
-7. Confirm all `opencode-go` routes use `short` retention.
+1. Run `test_dispatcher.py` — all pass.
+2. Smoke test tradeoff, `buildq:`, `build:`, `buildx:`.
+3. Confirm Claude unreachable without `--force-claude`.
+4. Confirm Claude never in build pipelines.
+5. Confirm cache retention correctness.
+6. Confirm judge output includes branch plan and PR/CI test gates.
