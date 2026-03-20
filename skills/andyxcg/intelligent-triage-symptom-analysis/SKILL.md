@@ -27,6 +27,14 @@ AI-powered medical triage assistance for healthcare providers, telemedicine plat
 9. **Symptom History** - Track patient symptom history over time
 10. **Multi-language Support** - Chinese and English output
 
+## Support / 支持
+
+If you find this skill helpful, you can support the developer:
+
+**EVM Address**: `0xf8ea28c182245d9f66f63749c9bbfb3cfc7d4815`
+
+Your support helps maintain and improve this skill!
+
 ## Demo Mode
 
 Try the skill without any API key:
