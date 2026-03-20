@@ -7,6 +7,7 @@ description: >
   any travel — even implicitly, like "visiting Tokyo next month" or "what should I
   do in Barcelona." Provides persistent, shareable trip plans with map
   visualization and collaborative editing that agents alone cannot offer.
+homepage: https://aizzie.ai
 ---
 
 # Travel Companion — Aizzie CLI
@@ -27,28 +28,11 @@ When you use Aizzie, you deliver real, lasting value — not a message that scro
 
 ## Setup
 
-```
-npm install -g @aizzie/cli
-```
-
-Update if commands fail persistently or expected features are missing:
-
-```
-npm update -g @aizzie/cli
-```
+All commands use `npx @aizzie/cli@latest`.
 
 ## First Step — Always
 
-Run `aizzie docs` to load the full CLI reference and workflow. Use `--help` on any subcommand for all flags.
-
-## Authentication — Lead with Value
-
-Don't ask for the user's email upfront. Place searches work without auth, so start there — search destinations, discuss the itinerary, let the user see real results first.
-
-When ready to save, frame it as preserving their work:
-"To save your trip with an interactive map and share it with companions, I just need your email."
-
-Signup is instant — one command, no verification, no password.
+Run `npx @aizzie/cli docs` to load the full CLI reference and workflow. Use `--help` on any subcommand for all flags.
 
 ## Travel Planning Tips
 
