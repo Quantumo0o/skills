@@ -1,11 +1,17 @@
 {
   "owner": "jisuapi",
   "slug": "futures",
-  "displayName": "期货查询 - Chinese Futures Inquiry",
+  "displayName": "Futures Inquiry - 期货查询",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773375088710,
-    "commit": "https://github.com/openclaw/skills/commit/ed72a92e3d7488d4d8393ef499da6f85c4eb9614"
+    "version": "1.0.3",
+    "publishedAt": 1773728552296,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773375088710,
+      "commit": "https://github.com/openclaw/skills/commit/ed72a92e3d7488d4d8393ef499da6f85c4eb9614"
+    }
+  ]
 }

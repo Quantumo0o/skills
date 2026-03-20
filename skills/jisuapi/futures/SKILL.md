@@ -24,7 +24,7 @@ $env:JISU_API_KEY="your_appkey_here"
 
 ## 脚本路径
 
-脚本文件：`skill/futures/futures.py`
+脚本文件：`skills/futures/futures.py`
 
 ## 使用方式
 
@@ -33,31 +33,31 @@ $env:JISU_API_KEY="your_appkey_here"
 ### 1. 上海期货交易所（/futures/shfutures）
 
 ```bash
-python3 skill/futures/futures.py shfutures
+python3 skills/futures/futures.py shfutures
 ```
 
 ### 2. 大连商品交易所（/futures/dlfutures）
 
 ```bash
-python3 skill/futures/futures.py dlfutures
+python3 skills/futures/futures.py dlfutures
 ```
 
 ### 3. 郑州商品交易所（/futures/zzfutures）
 
 ```bash
-python3 skill/futures/futures.py zzfutures
+python3 skills/futures/futures.py zzfutures
 ```
 
 ### 4. 中国金融期货交易所（/futures/zgjrfutures）
 
 ```bash
-python3 skill/futures/futures.py zgjrfutures
+python3 skills/futures/futures.py zgjrfutures
 ```
 
 ### 5. 广州期货交易所（/futures/gzfutures）
 
 ```bash
-python3 skill/futures/futures.py gzfutures
+python3 skills/futures/futures.py gzfutures
 ```
 
 上述接口均无需额外 JSON 参数，脚本会直接输出接口 `result` 对象，其内部按品种名称分组，例如 `{"燃油": [...合约列表...], "铜": [...合约列表...]}`。
@@ -113,6 +113,6 @@ python3 skill/futures/futures.py gzfutures
 ## 在 OpenClaw 中的推荐用法
 
 1. 用户提问：「帮我看看今天 PTA、燃油、工业硅这几个期货的价格和涨跌情况。」  
-2. 代理按交易所调用对应命令，例如：`python3 skill/futures/futures.py shfutures`、`python3 skill/futures/futures.py dlfutures`、`python3 skill/futures/futures.py gzfutures`。  
+2. 代理按交易所调用对应命令，例如：`python3 skills/futures/futures.py shfutures`、`python3 skills/futures/futures.py dlfutures`、`python3 skills/futures/futures.py gzfutures`。  
 3. 从返回的 `result` 中按品种名称（如 `PTA`、`燃油`、`工业硅`）筛选相关合约，读取 `price`、`changepercent`、`maxprice`、`minprice`、`tradeamount` 等字段，为用户总结当前价格区间与涨跌幅，并必要时提醒仅作行情参考。  
 
