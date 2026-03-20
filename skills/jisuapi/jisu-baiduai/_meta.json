@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "jisu-baiduai",
-  "displayName": "百度智能搜索生成 - Baidu Intelligent Search",
+  "displayName": "Baidu Intelligent Search - 百度智能搜索生成",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773632611956,
-    "commit": "https://github.com/openclaw/skills/commit/45a3912dd236aa1255e056bcc63a77f3969b3356"
+    "version": "1.0.3",
+    "publishedAt": 1773720448303,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773632611956,
+      "commit": "https://github.com/openclaw/skills/commit/45a3912dd236aa1255e056bcc63a77f3969b3356"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773140985842,
