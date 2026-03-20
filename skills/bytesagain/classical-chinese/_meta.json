@@ -3,11 +3,16 @@
   "slug": "classical-chinese",
   "displayName": "Classical Chinese",
   "latest": {
-    "version": "2.3.4",
-    "publishedAt": 1773665159685,
-    "commit": "https://github.com/openclaw/skills/commit/cc009bfcbf70a133192351ea6933a1f7d1bba604"
+    "version": "2.3.5",
+    "publishedAt": 1773773003308,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.4",
+      "publishedAt": 1773665159685,
+      "commit": "https://github.com/openclaw/skills/commit/cc009bfcbf70a133192351ea6933a1f7d1bba604"
+    },
     {
       "version": "2.3.1",
       "publishedAt": 1773610707745,
