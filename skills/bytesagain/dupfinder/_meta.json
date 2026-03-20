@@ -3,9 +3,15 @@
   "slug": "dupfinder",
   "displayName": "Dupfinder",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773663652906,
-    "commit": "https://github.com/openclaw/skills/commit/800c9718afcb6d79e21b0f4b58d8035af9c4747a"
+    "version": "2.0.1",
+    "publishedAt": 1773830534078,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773663652906,
+      "commit": "https://github.com/openclaw/skills/commit/800c9718afcb6d79e21b0f4b58d8035af9c4747a"
+    }
+  ]
 }
