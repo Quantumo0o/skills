@@ -1,7 +1,10 @@
 ---
+version: "2.0.0"
 name: Crypto News Feed
-version: 1.0.0
-description: Aggregate crypto news from RSS feeds, filter by keywords, score sentiment, and generate daily digest HTML reports.
+description: "Aggregate crypto news with sentiment analysis and personalized feeds. Use when scanning headlines, analyzing sentiment, filtering by token."
+author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 
 # Crypto News Feed 📰
@@ -12,26 +15,22 @@ description: Aggregate crypto news from RSS feeds, filter by keywords, score sen
 
 ### Commands at a Glance
 
-| Command | Usage | Output |
-|---------|-------|--------|
-| `fetch` | `bash scripts/crypto-news-feed.sh fetch` | Fetch latest from all sources |
-| `filter` | `bash scripts/crypto-news-feed.sh filter --keywords "bitcoin,ETF"` | Filter by keywords |
-| `digest` | `bash scripts/crypto-news-feed.sh digest --date today` | Generate daily HTML digest |
-| `sentiment` | `bash scripts/crypto-news-feed.sh sentiment --keyword "ethereum"` | Sentiment score for topic |
-| `sources` | `bash scripts/crypto-news-feed.sh sources` | List configured RSS feeds |
-| `add-source` | `bash scripts/crypto-news-feed.sh add-source --url URL --name NAME` | Add new RSS source |
-| `trending` | `bash scripts/crypto-news-feed.sh trending` | Show trending topics |
+| Command | Description |
+|---------|-------------|
+| `search` | Search |
+| `digest` | Generate HTML news digest |
+| `sources` | List available news sources |
 
 ### Default RSS Sources
 
 ```
-📡 CoinDesk          https://www.coindesk.com/arc/outboundfeeds/rss/
-📡 CoinTelegraph     https://cointelegraph.com/rss
-📡 The Block         https://www.theblock.co/rss.xml
-📡 Decrypt           https://decrypt.co/feed
-📡 Bitcoin Magazine   https://bitcoinmagazine.com/feed
-📡 Blockworks        https://blockworks.co/feed
-📡 DL News           https://www.dlnews.com/rss/
+📡 CoinDesk          [configured-endpoint]
+📡 CoinTelegraph     [configured-endpoint]
+📡 The Block         [configured-endpoint]
+📡 Decrypt           [configured-endpoint]
+📡 Bitcoin Magazine   [configured-endpoint]
+📡 Blockworks        [configured-endpoint]
+📡 DL News           [configured-endpoint]
 ```
 
 ### Sentiment Scoring System
@@ -98,3 +97,6 @@ The `digest` command generates `crypto-digest-YYYY-MM-DD.html` containing:
 # Add to crontab for daily 8am digest
 0 8 * * * cd /path/to/workspace && bash skills/crypto-news-feed/scripts/crypto-news-feed.sh digest --date today
 ```
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com

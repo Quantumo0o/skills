@@ -3,9 +3,15 @@
   "slug": "crypto-news-feed",
   "displayName": "Crypto News Feed",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1773421126594,
-    "commit": "https://github.com/openclaw/skills/commit/0c880a9e4a2f5e387315387a38de3d58497e8e4b"
+    "version": "2.0.1",
+    "publishedAt": 1773830400954,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1773421126594,
+      "commit": "https://github.com/openclaw/skills/commit/0c880a9e4a2f5e387315387a38de3d58497e8e4b"
+    }
+  ]
 }
