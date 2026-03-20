@@ -3,11 +3,16 @@
   "slug": "note-taker",
   "displayName": "Note Taker",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773666599664,
-    "commit": "https://github.com/openclaw/skills/commit/3578546536f6a51b69f436ba4036f713441f00b0"
+    "version": "2.0.1",
+    "publishedAt": 1773830853659,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773666599664,
+      "commit": "https://github.com/openclaw/skills/commit/3578546536f6a51b69f436ba4036f713441f00b0"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773444862432,
