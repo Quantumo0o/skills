@@ -3,11 +3,16 @@
   "slug": "insurance-advisor",
   "displayName": "Insurance Advisor",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773663845358,
-    "commit": "https://github.com/openclaw/skills/commit/67ea369c526242d49ea353f069998d85428a9c16"
+    "version": "2.0.0",
+    "publishedAt": 1773773535855,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773663845358,
+      "commit": "https://github.com/openclaw/skills/commit/67ea369c526242d49ea353f069998d85428a9c16"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773447152867,
