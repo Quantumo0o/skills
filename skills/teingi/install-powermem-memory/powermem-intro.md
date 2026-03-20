@@ -27,7 +27,7 @@ Use this doc when the user asks "what is PowerMem", "why use PowerMem", or needs
 ## Relationship with OpenClaw
 
 - **OpenClaw**: Provides gateway, sessions, tool dispatch, etc.; its **memory slot** must be implemented by a plugin.
-- **openclaw-extension-powermem**: Implements the memory slot and forwards store/recall/forget requests to PowerMem (HTTP or CLI).
+- **memory-powermem**: Implements the memory slot and forwards store/recall/forget requests to PowerMem (HTTP or CLI).
 - **PowerMem**: Handles storage, retrieval, intelligent extraction, and forgetting curve; it is where data actually lives.
 
 So: the user must **install and run PowerMem first** (or install the `pmem` CLI), then install this plugin and configure the connection (HTTP `baseUrl` or CLI `pmemPath`).
