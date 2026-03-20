@@ -1,11 +1,17 @@
 {
   "owner": "jisuapi",
   "slug": "mobileempty",
-  "displayName": "手机空号检测 - Mobile Phone Number Undeliverable or Empty Detection",
+  "displayName": "Mobile Phone Number Undeliverable or Empty Detection - 手机空号检测",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772604257936,
-    "commit": "https://github.com/openclaw/skills/commit/bd1b5f55701e995ea85c698d25e143a3a95ff0ab"
+    "version": "1.0.1",
+    "publishedAt": 1773727725599,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772604257936,
+      "commit": "https://github.com/openclaw/skills/commit/bd1b5f55701e995ea85c698d25e143a3a95ff0ab"
+    }
+  ]
 }
