@@ -4,6 +4,10 @@
 Usage:
     # Run with credentials file + bot params:
     python live_runner.py --creds ~/.moss-trade-bot/agent_creds.json --params-file bot_params.json --interval 15
+    # --platform-url should be site origin only, e.g. https://ai.moss.site
+
+    # US users can switch live signal input to Coinbase spot candles:
+    python live_runner.py --creds ~/.moss-trade-bot/agent_creds.json --params-file bot_params.json --interval 15 --data-source coinbase
 
     # With evolution (reflect every N cycles):
     python live_runner.py --creds creds.json --params-file params.json --interval 15 --evolve-every 96
@@ -24,10 +28,11 @@ import numpy as np
 from core.decision import DecisionParams, compute_signals
 from core.regime import classify_regime
 from core.indicators import atr as compute_atr
-from core.fetcher import fetch_ohlcv
+from core.fetcher import fetch_live_ohlcv
 from trading_client import TradingClient
 
 RUNNING = True
+PLATFORM_URL_HELP = "Platform site origin only, e.g. https://ai.moss.site. The client appends API paths automatically."
 
 
 def _handle_stop(signum, frame):
@@ -94,12 +99,18 @@ def check_exit_conditions(
 
 
 def run_cycle(client: TradingClient, params: DecisionParams, timeframe: str,
-              cycle_num: int, log_file: str = None) -> dict:
+              cycle_num: int, data_source: str, log_file: str = None) -> dict:
     """Run one trading decision cycle. Returns cycle result dict."""
 
-    _log(f"Cycle #{cycle_num}: fetching data...", log_file)
+    _log(f"Cycle #{cycle_num}: fetching {data_source} market data...", log_file)
     try:
-        df = fetch_ohlcv("BTC/USDT", timeframe, days=14, use_cache=False)
+        df = fetch_live_ohlcv(
+            "BTC/USDT",
+            timeframe,
+            days=14,
+            data_source=data_source,
+            use_cache=False,
+        )
     except Exception as e:
         _log(f"Data fetch failed: {e}", log_file)
         return {"action": "error", "detail": str(e)}
@@ -161,8 +172,16 @@ def main():
     parser.add_argument("--params-file", default=None, help="Bot params JSON file")
     parser.add_argument("--interval", type=int, default=15, help="Decision interval in minutes")
     parser.add_argument("--timeframe", default=None, help="Override K-line timeframe (default: from interval)")
+    parser.add_argument(
+        "--data-source",
+        choices=["binanceusdm", "coinbase"],
+        default="binanceusdm",
+        help="Live-only market data source for signal generation. "
+             "Coinbase is allowed only in live mode; backtests must still use Binance/CSV.",
+    )
     parser.add_argument("--max-cycles", type=int, default=0, help="Stop after N cycles (0=unlimited)")
     parser.add_argument("--log", default="", help="Log file path")
+    parser.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
     args = parser.parse_args()
 
     with open(args.creds) as f:
@@ -188,6 +207,7 @@ def main():
     client = TradingClient(
         api_key=creds["api_key"],
         api_secret=creds["api_secret"],
+        base_url=args.platform_url or creds.get("base_url", ""),
         bot_id=creds.get("bot_id", ""),
     )
 
@@ -197,14 +217,18 @@ def main():
     log_file = args.log or None
     interval_sec = args.interval * 60
 
-    _log(f"Bot started: interval={args.interval}m timeframe={timeframe} leverage={params.base_leverage}x", log_file)
+    _log(
+        f"Bot started: interval={args.interval}m timeframe={timeframe} "
+        f"leverage={params.base_leverage}x data_source={args.data_source}",
+        log_file,
+    )
     _log(f"  bot_id={creds.get('bot_id','?')} long_bias={params.long_bias}", log_file)
 
     cycle = 0
     while RUNNING:
         cycle += 1
         try:
-            run_cycle(client, params, timeframe, cycle, log_file)
+            run_cycle(client, params, timeframe, cycle, args.data_source, log_file)
         except Exception as e:
             _log(f"Cycle #{cycle} error: {e}", log_file)
 

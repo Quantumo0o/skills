@@ -2,25 +2,36 @@
 
 ## 通用前置
 
-- 凭证存储路径：`~/.moss-trade-bot/agent_creds.json`（**不要用 /tmp**，重启会丢失）
-- 环境变量：`TRADE_API_URL`（未设置时所有功能纯本地）
-- 认证方式：HMAC 签名（api_key + api_secret），无需 user_uuid
+- 凭证存储路径：优先使用 skill config `agent_creds_path`；未配置时默认 `~/.moss-trade-bot/agent_creds.json`（**不要用 /tmp**，重启会丢失）
+- 平台地址：优先使用 skill config `trade_api_url`；默认值 `https://ai.moss.site`。也可通过 `--platform-url` 显式传入。首次 bind 后会保存在 `agent_creds.json` 的 `base_url` 字段中，供后续命令复用
+- 认证方式：HMAC 签名（api_key + api_secret）
+- 下方示例统一写成默认路径；若 skill config 已提供 `agent_creds_path`，请整体替换示例中的凭证文件路径
+- `--platform-url` 只填站点 origin，例如 `https://ai.moss.site`。脚本会自动拼成 `https://ai.moss.site/api/v1/moss/agent/agents/bind`
+
+## 依赖声明与无害性
+
+- 平台相关脚本只依赖两类外部输入：显式平台地址（`--platform-url` 或 skill config `trade_api_url`），以及本地 `agent_creds.json` 凭证文件
+- `agent_creds.json` 只保存 bind 返回的 `api_key/api_secret`、后续 `bot_id`、以及可选 `base_url`，不包含系统账号或其他第三方密钥
+- 这是一项本地文件依赖，不是环境变量依赖；只有在用户明确启用 upload / bind / live 时才会读取
+- 回测结果、CSV、参数文件都只在本地读取；只有当你明确执行 upload / bind / live 时，脚本才会向用户指定的平台地址发请求
+- 绑定后的本地凭证可直接用于提交并轮询 verify 结果
 
 ---
 
 ## Pair Code 绑定（上传/实盘的必要前置）
 
-1. **注册**：访问 [Moss Trader](https://moss-website-prr07kqhm-merlinlayer2.vercel.app/trader) 注册/登录
+1. **注册**：访问 [Moss Trader](https://moss.site/agent) 注册/登录
 2. **获取 Pair Code**：登录后平台显示 **pair code**，用户复制
 3. **执行绑定**：
    ```bash
    mkdir -p ~/.moss-trade-bot
    cd {baseDir}/scripts && python3 live_trade.py bind \
+     --platform-url "https://ai.moss.site" \
      --pair-code "<pair_code>" \
      --name "<Bot名称>" --persona "<风格>" --description "<策略描述>" \
      --save ~/.moss-trade-bot/agent_creds.json
    ```
-4. 返回 `binding_id`、`api_key`、`api_secret`（**bind 仅做身份绑定，不创建实盘 Bot**）。**api_secret 只返回一次，不要打印到回复中。**
+4. 返回 `binding_id`、`api_key`、`api_secret`（**bind 仅做身份绑定，不创建实盘 Bot**）。**api_secret 只返回一次，不要打印到回复中。** 若用了 `--save`，同一文件还会保存 `base_url`，供后续命令复用。
 5. **实盘前必须再创建 Realtime Bot**（见下「创建 Realtime Bot」），拿到 `bot_id` 写入同一 creds 文件后，才能做 account/positions/orders 等操作。
 
 ---
@@ -31,6 +42,12 @@
 
 平台用 **2025-10-06 ~ 2026-03-03** 区间在服务端回测校验。fingerprint 和 result 必须基于该区间。本地自玩可用其他区间，但上传前需用该区间重跑。
 
+- 回测 / 上传验证的数据源固定为 **Binance USDT-M 期货**
+- 若 Binance API 不可用，请改用你们提供的 Binance CSV；不要在回测 / 上传阶段改用 Coinbase
+- 上传包中的 Bot 文案现在应显式带双语：`name_i18n/personality_i18n/description_i18n = {zh, en}`
+- 上传接口现在按请求体严格校验双语字段：缺任意一个 `*_i18n.zh/en`，即使旧单字段有值，也会直接拒绝
+- 若中文文案含中文字符，`package_upload.py` 会要求你补充自然英文版本；不要把中文原样复制到 `en`
+
 ### 执行上传前必须确认（缺一不可）
 
 1. 用户已 bind，凭证文件存在
@@ -39,6 +56,10 @@
 ### 重要：平台 verifier 行为
 
 **evolution_log / `--evolution-log-file` 为选填**：接口不强制。**不填 = 不进化模式**（平台用 bot.params 单参回放一整段）；**填了 = 进化模式**（平台按 evolution_log 分段 stitched 回放，与本地 run_evolve_backtest 同类）。
+
+- 本地 `run_backtest.py` / `run_evolve_backtest.py` 与平台 verifier 现在都使用 **全仓回测语义**
+- 开仓占用的是账户 `free_margin`
+- 强平按账户级 `equity <= maintenance_margin_total` 判定，不再是“单仓亏完自身 margin 就爆”
 
 - **evolution_log 非空**：平台做**分段 stitched 回放**（和本地 run_evolve_backtest 同类），逐段用 evolution_log 里的 params_used，对比你提交的 backtest_result。
 - **evolution_log 为空**：平台退化成**单参数普通回放**（只用 bot.params 跑一整段），和本地“分段进化”结果**不是同一类回测**，交易数、收益都会对不上。
@@ -51,18 +72,28 @@
 
 ```bash
 cd {baseDir}/scripts && python3 package_upload.py \
-  --bot-name "<名称>" \
-  --bot-personality "<风格标签>" \
-  --bot-description "<策略描述，≤280字>" \
+  --bot-name-zh "<中文名称>" \
+  --bot-name-en "<English Name>" \
+  --bot-personality-zh "<中文风格标签>" \
+  --bot-personality-en "<English Personality>" \
+  --bot-description-zh "<中文策略描述，≤280字>" \
+  --bot-description-en "<English Strategy Description, <=280 chars>" \
   --params-file /tmp/bot_params.json \
   --fingerprint-file /tmp/fingerprint.json \
   --result-file /tmp/evolve_result_final.json \
   --output /tmp/upload_package.json \
-  --platform-url http://54.255.3.5:8088 \
+  --platform-url https://ai.moss.site \
   --creds ~/.moss-trade-bot/agent_creds.json
 ```
 
 说明：`evolve_result_final.json` 已含 `evolution_log`，package_upload.py 会从 result 里自动带出，无需再传 `--evolution-log-file`。若显式传，可写 `--evolution-log-file /tmp/evolve_result_final.json`（同文件即可）。
+
+补充说明：
+
+- `--bot-name / --bot-personality / --bot-description` 仍保留做兼容投影
+- 新脚本会同时写入 `bot.name_i18n / bot.personality_i18n / bot.description_i18n`
+- 若只给中文且未给英文翻译，脚本会直接报错，避免把中文镜像写进 `en`
+- 上传验证与轮询只需要本地 `agent_creds.json` 里的 HMAC 凭证
 
 ### 固定参数上传（仅当未跑进化时）
 
@@ -99,7 +130,16 @@ cd {baseDir}/scripts && python3 package_upload.py \
   ```bash
   cd {baseDir}/scripts && python3 live_trade.py create-bot \
     --creds ~/.moss-trade-bot/agent_creds.json \
-    --name "<Bot名称>" --persona "<风格>" --description "<策略描述>" \
+    --platform-url "https://ai.moss.site" \
+    --name "<Bot中文名称或默认名称>" \
+    --name-zh "<Bot中文名称>" \
+    --name-en "<English Bot Name>" \
+    --persona "<中文风格标签或默认风格>" \
+    --persona-zh "<中文风格标签>" \
+    --persona-en "<English Persona>" \
+    --description "<中文策略描述>" \
+    --description-zh "<中文策略描述>" \
+    --description-en "<English Strategy Description>" \
     --params-file /tmp/bot_params.json
   ```
   脚本会把返回的 `bot_id` 写入同一 creds 文件。**多 realtime bot 时**，account/positions/orders 等接口需带 `X-BOT-ID`（本 skill 通过 creds 中的 `bot_id` 自动带上）；若该 binding 下只有一个活跃 bot，服务端可省略。
@@ -109,8 +149,14 @@ cd {baseDir}/scripts && python3 package_upload.py \
 ### 前置检查
 
 ```bash
-echo $TRADE_API_URL
 ls -la ~/.moss-trade-bot/agent_creds.json 2>/dev/null || true
+# 如需确认平台地址是否已保存到本地 creds，可读取 base_url：
+python3 - <<'PY'
+import json, pathlib
+p = pathlib.Path.home() / ".moss-trade-bot" / "agent_creds.json"
+if p.exists():
+    print(json.load(p.open()).get("base_url", ""))
+PY
 # creds 中需包含 bot_id（执行过 create-bot 后会有）
 ```
 
@@ -119,15 +165,34 @@ ls -la ~/.moss-trade-bot/agent_creds.json 2>/dev/null || true
 ```bash
 cd {baseDir}/scripts && python3 live_runner.py \
   --creds ~/.moss-trade-bot/agent_creds.json \
+  --platform-url "https://ai.moss.site" \
   --params-file /tmp/bot_params.json \
   --interval 15 \
   --log /tmp/bot_live.log
 ```
 
+美区用户若无法访问 Binance API，可只在实盘自动运行时切到 Coinbase：
+
+```bash
+cd {baseDir}/scripts && python3 live_runner.py \
+  --creds ~/.moss-trade-bot/agent_creds.json \
+  --platform-url "https://ai.moss.site" \
+  --params-file /tmp/bot_params.json \
+  --interval 15 \
+  --data-source coinbase \
+  --log /tmp/bot_live.log
+```
+
 参数：
 - `--interval 15` → 每15分钟决策（对应15m K线）
+- `--data-source coinbase` → 仅把 **live signal 输入**切到 Coinbase 现货 K 线，**不**改变下单目标、回测数据、fingerprint 或上传验证
 - `--max-cycles 96` → 跑96轮后停（24小时），0=不限
 - Ctrl+C 优雅停止
+
+执行规则：
+- 若上下文已经明确用户属于美国区域，或当前问题已经明确是“美区用户无法使用 Binance API 做实盘自动运行”，先明确告知将改用 `--data-source coinbase`
+- 在首次切换 live data source 前，获得一次用户确认后再执行；确认后本次会话可沿用同一数据源，无需每一步重复确认
+- 回测、进化回放、fingerprint、上传验证仍然固定 Binance USDT-M / 你们提供的 Binance CSV，不要因为美区限制改成 Coinbase
 
 ### 手动交易
 

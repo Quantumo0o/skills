@@ -1,4 +1,11 @@
-"""Self-contained backtest engine for the skill."""
+"""Self-contained backtest engine for the skill.
+
+Backtest / verify now follow cross-margin semantics:
+- opening a position consumes free margin, but does not deduct wallet balance
+- liquidation is checked at account level against maintenance margin
+- one position can lose more than its own initial margin if the account still has
+  enough shared equity buffer
+"""
 
 import numpy as np
 import pandas as pd
@@ -8,12 +15,65 @@ from core.decision import DecisionParams, compute_signals
 from core.indicators import atr as compute_atr
 from core.engine import Trade, BacktestResult
 
+DEFAULT_MAINTENANCE_RATE = 0.004
+
 
 def _unrealized_pnl_pct(pos: Trade, current_price: float) -> float:
     if pos.direction == 1:
         return (current_price - pos.entry_price) / pos.entry_price * pos.leverage
     else:
         return (pos.entry_price - current_price) / pos.entry_price * pos.leverage
+
+
+def _position_qty(pos: Trade) -> float:
+    if pos.entry_price <= 0 or pos.leverage <= 0 or pos.margin <= 0:
+        return 0.0
+    return pos.margin * pos.leverage / pos.entry_price
+
+
+def _position_unrealized_pnl(pos: Trade, current_price: float) -> float:
+    qty = _position_qty(pos)
+    if pos.direction == 1:
+        return (current_price - pos.entry_price) * qty
+    return (pos.entry_price - current_price) * qty
+
+
+def _used_margin(positions: list[Trade]) -> float:
+    return float(sum(max(pos.margin, 0.0) for pos in positions))
+
+
+def _account_equity(wallet_balance: float, positions: list[Trade], current_price: float) -> float:
+    unrealized = sum(_position_unrealized_pnl(pos, current_price) for pos in positions)
+    return wallet_balance + unrealized
+
+
+def _free_margin(wallet_balance: float, positions: list[Trade], current_price: float) -> float:
+    return _account_equity(wallet_balance, positions, current_price) - _used_margin(positions)
+
+
+def _book_liquidation_threshold(positions: list[Trade], wallet_balance: float, maintenance_rate: float) -> tuple[float | None, str | None]:
+    signed_qty = 0.0
+    abs_qty = 0.0
+    signed_entry_notional = 0.0
+    for pos in positions:
+        qty = _position_qty(pos)
+        if qty <= 0:
+            continue
+        sign = 1.0 if pos.direction == 1 else -1.0
+        signed_qty += sign * qty
+        abs_qty += qty
+        signed_entry_notional += sign * pos.entry_price * qty
+
+    slope = signed_qty - maintenance_rate * abs_qty
+    if abs_qty <= 0 or abs(slope) <= 1e-12:
+        return None, None
+
+    liq_price = (signed_entry_notional - wallet_balance) / slope
+    if not np.isfinite(liq_price) or liq_price <= 0:
+        return None, None
+    if slope > 0:
+        return liq_price, "down"
+    return liq_price, "up"
 
 
 def _format_ts(value) -> str | None:
@@ -34,6 +94,7 @@ def run_backtest(
     regime: pd.Series,
     initial_capital: float = 10000.0,
     precomputed_signals: pd.Series = None,
+    maintenance_rate: float = DEFAULT_MAINTENANCE_RATE,
 ) -> BacktestResult:
     df = df.copy().reset_index(drop=True)
     regime = regime.reset_index(drop=True)
@@ -47,7 +108,7 @@ def run_backtest(
     atr_series = compute_atr(df, 14)
     atr_pct_series = (atr_series / df["close"]).fillna(0.02)
 
-    capital = initial_capital
+    wallet_balance = initial_capital
     total_deposited = initial_capital
     blowup_count = 0
     equity = [initial_capital]
@@ -64,23 +125,40 @@ def run_backtest(
         atr_pct = atr_pct_series.iloc[i] if not np.isnan(atr_pct_series.iloc[i]) else 0.02
         atr_val = atr_series.iloc[i] if not np.isnan(atr_series.iloc[i]) else price * 0.02
 
-        if capital < initial_capital * 0.01 and not positions:
+        if wallet_balance < initial_capital * 0.01 and not positions:
             blowup_count += 1
-            capital = initial_capital
+            wallet_balance = initial_capital
             total_deposited += initial_capital
             roll_count = 0
+
+        liq_price, liq_direction = _book_liquidation_threshold(positions, wallet_balance, maintenance_rate)
+        if liq_price is not None:
+            liq_triggered = (
+                liq_direction == "down" and low <= liq_price
+            ) or (
+                liq_direction == "up" and high >= liq_price
+            )
+            if liq_triggered:
+                total_pnl = 0.0
+                for pos in positions:
+                    pnl_pct = _unrealized_pnl_pct(pos, liq_price)
+                    pnl = pos.margin * pnl_pct
+                    pos.exit_idx = i
+                    pos.exit_price = liq_price
+                    pos.exit_time = _format_ts(df["timestamp"].iloc[i]) if has_ts else None
+                    pos.pnl = pnl
+                    pos.pnl_pct = pnl_pct
+                    pos.exit_reason = "liquidation"
+                    trades.append(pos)
+                    total_pnl += pnl
+                wallet_balance += total_pnl
+                wallet_balance = max(wallet_balance, 0.0)
+                positions = []
 
         closed_positions = []
         for pos in positions:
             exit_price = None
             exit_reason = ""
-
-            liq_check = low if pos.direction == 1 else high
-            if _unrealized_pnl_pct(pos, liq_check) <= -1.0:
-                liq_threshold = pos.entry_price * (1 - 1.0 / pos.leverage) if pos.direction == 1 \
-                    else pos.entry_price * (1 + 1.0 / pos.leverage)
-                exit_price = liq_threshold
-                exit_reason = "liquidation"
 
             if exit_price is None and pos.sl_price is not None:
                 if pos.direction == 1 and low <= pos.sl_price:
@@ -130,7 +208,6 @@ def run_backtest(
 
             if exit_price is not None:
                 pnl_pct = _unrealized_pnl_pct(pos, exit_price)
-                pnl_pct = max(pnl_pct, -1.0)
                 pnl = pos.margin * pnl_pct
                 pos.exit_idx = i
                 pos.exit_price = exit_price
@@ -138,8 +215,8 @@ def run_backtest(
                 pos.pnl = pnl
                 pos.pnl_pct = pnl_pct
                 pos.exit_reason = exit_reason
-                capital += pos.margin + pnl
-                capital = max(capital, 0)
+                wallet_balance += pnl
+                wallet_balance = max(wallet_balance, 0.0)
                 trades.append(pos)
                 closed_positions.append(pos)
 
@@ -149,12 +226,13 @@ def run_backtest(
                 roll_count = max(0, roll_count - 1)
 
         if params.rolling_enabled and positions and roll_count < params.rolling_max_times:
+            available_free_margin = _free_margin(wallet_balance, positions, price)
             for pos in list(positions):
                 unrealized = _unrealized_pnl_pct(pos, price)
                 if unrealized >= params.rolling_trigger_pct:
                     float_profit = pos.margin * unrealized
                     new_margin = float_profit * params.rolling_reinvest_pct
-                    if new_margin > 0 and capital >= new_margin:
+                    if new_margin > 0 and available_free_margin >= new_margin:
                         leverage = min(params.base_leverage, params.max_leverage)
                         sl_dist = params.sl_atr_mult * atr_val
                         tp_dist = sl_dist * params.tp_rr_ratio
@@ -169,19 +247,20 @@ def run_backtest(
                             leverage=leverage, margin=new_margin, sl_price=sl_p, tp_price=tp_p,
                             entry_time=_format_ts(df["timestamp"].iloc[i]) if has_ts else None,
                         )
-                        capital -= new_margin
                         positions.append(new_pos)
+                        available_free_margin -= new_margin
                         roll_count += 1
                         if params.rolling_move_stop:
                             pos.sl_price = pos.entry_price
 
-        if not positions and capital > 0:
+        available_free_margin = _free_margin(wallet_balance, positions, price)
+        if not positions and available_free_margin > 0:
             sig = signals.iloc[i]
             if sig != 0:
                 direction = int(sig)
                 leverage = min(params.base_leverage, params.max_leverage)
-                margin = capital * params.risk_per_trade
-                margin = min(margin, capital * params.max_position_pct, capital)
+                margin = available_free_margin * params.risk_per_trade
+                margin = min(margin, available_free_margin * params.max_position_pct, available_free_margin)
                 sl_dist = params.sl_atr_mult * atr_val
                 tp_dist = sl_dist * params.tp_rr_ratio
                 if direction == 1:
@@ -195,28 +274,22 @@ def run_backtest(
                     leverage=leverage, margin=margin, sl_price=sl_p, tp_price=tp_p,
                     entry_time=_format_ts(df["timestamp"].iloc[i]) if has_ts else None,
                 )
-                capital -= margin
                 positions.append(pos)
                 roll_count = 0
 
-        total_eq = capital
-        for pos in positions:
-            unreal = _unrealized_pnl_pct(pos, price)
-            total_eq += pos.margin * (1 + max(unreal, -1.0))
+        total_eq = _account_equity(wallet_balance, positions, price)
         equity.append(total_eq - (total_deposited - initial_capital))
         prev_regime = curr_regime
 
     for pos in positions:
         price = df["close"].iloc[-1]
         pnl_pct = _unrealized_pnl_pct(pos, price)
-        pnl_pct = max(pnl_pct, -1.0)
         pos.exit_idx = len(df) - 1
         pos.exit_price = price
         pos.exit_time = _format_ts(df["timestamp"].iloc[-1]) if has_ts else None
         pos.pnl = pos.margin * pnl_pct
         pos.pnl_pct = pnl_pct
         pos.exit_reason = "end_of_data"
-        capital += pos.margin + pos.pnl
         trades.append(pos)
 
     equity_series = pd.Series(equity)

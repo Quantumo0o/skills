@@ -3,12 +3,22 @@
 
 Usage:
     python package_upload.py \
-        --bot-name "利弗莫尔" \
-        --bot-personality "趋势投机者" \
+        --bot-name-zh "利弗莫尔" \
+        --bot-name-en "Livermore" \
+        --bot-personality-zh "趋势投机者" \
+        --bot-personality-en "Trend Speculator" \
+        --bot-description-zh "利弗莫尔风格的 BTC 趋势投机机器人。" \
+        --bot-description-en "Livermore-style BTC trend speculation bot." \
         --params-file bot_params.json \
         --fingerprint-file fingerprint.json \
         --result-file backtest_result.json \
         --output upload_package.json
+
+    # 显式上传并轮询（推荐显式给 --platform-url / --creds）
+    python package_upload.py ... \
+        --platform-url https://ai.moss.site \
+        --creds ~/.moss-trade-bot/agent_creds.json
+    # --platform-url should be site origin only, e.g. https://ai.moss.site
 
     # 进化回测上传（必须带 evolution_log，平台才会做分段 stitched 回放，否则退化成单参回放，和本地结果对不上）：
     python package_upload.py ... \
@@ -31,6 +41,9 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from core.decision import DecisionParams
+from text_i18n import default_text, validate_bilingual_text
+
+PLATFORM_URL_HELP = "Platform site origin only, e.g. https://ai.moss.site. The client appends API paths automatically."
 
 # 数据源必须与本地一致：Skill 仅使用 Binance USDT-M 期货 (binanceusdm)。
 # 上传时默认原样使用 fingerprint 的 exchange，不再映射为 binance，避免平台用现货数据校验导致指纹/结果不一致。
@@ -43,31 +56,29 @@ def _materialize_params(raw_params):
         return DecisionParams().to_dict()
     clean = {k: v for k, v in raw_params.items() if v is not None}
     return DecisionParams.from_dict(clean).to_dict()
-
-
 def main():
     parser = argparse.ArgumentParser(description="Package upload bundle")
-    parser.add_argument("--bot-name", required=True)
+    parser.add_argument("--bot-name", default="")
+    parser.add_argument("--bot-name-zh", required=True)
+    parser.add_argument("--bot-name-en", required=True)
     parser.add_argument("--bot-personality", default="")
+    parser.add_argument("--bot-personality-zh", required=True)
+    parser.add_argument("--bot-personality-en", required=True)
     parser.add_argument("--bot-description", default="")
+    parser.add_argument("--bot-description-zh", required=True)
+    parser.add_argument("--bot-description-en", required=True)
     parser.add_argument("--params-file", required=True)
     parser.add_argument("--fingerprint-file", required=True)
     parser.add_argument("--result-file", required=True)
     parser.add_argument("--evolution-log-file", default=None)
     parser.add_argument("--evolution-config", default=None, help="JSON string for evolution config")
     parser.add_argument("--output", default="upload_package.json")
-    parser.add_argument("--platform-url", default=None, help="Platform base URL (e.g. http://54.255.3.5:8088)")
+    parser.add_argument("--platform-url", default=None, help=PLATFORM_URL_HELP + " Otherwise reuse base_url stored in agent_creds.json.")
     parser.add_argument("--creds", default=None,
-                        help="Path to agent_creds.json (bind 后保存的 api_key/api_secret)。上传验证必须提供")
-    parser.add_argument("--user-uuid", default=None,
-                        help="平台查询 job 状态需 user_uuid。可从 Moss Trader 个人中心获取，或 MOSS_USER_UUID 环境变量")
+                        help="Path to agent_creds.json (bind 后保存的 api_key/api_secret/base_url)。上传验证必须显式提供")
     parser.add_argument("--exchange", default=None,
                         help="Override data_fingerprint.exchange. Default: use fingerprint's exchange (binanceusdm). Set to binance only if platform requires it.")
     args = parser.parse_args()
-
-    user_uuid = args.user_uuid or os.environ.get("MOSS_USER_UUID") or None
-    if user_uuid == "default_user":
-        user_uuid = None
 
     with open(args.params_file) as f:
         params = json.load(f)
@@ -152,12 +163,35 @@ def main():
             t["exit_time"] = _to_rfc3339(t["exit_time"])
     evolution_log = _normalize_evolution_log(evolution_log)
 
+    try:
+        name_i18n = validate_bilingual_text(
+            "bot.name_i18n",
+            {"zh": args.bot_name_zh, "en": args.bot_name_en},
+            64,
+        )
+        personality_i18n = validate_bilingual_text(
+            "bot.personality_i18n",
+            {"zh": args.bot_personality_zh, "en": args.bot_personality_en},
+            64,
+        )
+        description_i18n = validate_bilingual_text(
+            "bot.description_i18n",
+            {"zh": args.bot_description_zh, "en": args.bot_description_en},
+            280,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     package = {
         "version": "1.0",
         "bot": {
-            "name": args.bot_name,
-            "personality": args.bot_personality or args.bot_name,
-            "description": args.bot_description or f"{args.bot_name} - {args.bot_personality}",
+            "name": default_text(name_i18n),
+            "name_i18n": name_i18n,
+            "personality": default_text(personality_i18n),
+            "personality_i18n": personality_i18n,
+            "description": default_text(description_i18n),
+            "description_i18n": description_i18n,
             "params": params,
             "evolution_config": evolution_config,
         },
@@ -189,26 +223,31 @@ def main():
         json.dump(package, f, indent=2, ensure_ascii=False)
     print(f"Upload package saved to {args.output}")
 
-    if args.platform_url:
+    if args.platform_url or args.creds:
         try:
             sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-            os.environ.setdefault("TRADE_API_URL", args.platform_url)
             from trading_client import TradingClient
 
-            creds_path = args.creds or os.environ.get("AGENT_CREDS_PATH")
-            if not creds_path or not os.path.isfile(creds_path):
+            if not args.creds or not os.path.isfile(args.creds):
                 print(
                     "Error: --creds required for platform upload. Path to agent_creds.json (from bind).",
                     file=sys.stderr,
                 )
                 sys.exit(1)
-            with open(creds_path) as f:
+            with open(args.creds) as f:
                 creds = json.load(f)
+            upload_base_url = args.platform_url or creds.get("base_url", "")
+            if not upload_base_url:
+                print(
+                    "Error: platform base URL missing. Pass --platform-url or save base_url in agent_creds.json via live_trade.py bind.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
             api_key = creds.get("api_key", "")
             api_secret = creds.get("api_secret", "")
-            client = TradingClient(api_key=api_key, api_secret=api_secret, base_url=args.platform_url)
-            print(f"\nSubmitting to {args.platform_url}...")
-            result = client.verify_backtest_and_wait(package, user_uuid=user_uuid)
+            client = TradingClient(api_key=api_key, api_secret=api_secret, base_url=upload_base_url)
+            print(f"\nSubmitting to {upload_base_url}...")
+            result = client.verify_backtest_and_wait(package)
             print(f"Platform response:")
             print(json.dumps(result, indent=2, ensure_ascii=False))
         except Exception as e:

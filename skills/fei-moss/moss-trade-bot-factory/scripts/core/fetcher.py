@@ -1,20 +1,26 @@
 """
 数据采集模块
 
-严格限制：仅从 Binance 期货 (binanceusdm) 拉取K线数据。
-通过 ccxt 下载 USDT 本位永续合约 OHLCV，缓存到本地。
+回测 / 上传验证：
+- 严格限制：仅从 Binance 期货 (binanceusdm) 拉取 K 线数据。
+
+实盘自动运行：
+- 默认仍使用 Binance 期货数据。
+- 若美区用户无法访问 Binance API，可改用 Coinbase 现货 K 线作为
+  signal 输入数据源。
+- Coinbase 仅允许用于 live mode，不允许用于回测或上传验证。
 """
 
 import os
 import time
-import json
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pandas as pd
 
-# 固定：只允许 Binance USDT-M 期货
-EXCHANGE_ID = "binanceusdm"
+BACKTEST_EXCHANGE_ID = "binanceusdm"
+EXCHANGE_ID = BACKTEST_EXCHANGE_ID
+LIVE_ALLOWED_EXCHANGE_IDS = {"binanceusdm", "coinbase"}
 
 try:
     import ccxt
@@ -25,60 +31,62 @@ except ImportError:
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data_cache")
 
 
-def get_ohlcv_cache_path(symbol: str, timeframe: str, days: int, since_date: str = None) -> str:
+def normalize_symbol_for_exchange(symbol: str, exchange_id: str) -> str:
+    symbol = symbol.strip().upper().replace("-", "/")
+    if exchange_id == BACKTEST_EXCHANGE_ID:
+        if "/" in symbol and ":USDT" not in symbol:
+            symbol = f"{symbol}:USDT"
+        return symbol
+    if exchange_id == "coinbase":
+        if ":USDT" in symbol:
+            symbol = symbol.split(":")[0]
+        if symbol.endswith("/USDT"):
+            base = symbol.split("/")[0]
+            return f"{base}/USD"
+        return symbol
+    return symbol
+
+
+def get_ohlcv_cache_path(
+    symbol: str,
+    timeframe: str,
+    days: int,
+    since_date: str = None,
+    exchange_id: str = EXCHANGE_ID,
+) -> str:
     """Return the cache file path used by fetch_ohlcv (same logic for consistency)."""
-    if "/" in symbol and ":USDT" not in symbol:
-        symbol = f"{symbol}:USDT"
+    symbol = normalize_symbol_for_exchange(symbol, exchange_id)
     if since_date:
         cache_tag = f"{since_date}_{days}d"
     else:
         cache_tag = f"{days}d"
-    return os.path.join(DATA_DIR, f"{EXCHANGE_ID}_{symbol.replace('/', '_')}_{timeframe}_{cache_tag}.csv")
+    return os.path.join(DATA_DIR, f"{exchange_id}_{symbol.replace('/', '_')}_{timeframe}_{cache_tag}.csv")
 
 
-def get_exchange():
+def get_exchange(exchange_id: str = EXCHANGE_ID):
     if ccxt is None:
         raise ImportError("ccxt is required for live data fetching. Install: pip install ccxt")
-    return getattr(ccxt, EXCHANGE_ID)({"enableRateLimit": True})
+    if not hasattr(ccxt, exchange_id):
+        raise ValueError(f"Unsupported exchange: {exchange_id}")
+    return getattr(ccxt, exchange_id)({"enableRateLimit": True})
 
 
-def fetch_ohlcv(
-    symbol: str = "BTC/USDT",
-    timeframe: str = "1h",
-    days: int = 120,
-    exchange_id: str = None,  # 忽略，固定使用 binanceusdm
-    use_cache: bool = True,
+def _fetch_ohlcv(
+    symbol: str,
+    timeframe: str,
+    days: int,
+    exchange_id: str,
+    use_cache: bool,
     since_date: str = None,
 ) -> pd.DataFrame:
-    """
-    下载 Binance 期货 K线数据。
-
-    Args:
-        symbol: 交易对 (如 BTC/USDT)
-        timeframe: K线周期
-        days: 下载天数（默认120天≈4个月）
-        exchange_id: 已废弃，固定使用 binanceusdm
-        use_cache: 是否使用本地缓存
-        since_date: 起始日期（如 "2024-01-01"），设置后忽略days参数从today倒推
-
-    Returns:
-        DataFrame with columns: timestamp, open, high, low, close, volume
-    """
-    del exchange_id  # 严格限制：仅 Binance 期货
     os.makedirs(DATA_DIR, exist_ok=True)
-
-    # Binance USDT-M 期货需使用 BTC/USDT:USDT 格式
-    if "/" in symbol and ":USDT" not in symbol:
-        symbol = f"{symbol}:USDT"
-
-    if since_date:
-        cache_tag = f"{since_date}_{days}d"
-    else:
-        cache_tag = f"{days}d"
-
-    cache_file = os.path.join(
-        DATA_DIR,
-        f"{EXCHANGE_ID}_{symbol.replace('/', '_')}_{timeframe}_{cache_tag}.csv"
+    symbol = normalize_symbol_for_exchange(symbol, exchange_id)
+    cache_file = get_ohlcv_cache_path(
+        symbol=symbol,
+        timeframe=timeframe,
+        days=days,
+        since_date=since_date,
+        exchange_id=exchange_id,
     )
 
     if use_cache and os.path.exists(cache_file):
@@ -90,7 +98,7 @@ def fetch_ohlcv(
     if not since_date:
         if use_cache:
             import glob
-            prefix = f"{EXCHANGE_ID}_{symbol.replace('/', '_')}_{timeframe}_"
+            prefix = f"{exchange_id}_{symbol.replace('/', '_')}_{timeframe}_"
             pattern = os.path.join(DATA_DIR, f"{prefix}{days}d.csv")
             matches = sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True)
             if matches:
@@ -98,7 +106,7 @@ def fetch_ohlcv(
                 print(f"Using cached file: {os.path.basename(best)}", file=__import__('sys').stderr)
                 return pd.read_csv(best, parse_dates=["timestamp"])
 
-    exchange = get_exchange()
+    exchange = get_exchange(exchange_id)
 
     if since_date:
         start_dt = datetime.fromisoformat(since_date).replace(tzinfo=timezone.utc)
@@ -153,6 +161,56 @@ def fetch_ohlcv(
     print(f"Fetched {len(df)} candles for {symbol} {timeframe}, cached to {cache_file}", file=__import__('sys').stderr)
 
     return df
+
+
+def fetch_ohlcv(
+    symbol: str = "BTC/USDT",
+    timeframe: str = "1h",
+    days: int = 120,
+    exchange_id: str = None,  # 兼容旧签名，仍只允许 binanceusdm
+    use_cache: bool = True,
+    since_date: str = None,
+) -> pd.DataFrame:
+    """
+    下载 Binance 期货 K线数据。
+
+    这是回测 / 上传验证专用入口，固定使用 Binance USDT-M 期货数据。
+    """
+    if exchange_id not in (None, BACKTEST_EXCHANGE_ID):
+        raise ValueError("fetch_ohlcv only supports Binance USDT-M for backtest/verify")
+    return _fetch_ohlcv(
+        symbol=symbol,
+        timeframe=timeframe,
+        days=days,
+        exchange_id=BACKTEST_EXCHANGE_ID,
+        use_cache=use_cache,
+        since_date=since_date,
+    )
+
+
+def fetch_live_ohlcv(
+    symbol: str = "BTC/USDT",
+    timeframe: str = "1h",
+    days: int = 14,
+    data_source: str = BACKTEST_EXCHANGE_ID,
+    use_cache: bool = True,
+) -> pd.DataFrame:
+    """
+    下载 live mode 所需 K 线。
+
+    - `binanceusdm`: Binance 全球站 USDT-M 期货
+    - `coinbase`: Coinbase 现货 K 线，仅用于实盘信号输入
+    """
+    if data_source not in LIVE_ALLOWED_EXCHANGE_IDS:
+        raise ValueError(f"unsupported live data source: {data_source}")
+    return _fetch_ohlcv(
+        symbol=symbol,
+        timeframe=timeframe,
+        days=days,
+        exchange_id=data_source,
+        use_cache=use_cache,
+        since_date=None,
+    )
 
 
 def fetch_multi_symbol(

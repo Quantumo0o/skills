@@ -1,17 +1,26 @@
-"""Trading client for the simulation platform API with HMAC authentication."""
+"""Trading client for the simulation platform API with HMAC authentication.
+
+Platform base URL must be provided explicitly by the caller or loaded from the
+local agent_creds.json file. This module intentionally does not depend on
+hidden environment variables.
+"""
 
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 import urllib.request
 import urllib.parse
 
-
-BASE_URL = os.environ.get("TRADE_API_URL", "")
+from text_i18n import default_text, validate_bilingual_text
 API_PREFIX = "/api/v1/moss/agent"
+DEFAULT_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "curl/8.7.1",
+    "X-Client-Source": "skill",
+}
 
 # 多 realtime bot 时以下接口需带 X-BOT-ID；单 bot 可省略
 ACCOUNT_BOUND_PATHS = (
@@ -26,11 +35,20 @@ class TradingClient:
         self.api_key = api_key
         self.api_secret = api_secret
         self.bot_id = bot_id
-        self.base_url = base_url or BASE_URL
+        self.base_url = str(base_url or "").rstrip("/")
         if not self.base_url:
             raise ValueError(
-                "TRADE_API_URL not set. Set the environment variable to your platform URL "
-                "before using trading/verify features. Example: export TRADE_API_URL=https://your-platform.com"
+                "Platform base URL missing. Pass --platform-url explicitly or store "
+                "base_url in agent_creds.json before using trading/verify features."
+            )
+        parsed = urllib.parse.urlsplit(self.base_url)
+        if parsed.path not in ("", "/"):
+            raise ValueError(
+                "Platform base URL must be the site origin only, for example "
+                "'https://ai.moss.site'. The client appends the API prefix "
+                "automatically and will request "
+                "'https://ai.moss.site/api/v1/moss/agent/agents/bind' "
+                "for bind."
             )
 
     def _sign(self, method: str, path: str, query: str, body: str) -> tuple[str, str, str]:
@@ -59,7 +77,7 @@ class TradingClient:
         if body is not None:
             raw_body = json.dumps(body, separators=(",", ":"))
 
-        headers = {"Content-Type": "application/json"}
+        headers = dict(DEFAULT_HEADERS)
 
         if need_auth and self.api_key:
             ts, nonce, sig = self._sign(method, full_path, canonical_query, raw_body)
@@ -115,6 +133,9 @@ class TradingClient:
         persona: str,
         description: str,
         strategy_params: dict,
+        display_name_i18n: dict = None,
+        persona_i18n: dict = None,
+        description_i18n: dict = None,
         *,
         symbol: str = "",
         timeframe: str = "",
@@ -123,22 +144,28 @@ class TradingClient:
         schedule_interval_minutes: int = 0,
     ) -> dict:
         """Create a realtime bot under current binding. Requires prior bind (api_key/api_secret)."""
+        display_name_i18n = validate_bilingual_text("display_name_i18n", display_name_i18n or {}, 64)
+        persona_i18n = validate_bilingual_text("persona_i18n", persona_i18n or {}, 64)
+        description_i18n = validate_bilingual_text("description_i18n", description_i18n or {}, 280)
         body = {
-            "display_name": display_name,
-            "persona": persona,
-            "description": description,
+            "display_name": display_name or default_text(display_name_i18n),
+            "display_name_i18n": display_name_i18n,
+            "persona": persona or default_text(persona_i18n),
+            "persona_i18n": persona_i18n,
+            "description": description or default_text(description_i18n),
+            "description_i18n": description_i18n,
             "strategy": {"params": strategy_params},
         }
         if symbol:
-            body["symbol"] = symbol
+            body["strategy"]["symbol"] = symbol
         if timeframe:
-            body["timeframe"] = timeframe
+            body["strategy"]["timeframe"] = timeframe
         if exchange:
-            body["exchange"] = exchange
+            body["strategy"]["exchange"] = exchange
         if lookback_bars:
-            body["lookback_bars"] = lookback_bars
+            body["strategy"]["lookback_bars"] = lookback_bars
         if schedule_interval_minutes:
-            body["schedule_interval_minutes"] = schedule_interval_minutes
+            body["strategy"]["schedule_interval_minutes"] = schedule_interval_minutes
         return self._request("POST", "/realtime/bots", body)
 
     def unbind(self, bot_id: str, user_uuid: str) -> dict:
@@ -148,7 +175,15 @@ class TradingClient:
 
     # ── Profile (HMAC) ──
 
-    def update_profile(self, display_name: str = "", persona: str = "", description: str = "") -> dict:
+    def update_profile(
+        self,
+        display_name: str = "",
+        persona: str = "",
+        description: str = "",
+        display_name_i18n: dict = None,
+        persona_i18n: dict = None,
+        description_i18n: dict = None,
+    ) -> dict:
         body = {}
         if display_name:
             body["display_name"] = display_name
@@ -156,6 +191,12 @@ class TradingClient:
             body["persona"] = persona
         if description:
             body["description"] = description
+        if display_name_i18n:
+            body["display_name_i18n"] = display_name_i18n
+        if persona_i18n:
+            body["persona_i18n"] = persona_i18n
+        if description_i18n:
+            body["description_i18n"] = description_i18n
         return self._request("PATCH", "/profile", body)
 
     # ── Trading (HMAC) ──
@@ -238,16 +279,15 @@ class TradingClient:
             return {"code": "MISSING_CREDS", "message": "api_key/api_secret required. Run bind with pair_code first, save to agent_creds.json."}
         return self._request("POST", "/backtest/verify", body=package, need_auth=True)
 
-    def get_verify_job(self, job_id: str, user_uuid: str = None) -> dict:
-        """Poll verify job status. Requires HMAC auth. 平台当前实现仍要求 user_uuid 作为 query 参数。"""
+    def get_verify_job(self, job_id: str) -> dict:
+        """Poll verify job status. Requires HMAC auth."""
         if not self.api_key or not self.api_secret:
             return {"code": "MISSING_CREDS", "message": "api_key/api_secret required."}
-        query = {"user_uuid": user_uuid} if user_uuid else None
-        return self._request("GET", f"/backtest/jobs/{job_id}", query=query, need_auth=True)
+        return self._request("GET", f"/backtest/jobs/{job_id}", need_auth=True)
 
-    def verify_backtest_and_wait(self, package: dict, user_uuid: str = None,
+    def verify_backtest_and_wait(self, package: dict,
                                   poll_interval: int = 3, max_wait: int = 120) -> dict:
-        """Submit + poll until terminal state. 提交用 HMAC；轮询 job 时平台需 user_uuid，若未提供会返回 INVALID_ARGUMENT。"""
+        """Submit + poll until terminal state. HMAC auth is sufficient."""
         import time as _time
         job = self.verify_backtest(package)
         job_id = job.get("job_id", "")
@@ -258,7 +298,7 @@ class TradingClient:
         while elapsed < max_wait:
             _time.sleep(poll_interval)
             elapsed += poll_interval
-            status = self.get_verify_job(job_id, user_uuid)
+            status = self.get_verify_job(job_id)
             if status.get("code"):
                 return status
             st = status.get("status", "")

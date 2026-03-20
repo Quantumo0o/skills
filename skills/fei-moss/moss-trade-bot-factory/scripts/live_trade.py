@@ -3,7 +3,8 @@
 
 Usage:
     # Bind (get credentials):
-    python live_trade.py bind --pair-code ABCD-EFGH --name "利弗莫尔v2"
+    python live_trade.py bind --platform-url https://ai.moss.site --pair-code ABCD-EFGH --name "利弗莫尔v2"
+    # --platform-url should be site origin only, e.g. https://ai.moss.site
 
     # Check status:
     python live_trade.py status --key ak_xxx --secret as_xxx
@@ -38,29 +39,39 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from trading_client import TradingClient
+from text_i18n import default_text, validate_bilingual_text
+
+PLATFORM_URL_HELP = "Platform site origin only, e.g. https://ai.moss.site. The client appends API paths automatically."
+
+
+def resolve_base_url(args, creds=None) -> str:
+    creds = creds or {}
+    return (
+        getattr(args, "platform_url", "")
+        or creds.get("base_url", "")
+    )
 
 
 def load_client(args) -> TradingClient:
-    base_url = os.environ.get("TRADE_API_URL", "")
     if hasattr(args, "creds") and args.creds:
         with open(args.creds) as f:
             creds = json.load(f)
         return TradingClient(
             api_key=creds["api_key"],
             api_secret=creds["api_secret"],
-            base_url=creds.get("base_url") or base_url,
+            base_url=resolve_base_url(args, creds),
             bot_id=creds.get("bot_id", ""),
         )
     return TradingClient(
         api_key=getattr(args, "key", ""),
         api_secret=getattr(args, "secret", ""),
-        base_url=base_url,
+        base_url=resolve_base_url(args),
         bot_id=getattr(args, "bot_id", ""),
     )
 
 
 def cmd_bind(args):
-    client = TradingClient()
+    client = TradingClient(base_url=resolve_base_url(args))
     result = client.bind(
         args.pair_code,
         display_name=args.name,
@@ -75,6 +86,7 @@ def cmd_bind(args):
             "binding_id": result.get("binding_id", ""),
             "api_key": result["api_key"],
             "api_secret": result["api_secret"],
+            "base_url": client.base_url,
         }
         with open(args.save, "w") as f:
             json.dump(to_save, f, indent=2)
@@ -87,16 +99,39 @@ def cmd_create_bot(args):
         creds = json.load(f)
     with open(args.params_file) as f:
         strategy_params = json.load(f)
+    try:
+        name_i18n = validate_bilingual_text(
+            "display_name_i18n",
+            {"zh": args.name_zh, "en": args.name_en},
+            64,
+        )
+        persona_i18n = validate_bilingual_text(
+            "persona_i18n",
+            {"zh": args.persona_zh, "en": args.persona_en},
+            64,
+        )
+        description_i18n = validate_bilingual_text(
+            "description_i18n",
+            {"zh": args.description_zh, "en": args.description_en},
+            280,
+        )
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
     client = TradingClient(
         api_key=creds["api_key"],
         api_secret=creds["api_secret"],
+        base_url=resolve_base_url(args, creds),
         bot_id=creds.get("bot_id", ""),
     )
     result = client.create_realtime_bot(
-        display_name=args.name,
-        persona=args.persona or args.name,
-        description=args.description or f"{args.name} trading bot",
+        display_name=args.name or default_text(name_i18n),
+        persona=args.persona or default_text(persona_i18n),
+        description=args.description or default_text(description_i18n),
         strategy_params=strategy_params,
+        display_name_i18n=name_i18n,
+        persona_i18n=persona_i18n,
+        description_i18n=description_i18n,
     )
     print(json.dumps(result, indent=2))
     bot_id = result.get("bot_id") or result.get("id")
@@ -104,6 +139,8 @@ def cmd_create_bot(args):
         print("No bot_id in response; check API response shape.", file=sys.stderr)
         sys.exit(1)
     creds["bot_id"] = bot_id
+    if client.base_url:
+        creds["base_url"] = client.base_url
     with open(args.creds, "w") as f:
         json.dump(creds, f, indent=2)
     print(f"\nbot_id saved to {args.creds}", file=sys.stderr)
@@ -168,26 +205,36 @@ def main():
     p.add_argument("--description", default="", help="Bot description")
     p.add_argument("--fingerprint", default="")
     p.add_argument("--save", default="", help="Save credentials to JSON file")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Saved into agent_creds.json for later reuse.")
 
     # create-bot
     p = sub.add_parser("create-bot", help="Create realtime bot (after bind); writes bot_id to creds")
     p.add_argument("--creds", required=True, help="Credentials JSON from bind")
-    p.add_argument("--name", required=True, help="Bot display name")
-    p.add_argument("--persona", default="", help="Bot persona")
-    p.add_argument("--description", default="", help="Bot description")
+    p.add_argument("--name", default="", help="Legacy projection only; prefer --name-zh/--name-en")
+    p.add_argument("--name-zh", required=True, help="Bot display name (Chinese)")
+    p.add_argument("--name-en", required=True, help="Bot display name (English)")
+    p.add_argument("--persona", default="", help="Legacy projection only; prefer --persona-zh/--persona-en")
+    p.add_argument("--persona-zh", required=True, help="Bot persona (Chinese)")
+    p.add_argument("--persona-en", required=True, help="Bot persona (English)")
+    p.add_argument("--description", default="", help="Legacy projection only; prefer --description-zh/--description-en")
+    p.add_argument("--description-zh", required=True, help="Bot description (Chinese)")
+    p.add_argument("--description-en", required=True, help="Bot description (English)")
     p.add_argument("--params-file", required=True, help="Strategy params JSON (e.g. params.json)")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # status
     p = sub.add_parser("status", help="Account + positions + price")
     p.add_argument("--key", default="")
     p.add_argument("--secret", default="")
     p.add_argument("--creds", default="", help="Load from credentials JSON")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # price
     p = sub.add_parser("price", help="Get mark price")
     p.add_argument("--key", default="")
     p.add_argument("--secret", default="")
     p.add_argument("--creds", default="")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # open-long
     p = sub.add_parser("open-long", help="Open long position")
@@ -197,6 +244,7 @@ def main():
     p.add_argument("--amount", required=True, help="Notional USDT")
     p.add_argument("--leverage", type=int, required=True)
     p.add_argument("--order-id", default="")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # open-short
     p = sub.add_parser("open-short", help="Open short position")
@@ -206,6 +254,7 @@ def main():
     p.add_argument("--amount", required=True, help="Notional USDT")
     p.add_argument("--leverage", type=int, required=True)
     p.add_argument("--order-id", default="")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # close
     p = sub.add_parser("close", help="Close position")
@@ -214,6 +263,7 @@ def main():
     p.add_argument("--creds", default="")
     p.add_argument("--side", required=True, choices=["LONG", "SHORT"])
     p.add_argument("--qty", default="", help="BTC qty, empty=close all")
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # orders
     p = sub.add_parser("orders", help="Order history")
@@ -221,6 +271,7 @@ def main():
     p.add_argument("--secret", default="")
     p.add_argument("--creds", default="")
     p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--platform-url", default="", help=PLATFORM_URL_HELP + " Otherwise reuse base_url from creds file.")
 
     # trades
     p = sub.add_parser("trades", help="Trade history")
@@ -228,6 +279,7 @@ def main():
     p.add_argument("--secret", default="")
     p.add_argument("--creds", default="")
     p.add_argument("--limit", type=int, default=20)
+    p.add_argument("--platform-url", default="", help="Preferred explicit platform base URL; otherwise reuse base_url from creds file")
 
     args = parser.parse_args()
     if not args.command:

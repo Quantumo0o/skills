@@ -1,5 +1,5 @@
 ---
-name: moss-trade-bot-factory
+name: moss-trade-bot-factory-zh
 description: 用户用自然语言描述交易风格，自动创建加密货币交易Bot并运行本地回测。支持周期反思进化。可选连接外部平台进行验证和模拟交易。
 user-invocable: true
 metadata: {"openclaw": {"requires": {"bins": ["python3"]}, "emoji": "🤖"}}
@@ -16,12 +16,16 @@ metadata: {"openclaw": {"requires": {"bins": ["python3"]}, "emoji": "🤖"}}
 
 ## 安全与透明声明
 
-- **本地优先**：Bot创建和回测完全在本地运行，不需要网络连接
-- **数据**：用户自备，**必须** Binance USDT 本位期货（binanceusdm），不支持现货及其他交易所。**本地可自由用任意区间自玩**；**上传验证**时平台用固定区间 **2025-10-06 ~ 2026-03-03** 校验，必须用该区间跑出的结果才能通过
-- **外部平台（可选）**：仅当设置了 `TRADE_API_URL` 并用户明确要求时才连接。不设置则纯本地
-- **凭证**：平台绑定的 api_key/api_secret 存本地（推荐 `~/.moss-trade-bot/agent_creds.json`），不发送到 TRADE_API_URL 以外的地址
+- **本地优先**：Bot 创建、回测、进化默认都在本地完成；用户直接提供 CSV 时可完全离线
+- **数据边界**：回测 / 进化 / 上传验证固定使用 Binance USDT-M 或你们提供的 Binance CSV；Coinbase 只能用于 live signal 输入
+- **平台功能（可选）**：只有用户明确要求 upload / bind / live 时才连接外部平台。默认平台地址使用 skill config `trade_api_url`，默认值 `https://ai.moss.site`
+- **平台 URL 规则**：`--platform-url` 只填站点 origin，例如 `https://ai.moss.site`；脚本会自动补上完整 API 前缀，并请求 `https://ai.moss.site/api/v1/moss/agent/agents/bind`
+- **本地凭证**：平台凭证默认存 `~/.moss-trade-bot/agent_creds.json`；若 skill config `agent_creds_path` 已配置，优先使用该路径。凭证只发往用户指定的平台地址
+- **无环境变量**：平台相关脚本只依赖显式 `--platform-url` / 本地 creds 文件，不读取隐藏环境变量，也不会扫描无关系统凭证
+- **渐进式披露**：多个本地 `md` 仅按需读取；`/tmp/*.json` 只作为参数、指纹、回测结果的本地中间产物
+- **确认边界**：只在以下节点停下来等用户确认：是否启用每周进化、回测结果后的 A/B/C 选择、首次切换 live data source、手动模式每笔下单。其余本地步骤直接推进
 
-严格按以下步骤执行，不要跳步。每步完成后等用户确认再进下一步。
+严格按以下步骤执行，不要跳步。只在文中明确要求确认的节点停下，其余步骤直接执行。
 
 ---
 
@@ -42,27 +46,37 @@ metadata: {"openclaw": {"requires": {"bins": ["python3"]}, "emoji": "🤖"}}
 默认建议：开启
 ```
 
-**数据前置**：跑回测前必须有 OHLCV CSV。
+**回测数据前置**：跑回测前必须有 OHLCV CSV。
 
 - **本地自玩**：可用任意时间范围的 Binance UM 数据
 - **上传验证**：必须用 **2025-10-06 ~ 2026-03-03** 区间，`fetch_data.py` 默认即此区间
 
 获取方式：
-1. **脚本下载（推荐）**：
+1. **用户自备**：提供 CSV 路径，必须 Binance UM 期货
+2. **预置样本**：`scripts/data_BTC_USDT_15m_148d.csv`（2025-10-06 ~ 2026-03-03）
+3. **脚本下载（仅当用户允许联网时）**：
    ```bash
    cd {baseDir}/scripts && python3 fetch_data.py --symbol <交易对> --timeframe <级别> 2>/dev/null | tee /tmp/fingerprint.json
    ```
-2. **用户自备**：提供 CSV 路径，必须 Binance UM 期货
-3. **预置样本**：`scripts/data_BTC_USDT_15m_148d.csv`（2025-10-06 ~ 2026-03-03）
 
 ## Step 2: 生成参数并直接跑回测
 
-**不要展示参数等确认。直接生成 → 跑回测 → 在结果中一起展示。**
+**先给出简短执行摘要，再直接跑回测。不要先展示完整参数 JSON 逐项确认。**
 
 1. 读取 `cat {baseDir}/scripts/params_schema.json`
 2. 根据用户描述赋值，保存到文件
-3. 需要参数含义时读取 `cat {baseDir}/knowledge/params_reference.md`
-4. **立刻进入 Step 3**
+3. 同时生成 Bot 文案双语对象：`name_i18n / personality_i18n / description_i18n`，格式固定为 `{ "zh": "...", "en": "..." }`
+4. 在执行前，用 1-2 句说明本次将使用的关键输入：`symbol / timeframe / capital / 是否进化 / 数据来源`
+5. 若用户原始描述主要是中文，你需要自行补出自然英文版本；不要把中文原样复制到 `en`
+6. 需要参数含义时读取 `cat {baseDir}/knowledge/params_reference.md`
+7. **立刻进入 Step 3**
+
+双语文案约束：
+
+- `name_i18n.zh/en <= 64`
+- `personality_i18n.zh/en <= 64`
+- `description_i18n.zh/en <= 280`
+- 上传验证和创建 realtime bot 时，必须显式传双语字段；旧单字段不能替代 `*_i18n.zh/en`
 
 ## Step 3: 回测（含进化）
 
@@ -143,19 +157,19 @@ C) 调整参数重跑
 **先读取操作手册**：`cat {baseDir}/knowledge/platform_ops.md`
 
 然后按手册中「上传验证」章节执行。关键要点：
-- **进化回测上传**：result 用 `/tmp/evolve_result_final.json`，params 用**初始参数** `/tmp/bot_params.json`。脚本会从 result 自动带出 evolution_log，平台做分段 stitched 回放，与本地同类，才能对上。不要用空 evolution_log（否则平台退化成单参回放，和本地分段进化对不上）
-- 平台用 **2025-10-06 ~ 2026-03-03** 数据校验，本地必须用同一区间
-- 必须先完成 Pair Code 绑定，凭证存 `~/.moss-trade-bot/agent_creds.json`
-- 验证失败时自己分析原因并自动重试（最多2次）
+- **进化回测上传**：result 用 `/tmp/evolve_result_final.json`，params 用**初始参数** `/tmp/bot_params.json`
+- 上传包里的 `bot.name_i18n / personality_i18n / description_i18n` 必须显式带 `zh/en` 两份；脚本和接口都会拒绝伪双语
+- 其余 Pair Code、凭证路径、平台 URL、失败重试规则统一以 `platform_ops.md` 为准，不在此重复展开
 
 ## Step 5: 实盘交易（用户选A时）
 
 **先读取操作手册**：`cat {baseDir}/knowledge/platform_ops.md`
 
 然后按手册中「实盘交易」章节执行。关键要点：
-- 必须先完成 **Pair Code 绑定**，再执行 **创建 Realtime Bot**（`live_trade.py create-bot`），凭证文件中需包含 `bot_id`
-- 自动模式：用户说"启动自动交易"即为授权，直接启动
-- 手动模式：每次开仓前报告方向/金额/杠杆，等用户确认
+- 先完成 **Pair Code 绑定**，再执行 **创建 Realtime Bot**；create-bot 必须显式传 `zh/en` 两份文案
+- 若美区 live 需要从 Binance 切到 Coinbase，首次切换前先明确告知并获得一次确认；确认后本次会话可沿用
+- 自动模式只有在用户明确说“启动自动交易”后进入；手动模式仍然逐笔确认
+- 其余平台地址、凭证路径、bot_id、命令参数统一以 `platform_ops.md` 为准，不在此重复展开
 
 ---
 
