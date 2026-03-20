@@ -3,11 +3,16 @@
   "slug": "teacher-toolkit",
   "displayName": "Teacher Toolkit",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773674004965,
-    "commit": "https://github.com/openclaw/skills/commit/73923597619cc92461797c81b122f7e0836c9417"
+    "version": "2.0.2",
+    "publishedAt": 1773831104685,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773674004965,
+      "commit": "https://github.com/openclaw/skills/commit/73923597619cc92461797c81b122f7e0836c9417"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773446956695,
