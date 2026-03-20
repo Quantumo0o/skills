@@ -3,9 +3,15 @@
   "slug": "patent-eou",
   "displayName": "patent-eou",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773395070197,
-    "commit": "https://github.com/openclaw/skills/commit/3c5524ad703030d95b274d67698abaed03946987"
+    "version": "1.0.1",
+    "publishedAt": 1773817432945,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773395070197,
+      "commit": "https://github.com/openclaw/skills/commit/3c5524ad703030d95b274d67698abaed03946987"
+    }
+  ]
 }
