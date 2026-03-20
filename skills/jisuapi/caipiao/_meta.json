@@ -1,11 +1,17 @@
 {
   "owner": "jisuapi",
   "slug": "caipiao",
-  "displayName": "彩票开奖查询 - Chinese Lottery Drawing Inquiry",
+  "displayName": "Lottery Drawing Inquiry - 彩票开奖查询",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772534423437,
-    "commit": "https://github.com/openclaw/skills/commit/28b6cdd640bb4a06a191c2b949b8277ba399173d"
+    "version": "1.0.3",
+    "publishedAt": 1773728820722,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772534423437,
+      "commit": "https://github.com/openclaw/skills/commit/28b6cdd640bb4a06a191c2b949b8277ba399173d"
+    }
+  ]
 }
