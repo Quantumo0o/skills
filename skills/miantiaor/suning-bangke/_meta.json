@@ -3,11 +3,16 @@
   "slug": "suning-bangke",
   "displayName": "苏宁帮客预约服务",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773656301650,
-    "commit": "https://github.com/openclaw/skills/commit/dcc86930323a6adf388427ad8d6aca8f79e05497"
+    "version": "1.0.3",
+    "publishedAt": 1773799069336,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773656301650,
+      "commit": "https://github.com/openclaw/skills/commit/dcc86930323a6adf388427ad8d6aca8f79e05497"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773223778447,
