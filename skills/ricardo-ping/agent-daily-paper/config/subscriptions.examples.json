@@ -11,7 +11,6 @@
       "fallback_relax_keywords": true,
       "query_strategy": "category_keyword_union",
       "require_primary_category": true,
-      "history_scope": "subscription",
       "category_expand_mode": "balanced",
       "embedding_filter": {
         "enabled": true,
@@ -24,6 +23,13 @@
         "model": "BAAI/bge-reranker-v2-m3",
         "top_k": 40
       },
+      "insight_mode": "pdf",
+      "insight_lang": "zh",
+      "insight_min_chars": 300,
+      "insight_embed_model": "BAAI/bge-m3",
+      "insight_paragraph_min_chars": 500,
+      "insight_pdf_max_pages": 20,
+      "insight_pdf_timeout_sec": 35,
       "field_settings": [
         {
           "name": "数据库优化器",
@@ -48,7 +54,6 @@
       "time_window_hours": 168,
       "query_strategy": "category_keyword_union",
       "require_primary_category": true,
-      "history_scope": "subscription",
       "category_expand_mode": "balanced",
       "embedding_filter": {
         "enabled": true,
@@ -61,6 +66,13 @@
         "model": "BAAI/bge-reranker-v2-m3",
         "top_k": 40
       },
+      "insight_mode": "pdf",
+      "insight_lang": "zh",
+      "insight_min_chars": 300,
+      "insight_embed_model": "BAAI/bge-m3",
+      "insight_paragraph_min_chars": 500,
+      "insight_pdf_max_pages": 20,
+      "insight_pdf_timeout_sec": 35,
       "field_settings": [
         {
           "name": "时间序列预测",

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import io
 import json
 import math
 import os
@@ -41,33 +42,7 @@ except ImportError:  # pragma: no cover
 ARXIV_API = "http://export.arxiv.org/api/query"
 ATOM_NS = {"atom": "http://www.w3.org/2005/Atom"}
 ARXIV_NS = {"arxiv": "http://arxiv.org/schemas/atom"}
-
-
-FIELD_TO_CATEGORIES = {
-    "machine learning": ["cs.LG", "stat.ML"],
-    "llm": ["cs.CL", "cs.LG"],
-    "nlp": ["cs.CL"],
-    "computer vision": ["cs.CV"],
-    "reinforcement learning": ["cs.LG", "cs.AI"],
-    "robotics": ["cs.RO"],
-    "ai safety": ["cs.AI"],
-    "multimodal": ["cs.CV", "cs.CL", "cs.AI"],
-    "图像": ["cs.CV"],
-    "计算机视觉": ["cs.CV"],
-    "自然语言处理": ["cs.CL"],
-    "大模型": ["cs.CL", "cs.LG"],
-    "机器学习": ["cs.LG", "stat.ML"],
-    "强化学习": ["cs.LG", "cs.AI"],
-    "机器人": ["cs.RO"],
-    "推荐系统": ["cs.IR", "cs.LG"],
-    "数据库": ["cs.DB"],
-}
-
-
-DEFAULT_VENUES = [
-    "AAAI", "ACL", "COLING", "CVPR", "ECCV", "EMNLP", "ICCV", "ICLR", "ICML",
-    "IJCAI", "KDD", "NAACL", "NeurIPS", "SIGIR", "SIGMOD", "VLDB", "WWW",
-]
+ARXIV_CODE_PATTERN = re.compile(r"\b[a-z]{2,}(?:\-[a-z]{2,})?\.[A-Za-z]{2,}\b")
 
 
 @dataclass
@@ -113,6 +88,31 @@ def save_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def parse_iso_datetime(value: Any) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def maybe_reset_state_weekly(state: dict[str, Any], now_utc: datetime, interval_days: int = 7) -> bool:
+    last_reset = parse_iso_datetime(state.get("last_state_reset_at"))
+    if last_reset is not None and now_utc - last_reset < timedelta(days=interval_days):
+        return False
+    state["sent_versions_by_sub"] = {}
+    # Legacy keys are deprecated and removed during reset.
+    state.pop("sent_ids", None)
+    state.pop("sent_versions", None)
+    state.pop("sent_ids_by_sub", None)
+    state["last_state_reset_at"] = now_utc.isoformat()
+    return True
+
+
 def clamp_limit(v: Any, min_v: int = 5, max_v: int = 20, fallback: int = 10) -> int:
     try:
         iv = int(v)
@@ -126,33 +126,25 @@ def parse_arxiv_datetime(value: str) -> datetime:
 
 
 def normalize_field_to_categories(field_name: str) -> list[str]:
-    lowered = field_name.strip().lower()
-    if lowered in FIELD_TO_CATEGORIES:
-        return FIELD_TO_CATEGORIES[lowered]
-    # Heuristics for sub-fields that are not exact dictionary keys.
-    if "数据库" in field_name or "database" in lowered:
-        return ["cs.DB"]
-    if "优化器" in field_name or "optimizer" in lowered:
-        return ["cs.DB"]
-    if "推荐" in field_name or "recsys" in lowered or "recommend" in lowered:
-        return ["cs.IR", "cs.LG"]
-    if "查询" in field_name or "query" in lowered:
-        return ["cs.DB"]
-    categories = re.findall(r"\b[a-z]{2,}\.[A-Z]{2}\b", field_name)
-    return categories or ["cs.AI"]
+    categories = [m.group(0) for m in ARXIV_CODE_PATTERN.finditer(field_name.lower())]
+    normalized: list[str] = []
+    for code in categories:
+        if "." not in code:
+            continue
+        prefix, suffix = code.split(".", 1)
+        normalized.append(f"{prefix.lower()}.{suffix.upper() if len(suffix) <= 3 else suffix.lower()}")
+    return list(dict.fromkeys(normalized))
 
 
 def infer_terms_from_field(field_name: str) -> list[str]:
-    lowered = field_name.strip().lower()
+    text = field_name.strip().lower()
+    if not text:
+        return []
+    words = re.findall(r"[a-z][a-z0-9\-]{2,}", text)
     terms: list[str] = []
-    if "数据库" in field_name or "database" in lowered or "db" in lowered:
-        terms.extend(["database", "query"])
-    if "优化器" in field_name or "optimizer" in lowered:
-        terms.extend(["optimizer", "query optimizer", "cost model", "execution plan", "join order"])
-    if "查询" in field_name or "query" in lowered:
-        terms.extend(["query", "query optimization", "cardinality estimation"])
-    if "推荐" in field_name or "recsys" in lowered or "recommend" in lowered:
-        terms.extend(["recommendation", "recommender", "ranking"])
+    terms.extend(words)
+    for i in range(len(words) - 1):
+        terms.append(f"{words[i]} {words[i + 1]}")
     return list(dict.fromkeys(terms))
 
 
@@ -184,14 +176,14 @@ def _expand_english_variants(keywords: list[str]) -> list[str]:
         if not k:
             continue
         out.append(k)
-        if "recommendation" in k:
-            out.extend(["recommender", "recommender system", "recommend"])
-        if "recommender" in k:
-            out.extend(["recommendation", "recommend", "recsys"])
-        if "optimizer" in k:
-            out.extend(["optimization", "query optimizer", "cost model", "execution plan"])
-        if "retrieval" in k:
-            out.extend(["rank", "ranking", "information retrieval"])
+        if " " in k:
+            parts = [p for p in k.split() if p]
+            out.extend(parts)
+        for token in re.findall(r"[a-z][a-z0-9\-]{2,}", k):
+            if token.endswith("s") and len(token) > 4:
+                out.append(token[:-1])
+            elif len(token) > 3:
+                out.append(f"{token}s")
     return list(dict.fromkeys(out))
 
 
@@ -454,33 +446,16 @@ def should_keep_for_specific_field(
     field_name: str,
     keywords: list[str],
     categories: list[str],
-    has_exact_mapping: bool,
 ) -> bool:
     text = f"{paper.title_en} {paper.abstract_en}".lower()
     cat_hit = bool(set(categories).intersection(set(paper.categories)))
     phrase_hits, strong_hits = _keyword_signals(text, keywords)
-    field_l = field_name.lower()
-
-    # For fine-grained DB optimizer fields, require both DB and optimizer semantics.
-    if ("数据库" in field_name or "database" in field_l or "db" in field_l) and (
-        "优化器" in field_name or "optimizer" in field_l
-    ):
-        db_terms = ["database", "sql", "relational", "query", "join", "index", "cardinality"]
-        opt_terms = ["optimizer", "optimization", "cost model", "execution plan", "query plan"]
-        has_db = any(t in text for t in db_terms)
-        has_opt = any(t in text for t in opt_terms)
-        return has_db and has_opt and (cat_hit or phrase_hits >= 1 or strong_hits >= 2)
-
-    # Exact mapped broad fields still require basic lexical support.
-    if has_exact_mapping:
-        return cat_hit and (phrase_hits >= 1 or strong_hits >= 1)
-
-    # If category does not match, demand strong textual evidence.
-    if not cat_hit:
-        return phrase_hits >= 2 or strong_hits >= 3
-
     fuzzy_hits = _fuzzy_term_score(text, [field_name] + keywords)
-    return phrase_hits >= 1 or strong_hits >= 1 or fuzzy_hits >= 1.5
+    if not categories:
+        return phrase_hits >= 1 or strong_hits >= 1 or fuzzy_hits >= 1.2
+    if not cat_hit:
+        return phrase_hits >= 2 or strong_hits >= 2 or fuzzy_hits >= 2.0
+    return phrase_hits >= 1 or strong_hits >= 1 or fuzzy_hits >= 1.2
 
 
 _EMBED_MODEL_CACHE: dict[str, Any] = {}
@@ -534,6 +509,7 @@ def embedding_filter_papers(
     keywords: list[str],
     venues: list[str],
     cfg: dict[str, Any],
+    seed_texts: list[str] | None = None,
 ) -> list[Paper]:
     if not papers:
         return papers
@@ -556,16 +532,42 @@ def embedding_filter_papers(
         ]
     )
     paper_texts = [f"{p.title_en}\n\n{p.abstract_en}" for p in papers]
+    seed_docs = [str(x).strip() for x in (seed_texts or []) if str(x).strip()]
+    seed_max_docs = int(cfg.get("seed_max_docs", 20))
+    if seed_max_docs > 0 and len(seed_docs) > seed_max_docs:
+        seed_docs = seed_docs[:seed_max_docs]
+    query_docs = [profile_text] + seed_docs
 
     try:
-        field_emb = model.encode(profile_text, normalize_embeddings=False)
+        query_embs = model.encode(query_docs, normalize_embeddings=False)
         paper_embs = model.encode(paper_texts, normalize_embeddings=False)
     except Exception:
         return papers
 
+    if query_embs is None or len(query_embs) == 0:
+        return papers
+    query_vecs = [list(v) for v in query_embs]
+    dim = len(query_vecs[0]) if query_vecs and query_vecs[0] else 0
+    if dim <= 0:
+        return papers
+    profile_weight = float(cfg.get("profile_weight", 1.0))
+    seed_weight = float(cfg.get("seed_weight", 0.7))
+    field_emb = [0.0] * dim
+    total_weight = 0.0
+    for i, vec in enumerate(query_vecs):
+        if len(vec) != dim:
+            continue
+        w = profile_weight if i == 0 else seed_weight
+        for j in range(dim):
+            field_emb[j] += vec[j] * w
+        total_weight += w
+    if total_weight <= 0:
+        return papers
+    field_emb = [x / total_weight for x in field_emb]
+
     kept: list[Paper] = []
     for p, emb in zip(papers, paper_embs):
-        sim = _cosine(list(field_emb), list(emb))
+        sim = _cosine(field_emb, list(emb))
         p.embedding_score = sim
         if sim >= threshold:
             kept.append(p)
@@ -643,13 +645,19 @@ def _extract_json_from_text(text: str) -> dict[str, Any] | None:
             return None
 
 
+def _openai_translate_model() -> str | None:
+    model = os.getenv("OPENAI_TRANSLATE_MODEL", "").strip()
+    return model or None
+
+
 def _openai_translate(title_en: str, abstract_en: str) -> tuple[str, str] | None:
     api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    model = _openai_translate_model()
+    if not api_key or not model:
         return None
 
     body = {
-        "model": os.getenv("OPENAI_TRANSLATE_MODEL", "gpt-4.1-mini"),
+        "model": model,
         "input": [
             {
                 "role": "system",
@@ -709,11 +717,75 @@ def _argos_translate(title_en: str, abstract_en: str) -> tuple[str, str] | None:
         return None
 
 
+def _openai_translate_text(text_en: str) -> str | None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    model = _openai_translate_model()
+    if not api_key or not model:
+        return None
+    raw = (text_en or "").strip()
+    if not raw:
+        return None
+
+    body = {
+        "model": model,
+        "input": [
+            {
+                "role": "system",
+                "content": [{"type": "input_text", "text": "Translate to Simplified Chinese. Return JSON: {\"zh\":\"...\"}"}],
+            },
+            {"role": "user", "content": [{"type": "input_text", "text": raw}]},
+        ],
+    }
+    req = Request(
+        "https://api.openai.com/v1/responses",
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"},
+        method="POST",
+    )
+    try:
+        with urlopen(req, timeout=45) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+    except Exception:
+        return None
+
+    chunks: list[str] = []
+    for item in payload.get("output", []):
+        for content in item.get("content", []):
+            if content.get("type") == "output_text":
+                chunks.append(content.get("text", ""))
+    obj = _extract_json_from_text("\n".join(chunks).strip())
+    if not obj:
+        return None
+    zh = str(obj.get("zh", "")).strip()
+    return zh or None
+
+
+def _argos_translate_text(text_en: str) -> str | None:
+    raw = (text_en or "").strip()
+    if not raw:
+        return None
+    try:
+        from argostranslate import translate as argos_translate
+    except Exception:
+        return None
+    try:
+        langs = argos_translate.get_installed_languages()
+        en = next((x for x in langs if x.code == "en"), None)
+        zh = next((x for x in langs if x.code in ("zh", "zh_CN")), None)
+        if not en or not zh:
+            return None
+        tr = en.get_translation(zh)
+        out = tr.translate(raw).strip()
+        return out or None
+    except Exception:
+        return None
+
+
 def select_translate_provider() -> str:
-    provider = os.getenv("TRANSLATE_PROVIDER", "auto").strip().lower()
-    if provider in {"openai", "argos", "none"}:
+    provider = os.getenv("TRANSLATE_PROVIDER", "argos").strip().lower()
+    if provider in {"openai", "argos", "none", "auto"}:
         return provider
-    return "auto"
+    return "argos"
 
 
 def translate_paper(paper: Paper) -> str:
@@ -721,15 +793,15 @@ def translate_paper(paper: Paper) -> str:
 
     translated: tuple[str, str] | None = None
     used = "none"
-    if provider in ("openai", "auto"):
-        translated = _openai_translate(paper.title_en, paper.abstract_en)
-        if translated:
-            used = "openai"
-
-    if not translated and provider in ("argos", "auto"):
+    if provider in ("argos", "auto"):
         translated = _argos_translate(paper.title_en, paper.abstract_en)
         if translated:
             used = "argos"
+
+    if not translated and provider in ("openai", "auto"):
+        translated = _openai_translate(paper.title_en, paper.abstract_en)
+        if translated:
+            used = "openai"
 
     if translated:
         paper.title_zh, paper.abstract_zh = translated
@@ -756,13 +828,664 @@ def build_highlight_tags(paper: Paper, highlight: dict[str, Any]) -> list[str]:
             tags.append(f"AUTHOR:{name}")
 
     venues = [str(x).strip() for x in highlight.get("venues", []) if str(x).strip()]
-    if not venues:
-        venues = DEFAULT_VENUES
     for v in venues:
         if re.search(rf"\b{re.escape(v)}\b", f"{paper.title_en} {paper.abstract_en}", flags=re.IGNORECASE):
             tags.append(f"VENUE:{v}")
 
     return tags
+
+
+def _split_sentences(text: str) -> list[str]:
+    normalized = " ".join((text or "").strip().split())
+    if not normalized:
+        return []
+    parts = re.split(r"(?<=[。！？!?\.])\s+", normalized)
+    out: list[str] = []
+    for p in parts:
+        s = p.strip()
+        if s:
+            out.append(s)
+    return out
+
+
+def _truncate_line(text: str, max_len: int = 1400) -> str:
+    s = (text or "").strip()
+    if len(s) <= max_len:
+        return s
+    # Prefer sentence-safe trimming to avoid hard-cut artifacts like trailing "..."
+    for token in ["。", "！", "？", ". ", "; ", "；"]:
+        idx = s.rfind(token, 0, max_len)
+        if idx >= int(max_len * 0.55):
+            end = idx + (0 if token in {"。", "！", "？"} else len(token.strip()))
+            return s[:end].strip()
+    idx = s.rfind(" ", 0, max_len)
+    if idx >= int(max_len * 0.7):
+        return s[:idx].strip()
+    return s[:max_len].strip()
+
+
+def _clean_summary_text(text: str) -> str:
+    s = (text or "").strip()
+    if not s:
+        return s
+    # Remove common inline section headers leaked from PDF extraction.
+    s = re.split(
+        r"\b\d+(?:\.\d+)*\s+(Introduction|Background|Related Work|Method|Methods|Experiment|Experiments|Conclusion|Conclusions)\b",
+        s,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    s = re.sub(r"\[[0-9,\s]+\]", " ", s)
+    s = re.sub(r"\(\s*[0-9,\s]+\s*\)", " ", s)
+    s = re.sub(r"\s+", " ", s).strip(" -;,:")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _visible_len(text: str) -> int:
+    return len(re.sub(r"\s+", "", (text or "").strip()))
+
+
+def _to_float_list(vec: Any) -> list[float]:
+    if hasattr(vec, "tolist"):
+        return [float(x) for x in vec.tolist()]
+    return [float(x) for x in vec]
+
+
+def _jaccard_tokens(a: str, b: str) -> float:
+    ta = set(re.findall(r"[a-z0-9]+", (a or "").lower()))
+    tb = set(re.findall(r"[a-z0-9]+", (b or "").lower()))
+    if not ta or not tb:
+        return 0.0
+    inter = len(ta.intersection(tb))
+    union = len(ta.union(tb))
+    if union <= 0:
+        return 0.0
+    return inter / union
+
+
+def _clean_zh_summary_output(text: str) -> str:
+    raw = (text or "").strip()
+    if not raw:
+        return raw
+    s = raw.replace("•", " ").replace("·", " ").replace("▪", " ").replace("◦", " ").replace("*", " ")
+    s = re.sub(r"\s+", " ", s).strip()
+    parts = re.split(r"(?<=[。！？；;])\s*", s)
+    kept: list[str] = []
+    seen: list[str] = []
+    for p in parts:
+        cur = p.strip()
+        if not cur:
+            continue
+        norm = re.sub(r"[，,。！？；;\s]", "", cur)
+        if len(norm) < 10:
+            continue
+        if any(_jaccard_tokens(norm, old) > 0.92 for old in seen):
+            continue
+        seen.append(norm)
+        kept.append(cur)
+        if len(kept) >= 10:
+            break
+    out = " ".join(kept).strip() if kept else s
+    out = re.sub(r"\s+", " ", out).strip()
+    return out
+
+
+def _strip_source_prefix(text: str) -> str:
+    return re.sub(r"^\[.*?\]\s*", "", (text or "").strip())
+
+
+def _normalize_reader_perspective_zh(text: str) -> str:
+    s = (text or "").strip()
+    if not s:
+        return s
+    replacements = [
+        ("我们的", "该研究的"),
+        ("我们提出", "本文提出"),
+        ("我们发现", "研究发现"),
+        ("我们认为", "本文认为"),
+        ("我们通过", "该研究通过"),
+        ("我们采用", "该研究采用"),
+        ("我们设计", "该研究设计"),
+        ("我们构建", "该研究构建"),
+        ("我们将", "该研究将"),
+        ("我们在", "该研究在"),
+        ("我们", "该研究"),
+    ]
+    for old, new in replacements:
+        s = s.replace(old, new)
+    s = s.replace("该研究改变该研究的观点", "该研究改变其观点")
+    s = s.replace("该研究通过Rec Pilot", "本文通过Rec Pilot")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _build_insight_paragraph(problem: str, core: str, innovation: str, min_chars: int = 500) -> str:
+    p = _clean_zh_summary_output(_strip_source_prefix(problem))
+    c = _clean_zh_summary_output(_strip_source_prefix(core))
+    i = _clean_zh_summary_output(_strip_source_prefix(innovation))
+
+    # Free-form paragraph assembly without fixed scaffold phrases.
+    blocks = [x for x in [p, c, i] if x]
+    raw = " ".join(blocks).strip()
+    raw = _clean_zh_summary_output(raw)
+    sentences = [s.strip() for s in re.split(r"(?<=[。！？；;])\s*", raw) if s.strip()]
+
+    kept: list[str] = []
+    for s in sentences:
+        norm = re.sub(r"[，,。！？；;\s]", "", s)
+        if len(norm) < 12:
+            continue
+        if any(_jaccard_tokens(norm, re.sub(r"[，,。！？；;\s]", "", t)) > 0.88 for t in kept):
+            continue
+        kept.append(s)
+        if len(kept) >= 18:
+            break
+
+    para = _clean_zh_summary_output(" ".join(kept) if kept else raw)
+    if _visible_len(para) < max(280, int(min_chars)):
+        para = _clean_zh_summary_output(f"{para} {raw}")
+    para = _normalize_reader_perspective_zh(para)
+    return _truncate_line(para, max_len=2600)
+
+
+def _is_summary_candidate(sentence: str) -> bool:
+    s = _clean_summary_text(sentence)
+    if len(s) < 40:
+        return False
+    low = s.lower()
+    if low.startswith(("figure ", "table ", "references", "appendix ")):
+        return False
+    if re.search(r"\b(arxiv|doi|http|www\.)\b", low):
+        return False
+    if "*" in s:
+        return False
+    return True
+
+
+def _pick_sentence(sentences: list[str], cue_words: list[str], used: set[int]) -> str:
+    for i, s in enumerate(sentences):
+        if i in used:
+            continue
+        if not _is_summary_candidate(s):
+            continue
+        low = s.lower()
+        if any(c in low for c in cue_words):
+            used.add(i)
+            return s
+    for i, s in enumerate(sentences):
+        if i not in used and _is_summary_candidate(s):
+            used.add(i)
+            return s
+    return ""
+
+
+def _pick_sentences(
+    sentences: list[str],
+    cue_words: list[str],
+    used: set[int],
+    preferred_count: int = 3,
+) -> str:
+    picked_idx: list[int] = []
+
+    for i, s in enumerate(sentences):
+        if i in used:
+            continue
+        if not _is_summary_candidate(s):
+            continue
+        low = s.lower()
+        if any(c in low for c in cue_words):
+            picked_idx.append(i)
+            if len(picked_idx) >= max(1, preferred_count):
+                break
+
+    if not picked_idx:
+        for i in range(len(sentences)):
+            if i not in used and _is_summary_candidate(sentences[i]):
+                picked_idx.append(i)
+                break
+
+    # Add adjacent sentences for context when possible.
+    if picked_idx:
+        base = picked_idx[0]
+        j = base + 1
+        while len(picked_idx) < max(1, preferred_count) and j < min(base + 6, len(sentences)):
+            if j not in used and _is_summary_candidate(sentences[j]):
+                picked_idx.append(j)
+            j += 1
+
+    for i in picked_idx:
+        used.add(i)
+    merged = " ".join(_clean_summary_text(sentences[i]) for i in picked_idx if 0 <= i < len(sentences))
+    return merged.strip()
+
+
+def _semantic_rank_sentences(
+    sentences: list[str],
+    query: str,
+    model_name: str,
+    prefer_terms: list[str] | None = None,
+    penalize_terms: list[str] | None = None,
+) -> list[tuple[float, str]]:
+    clean_sentences = [_clean_summary_text(s) for s in sentences if _is_summary_candidate(s)]
+    if not clean_sentences:
+        return []
+    model = _load_embed_model(model_name)
+    if model is None:
+        return []
+    try:
+        embs = model.encode([query] + clean_sentences, normalize_embeddings=False)
+    except Exception:
+        return []
+    qv = _to_float_list(embs[0])
+    ranked: list[tuple[float, str]] = []
+    pref = [x.lower() for x in (prefer_terms or []) if x.strip()]
+    pen = [x.lower() for x in (penalize_terms or []) if x.strip()]
+    for sent, vec in zip(clean_sentences, embs[1:]):
+        sv = _to_float_list(vec)
+        score = _cosine(qv, sv)
+        low = sent.lower()
+        if pref:
+            score += 0.04 * sum(1 for t in pref if t in low)
+        if pen:
+            score -= 0.05 * sum(1 for t in pen if t in low)
+        ranked.append((score, sent))
+    ranked.sort(key=lambda x: x[0], reverse=True)
+    return ranked
+
+
+def _compose_semantic_paragraph(
+    sentences: list[str],
+    query: str,
+    model_name: str,
+    min_chars: int,
+    max_sentences: int,
+    prefer_terms: list[str] | None = None,
+    penalize_terms: list[str] | None = None,
+) -> str:
+    ranked = _semantic_rank_sentences(
+        sentences,
+        query=query,
+        model_name=model_name,
+        prefer_terms=prefer_terms,
+        penalize_terms=penalize_terms,
+    )
+    if not ranked:
+        return ""
+
+    selected: list[str] = []
+    total = 0
+    for _, sent in ranked:
+        if any(_jaccard_tokens(sent, s) > 0.82 for s in selected):
+            continue
+        selected.append(sent)
+        total += _visible_len(sent)
+        if len(selected) >= max(2, max_sentences):
+            break
+        if total >= max(200, min_chars):
+            break
+    return " ".join(selected).strip()
+
+
+def _extract_contribution_span(text: str) -> str:
+    raw = (text or "").strip()
+    if not raw:
+        return ""
+    lower = raw.lower()
+    patterns = [
+        "our contributions",
+        "main contributions",
+        "contributions are summarized",
+        "in summary, our contributions",
+        "we make the following contributions",
+    ]
+    for p in patterns:
+        idx = lower.find(p)
+        if idx >= 0:
+            return raw[idx: idx + 7000]
+    return ""
+
+
+def _expand_section_en(
+    source_text: str,
+    section: str,
+    model_name: str,
+    min_chars: int,
+) -> str:
+    sec = (section or "").strip().lower()
+    base_source = source_text
+    if sec == "innovation":
+        contrib = _extract_contribution_span(source_text)
+        if contrib:
+            base_source = contrib
+    sentences = _split_sentences(base_source)
+    if not sentences:
+        return ""
+    if sec == "problem":
+        return _compose_semantic_paragraph(
+            sentences=sentences,
+            query="Elaborate the concrete problem setting, practical pain points, and why prior work is insufficient.",
+            model_name=model_name,
+            min_chars=min_chars,
+            max_sentences=6,
+            prefer_terms=["problem", "challenge", "limitation", "insufficient", "costly", "burden"],
+            penalize_terms=["we propose", "our method"],
+        )
+    if sec == "core":
+        return _compose_semantic_paragraph(
+            sentences=sentences,
+            query="Elaborate the technical pipeline, key modules, and how components interact end-to-end.",
+            model_name=model_name,
+            min_chars=min_chars,
+            max_sentences=6,
+            prefer_terms=["framework", "module", "pipeline", "method", "architecture", "algorithm"],
+            penalize_terms=["dataset", "benchmark", "accuracy", "metric"],
+        )
+    return _compose_semantic_paragraph(
+        sentences=sentences,
+        query="Elaborate the novelty and explicit contributions. Avoid experimental metrics and focus on what is newly proposed.",
+        model_name=model_name,
+        min_chars=min_chars,
+        max_sentences=6,
+        prefer_terms=["contribution", "novel", "first", "our contributions", "we contribute"],
+        penalize_terms=["dataset", "benchmark", "accuracy", "f1", "auc", "evaluation", "results"],
+    )
+
+
+def _ensure_min_zh_chars(
+    current_zh: str,
+    section: str,
+    source_text: str,
+    model_name: str,
+    min_chars: int,
+) -> str:
+    cur = _clean_zh_summary_output(current_zh)
+    if _visible_len(cur) >= min_chars:
+        return cur
+    extra_en = _expand_section_en(
+        source_text=source_text,
+        section=section,
+        model_name=model_name,
+        min_chars=max(600, min_chars * 3),
+    )
+    if not extra_en:
+        return cur
+    extra_zh = _translate_text_to_zh(extra_en) or ""
+    if not extra_zh:
+        return cur
+    merged = _clean_zh_summary_output(f"{cur} {extra_zh}")
+    return merged
+
+
+_PDF_TEXT_CACHE: dict[str, str] = {}
+
+
+def _download_pdf_bytes(arxiv_id: str, timeout_sec: int = 35) -> bytes | None:
+    url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+    try:
+        req = Request(url, headers={"User-Agent": "agent-daily-paper/1.0"})
+        with urlopen(req, timeout=max(5, timeout_sec)) as resp:
+            return resp.read()
+    except Exception:
+        return None
+
+
+def _extract_pdf_text(pdf_bytes: bytes, max_pages: int = 20) -> str | None:
+    try:
+        from pypdf import PdfReader  # type: ignore
+    except Exception:
+        return None
+    try:
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        out: list[str] = []
+        for i, page in enumerate(reader.pages):
+            if i >= max(1, int(max_pages)):
+                break
+            text = page.extract_text() or ""
+            if text.strip():
+                out.append(text)
+        merged = "\n".join(out).strip()
+        return merged if merged else None
+    except Exception:
+        return None
+
+
+def _focus_pdf_text(raw: str) -> str:
+    text = " ".join((raw or "").split())
+    # Fix common PDF extraction artifact: split words like "de- pendencies".
+    text = re.sub(r"([A-Za-z])-\s+([a-z])", r"\1\2", text)
+    # Fix token sticking, e.g. "throughRecPilot" -> "through RecPilot".
+    text = re.sub(r"([a-z])([A-Z])", r"\1 \2", text)
+    if not text:
+        return ""
+    lower = text.lower()
+    picks: list[str] = []
+
+    idx_abs = lower.find("abstract")
+    if idx_abs >= 0:
+        picks.append(text[idx_abs: idx_abs + 2500])
+
+    idx_intro = lower.find("introduction")
+    if idx_intro >= 0:
+        picks.append(text[idx_intro: idx_intro + 3000])
+
+    idx_method = lower.find("method")
+    if idx_method >= 0:
+        picks.append(text[idx_method: idx_method + 3500])
+
+    idx_concl = lower.find("conclusion")
+    if idx_concl >= 0:
+        left = max(0, idx_concl - 2000)
+        picks.append(text[left: idx_concl + 3500])
+
+    if not picks:
+        picks.append(text[:12000])
+    return " ".join(picks)[:20000]
+
+
+def _load_pdf_focus_text(arxiv_id: str, max_pages: int, timeout_sec: int) -> str | None:
+    key = f"{arxiv_id}:{max_pages}:{timeout_sec}"
+    if key in _PDF_TEXT_CACHE:
+        return _PDF_TEXT_CACHE[key]
+    pdf_bytes = _download_pdf_bytes(arxiv_id, timeout_sec=timeout_sec)
+    if not pdf_bytes:
+        return None
+    raw = _extract_pdf_text(pdf_bytes, max_pages=max_pages)
+    if not raw:
+        return None
+    focus = _focus_pdf_text(raw)
+    if not focus:
+        return None
+    _PDF_TEXT_CACHE[key] = focus
+    return focus
+
+
+def _summarize_from_en_text(
+    en_text: str,
+    source_prefix: str,
+    embed_model_name: str = "BAAI/bge-m3",
+    min_source_chars: int = 900,
+) -> tuple[str, str, str]:
+    source = (en_text or "").strip()
+    sentences = _split_sentences(source)
+    if not sentences:
+        return (
+            _truncate_line(f"{source_prefix} Problem statement not explicit in source text."),
+            _truncate_line(f"{source_prefix} Core approach not explicit in source text."),
+            _truncate_line(f"{source_prefix} Innovation not explicit in source text."),
+        )
+
+    contribution_span = _extract_contribution_span(source)
+    contribution_sentences = _split_sentences(contribution_span) if contribution_span else []
+
+    problem_en = _compose_semantic_paragraph(
+        sentences=sentences,
+        query=(
+            "Summarize the concrete research problem, limitation, and real-world pain point. "
+            "Focus on why existing methods are insufficient."
+        ),
+        model_name=embed_model_name,
+        min_chars=min_source_chars,
+        max_sentences=8,
+        prefer_terms=["problem", "challenge", "limitation", "insufficient", "pain point", "costly", "burden"],
+        penalize_terms=["we propose", "our method", "our framework"],
+    )
+    core_en = _compose_semantic_paragraph(
+        sentences=sentences,
+        query=(
+            "Summarize the core technical approach, architecture, modules, and workflow of the proposed method "
+            "without focusing on metrics."
+        ),
+        model_name=embed_model_name,
+        min_chars=min_source_chars,
+        max_sentences=8,
+        prefer_terms=["propose", "framework", "architecture", "method", "module", "pipeline", "algorithm"],
+        penalize_terms=["accuracy", "outperform", "benchmark", "dataset"],
+    )
+    innovation_pool = contribution_sentences or sentences
+    innovation_en = _compose_semantic_paragraph(
+        sentences=innovation_pool,
+        query=(
+            "Summarize the key contributions and novelty claims. "
+            "Prioritize explicit contribution statements and novel design choices, not experimental results."
+        ),
+        model_name=embed_model_name,
+        min_chars=max(700, int(min_source_chars * 0.8)),
+        max_sentences=6,
+        prefer_terms=["contribution", "contributions", "novel", "first", "we contribute", "our contributions"],
+        penalize_terms=["dataset", "benchmark", "accuracy", "f1", "auc", "results demonstrate"],
+    )
+
+    # Fallback to extractive heuristic when semantic path yields empty segments.
+    if not problem_en or not core_en or not innovation_en:
+        used_en: set[int] = set()
+        if not problem_en:
+            problem_en = _pick_sentences(
+                sentences,
+                ["challenge", "problem", "difficult", "limitation", "bottleneck", "critical", "remain"],
+                used_en,
+                preferred_count=3,
+            )
+        if not core_en:
+            core_en = _pick_sentences(
+                sentences,
+                ["we propose", "we present", "introduce", "design", "framework", "method", "approach", "architecture"],
+                used_en,
+                preferred_count=3,
+            )
+        if not innovation_en:
+            innovation_en = _pick_sentences(
+                contribution_sentences or sentences,
+                ["our contributions", "novel", "first", "we contribute", "contribution"],
+                used_en,
+                preferred_count=2,
+            )
+
+    return (
+        _truncate_line(_clean_summary_text(f"{source_prefix} {problem_en or 'Problem statement not explicit in source text.'}")),
+        _truncate_line(_clean_summary_text(f"{source_prefix} {core_en or 'Core approach not explicit in source text.'}")),
+        _truncate_line(_clean_summary_text(f"{source_prefix} {innovation_en or 'Innovation not explicit in source text.'}")),
+    )
+
+
+_INSIGHT_ZH_CACHE: dict[str, str] = {}
+
+
+def _translate_text_to_zh(text_en: str) -> str | None:
+    raw = (text_en or "").strip()
+    if not raw:
+        return None
+    if raw in _INSIGHT_ZH_CACHE:
+        return _INSIGHT_ZH_CACHE[raw]
+
+    provider = select_translate_provider()
+    translated: str | None = None
+    if provider in ("argos", "auto"):
+        translated = _argos_translate_text(raw)
+    if not translated and provider in ("openai", "auto"):
+        translated = _openai_translate_text(raw)
+
+    if translated:
+        _INSIGHT_ZH_CACHE[raw] = translated
+    return translated
+
+
+def summarize_paper_insight(
+    paper: Paper,
+    insight_mode: str = "pdf",
+    insight_pdf_max_pages: int = 20,
+    insight_pdf_timeout_sec: int = 35,
+    insight_lang: str = "zh",
+    insight_min_chars: int = 300,
+    insight_embed_model: str = "BAAI/bge-m3",
+) -> tuple[str, str, str]:
+    mode = (insight_mode or "pdf").strip().lower()
+    lang = (insight_lang or "zh").strip().lower()
+    min_chars = max(120, int(insight_min_chars))
+    source_min_chars = max(1200, min_chars * 4)
+    if mode == "pdf":
+        pdf_text = _load_pdf_focus_text(
+            paper.arxiv_id,
+            max_pages=insight_pdf_max_pages,
+            timeout_sec=insight_pdf_timeout_sec,
+        )
+        if pdf_text:
+            problem, core, innovation = _summarize_from_en_text(
+                pdf_text,
+                "[基于PDF全文-语义凝练]",
+                embed_model_name=insight_embed_model,
+                min_source_chars=source_min_chars,
+            )
+            if lang == "zh":
+                src = "[基于PDF全文-语义凝练]"
+                p = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", problem)) or re.sub(r"^\[.*?\]\s*", "", problem)
+                c = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", core)) or re.sub(r"^\[.*?\]\s*", "", core)
+                i = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", innovation)) or re.sub(r"^\[.*?\]\s*", "", innovation)
+                p = _ensure_min_zh_chars(p, "problem", pdf_text, insight_embed_model, min_chars)
+                c = _ensure_min_zh_chars(c, "core", pdf_text, insight_embed_model, min_chars)
+                i = _ensure_min_zh_chars(i, "innovation", pdf_text, insight_embed_model, min_chars)
+                return (
+                    _truncate_line(f"{src} {p}"),
+                    _truncate_line(f"{src} {c}"),
+                    _truncate_line(f"{src} {i}"),
+                )
+            return problem, core, innovation
+
+    zh_abstract = (paper.abstract_zh or "").strip()
+    has_zh = bool(zh_abstract) and not zh_abstract.startswith("[待翻译]")
+    if has_zh:
+        sentences = _split_sentences(zh_abstract)
+        used: set[int] = set()
+        problem = _pick_sentences(sentences, ["问题", "挑战", "瓶颈", "困难", "关键", "仍然"], used, preferred_count=3)
+        core = _pick_sentences(sentences, ["提出", "设计", "构建", "方法", "框架", "通过", "采用"], used, preferred_count=3)
+        innovation = _pick_sentences(sentences, ["创新", "首次", "显著", "提升", "优于", "改进", "达到"], used, preferred_count=2)
+        return (
+            _truncate_line(_clean_summary_text(problem or "摘要未明确问题定义。")),
+            _truncate_line(_clean_summary_text(core or "摘要未明确核心方法。")),
+            _truncate_line(_clean_summary_text(innovation or "摘要未明确创新点。")),
+        )
+
+    problem, core, innovation = _summarize_from_en_text(
+        paper.abstract_en or "",
+        "[基于英文摘要-语义凝练]",
+        embed_model_name=insight_embed_model,
+        min_source_chars=max(600, source_min_chars - 200),
+    )
+    if lang == "zh":
+        src = "[基于英文摘要-语义凝练]"
+        p = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", problem)) or re.sub(r"^\[.*?\]\s*", "", problem)
+        c = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", core)) or re.sub(r"^\[.*?\]\s*", "", core)
+        i = _translate_text_to_zh(re.sub(r"^\[.*?\]\s*", "", innovation)) or re.sub(r"^\[.*?\]\s*", "", innovation)
+        src_text = paper.abstract_en or ""
+        p = _ensure_min_zh_chars(p, "problem", src_text, insight_embed_model, min_chars)
+        c = _ensure_min_zh_chars(c, "core", src_text, insight_embed_model, min_chars)
+        i = _ensure_min_zh_chars(i, "innovation", src_text, insight_embed_model, min_chars)
+        return (
+            _truncate_line(f"{src} {p}"),
+            _truncate_line(f"{src} {c}"),
+            _truncate_line(f"{src} {i}"),
+        )
+    return problem, core, innovation
 
 
 def to_local(dt: datetime, tz_name: str) -> datetime:
@@ -848,11 +1571,34 @@ def render_markdown(
         lines.extend(profile_rows)
         lines.append("")
 
+    insight_mode = str(sub.get("insight_mode", "pdf")).strip().lower()
+    insight_pdf_max_pages = int(sub.get("insight_pdf_max_pages", 20))
+    insight_pdf_timeout_sec = int(sub.get("insight_pdf_timeout_sec", 35))
+    insight_lang = str(sub.get("insight_lang", "zh")).strip().lower()
+    insight_min_chars = int(sub.get("insight_min_chars", 300))
+    insight_embed_model = str(sub.get("insight_embed_model", "BAAI/bge-m3")).strip() or "BAAI/bge-m3"
+    insight_paragraph_min_chars = int(sub.get("insight_paragraph_min_chars", 500))
+
     def block(i: int, p: Paper) -> list[str]:
         authors = p.authors[:3]
         author_text = ", ".join(authors) + (" et al." if len(p.authors) > 3 else "")
         updated_local = to_local(p.updated, tz_name).strftime("%Y-%m-%d %H:%M")
         flags = [p.status] + p.highlight_tags
+        problem, core, innovation = summarize_paper_insight(
+            p,
+            insight_mode=insight_mode,
+            insight_pdf_max_pages=insight_pdf_max_pages,
+            insight_pdf_timeout_sec=insight_pdf_timeout_sec,
+            insight_lang=insight_lang,
+            insight_min_chars=insight_min_chars,
+            insight_embed_model=insight_embed_model,
+        )
+        insight_paragraph = _build_insight_paragraph(
+            problem=problem,
+            core=core,
+            innovation=innovation,
+            min_chars=insight_paragraph_min_chars,
+        )
         return [
             f"## {i}. {p.title_en}",
             "",
@@ -869,6 +1615,9 @@ def render_markdown(
             "",
             "### 中文摘要",
             p.abstract_zh,
+            "",
+            "### 论文解读（Agent）",
+            insight_paragraph,
             "",
         ]
 
@@ -968,27 +1717,14 @@ def run_subscription(
                 field_profile_map.setdefault(field_cn, item)
 
     sub_key = subscription_key(sub)
-    history_scope = str(sub.get("history_scope", "subscription")).strip().lower()
-
-    sent_versions_global = state.get("sent_versions", {})
-    if not isinstance(sent_versions_global, dict):
-        sent_versions_global = {}
+    # Dedup history is now subscription-scoped only.
     sent_versions_by_sub = state.get("sent_versions_by_sub", {})
     if not isinstance(sent_versions_by_sub, dict):
         sent_versions_by_sub = {}
-    sent_ids_by_sub = state.get("sent_ids_by_sub", {})
-    if not isinstance(sent_ids_by_sub, dict):
-        sent_ids_by_sub = {}
-
-    if history_scope == "global":
-        sent_versions_active = sent_versions_global
-        legacy_sent_ids = set(state.get("sent_ids", []))
-    else:
-        active = sent_versions_by_sub.get(sub_key, {})
-        if not isinstance(active, dict):
-            active = {}
-        sent_versions_active = active
-        legacy_sent_ids = set(sent_ids_by_sub.get(sub_key, []))
+    active = sent_versions_by_sub.get(sub_key, {})
+    if not isinstance(active, dict):
+        active = {}
+    sent_versions_active = active
 
     def collect(window_hours: int, relax_keywords: bool) -> tuple[list[Paper], dict[str, list[Paper]], int]:
         all_selected: list[Paper] = []
@@ -1003,18 +1739,25 @@ def run_subscription(
             primary_cats = fs.primary_categories or cats_all
             # Use primary categories as the only retrieval/constraint categories.
             cats = list(primary_cats) if primary_cats else list(cats_all)
-            lowered_name = fs.name.strip().lower()
-            has_exact_mapping = lowered_name in FIELD_TO_CATEGORIES
             inferred_terms = infer_terms_from_field(fs.name)
             profile = field_profile_map.get(fs.name, {})
             profile_keywords = [str(x).strip() for x in profile.get("keywords", []) if str(x).strip()]
+            profile_seed_keywords = [str(x).strip() for x in profile.get("seed_keywords", []) if str(x).strip()]
             profile_venues = [str(x).strip() for x in profile.get("venues", []) if str(x).strip()]
+            seed_papers = profile.get("seed_papers", []) if isinstance(profile.get("seed_papers"), list) else []
+            seed_texts = [
+                f"{str(p.get('title_en', '')).strip()}\n\n{str(p.get('abstract_en', '')).strip()}"
+                for p in seed_papers
+                if isinstance(p, dict)
+            ]
             canonical_en = str(profile.get("canonical_en", fs.name)).strip() or fs.name
             if relax_keywords:
-                keywords: list[str] = [fs.name] + inferred_terms + profile_keywords
+                keywords: list[str] = [fs.name] + inferred_terms + profile_seed_keywords + profile_keywords
             else:
                 keywords = list(
-                    dict.fromkeys(global_keywords + fs.keywords + profile_keywords + [fs.name] + inferred_terms)
+                    dict.fromkeys(
+                        global_keywords + fs.keywords + profile_seed_keywords + profile_keywords + [fs.name] + inferred_terms
+                    )
                 )
             excludes = list(dict.fromkeys(global_excludes + fs.exclude_keywords))
 
@@ -1046,18 +1789,16 @@ def run_subscription(
                 keywords=keywords,
                 venues=profile_venues,
                 cfg=sub.get("embedding_filter", {}),
+                seed_texts=seed_texts,
             )
 
             scored: list[Paper] = []
             for p in candidates:
                 if not should_keep_for_specific_field(
-                    p, fs.name, keywords, cats, has_exact_mapping=has_exact_mapping
+                    p, fs.name, keywords, cats
                 ):
                     continue
                 prev_v = None if ignore_history else sent_versions_active.get(p.arxiv_id)
-                if (not ignore_history) and prev_v is None and p.arxiv_id in legacy_sent_ids:
-                    prev_v = "v1"
-
                 if prev_v is None:
                     p.status = "NEW"
                 elif prev_v != p.version:
@@ -1146,14 +1887,8 @@ def run_subscription(
         if not ignore_history:
             for p in deduped:
                 sent_versions_active[p.arxiv_id] = p.version
-            if history_scope == "global":
-                state["sent_versions"] = sent_versions_active
-                state["sent_ids"] = sorted(sent_versions_active.keys())[-5000:]
-            else:
-                sent_versions_by_sub[sub_key] = sent_versions_active
-                state["sent_versions_by_sub"] = sent_versions_by_sub
-                sent_ids_by_sub[sub_key] = sorted(sent_versions_active.keys())[-5000:]
-                state["sent_ids_by_sub"] = sent_ids_by_sub
+            sent_versions_by_sub[sub_key] = sent_versions_active
+            state["sent_versions_by_sub"] = sent_versions_by_sub
         state["last_run_at"] = now_utc.isoformat()
 
     return {
@@ -1199,7 +1934,15 @@ def main() -> int:
     args = parser.parse_args()
 
     config = load_json(Path(args.config), default={"subscriptions": []})
-    state = load_json(Path(args.state), default={"sent_ids": [], "sent_versions": {}, "last_run_at": None})
+    state = load_json(
+        Path(args.state),
+        default={
+            "sent_versions_by_sub": {},
+            "last_run_at": None,
+            "last_push_date_by_sub": {},
+            "last_state_reset_at": None,
+        },
+    )
 
     if bool(config.get("setup_required", False)):
         msg = config.get("setup_message") or (
@@ -1218,13 +1961,14 @@ def main() -> int:
         print("No subscriptions found. Please edit config/subscriptions.json.")
         return 1
 
+    now_utc = datetime.now(timezone.utc)
+    state_reset = maybe_reset_state_weekly(state, now_utc, interval_days=7)
+
     results = []
     has_real_run = False
     last_push_date_by_sub = state.get("last_push_date_by_sub", {})
     if not isinstance(last_push_date_by_sub, dict):
         last_push_date_by_sub = {}
-
-    now_utc = datetime.now(timezone.utc)
     for sub in subs:
         sub_key = subscription_key(sub)
         if args.only_due_now:
@@ -1263,7 +2007,7 @@ def main() -> int:
         except Exception as exc:
             print(f"[ERROR] Subscription failed ({sub.get('name', 'unknown')}): {exc}")
 
-    if not args.dry_run and has_real_run:
+    if not args.dry_run and (has_real_run or state_reset):
         state["last_push_date_by_sub"] = last_push_date_by_sub
         save_json(Path(args.state), state)
 
