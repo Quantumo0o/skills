@@ -3,9 +3,15 @@
   "slug": "searxng-auto-proxy",
   "displayName": "searxng-auto-proxy searxng自适应代理检测",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773275919324,
-    "commit": "https://github.com/openclaw/skills/commit/7db446660c8132245b09fff4d744c31295b8c941"
+    "version": "4.0.0",
+    "publishedAt": 1773849048107,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773275919324,
+      "commit": "https://github.com/openclaw/skills/commit/7db446660c8132245b09fff4d744c31295b8c941"
+    }
+  ]
 }
