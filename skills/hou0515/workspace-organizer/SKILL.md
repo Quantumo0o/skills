@@ -1,112 +1,95 @@
 ---
 name: workspace-organizer
-description: Flexible workspace and task file organization system. Use when managing project files, organizing task inputs/outputs, structuring workspace directories, or when you need a systematic way to organize files for any type of task. This skill provides a methodology for creating timestamped task structures with workflow-based step decomposition, adaptable to any task type without preset constraints.
+description: |
+  任务文件组织与记忆管理。创建时间戳文件夹，支持会话恢复。
+metadata:
+  openclaw:
+    triggers:
+      - 整理工作空间
+      - 组织文件
+      - 任务文件夹
+      - 恢复任务
+      - 保存进度
+      - 记忆管理
 ---
 
 # Workspace Organizer
 
-A flexible, extensible system for organizing workspace files based on task workflows, not fixed categories. Each task gets a unique structure derived from its actual requirements.
+任务优先文件组织。创建 `YYYY-MM-DD_描述/01_步骤/` 结构。
 
-## Core Principles
+## 核心规则
 
-1. **Task-first, not category-first**: No preset task types (document analysis, template extraction, etc.). Each task structure is unique.
-2. **Timestamp + description naming**: `YYYY-MM-DD_TaskDescription` for clear chronological tracking.
-3. **Workflow decomposition**: Analyze task requirements, break into logical steps, create corresponding subdirectories.
-4. **Input/Output separation**: Clear distinction between source materials (`input/`) and generated artifacts (`output/`).
-5. **Progressive refinement**: Structure evolves with task understanding; folders reflect actual work stages.
+### 1. 路径基准
+- **工作空间根目录** = `.openclaw\workspace\`
+- **正确示例**: `output/2026-03-19_任务/`
+- **验证位置**: `pwd` 应显示工作空间根目录
 
-## Methodology
+### 2. 智能记忆保存
+创建任务目录后立即保存检查点：
+```powershell
+# Python可用时（推荐）
+py scripts/safe-writer.py "开始任务: [描述]" --task-id "YYYY-MM-DD_描述" --step "01_开始"
 
-### 1. Task Analysis & Step Decomposition
-
-Before creating directories:
-- **Understand the task**: What's the end goal? What are the deliverables?
-- **Identify natural phases**: What are the logical stages of work? (e.g., data collection → analysis → visualization → reporting)
-- **Consider dependencies**: Which steps depend on others? What's the workflow sequence?
-- **Keep it flexible**: Steps can be added, merged, or removed as task understanding deepens.
-
-### 2. Directory Structure Design
-
-```
-workspace/
-├── input/                            # Source materials
-│   └── YYYY-MM-DD_TaskDescription/   # Task-specific inputs
-├── output/                           # Generated artifacts
-│   └── YYYY-MM-DD_TaskDescription/   # Task-specific outputs
-│       ├── 01_StepOneDescription/    # Workflow step 1
-│       ├── 02_StepTwoDescription/    # Workflow step 2
-│       ├── 03_StepThreeDescription/  # Workflow step 3
-│       └── (additional steps)        # As needed
-└── (root config files)               # AGENTS.md, SOUL.md, etc.
+# Python不可用时（备用方案）
+# 如果需要PowerShell版本，将 safe-writer-ps1.txt 重命名为 safe-writer.ps1
+# powershell scripts/safe-writer.ps1 "开始任务: [描述]" --task-id "YYYY-MM-DD_描述" --step "01_开始"
 ```
 
-### 3. Step Naming Convention
+### 3. 规划-执行流程
+1. **完整规划**：明确所有步骤（01_步骤名、02_步骤名...）
+2. **创建结构**：`output/YYYY-MM-DD_描述/01_步骤/`
+3. **保存检查点**：立即执行智能写入命令
+4. **顺序执行**：按步骤目录顺序工作，每阶段保存进展
 
-- **Numbered for sequence**: `01_`, `02_`, `03_` prefixes ensure chronological order
-- **Descriptive, not generic**: "DataCollection" not "Step1"; "Analysis" not "Processing"
-- **Verb-focused**: Use action-oriented names (Extract, Analyze, Transform, Visualize)
-- **Consistent length**: Avoid mixing "Data_Cleaning" and "DataPreprocessingAndFeatureEngineering"
+## AI工作流程
 
-### 4. File Organization Logic
+### 开始新任务
+1. **规划步骤**：分析任务，确定3-5个主要阶段
+2. **验证位置**：确保在工作空间根目录
+3. **创建目录**：`output/YYYY-MM-DD_描述/` 及所有步骤子目录
+4. **保存记忆**：运行智能写入命令记录任务开始
+5. **执行工作**：按步骤顺序进行，定期保存进展
 
-- **Input files**: Go to corresponding task folder in `input/`
-- **Processing scripts**: Go to the step where they're primarily used
-- **Intermediate results**: Go to the step that produced them
-- **Final deliverables**: Go to the final step or a dedicated `Deliverables` folder
-- **Cross-step utilities**: Consider a `shared/` or `utils/` folder at task level
+### 恢复任务
+- 说"**恢复上次任务**"或运行 `task-memory-manager.py recovery`
+- 系统显示未完成任务列表供选择
 
-## Implementation Process
+## 核心脚本
+- `safe-writer.py` - Python版记忆写入（原子操作+双写保证，推荐使用）
+- `task-memory-manager.py` - 任务扫描与恢复管理
+- `task-recovery-check.py` - 自动检查未完成任务（Python版本）
 
-### When Starting a New Task
+## 备用脚本（如需PowerShell版本）
+- `safe-writer-ps1.txt` - PowerShell备用版本（重命名为 .ps1 使用）
+- `task-recovery-check-ps1.txt` - PowerShell包装器（重命名为 .ps1 使用）
+- `workspace-commands-ps1.txt` - PowerShell快捷命令（重命名为 .ps1 使用）
 
-1. **Create task folders**:
-   ```bash
-   mkdir -p input/YYYY-MM-DD_TaskDescription
-   mkdir -p output/YYYY-MM-DD_TaskDescription
-   ```
+## 环境检测
+系统优先使用Python版本：
+- **Python可用** → 使用 `safe-writer.py`（功能完整，推荐）
+- **Python不可用** → 可将 `safe-writer-ps1.txt` 重命名为 `safe-writer.ps1` 使用（基础功能）
 
-2. **Analyze and define steps**:
-   - List required work phases
-   - Assign descriptive names
-   - Number sequentially
+## 快速检查
+```powershell
+# 验证当前位置
+pwd
 
-3. **Create step directories**:
-   ```bash
-   mkdir -p output/YYYY-MM-DD_TaskDescription/01_StepOne
-   mkdir -p output/YYYY-MM-DD_TaskDescription/02_StepTwo
-   # etc.
-   ```
+# 如有嵌套错误
+cd ..
+```
 
-4. **Organize existing files**:
-   - Move source materials to `input/`
-   - Place scripts in relevant step folders
-   - Structure reflects actual workflow
+## Heartbeat 自动检查
+技能包含自动任务恢复检查功能：
 
-### When Task Evolves
+1. **配置方法**：查看 `templates/HEARTBEAT-guide.md` 文件
+2. **执行频率**：每2-4小时自动检查未完成任务
+3. **行为**：
+   - 发现未完成任务 → 提醒用户恢复
+   - 无未完成任务 → 静默通过
+4. **手动检查**：`py scripts/task-recovery-check.py notify`
 
-- **Add steps**: Insert new numbered directories (e.g., `02b_` or renumber)
-- **Merge steps**: Combine directories if separation proves unnecessary
-- **Rename steps**: Update if better descriptions emerge
-- **Restructure**: If workflow understanding fundamentally changes
-
-## Examples (Not Prescriptive Templates)
-
-See `references/examples.md` for illustrative case studies. These are **examples**, not templates—each real task should have its own unique structure.
-
-## Best Practices
-
-1. **Start simple**: Begin with 2-3 core steps, expand as needed
-2. **Review periodically**: Is the structure still reflecting the actual workflow?
-3. **Document decisions**: Note why certain structures were chosen in `MEMORY.md`
-4. **Keep root clean**: Only system config files at workspace root
-5. **Handle locked files**: Note which files couldn't be moved due to locks, retry later
-
-## Extension & Iteration
-
-This system is designed for evolution:
-- New task types will create new structures
-- Experience will refine the methodology
-- User feedback will shape best practices
-- The skill itself will be updated as patterns emerge
-
-**Key insight**: The folder structure is a *result* of workflow analysis, not a *template* applied to tasks.
+## 关键命令速查
+- `safe-writer.py <内容> --task-id <ID> --step <步骤>` - 保存记忆
+- `task-memory-manager.py recovery` - 恢复界面
+- `task-memory-manager.py scan` - 扫描任务
+- `task-recovery-check.py notify` - 心跳检查（Python版本）
