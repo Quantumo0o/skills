@@ -1,7 +1,7 @@
 {
   "name": "terminal",
-  "version": "1.0.0",
-  "description": "Local shell copilot for command planning, safe execution, output summarization, and step-by-step terminal workflows.",
+  "version": "1.0.2",
+  "description": "Local shell copilot for command planning, safe execution, preview-first workflows, output summarization, privacy-aware history controls, and step-by-step terminal help.",
   "entrypoints": [],
   "files": [
     "SKILL.md",

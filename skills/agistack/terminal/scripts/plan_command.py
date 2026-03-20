@@ -1,26 +1,30 @@
 #!/usr/bin/env python3
 import argparse
 
-COMMON_PLANS = [
-    ("list files", "ls -la"),
-    ("show current directory", "pwd"),
-    ("find python files", "find . -name '*.py'"),
-    ("search text", "grep -R \"keyword\" ."),
-    ("show disk usage", "du -sh ."),
-]
-
 def plan_from_intent(intent: str) -> str:
     lowered = intent.lower()
-    if "current directory" in lowered or "where am i" in lowered:
+
+    if "current directory" in lowered or "where am i" in lowered or "pwd" in lowered:
         return "pwd"
-    if "list files" in lowered or "show files" in lowered:
+    if "list files" in lowered or "show files" in lowered or "list directory" in lowered:
         return "ls -la"
-    if "python file" in lowered:
+    if "python file" in lowered or "find py files" in lowered:
         return "find . -name '*.py'"
-    if "disk usage" in lowered or "folder size" in lowered:
+    if "disk usage" in lowered or "folder size" in lowered or "size of this folder" in lowered:
         return "du -sh ."
-    if "search" in lowered:
-        return "grep -R \"keyword\" ."
+    if "search text" in lowered or "grep" in lowered:
+        return 'grep -R "keyword" .'
+    if "show json files" in lowered:
+        return "find . -name '*.json'"
+    if "find markdown" in lowered or "md files" in lowered:
+        return "find . -name '*.md'"
+    if "show hidden files" in lowered:
+        return "ls -la"
+    if "recent files" in lowered:
+        return "find . -type f -mtime -7"
+    if "largest files" in lowered:
+        return "find . -type f -exec du -h {} + | sort -h | tail -20"
+
     return "# Review and edit before running\n# Example:\nls -la"
 
 def main():

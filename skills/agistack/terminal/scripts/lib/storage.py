@@ -9,12 +9,18 @@ HISTORY_FILE = os.path.join(BASE_DIR, "history.json")
 def ensure_dir():
     os.makedirs(BASE_DIR, exist_ok=True)
 
+def _secure_permissions(path):
+    try:
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
 def load_history():
     ensure_dir()
     if not os.path.exists(HISTORY_FILE):
         return {
             "metadata": {
-                "version": "1.0.0",
+                "version": "1.0.2",
                 "created_at": datetime.now().isoformat(),
                 "last_updated": datetime.now().isoformat()
             },
@@ -26,7 +32,7 @@ def load_history():
     except Exception:
         return {
             "metadata": {
-                "version": "1.0.0",
+                "version": "1.0.2",
                 "created_at": datetime.now().isoformat(),
                 "last_updated": datetime.now().isoformat()
             },
@@ -41,3 +47,4 @@ def save_history(data):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
     os.replace(tmp, HISTORY_FILE)
+    _secure_permissions(HISTORY_FILE)

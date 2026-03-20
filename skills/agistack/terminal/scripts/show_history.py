@@ -15,8 +15,8 @@ def main():
         print("No command history yet.")
         return
 
-    for run in runs[-10:]:
-        print(f"{run['timestamp']} | rc={run['returncode']} | risk={run['risk']}")
+    for run in runs[-15:]:
+        print(f"{run['timestamp']} | status={run.get('status', 'executed')} | rc={run['returncode']} | risk={run['risk']}")
         print(f"  cwd: {run['cwd']}")
         print(f"  cmd: {run['command']}")
         print()

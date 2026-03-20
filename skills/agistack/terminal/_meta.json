@@ -3,9 +3,15 @@
   "slug": "terminal",
   "displayName": "Terminal",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773302260350,
-    "commit": "https://github.com/openclaw/skills/commit/eda1da17f1f888385ea246099aa955077031a4cf"
+    "version": "1.0.2",
+    "publishedAt": 1773764160085,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773302260350,
+      "commit": "https://github.com/openclaw/skills/commit/eda1da17f1f888385ea246099aa955077031a4cf"
+    }
+  ]
 }
