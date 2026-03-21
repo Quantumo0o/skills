@@ -3,9 +3,15 @@
   "slug": "cap-table-manager",
   "displayName": "Cap Table Manager",
   "latest": {
-    "version": "98.0.1",
-    "publishedAt": 1773724925530,
-    "commit": "https://github.com/openclaw/skills/commit/76eb749c77b7131b148aa1807d0e02dc47ba2373"
+    "version": "1.0.1",
+    "publishedAt": 1773796585407,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "98.0.1",
+      "publishedAt": 1773724925530,
+      "commit": "https://github.com/openclaw/skills/commit/76eb749c77b7131b148aa1807d0e02dc47ba2373"
+    }
+  ]
 }
