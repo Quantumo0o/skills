@@ -816,7 +816,7 @@ class Hippocampus:
             return "Please specify topic name, e.g.: /hip new ProjectX"
         self.current_topic = name
         self.round_count = 0
-        save_monograph(name, f"# {name}\n\nCreated: {datetime().isoformat()}", 0)
+        save_monograph(name, f"# {name}\n\nCreated: {datetime.now().isoformat()}", 0)
         return f"Created monograph topic: **{name}**"
     
     def _cmd_add(self, content: str) -> str:
@@ -854,14 +854,14 @@ class Hippocampus:
                 return "No records found"
             report = "## Recent Chronicle Records\n\n"
             for r in results:
-                report += f"- **{r['filename']}**: {r['content_preview'][:80]}...\n"
+                report += f"- **{r['file_name']}**: {r['content_preview'][:80]}...\n"
             return report
         
         results = query_chronicle(keyword=keyword, limit=10)
         if results:
             report = f"## Chronicle Search: '{keyword}'\n\n"
             for r in results:
-                report += f"- {r['filename']}: {r['content_preview'][:60]}...\n"
+                report += f"- {r['file_name']}: {r['content_preview'][:60]}...\n"
             return report
         
         monographs = list_monographs()
