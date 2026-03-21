@@ -1,0 +1,11 @@
+{
+  "owner": "derick001",
+  "slug": "url-shortener-cli",
+  "displayName": "URL Shortener CLI",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774015249720,
+    "commit": null
+  },
+  "history": []
+}
