@@ -3,11 +3,16 @@
   "slug": "mysearch",
   "displayName": "MySearch",
   "latest": {
-    "version": "0.1.9",
-    "publishedAt": 1773932330096,
-    "commit": "https://github.com/openclaw/skills/commit/d14f0b50fb30955fa4ac0293d3845faa9595fc77"
+    "version": "0.1.11",
+    "publishedAt": 1773985342354,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.9",
+      "publishedAt": 1773932330096,
+      "commit": "https://github.com/openclaw/skills/commit/d14f0b50fb30955fa4ac0293d3845faa9595fc77"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1773720018384,
