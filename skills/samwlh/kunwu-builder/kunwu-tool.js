@@ -677,7 +677,6 @@ export {
   createBoxJoint,
   waitForTask,
   waitForTasks,
-  downloadModelsParallel,
   // 进度与提示
   showGenerateSceneProgress,
   showProgress,
@@ -688,7 +687,6 @@ export {
   // 模型库管理
   getLocalModelLibrary,
   getRemoteModelLibrary,
-  downloadModel,
   deleteLocalModel,
   getModelCategories,
   favoriteModel,
@@ -821,25 +819,6 @@ async function getRemoteModelLibrary(params = {}) {
     language: params.language !== undefined ? params.language : -1,
     pageNum: params.pageNum || 1,
     pageSize: params.pageSize || 12,
-  });
-}
-
-/**
- * 下载模型并可选创建到场景
- * 注意：端点是 /model/download 不是 /model/library/download
- * @param {string} id - 资源标识（云端模型名称）
- * @param {boolean} createInScene - 下载后是否自动创建到场景
- * @param {number[]} position - 位置 [x, y, z] 单位 mm
- * @param {number[]} eulerAngle - 欧拉角 [rx, ry, rz] 单位°
- * @param {string} rename - 重命名
- */
-async function downloadModel(params) {
-  return await callAPI('/model/download', {
-    id: params.id,
-    createInScene: params.createInScene !== undefined ? params.createInScene : false,
-    position: params.position || [0, 0, 0],
-    eulerAngle: params.eulerAngle || [0, 0, 0],
-    rename: params.rename,
   });
 }
 
@@ -1188,25 +1167,6 @@ async function waitForTask(taskId, intervalMs = 2000, timeoutMs = 60000) {
     
     await new Promise(r => setTimeout(r, intervalMs));
   }
-}
-
-/**
- * 并行下载多个模型（优化速度）
- * @param {Array<{id: string, rename: string, position?: number[], createInScene?: boolean}>} models - 模型配置数组
- * @returns {Promise<string[]>} 返回所有 taskId
- */
-async function downloadModelsParallel(models) {
-  const tasks = models.map(async (model) => {
-    const result = await downloadModel({
-      id: model.id,
-      rename: model.rename,
-      position: model.position || [0, 0, 0],
-      createInScene: model.createInScene !== undefined ? model.createInScene : true
-    });
-    return result.data.taskId;
-  });
-  
-  return await Promise.all(tasks);
 }
 
 /**

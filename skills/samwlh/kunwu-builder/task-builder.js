@@ -7,7 +7,6 @@
 
 import {
   createModel,
-  downloadModel,
   setParent,
   addBehavior,
   createRotaryJoint,
@@ -66,13 +65,13 @@ class TaskBuilder {
 
       const config = { ...defaults, ...params };
 
-      // 1. 创建气缸基座（使用 downloadModel 支持异步）
+      // 1. 创建气缸基座（使用 createModel + checkFromCloud=true）
       console.log(`📦 创建气缸基座：${config.name}`);
-      const baseTask = await downloadModel({
+      await createModel({
         id: '方形',
         rename: `${config.name}_base`,
-        createInScene: true,
         position: config.position,
+        checkFromCloud: true,
         parameterizationCfg: [
           { type: 0, value: 200 },
           { type: 1, value: 100 },
@@ -82,26 +81,21 @@ class TaskBuilder {
 
       // 2. 创建气缸杆
       console.log(`📦 创建气缸杆`);
-      const rodTask = await downloadModel({
+      await createModel({
         id: '方形',
         rename: `${config.name}_rod`,
-        createInScene: true,
         position: [
           config.position[0],
           config.position[1],
           config.position[2] + 50
         ],
+        checkFromCloud: true,
         parameterizationCfg: [
           { type: 0, value: 50 },
           { type: 1, value: 50 },
           { type: 2, value: config.cylinder.stroke }
         ]
       });
-
-      // 3. 等待完成（处理 202 Accepted）
-      const taskIds = [];
-      if (baseTask.data?.taskId) taskIds.push(baseTask.data.taskId);
-      if (rodTask.data?.taskId) taskIds.push(rodTask.data.taskId);
       
       if (taskIds.length > 0) {
         console.log(`⏳ 等待模型创建完成 (${taskIds.length}个任务)...`);
