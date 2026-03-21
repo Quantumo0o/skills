@@ -1,0 +1,11 @@
+{
+  "owner": "lingggao",
+  "slug": "vt-insight",
+  "displayName": "VirusTotal 样本查询",
+  "latest": {
+    "version": "1.4.2",
+    "publishedAt": 1773998539590,
+    "commit": null
+  },
+  "history": []
+}
