@@ -1,0 +1,11 @@
+{
+  "owner": "hioneowner",
+  "slug": "dingtalk-skills",
+  "displayName": "DingTalk Skills",
+  "latest": {
+    "version": "2.2.1",
+    "publishedAt": 1773999111462,
+    "commit": null
+  },
+  "history": []
+}
