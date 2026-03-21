@@ -3,9 +3,15 @@
   "slug": "step",
   "displayName": "Step",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773673910575,
-    "commit": "https://github.com/openclaw/skills/commit/6587fd9acc467865fb5da70069ba6ac2dc63f705"
+    "version": "2.0.2",
+    "publishedAt": 1773831073785,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773673910575,
+      "commit": "https://github.com/openclaw/skills/commit/6587fd9acc467865fb5da70069ba6ac2dc63f705"
+    }
+  ]
 }

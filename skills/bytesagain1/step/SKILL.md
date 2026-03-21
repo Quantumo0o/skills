@@ -1,8 +1,10 @@
 ---
 name: "Step"
-description: "Terminal-first Step manager. Keep your health & wellness data organized with simple commands."
+description: "Log daily steps, set fitness goals, and chart walking trends. Use when logging counts, tracking progress, charting trends, setting goals."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["health", "wellness", "tracking", "self-care", "step"]
 ---
 
