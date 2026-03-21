@@ -200,6 +200,9 @@ if _CONFIG_FILE:
     PROGRESS_URL   = None
     EXAM           = _SESSION_CFG.get("exam", {})
     EXECUTION_PLAN = _SESSION_CFG.get("execution_plan", [])
+    # Block delivery metadata (v3.2+)
+    _BLOCK_SIZE    = _SESSION_CFG.get("block_size", 5)
+    _BLOCKS_TOTAL  = _SESSION_CFG.get("blocks_total", 0)
 else:
     # ── Embedded mode (backward compatible — self-contained script) ──
     BASE_URL       = '__CONFIG_REQUIRED__'
@@ -211,6 +214,8 @@ else:
     PROGRESS_URL   = None
     EXAM = {}
     EXECUTION_PLAN = []
+    _BLOCK_SIZE    = 4
+    _BLOCKS_TOTAL  = 0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1532,6 +1537,30 @@ def _save_sequential_state(batch_answers_by_dim, cases_completed):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ██  SERVER-SIDE BLOCK DELIVERY (v3.2+)  ██
+# ══════════════════════════════════════════════════════════════════════════════
+# All question blocks are fetched from the server via /next-block.
+# No client-side encryption needed — the server is the sole gatekeeper.
+
+def _fetch_next_block(block_idx, block_answers=None):
+    """Fetch a block's questions from the server."""
+    payload = {
+        'session_token': SESSION_TOKEN,
+        'block_index': block_idx,
+    }
+    if block_answers:
+        payload['block_answers'] = block_answers
+    resp = _api_call('/api/v1/bot-benchmark/next-block', payload)
+    return resp.get('questions', []), resp
+
+def _get_block_questions(block_idx, block_answers=None):
+    """Get questions for a block from the server."""
+    if block_idx >= _BLOCKS_TOTAL:
+        return [], {}
+    return _fetch_next_block(block_idx, block_answers)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ██  SEQUENTIAL MODE — Local execution + async server sync (PRIMARY MODE)  ██
 # ══════════════════════════════════════════════════════════════════════════════
 #
@@ -2164,16 +2193,34 @@ def _answer_current(answer_path):
                 )
 
     if qa_errors:
-        # Reject the answer — do NOT save it
-        print(json.dumps({
-            "status": "QA_REJECTED",
-            "question_index": current_idx,
-            "question_number": current_idx + 1,
-            "total_questions": total,
-            "errors": qa_errors,
-            "message": "答案未通过质量检查，请改进后重新提交。" + " ".join(qa_errors),
-        }, ensure_ascii=False))
-        return
+        # Track retry count per question in state
+        qa_retries = state.get("_qa_retries", {})
+        retry_count = qa_retries.get(cid, 0) + 1
+        qa_retries[cid] = retry_count
+        dim = q.get("dimension", "")
+        max_qa_retries = _get_max_retries(dim)
+
+        if retry_count > max_qa_retries:
+            # Auto-accept after max retries to prevent infinite loops and context overflow
+            _human_print(f"  ⚠️ 题目 {cid} 已重试 {retry_count - 1} 次，自动接受（质量可能偏低）")
+            qa_retries.pop(cid, None)
+            state["_qa_retries"] = qa_retries
+            _save_seq_state(state)
+        else:
+            state["_qa_retries"] = qa_retries
+            _save_seq_state(state)
+            # Reject the answer — do NOT save it
+            print(json.dumps({
+                "status": "QA_REJECTED",
+                "question_index": current_idx,
+                "question_number": current_idx + 1,
+                "total_questions": total,
+                "errors": qa_errors,
+                "retry_count": retry_count,
+                "max_retries": max_qa_retries,
+                "message": f"答案未通过质量检查（第 {retry_count}/{max_qa_retries} 次重试）。" + " ".join(qa_errors),
+            }, ensure_ascii=False))
+            return
 
     # Save answer locally (the primary store — reliable, no network)
     if q.get("prompt_hash"):
@@ -3298,12 +3345,20 @@ def _parallel_status():
         )
         next_cmd = f"python3 {sys.argv[0]} --merge-parallel"
     elif blocks_stale:
+        stale_list = ", ".join(str(b) for b in blocks_stale)
         msg = (
             f"已完成 {len(blocks_done)}/{_BLOCKS_TOTAL} 组 "
             f"({total_answers}/{CASES_TOTAL} 题)。"
-            f"⚠️ 子代理超时 (>{_PARALLEL_BLOCK_TIMEOUT}s)：第 {blocks_stale} 组 — 请立即重启子代理！"
+            f"🚨 子代理超时 (>{_PARALLEL_BLOCK_TIMEOUT}s)：第 {stale_list} 组 — "
+            f"请立即为超时的 block 重新启动子代理！"
         )
         next_cmd = None
+        # Reset dispatch times for stale blocks so re-dispatched sub-agents
+        # get a fresh timeout window
+        for sb in blocks_stale:
+            dispatch_times[str(sb)] = time.time()
+        state["block_dispatch_times"] = dispatch_times
+        _save_seq_state(state)
     else:
         msg = (
             f"已完成 {len(blocks_done)}/{_BLOCKS_TOTAL} 组 "
@@ -3329,6 +3384,12 @@ def _parallel_status():
     }
     if next_cmd:
         result["next_command"] = next_cmd
+    if blocks_stale:
+        result["restart_blocks"] = blocks_stale
+        result["restart_hint"] = (
+            f"为以下 block 重新启动子代理: {blocks_stale}。"
+            f"每个子代理执行: --get-block <N> → 答题 → --answer-block <N> answers.json"
+        )
     print(json.dumps(result, ensure_ascii=False))
 
 
@@ -3438,11 +3499,37 @@ def _finish_sequential():
             pass
 
 
+def _check_parallel_guard(cmd):
+    """Prevent sub-agents from calling main-agent-only sequential commands
+    while parallel mode is active. This avoids total progress loss."""
+    try:
+        if _os.path.exists(_SEQ_STATE_FILE):
+            with open(_SEQ_STATE_FILE, "r", encoding="utf-8") as f:
+                st = json.load(f)
+            if st.get("parallel_mode"):
+                print(json.dumps({
+                    "status": "ERROR",
+                    "error_code": "PARALLEL_MODE_ACTIVE",
+                    "message": (
+                        f"🚫 错误：当前正在并行模式中，禁止调用 {cmd}。"
+                        f"子代理只能使用 --get-block <N> 和 --answer-block <N> answers.json。"
+                        f"调用 {cmd} 会覆盖并行状态，导致全部进度丢失！"
+                    ),
+                    "allowed_commands": ["--get-block <N>", "--answer-block <N> <answers.json>"],
+                    "hint": "如需降级为顺序模式，请先完成或取消当前并行评测。",
+                }, ensure_ascii=False), flush=True)
+                sys.exit(1)
+    except (json.JSONDecodeError, OSError):
+        pass  # No state or corrupted — safe to proceed
+
+
 if __name__ == "__main__":
     # Handle CLI flags
     if "--start-sequential" in sys.argv:
+        _check_parallel_guard("--start-sequential")
         _start_sequential()
     elif "--answer-current" in sys.argv:
+        _check_parallel_guard("--answer-current")
         idx = sys.argv.index("--answer-current")
         ans_path = sys.argv[idx + 1] if idx + 1 < len(sys.argv) else "answer.txt"
         _answer_current(ans_path)

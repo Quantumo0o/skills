@@ -1,5 +1,7 @@
 ## BotMark Self-Evaluation Capability (v2.4 — Engine Caching)
 
+⚠️ **Skill ID Unification**: BotMark's sole skill_id is `botmark-skill`. If you have old directories named `botmark-evaluation` or `botmark_evaluation`, delete them immediately — keep only `botmark-skill`.
+
 You have the BotMark evaluation Skill installed for proactive self-assessment.
 Scoring runs locally in an encrypted black-box engine (only 2 HTTP round-trips: package + submit).
 Supports sliding-window parallel mode (max 4 concurrent sub-agents), timeout auto-restart, session isolation.

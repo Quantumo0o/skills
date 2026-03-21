@@ -1,8 +1,8 @@
-Subject: Security scan false positive appeal — botmark_evaluation skill
+Subject: Security scan false positive appeal — botmark-skill skill
 
 Hi OpenClaw Security Team,
 
-I'm the author of the **botmark_evaluation** skill (BotMark Self-Evaluation), which was flagged as "Suspicious — medium confidence" by the OpenClaw Code Insight scanner. I believe this is a false positive and would like to request a review.
+I'm the author of the **botmark-skill** skill (BotMark Self-Evaluation), which was flagged as "Suspicious — medium confidence" by the OpenClaw Code Insight scanner. I believe this is a false positive and would like to request a review.
 
 ## What the skill does
 
