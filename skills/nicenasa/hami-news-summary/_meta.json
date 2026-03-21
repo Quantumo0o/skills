@@ -1,0 +1,11 @@
+{
+  "owner": "nicenasa",
+  "slug": "hami-news-summary",
+  "displayName": "News Summary",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774002928893,
+    "commit": null
+  },
+  "history": []
+}
