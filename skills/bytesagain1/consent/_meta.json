@@ -3,9 +3,15 @@
   "slug": "consent",
   "displayName": "Consent",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773673622759,
-    "commit": "https://github.com/openclaw/skills/commit/b1708c2481a3a07f2301ac8c69a0c7e5c45a23f3"
+    "version": "2.0.1",
+    "publishedAt": 1773830330273,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773673622759,
+      "commit": "https://github.com/openclaw/skills/commit/b1708c2481a3a07f2301ac8c69a0c7e5c45a23f3"
+    }
+  ]
 }
