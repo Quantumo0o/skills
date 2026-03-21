@@ -1,58 +1,77 @@
-# Per-Agent Memory Compression Skill (Universal)
+# Per-Agent Memory Compression Skill
 
-## Purpose | 目的
+## Overview
 
-This skill automates weekly memory consolidation for every agent in your OpenClaw system. It discovers all agents with workspaces and creates a dedicated cron task for each, ensuring that each agent maintains its own long-term memory (USER.md, IDENTITY.md, SOUL.md, MEMORY.md) with extracted preferences, decisions, and personal information.
+This skill automates weekly memory consolidation for multi-agent OpenClaw deployments. It discovers all agents with workspaces and registers staggered cron tasks that compress old daily notes into long-term memory files.
 
-本技能为 OpenClaw 系统中的每个代理自动化每周记忆整合。它发现所有带有工作区的代理，并为每个创建专用的 cron 任务，确保每个代理维护自己的长期记忆（USER.md、IDENTITY.md、SOUL.md、MEMORY.md），包含提取的偏好、决策和个人信息。
+## Key Features
 
-## Features | 特性
+- **Auto-discovery**: Finds all agents via `openclaw agents list`
+- **Workspace isolation**: Each agent compresses its own memory
+- **State persistence**: Tracks processed notes in `.compression_state.json`
+- **Deduplication**: Avoids duplicate entries
+- **Domain awareness**: Includes DOMAIN_CONTEXT for tailored extraction
+- **Zero config**: Just run `./install.sh`
 
-- Zero-config auto-discovery | 零配置自动发现
-- Per-agent workspace isolation | 每个代理工作区隔离
-- State persistence & checkpoint | 状态持久化与断点
-- Deduplication | 去重
-- Domain-aware extraction | 领域感知提取
-- Moved-file marking | 移动文件标记
-- DingTalk summary notifications | 钉钉摘要通知
-
-## Installation | 安装
+## Installation
 
 ```bash
-cd /root/.openclaw/workspace
-chmod +x skills/per-agent-compression-universal/install.sh
-./skills/per-agent-compression-universal/install.sh
+cd /root/.openclaw/workspace/skills/per-agent-compression-universal
+./install.sh
 ```
 
-## How It Works | 工作原理
+This creates 5 staggered tasks (if you have 5 agents) running Sundays 03:00-05:00 Shanghai time.
 
-1. **Discovery**: Runs `openclaw agents list --json` to find all agents with a `workspace`.
-2. **Task Creation**: For each agent, creates a cron task named `per_agent_compression_<agent_id>` with schedule staggered from Sunday 03:00 Shanghai.
-3. **Execution**: When triggered, the `main` agent executes the consolidation logic:
-   - Reads daily notes older than 7 days from `{workspace}/memory/`
-   - Extracts user preferences, key decisions, personal info (domain-specific)
-   - Appends to `USER.md`, `IDENTITY.md`, `SOUL.md`, `MEMORY.md` with date headers
-   - Moves processed notes to `{workspace}/memory/processed/`
-   - Updates `{workspace}/memory/.compression_state.json` for checkpoint
-   - Sends summary to DingTalk
+## What It Does
 
-## Configuration | 配置
+1. Pre-check paths and initialize state
+2. List daily notes older than 7 days (skip recent)
+3. Sort oldest first, process up to 5 notes per run
+4. For each note:
+   - Read content
+   - Extract factual info (preferences, decisions, personal info)
+   - Append to target files with date headers
+   - Move original to `memory/processed/`
+5. Update state file
+6. Clean working buffer
+7. Send DingTalk summary
 
-No configuration needed. To customize schedule or domain context, edit `install.sh` before running.
+## File Structure
 
-## Uninstall | 卸载
+Each agent workspace should have:
+- `memory/YYYY-MM-DD.md` (daily notes)
+- `USER.md`, `IDENTITY.md`, `SOUL.md`, `MEMORY.md` (targets)
+
+After running:
+- `memory/.compression_state.json` (state tracking)
+- `memory/processed/` (moved old notes)
+
+## Customization
+
+Edit `install.sh` to adjust:
+- Stagger offsets (`OFFSETS` array)
+- Domain context per agent (`DOMAIN_CONTEXT` associative array)
+- Cron expression (currently Sundays)
+
+## Troubleshooting
+
+- **Task hangs**: Check STATE_FILE path uses `{WORKSPACE}` (uppercase), not `{workspace}`
+- **No notes processed**: Ensure there are daily notes older than 7 days
+- **Timeout**: Increase `--timeout` in install.sh (default 1200s)
+- **Delivery fails**: Verify DingTalk connector configured with `to` field
+
+## Uninstall
 
 ```bash
-./skills/per-agent-compression-universal/uninstall.sh
+./uninstall.sh
 ```
 
-## Notes | 注意
+Removes all `per_agent_compression_*` tasks.
 
-- This skill is in active testing; see CHANGELOG.md for known issues.
-- The task messages are concise due to CLI length limits; full details are in README.
-- If you need to edit a task's message manually: `openclaw cron edit per_agent_compression_<agent_id> --message "..."`
+## Version
 
-## Support | 支持
+Current: 1.3.4 (fixes STATE_FILE case sensitivity bug)
 
-- Changelog: CHANGELOG.md
-- Issues: Report via GitHub or ClawHub
+## Support
+
+See README.md for full documentation.

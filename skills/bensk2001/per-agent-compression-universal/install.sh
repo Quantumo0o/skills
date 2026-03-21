@@ -1,5 +1,5 @@
 #!/bin/bash
-# Per-Agent Memory Compression Skill - Universal Installer v1.2.1
+# Per-Agent Memory Compression Skill - Universal Installer v1.3.2
 # Auto-discovers agents and registers compression tasks with full feature set
 
 set -e
@@ -73,23 +73,36 @@ echo "$AGENTS" | while IFS='=' read -r agent_id workspace; do
   # Determine domain context
   DOMAIN="${DOMAIN_CONTEXT[$agent_id]:-$DOMAIN_CONTEXT[default]}"
   
-  # Use a concise but informative message (within CLI limits)
-  # Full details are in the skill README; this summary ensures task works out of the box.
-  MSG="AUTONOMOUS: Weekly per-agent memory consolidation for '$agent_id'.\n\nWorkspace: $workspace\nDAILY_NOTES_DIR: {WORKSPACE}/memory\nPROCESSED_DIR: {WORKSPACE}/memory/processed\nSTATE_FILE: {WORKSPACE}/memory/.compression_state.json\nTARGET_FILES: USER.md, IDENTITY.md, SOUL.md, MEMORY.md\n\nDOMAIN_CONTEXT: \"$DOMAIN\"\n\nEXECUTION PLAN:\n1) Pre-check paths\n2) Load/init state (last_compressed_date, processed_notes)\n3) List notes: YYYY-MM-DD.md, date<today-7, not processed\n4) Sort oldest first, limit 5\n5) Each note: read, extract preferences/decisions/info, dedupe (same date), append to targets with date header (### [YYYY-MM-DD])\n6) Move note to processed/, update state\n7) Save state, clean buffer\n8) Announce summary (processed count, remaining old notes count)\n\nIMPORTANT: Extract ONLY factual/explicit info. Append only. Continue on error. See skill README for full details.\n\nExecute without waiting."
+  # Two-step message setting to bypass CLI length limit
+  # MSG_SHORT: concise but includes all essential logic (~500 chars)
+  # MSG_FULL: complete reference (used via edit after add)
+  MSG_SHORT="AUTONOMOUS: Weekly per-agent memory consolidation for '$agent_id'.\n\nWorkspace: $workspace\nDAILY_NOTES_DIR: {WORKSPACE}/memory\nPROCESSED_DIR: {WORKSPACE}/memory/processed\nSTATE_FILE: {WORKSPACE}/memory/.compression_state.json\nTARGET_FILES: USER.md, IDENTITY.md, SOUL.md, MEMORY.md\n\nDOMAIN_CONTEXT: \"$DOMAIN\"\n\nEXECUTION:\n1) Pre-check paths; init state\n2) List YYYY-MM-DD.md (<7d, not processed), sort oldest, limit 5\n3) For each: read, extract factual info, dedupe (same date), append to targets with date header (### [YYYY-MM-DD])\n4) Move to processed/, update state\n5) Announce summary (processed, remaining)\n\nIMPORTANT: Extract ONLY factual/explicit info. Append only. Continue on error. Full spec in README.\n\nExecute without waiting."
+  
+  MSG_FULL="AUTONOMOUS: Weekly per-agent memory consolidation for '$agent_id'.\n\nWorkspace: $workspace\nDAILY_NOTES_DIR: {WORKSPACE}/memory\nPROCESSED_DIR: {WORKSPACE}/memory/processed\nSTATE_FILE: {WORKSPACE}/memory/.compression_state.json\nTARGET_FILES: USER.md, IDENTITY.md, SOUL.md, MEMORY.md\n\nDOMAIN_CONTEXT: \"$DOMAIN\"\n\nEXECUTION PLAN:\n1) Pre-check paths (workspace, memory/, targets)\n2) Load/init state (JSON: last_compressed_date, processed_notes set)\n3) List daily notes: memory/YYYY-MM-DD.md, date < today-7, not in processed_notes\n4) Sort by date (oldest first), limit to 5 notes per run\n5) For each note:\n   - Read note content\n   - Extract: preferences, decisions, personal info, facts\n   - Dedupe: if same date already in target, skip\n   - Append to targets:\n     * USER.md → under \"## Personal Info / Preferences\", header \"### [YYYY-MM-DD]\"\n     * IDENTITY.md → under \"## Notes\" (create if missing), header \"### [YYYY-MM-DD]\"\n     * SOUL.md → under \"## Principles\" or \"## Boundaries\" (contextual), header \"### [YYYY-MM-DD]\"\n     * MEMORY.md → under \"## Key Learnings\" (create if missing), format \"- [YYYY-MM-DD] <summary>\"\n6) Move processed note to memory/processed/ (create dir if needed)\n7) Update state: add note date to processed_notes, update last_compressed_date\n8) Save state file (JSON)\n9) Clean working buffer if needed\n10) Announce summary: processed count, remaining old notes count\n\nIMPORTANT:\n- Extract ONLY factual/explicit info from notes\n- Append only; never modify existing content\n- Continue on error (log and proceed to next note)\n- See skill README for full details and troubleshooting\n\nExecute without waiting."
   
   if openclaw cron add \
     --name "$TASK_NAME" \
     --cron "$CRON" \
     --tz "Asia/Shanghai" \
     --agent "main" \
-    --message "$MSG" \
-    --model "openrouter/stepfun/step-3.5-flash:free" \
+    --message "$MSG_SHORT" \
     --timeout 1200 \
     --session "isolated" \
-    --announce \
-    --channel "dingtalk-connector" \
-    --to "05566651511149398" \
-    --best-effort-deliver 2>&1; then
+    --announce 2>&1; then
+    
+    # Get the job ID of the just-created task
+    JOB_ID=$(openclaw cron list --json 2>&1 | jq -r --arg name "$TASK_NAME" '.jobs[] | select(.name == $name) | .id')
+    
+    if [ -n "$JOB_ID" ]; then
+      echo "  ✨ Enriching task with full execution plan (job ID: ${JOB_ID:0:8}...)"
+      if openclaw cron edit "$JOB_ID" --message "$MSG_FULL" 2>&1; then
+        echo "  ✅ Task enriched"
+      else
+        echo "  ⚠️  Warning: Failed to enrich task message. Task may lack full details. Check README for complete spec."
+      fi
+    else
+      echo "  ⚠️  Warning: Could not retrieve job ID for enrichment."
+    fi
     
     TASK_IDS+=("$TASK_NAME")
   else
