@@ -201,7 +201,7 @@
 - [ ] 可作为开发依据
 
 ### 文件保存检查
-- [ ] 文件保存在正确位置（/home/claude/product-analysis-outputs/）
+- [ ] 文件保存在本次调用专属目录（路径从 `/tmp/pa_output_dir.txt` 读取）
 - [ ] 文件命名规范
 - [ ] 文件编码正确（UTF-8）
 - [ ] 文件可以正常打开

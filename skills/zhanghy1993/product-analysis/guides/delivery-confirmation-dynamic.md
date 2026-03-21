@@ -78,7 +78,7 @@
 ## 通用收尾块
 
 ```
-所有文件已保存至 `/home/claude/product-analysis-outputs/` 目录。
+所有文件已保存至本次调用的专属目录（`/mnt/user-data/outputs/[名称]-YYYYMMDD-HHmmss/`）。
 质量检查：✓ 已通过（Mermaid 语法正确、文档结构完整）
 
 ---
@@ -115,7 +115,7 @@
 内容：功能架构图 · 分层设计 · 详细功能规格 · 依赖关系图 · 迭代规划（MVP→完整版）
 适用：技术团队实施
 
-所有文件已保存至 `/home/claude/product-analysis-outputs/` 目录。
+所有文件已保存至本次调用的专属目录（`/mnt/user-data/outputs/电商收藏功能-20260220-143022/`）。
 质量检查：✓ 已通过（Mermaid 语法正确、文档结构完整）
 
 ---

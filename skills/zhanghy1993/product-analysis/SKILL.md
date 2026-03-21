@@ -1,14 +1,10 @@
 ---
 name: product-analysis
-version: v6.4
+version: v6.6
 description: >-
-  产品需求分析专用 skill。当用户需要分析产品需求、输出业务流程、设计功能架构时触发。
-  适用场景：(1) 分析需求文档或需求说明，(2) 输出业务流程图，(3) 设计功能架构和模块划分，
-  (4) 识别业务链路中的异常点，(5) 梳理功能清单和功能流转关系。
-  支持分析框架：用户故事、用例分析、KANO 模型、MECE 原则、STAR法则、5W1H 澄清法。
-  输出格式：Markdown + Mermaid 流程图。
-  触发词：「分析需求」「输出业务流程」「设计功能架构」「梳理异常点」「产品分析」「PRD 分析」，
-  或当用户上传需求文档时。
+  产品需求分析专用 skill。触发词：「分析需求」「产品分析」「业务流程」「功能架构」「PRD」「改版」「迭代需求」，
+  或用户上传需求文档/PRD 时。支持快速模式（3步）、标准模式（5步）、迭代模式（Diff分析）三种工作流，
+  输出 Mermaid 流程图、功能架构、埋点方案、PRD、开发 Ticket 等文档。
 ---
 
 # 产品需求分析
@@ -69,23 +65,69 @@ view /mnt/user-data/uploads/<文件名>
 >
 > **快速模式**：3 步完成，默认全部执行后一次性交付，适合快速出结果。
 > **标准模式**：5 步完成，每步确认后继续，适合正式立项。
+> **迭代模式**：3 步完成，专为存量功能改版设计，聚焦 Diff 分析，适合已有产品的需求变更。
 >
 > 【快速模式专属】默认在 3 步完成后一次性交付所有产出。如需分步确认，请现在告知。
 >
 > 确认继续使用推荐模式，或告知我您的选择？"
 
+**迭代模式触发规则**（满足任一条即优先推荐迭代模式，不受复杂度评分限制）：
+- 用户描述包含「改版」「迭代」「优化现有」「在 XX 基础上」等语义
+- 用户上传了现有 PRD、功能文档或设计稿
+- 需求以变更语言描述（「把 XX 改成 YY」「增加 XX 能力」「去掉 XX」）
+
 ---
 
 ### Phase 3：执行前准备
 
-**创建输出目录**：
+**创建本次调用专属输出目录并持久化**（`OUTPUT_DIR` 贯穿全流程，通过文件持久化解决跨 bash_tool 调用变量丢失问题）：
 ```bash
-mkdir -p /home/claude/product-analysis-outputs/
+# [名称] 取自 Phase 1 提取的产品/功能名称，去除空格和特殊字符
+OUTPUT_DIR="/mnt/user-data/outputs/[名称]-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$OUTPUT_DIR"
+# 持久化路径，后续所有步骤通过此文件读取
+echo "$OUTPUT_DIR" > /tmp/pa_output_dir.txt
+echo "输出目录已创建：$OUTPUT_DIR"
+```
+
+**后续步骤读取 OUTPUT_DIR 的标准方式**（每次新的 bash_tool 调用开头执行）：
+```bash
+OUTPUT_DIR=$(cat /tmp/pa_output_dir.txt)
+```
+
+> 每次调用生成独立子文件夹，多次分析结果不相互混入。`/tmp/pa_output_dir.txt` 在单次会话内持久，会话结束自动清理。
+
+**定位 Skill 脚本目录**（供自动化质量检查使用，Phase 3 执行一次后各步骤复用）：
+```bash
+# 按常见部署路径逐一探测，找到即停止
+SKILL_BASE=""
+for _p in \
+  "/mnt/skills/public/product-analysis6.5" \
+  "/mnt/skills/public/product-analysis" \
+  "/mnt/skills/user/product-analysis6.5" \
+  "/mnt/skills/user/product-analysis"; do
+  if [ -f "$_p/scripts/validate_mermaid.py" ]; then
+    SKILL_BASE="$_p"
+    break
+  fi
+done
+if [ -z "$SKILL_BASE" ]; then
+  echo "WARN: 未找到脚本目录，自动化检查将跳过（不影响交付）"
+else
+  echo "SKILL_BASE=$SKILL_BASE"
+  echo "$SKILL_BASE" > /tmp/pa_skill_base.txt
+fi
+```
+
+**后续步骤读取 SKILL_BASE 的标准方式**：
+```bash
+SKILL_BASE=$(cat /tmp/pa_skill_base.txt 2>/dev/null || echo "")
 ```
 
 **读取工作流指南**（Phase 3 必须执行）：
 - 快速模式 → `guides/fast-workflow.md`
 - 标准模式 → `guides/standard-workflow.md`
+- 迭代模式 → `guides/iteration-workflow.md`
 
 **按需读取参考文档**（执行对应任务时再读）：
 - `references/analysis-frameworks.md` — 需要应用分析框架时
@@ -116,14 +158,15 @@ mkdir -p /home/claude/product-analysis-outputs/
 
 **文件命名规范（含日期后缀）**：
 
-| 文档类型 | 快速版文件名 | 标准版文件名 |
-|:---|:---|:---|
-| 业务流程分析报告 | `[名称]-业务流程分析-快速版-YYYYMMDD.md` | `[名称]-业务流程分析-标准版-YYYYMMDD.md` |
-| 功能架构设计 | `[名称]-功能架构设计-快速版-YYYYMMDD.md` | `[名称]-功能架构设计-标准版-YYYYMMDD.md` |
-| 埋点方案 | `[名称]-埋点清单-快速版-YYYYMMDD.md` | `[名称]-埋点方案设计-标准版-YYYYMMDD.md` |
-| 完整 PRD 文档 | `[名称]-PRD-快速版-YYYYMMDD.md` | `[名称]-PRD-标准版-YYYYMMDD.md` |
+| 文档类型 | 快速版文件名 | 标准版文件名 | 迭代版文件名 |
+|:---|:---|:---|:---|
+| 业务流程分析报告 | `[名称]-业务流程分析-快速版-YYYYMMDD.md` | `[名称]-业务流程分析-标准版-YYYYMMDD.md` | `[名称]-变更分析-YYYYMMDD.md` |
+| 功能架构设计 | `[名称]-功能架构设计-快速版-YYYYMMDD.md` | `[名称]-功能架构设计-标准版-YYYYMMDD.md` | `[名称]-功能架构设计-迭代版-YYYYMMDD.md` |
+| 埋点方案 | `[名称]-埋点清单-快速版-YYYYMMDD.md` | `[名称]-埋点方案设计-标准版-YYYYMMDD.md` | — |
+| 完整 PRD 文档 | `[名称]-PRD-快速版-YYYYMMDD.md` | `[名称]-PRD-标准版-YYYYMMDD.md` | `[名称]-PRD-迭代版-YYYYMMDD.md` |
+| 开发任务拆解清单 | `[名称]-Tickets-快速版-YYYYMMDD.md` | `[名称]-Tickets-标准版-YYYYMMDD.md` | `[名称]-Tickets-YYYYMMDD.md` |
 
-> `YYYYMMDD` 为执行日期（如 `20260220`）。所有文件保存至 `/home/claude/product-analysis-outputs/`。
+> `YYYYMMDD` 为执行日期（如 `20260220`）。所有文件保存至 Phase 3 持久化的专属目录（路径从 `/tmp/pa_output_dir.txt` 读取）。
 
 ---
 
@@ -133,19 +176,21 @@ mkdir -p /home/claude/product-analysis-outputs/
 |:---|:---|:---|
 | **工作流指南** | `guides/fast-workflow.md` | 快速模式权威来源（步骤+确认+质量+最终交付） |
 | **工作流指南** | `guides/standard-workflow.md` | 标准模式权威来源（步骤+确认+质量+最终交付） |
-| **确认话术** | `guides/confirmation-templates.md` | 分步确认标准模板 |
+| **工作流指南** | `guides/iteration-workflow.md` | 迭代模式权威来源（Diff分析+影响面+变更规格） |
+| **确认话术** | `guides/confirmation-templates.md` | 分步确认标准模板（含迭代模式模板） |
 | **交付确认** | `guides/delivery-confirmation-dynamic.md` | 动态拼装式最终交付确认指南 |
 | **确认规范** | `guides/step-confirmation-checklist.md` | 确认机制执行规范 |
 | **质量检查** | `guides/quality-checklist.md` | 各步骤质量检查清单 |
-| **速查表** | `guides/quick-reference.md` | 核心信息一页纸速查 |
+| **速查表** | `guides/quick-reference.md` | 核心信息一页纸速查（含初始化命令） |
 | **故障排除** | `guides/troubleshooting.md` | 常见问题解决方案 |
-| **分析框架** | `references/analysis-frameworks.md` | 用户故事、KANO、MECE 等框架 |
+| **分析框架** | `references/analysis-frameworks.md` | 用户故事、KANO、MECE、JTBD、RICE 等框架 |
 | **流程图规范** | `references/flowchart-standards.md` | Mermaid 绘图标准 |
 | **异常清单** | `references/exception-checklist.md` | 四类异常系统检查清单 |
 | **架构模式** | `references/architecture-patterns.md` | 常见架构模式参考 |
-| **文档模板** | `assets/` | 交付文档模板 |
-| **示例** | `examples/` | 快速/标准模式完整示例 |
+| **文档模板** | `assets/` | 交付文档模板（含 tickets.tpl.md Ticket 拆解模板） |
+| **示例** | `examples/` | 快速/标准/迭代模式完整示例 |
 | **自动化脚本** | `scripts/` | Mermaid 验证和质量检查工具 |
+| **暂存目录** | `files/` | 系统保留（见 files/README.md） |
 
 ---
 
@@ -154,7 +199,8 @@ mkdir -p /home/claude/product-analysis-outputs/
 | 问题 | 解决方案 |
 |:---|:---|
 | 需求模糊 | 使用 5W1H 引导澄清，澄清后重新评分再确认模式 |
-| 脚本执行失败 | 继续人工检查，脚本失败不影响交付 |
+| 脚本执行失败 / 脚本目录未找到 | 输出 SKIP 提示，改为人工检查；脚本失败不影响交付 |
+| OUTPUT_DIR 读取为空 | 重新执行 Phase 3 初始化命令（见 quick-reference.md Section 3）重建 `/tmp/pa_output_dir.txt` |
 | 用户拒绝推荐模式 | 解释各模式差异，尊重用户最终选择 |
 | 临界复杂度难以判断 | 参考升档规则；不确定时选更详细的模式 |
 | 更多问题（含用户中途修改需求范围） | 参见 `guides/troubleshooting.md` |

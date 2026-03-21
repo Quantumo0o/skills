@@ -1,4 +1,4 @@
-# 标准模式工作流 v6.4
+# 标准模式工作流 v6.5
 
 适用于中高复杂度需求（评分 21–47 分），包含 5 个核心步骤。
 
@@ -96,11 +96,15 @@
 - [ ] 详细项参见已读取的 `guides/quality-checklist.md`「步骤2质量检查清单」
 - [ ] 自动化检查：
   ```bash
-  SKILL_DIR="$(dirname "$(realpath "$0")" 2>/dev/null || echo "/path/to/skill")"
+  SKILL_BASE=$(cat /tmp/pa_skill_base.txt 2>/dev/null || echo "")
   cat << 'MERMAID_EOF' > /tmp/qa_check_temp.md
   <流程图内容>
   MERMAID_EOF
-  python3 "$SKILL_DIR/scripts/validate_mermaid.py" /tmp/qa_check_temp.md
+  if [ -n "$SKILL_BASE" ]; then
+    python3 "$SKILL_BASE/scripts/validate_mermaid.py" /tmp/qa_check_temp.md
+  else
+    echo "SKIP: 脚本目录未找到，人工核查 Mermaid 语法"
+  fi
   rm /tmp/qa_check_temp.md
   ```
 
@@ -148,12 +152,16 @@
 - [ ] 详细项参见已读取的 `guides/quality-checklist.md`「步骤4质量检查清单」
 - [ ] 自动化检查：
   ```bash
-  SKILL_DIR="$(dirname "$(realpath "$0")" 2>/dev/null || echo "/path/to/skill")"
+  SKILL_BASE=$(cat /tmp/pa_skill_base.txt 2>/dev/null || echo "")
   cat << 'MERMAID_EOF' > /tmp/qa_check_temp.md
   <架构内容>
   MERMAID_EOF
-  python3 "$SKILL_DIR/scripts/validate_mermaid.py" /tmp/qa_check_temp.md
-  python3 "$SKILL_DIR/scripts/check_mece.py" /tmp/qa_check_temp.md
+  if [ -n "$SKILL_BASE" ]; then
+    python3 "$SKILL_BASE/scripts/validate_mermaid.py" /tmp/qa_check_temp.md
+    python3 "$SKILL_BASE/scripts/check_mece.py" /tmp/qa_check_temp.md
+  else
+    echo "SKIP: 脚本目录未找到，人工核查 MECE 原则"
+  fi
   rm /tmp/qa_check_temp.md
   ```
 
@@ -163,15 +171,36 @@
 
 ## Step 5：（可选）补充深化调研
 
-**与原 Step 1.5 的区别**：
-- Step 1.5 是前置调研，用于指导整体设计方向
-- Step 5 是收尾调研，用于验证和细化特定设计决策（如某个具体功能的最佳实现方式）
+**与 Step 1.5 的区别**：
 
-**触发条件**：
-- Step 4 设计过程中发现需要进一步调研的特定问题
-- 用户明确要求补充某方面的竞品分析
+| | Step 1.5（前置调研） | Step 5（收尾调研） |
+|:---|:---|:---|
+| 时机 | 需求理解之后 | 功能架构设计之后 |
+| 目的 | 指导整体设计方向 | 验证/细化特定设计决策 |
+| 范围 | 宏观竞品/行业全局 | 某具体功能点的最佳实现 |
+| 必要性 | 36+ 分必选 | 通常可跳过 |
 
-**若已在 Step 1.5 完成完整调研**：本步通常可跳过，直接进入最终交付。
+**触发条件**（满足任一即执行）：
+- Step 4 设计过程中遇到无法确定的具体实现方案（如：「通知中心的已读状态同步机制业界主流做法？」）
+- 用户在 Step 4 确认时明确提出需要补充竞品对比
+
+**若已在 Step 1.5 完成完整调研**：本步通常可跳过，直接进入最终交付。跳过时无需用户确认，在最终交付话术中注明「Step 5 已跳过（Step 1.5 调研完整覆盖）」。
+
+**核心任务**：
+1. 与用户明确本步调研的具体问题（聚焦 1–2 个功能级问题，不做全局重调）
+2. 使用 `web_search` 检索 1–3 个信源，重点查找：同类功能的具体交互设计、技术实现选型、用户反馈数据
+3. 输出调研结论，并明确说明对 Step 4 哪个功能规格的修订建议
+
+**交付产物**：专项调研摘要（≤半页）、针对 Step 4 的修订建议（若有）
+
+**web_search 不可用时**：告知用户，基于训练知识给出行业通用做法，标注「基于已知知识，非实时调研」。
+
+**质量检查**：
+- [ ] 调研问题聚焦，不超过 2 个功能级问题
+- [ ] 结论有信源引用（或明确标注为已知知识）
+- [ ] 已说明调研结论是否触发 Step 4 内容修订
+
+**用户确认（MUST）**：使用 `guides/confirmation-templates.md` 中「【标准模式】Step 5 确认」模板，填入实际产出，展示并等待用户回复。
 
 ---
 
@@ -186,8 +215,9 @@
 > 3. **埋点方案文档** — 完整数据埋点设计方案（13 章）
 > 4. **完整 PRD 文档** — 13 章节产品需求文档
 > 5. **Draw.io 图表文件** — 将流程图、架构图、状态机图、泳道图导出为可编辑的 .drawio 文件（可用 Draw.io 或 diagrams.net 打开）
+> 6. **开发任务拆解清单** — 按 Epic → Story → Task 三层拆解，含 BDD 验收标准，可直接导入 Jira / Linear
 >
-> 标准模式建议至少选择完整 PRD（选项 4），以充分体现分析深度；需要可视化编辑图表时加选 5。"
+> 标准模式建议至少选择完整 PRD（选项 4），以充分体现分析深度；给开发团队交付时加选 6；需要可视化编辑图表时加选 5。"
 
 ### 生成文档
 
@@ -198,13 +228,23 @@
 | 3. 埋点方案文档 | `assets/tracking-plan-template.md` | `[名称]-埋点方案设计-标准版-YYYYMMDD.md` |
 | 4. 完整 PRD 文档 | `assets/prd.tpl.md` | `[名称]-PRD-标准版-YYYYMMDD.md` |
 | 5. Draw.io 图表文件 | 参见「Draw.io 图表输出」章节 | `[名称]-[图表类型]-YYYYMMDD.drawio` |
+| 6. 开发任务拆解清单 | `assets/tickets.tpl.md` | `[名称]-Tickets-标准版-YYYYMMDD.md` |
 
-文件保存至 `/home/claude/product-analysis-outputs/`。
+文件保存至 Phase 3 创建的专属目录（路径从 `/tmp/pa_output_dir.txt` 读取）：
+```bash
+OUTPUT_DIR=$(cat /tmp/pa_output_dir.txt)
+# 示例：cp [名称]-PRD-标准版-YYYYMMDD.md "$OUTPUT_DIR/"
+```
 
 **最终质量检查**：
 ```bash
-python3 scripts/run_quality_check.py <文件路径> [--type flow|arch|prd|tracking]
-```
+SKILL_BASE=$(cat /tmp/pa_skill_base.txt 2>/dev/null || echo "")
+OUTPUT_DIR=$(cat /tmp/pa_output_dir.txt)
+if [ -n "$SKILL_BASE" ]; then
+  python3 "$SKILL_BASE/scripts/run_quality_check.py" "$OUTPUT_DIR/<文件名>.md" --type prd
+else
+  echo "SKIP: 脚本目录未找到，人工检查文档结构完整性"
+fi
 
 ### 交付确认（MUST）
 
@@ -230,8 +270,18 @@ python3 scripts/run_quality_check.py <文件路径> [--type flow|arch|prd|tracki
 
 1. 识别本次已生成的全部 Mermaid 图（Step 2 业务流程图 + Step 3 详细流程图 + Step 4 功能架构图，以及任何状态机图、泳道图）
 2. 按 `references/drawio-standards.md` 中对应图表类型的规范，逐一转换为 Draw.io XML
-3. 调用 MCP 工具输出 `.drawio` 文件；MCP 不可用时直接写入文件并告知用户
-4. 文件命名：`[名称]-[图表类型]-YYYYMMDD.drawio`，保存至 `/home/claude/product-analysis-outputs/`
+3. 输出 `.drawio` 文件，优先调用 MCP 工具；MCP 不可用时使用以下兜底方式直接写入：
+   ```bash
+   OUTPUT_DIR=$(cat /tmp/pa_output_dir.txt)
+   FILENAME="[名称]-[图表类型]-$(date +%Y%m%d).drawio"
+   cat << 'DRAWIO_EOF' > "$OUTPUT_DIR/$FILENAME"
+   <mxfile><diagram name="Page-1"><mxGraphModel>
+   <!-- 将转换后的 Draw.io XML 内容粘贴至此处 -->
+   </mxGraphModel></diagram></mxfile>
+   DRAWIO_EOF
+   echo "文件已写入：$OUTPUT_DIR/$FILENAME（MCP 不可用，已直接写入文件）"
+   ```
+4. 文件命名：`[名称]-[图表类型]-YYYYMMDD.drawio`，保存至 OUTPUT_DIR
 5. 展示已输出的文件清单，流程结束
 
 **质量检查**：

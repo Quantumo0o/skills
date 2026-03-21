@@ -82,16 +82,37 @@ graph TD
 
 ### 3.1 [模块一名称]
 
-| 功能ID | 功能名称 | 用户故事 | 验收标准 | 优先级 |
-| :--- | :--- | :--- | :--- | :--- |
-| F-01 | | 作为[角色]，我想要[目标]，以便[价值] | | P0 |
+| 功能ID | 功能名称 | JTBD（当…时，我想…，以便…） | RICE 分 | 优先级 |
+| :--- | :--- | :--- | :---: | :---: |
+| F-01 | | | | P0 |
 | F-02 | | | | P1 |
+
+**F-01 验收标准（BDD）**：
+```
+场景一：[正常路径]
+  Given [前置状态]
+  When  [用户操作]
+  Then  [系统响应]
+
+场景二：[异常路径]
+  Given [前置状态]
+  When  [触发条件]
+  Then  [系统响应]
+```
 
 ### 3.2 [模块二名称]
 
-| 功能ID | 功能名称 | 用户故事 | 验收标准 | 优先级 |
-| :--- | :--- | :--- | :--- | :--- |
+| 功能ID | 功能名称 | JTBD（当…时，我想…，以便…） | RICE 分 | 优先级 |
+| :--- | :--- | :--- | :---: | :---: |
 | F-03 | | | | P0 |
+
+**F-03 验收标准（BDD）**：
+```
+场景一：[正常路径]
+  Given [前置状态]
+  When  [用户操作]
+  Then  [系统响应]
+```
 
 ---
 
@@ -116,34 +137,64 @@ graph LR
 
 ---
 
-## 5. 数据模型设计
+## 5. 核心数据实体
 
-### 5.1 实体关系图 (ERD)
+### 5.1 实体关系图（ERD）
 
 ```mermaid
 erDiagram
     EntityA {
         int id PK
         string name
+        string status
         datetime created_at
+        datetime updated_at
     }
     EntityB {
         int id PK
         int entity_a_id FK
-        string status
+        string type
+        decimal value
+        datetime created_at
     }
     EntityA ||--o{ EntityB : "has"
 ```
 
-### 5.2 核心数据表结构
+### 5.2 核心实体定义
 
-**Table: [表名]**
+> 列出 3–5 个最关键的实体，每个实体明确：字段、类型、约束、业务含义。
 
-| 字段名 | 数据类型 | 是否必填 | 描述 |
+**Entity: [实体名称]**（对应表：`table_name`）
+
+| 字段名 | 数据类型 | 约束 | 业务含义 |
 | :--- | :--- | :--- | :--- |
-| id | INT | 是 | 主键，自增 |
-| created_at | DATETIME | 是 | 创建时间 |
+| id | INT | PK, AUTO_INCREMENT | 主键 |
+| [field] | VARCHAR(N) | NOT NULL | |
+| status | TINYINT | NOT NULL, DEFAULT 1 | 枚举值见下方 |
+| created_at | DATETIME | NOT NULL | 创建时间 |
+| updated_at | DATETIME | NOT NULL | 最后更新时间 |
+
+**状态枚举**：
+
+| 字段 | 值 | 含义 |
+| :--- | :--- | :--- |
+| status | 0 | 禁用 |
+| status | 1 | 正常 |
+
+**Entity: [实体名称2]**（对应表：`table_name2`）
+
+| 字段名 | 数据类型 | 约束 | 业务含义 |
+| :--- | :--- | :--- | :--- |
+| id | INT | PK, AUTO_INCREMENT | 主键 |
+| [entity_a]_id | INT | FK → [entity_a].id | 外键 |
 | | | | |
+
+### 5.3 实体间关系说明
+
+| 关系 | 类型 | 业务含义 |
+| :--- | :--- | :--- |
+| EntityA → EntityB | 1:N | 一个 A 可以有多个 B |
+| EntityB → EntityC | N:1 | 多个 B 属于一个 C |
 
 ---
 

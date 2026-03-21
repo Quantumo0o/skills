@@ -403,7 +403,7 @@ A依赖B，B依赖C，C依赖A
 **使用标准模板**：
 ```bash
 # 使用 view 工具读取 assets/ 下对应模板，填入实际分析内容后写入以下位置：
-# /home/claude/product-analysis-outputs/[产品名称]-[文档类型]-[模式版].md
+# $OUTPUT_DIR/[产品名称]-[文档类型]-[模式版].md
 ```
 
 **标准文档结构**：

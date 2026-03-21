@@ -13,7 +13,7 @@ use_mcp_tool(
   server_name: "drawio",
   tool_name: "create_drawio_file",
   arguments: {
-    "path": "/home/claude/product-analysis-outputs/[名称]-[图表类型]-YYYYMMDD.drawio",
+    "path": "<OUTPUT_DIR>/[名称]-[图表类型]-YYYYMMDD.drawio",
     "content": "<XML内容>"
   }
 )
@@ -33,7 +33,7 @@ use_mcp_tool(
 | 泳道图 | `[名称]-泳道图-YYYYMMDD.drawio` |
 | 时序图 | `[名称]-时序图-YYYYMMDD.drawio` |
 
-所有文件保存至 `/home/claude/product-analysis-outputs/`。
+所有文件保存至 Phase 3 持久化的专属目录（路径从 `/tmp/pa_output_dir.txt` 读取）。
 
 ---
 
@@ -360,4 +360,4 @@ Claude 在执行 Draw.io 输出时，按以下步骤操作：
 - [ ] 节点名称与 Mermaid 原图保持一致
 - [ ] 连线方向、标签与原图一致
 - [ ] 文件命名包含日期后缀
-- [ ] 文件已保存至 `/home/claude/product-analysis-outputs/`
+- [ ] 文件已保存至输出目录（`/tmp/pa_output_dir.txt` 所记录的路径）
