@@ -1,86 +1,78 @@
 ---
 name: gold-monitor
-description: Real-time gold, USD index, and oil price monitoring with Feishu webhook alerts
-metadata:
-  openclaw:
-    requires:
-      bins:
-        - python3
-        - pip
-      env: []
-    emoji: "📈"
+description: Query real-time gold, USD index, and oil prices from China and international markets
 ---
 
 # Gold Monitor
 
-Real-time monitoring dashboard for gold prices (China Au99.99 & COMEX), USD index (DXY), and WTI crude oil. Includes configurable price alerts with Feishu (Lark) webhook notifications.
+Real-time price query tool for gold (China Au99.99 & COMEX), USD index (DXY), and WTI crude oil. Data sourced from Shanghai Gold Exchange and Sina Finance.
 
-## Quick Start
+## When to Use
+
+Use this skill when the user asks about:
+- Gold prices (domestic or international)
+- USD index / DXY
+- Oil prices / WTI crude
+- Commodity market overview
+
+## Setup
+
+Before first use, install dependencies:
 
 ```bash
-# Install dependencies and start the service
-bash setup.sh
+pip install -r {{SKILL_DIR}}/requirements.txt
 ```
 
-Or manually:
+## Usage
+
+Query all assets at once:
 
 ```bash
-pip install -r requirements.txt
-python3 app.py
+python3 {{SKILL_DIR}}/query.py all
 ```
 
-The dashboard will be available at **http://127.0.0.1:8000**.
+Query a single asset:
 
-## API Endpoints
+```bash
+python3 {{SKILL_DIR}}/query.py AU9999   # China gold (CNY/gram)
+python3 {{SKILL_DIR}}/query.py XAUUSD   # International gold (USD/oz)
+python3 {{SKILL_DIR}}/query.py USIDX    # USD index (DXY)
+python3 {{SKILL_DIR}}/query.py WTI      # WTI crude oil (USD/barrel)
+```
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Web dashboard UI |
-| GET | `/api/prices` | Current prices for all monitored assets |
-| GET | `/api/history/{symbol}` | Historical K-line data. Symbols: `AU9999`, `XAUUSD`, `USIDX`, `WTI` |
-| GET | `/api/alerts` | List all alert rules and webhook config |
-| POST | `/api/alerts` | Add an alert rule (JSON body) |
-| DELETE | `/api/alerts/{rule_id}` | Delete an alert rule |
-| POST | `/api/webhook` | Set Feishu webhook URL |
-| POST | `/api/alerts/test` | Send a test notification |
+## Output
 
-### Add Alert Rule (POST /api/alerts)
+The script prints JSON to stdout. Example for a single asset:
 
 ```json
 {
-  "symbol": "AU9999",
-  "condition": "price_above",
-  "threshold": 680,
-  "note": "Gold price alert"
+  "name": "国际黄金 COMEX",
+  "symbol": "XAUUSD",
+  "price": 3050.12,
+  "change": 15.30,
+  "change_pct": 0.50,
+  "unit": "USD/oz",
+  "update_time": "2026-03-19 10:30:00"
 }
 ```
 
-Conditions: `price_above`, `price_below`, `change_pct_above`, `change_pct_below`
+For `all`, the output is an array of 4 such objects.
 
-### Set Webhook (POST /api/webhook)
+If an `"error"` field is present, that asset's data could not be fetched — tell the user.
 
-```json
-{
-  "url": "https://open.feishu.cn/open-apis/bot/v2/hook/YOUR_TOKEN"
-}
-```
+Parse the JSON and present it in a clear, readable format with price, change, change percentage, and unit.
 
-## Configuration
+## Network Access
 
-- **Alert rules and webhook URL** are persisted in `config.json` (auto-created).
-- **Polling interval**: Prices refresh every 60 seconds.
-- **Alert cooldown**: 30 minutes between repeated alerts for the same rule.
-- **Bind address**: Defaults to `127.0.0.1:8000`. Edit `app.py` to change.
+This skill makes outbound HTTP requests to the following hosts only:
+- `hq.sinajs.cn` — Sina Finance real-time quotes (international gold, USD index, WTI oil)
+- akshare API endpoints — Shanghai Gold Exchange data (China gold Au99.99)
+
+No credentials or API keys are required. All requests are read-only.
 
 ## Data Sources
 
-- **China Gold (Au99.99)**: Shanghai Gold Exchange via akshare
-- **International Gold (COMEX)**: Sina Finance real-time quotes
-- **USD Index (DXY)**: Sina Finance real-time quotes
-- **WTI Crude Oil**: Sina Finance real-time quotes
-
-## Troubleshooting
-
-- **akshare import errors**: Ensure `pip install akshare` completed successfully. Some systems may need `pip install --upgrade akshare`.
-- **No data returned**: The Sina Finance API may be unavailable outside certain regions. The service will show cached data or zeros on failure.
-- **Port already in use**: Change the port in `app.py` (`uvicorn.run(..., port=XXXX)`).
+- **China Gold (Au99.99)** — Shanghai Gold Exchange via akshare
+- **International Gold (COMEX)** — Sina Finance real-time quotes
+- **USD Index (DXY)** — Sina Finance real-time quotes
+- **WTI Crude Oil** — Sina Finance real-time quotes

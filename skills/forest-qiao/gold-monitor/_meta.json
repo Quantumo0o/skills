@@ -3,9 +3,15 @@
   "slug": "gold-monitor",
   "displayName": "Gold Monitor",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773758247380,
-    "commit": "https://github.com/openclaw/skills/commit/978aec19b7b67ed3be28248ab22c71d63631e6d9"
+    "version": "2.1.0",
+    "publishedAt": 1773978369699,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773758247380,
+      "commit": "https://github.com/openclaw/skills/commit/978aec19b7b67ed3be28248ab22c71d63631e6d9"
+    }
+  ]
 }
