@@ -1,5 +1,5 @@
 import { createClient, log } from '../weryai-core/client.js';
-import { MODELS_API_PATH } from './models.js';
+import { FALLBACK_DEFAULTS, MODELS_API_PATH } from './models.js';
 
 export async function fetchModelRegistry(ctx) {
   try {
@@ -94,7 +94,11 @@ export function buildBody(meta, input, mode) {
     model: meta.model_key,
   };
 
-  const resolvedAspect = resolveFromAllowed(input.aspect_ratio || input.aspectRatio, meta.image_sizes, '1:1');
+  const resolvedAspect = resolveFromAllowed(
+    input.aspect_ratio || input.aspectRatio,
+    meta.image_sizes,
+    FALLBACK_DEFAULTS.aspect_ratio,
+  );
   if (resolvedAspect != null) body.aspect_ratio = resolvedAspect;
 
   const resolvedNum = resolveNumeric(input.image_number ?? input.imageNumber, meta.num_images, meta.num_images?.[0] ?? 1);

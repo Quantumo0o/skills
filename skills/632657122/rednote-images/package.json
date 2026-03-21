@@ -13,7 +13,7 @@
     "scaffold": "npx -y bun scripts/scaffold.ts",
     "build-prompts": "npx -y bun scripts/build-prompts.ts",
     "build-batch": "npx -y bun scripts/build-batch.ts",
-    "generate": "npx -y bun ./scripts/vendor/weryai-image/main.ts",
+    "generate": "node ./scripts/vendor/weryai-image/run-generate.mjs ./scripts/vendor/weryai-image/main.ts",
     "compress": "npx -y bun scripts/vendor/compression-runtime/scripts/main.ts",
     "test": "npm --prefix scripts test"
   }

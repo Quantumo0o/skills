@@ -2,20 +2,22 @@ import { createClient, log } from '../weryai-core/client.js';
 import { formatApiError, formatNetworkError, isApiSuccess } from '../weryai-core/errors.js';
 import { buildBody, fetchModelRegistry, lookupModel, validateWithModel } from './model-registry.js';
 import { DEFAULT_MODEL, FALLBACK_DEFAULTS } from './models.js';
+import { normalizeImageInput } from './normalize-input.js';
 import { validateSubmitImage } from './validators.js';
 
 export async function execute(input, ctx) {
-  const structErrors = validateSubmitImage(input);
+  const normalizedInput = normalizeImageInput(input);
+  const structErrors = validateSubmitImage(normalizedInput);
   if (structErrors.length > 0) {
     return { ok: false, phase: 'failed', errorCode: 'VALIDATION', errorMessage: structErrors.join(' ') };
   }
 
   const registry = await fetchModelRegistry(ctx);
-  const model = input.model || DEFAULT_MODEL;
+  const model = normalizedInput.model || DEFAULT_MODEL;
   const meta = lookupModel(registry, model, 'image_to_image');
 
   if (meta) {
-    const { errors, warnings } = validateWithModel(meta, input, 'image_to_image');
+    const { errors, warnings } = validateWithModel(meta, normalizedInput, 'image_to_image');
     warnings.forEach((warning) => log(`Warning: ${warning}`));
     if (errors.length > 0) {
       return { ok: false, phase: 'failed', errorCode: 'VALIDATION', errorMessage: errors.join(' ') };
@@ -24,7 +26,7 @@ export async function execute(input, ctx) {
     log(`Warning: model "${model}" not found in image_to_image registry. Proceeding anyway.`);
   }
 
-  const body = meta ? buildBody(meta, input, 'image_to_image') : buildFallbackBody(input, model);
+  const body = meta ? buildBody(meta, normalizedInput, 'image_to_image') : buildFallbackBody(normalizedInput, model);
 
   if (ctx.dryRun) {
     return {

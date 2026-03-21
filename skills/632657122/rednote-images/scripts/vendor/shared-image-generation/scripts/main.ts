@@ -10,9 +10,13 @@ import { homedir } from "node:os";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { extname, resolve, dirname } from "node:path";
 
-const MAX_ATTEMPTS = 3;
+const MAX_SUBMIT_ATTEMPTS = 4;
+const MAX_POLL_ATTEMPTS = 4;
 const DEFAULT_MAX_WORKERS = 10;
 const POLL_WAIT_MS = 250;
+const RETRY_BACKOFF_BASE_MS = 2_000;
+const RATE_LIMIT_BACKOFF_BASE_MS = 4_000;
+const RETRY_BACKOFF_MAX_MS = 20_000;
 
 // --- Gateway HTTP（当前: WeryAI；变更以 https://docs.weryai.com 为准）---
 const BASE_URL = "https://api.weryai.com";
@@ -71,6 +75,10 @@ interface ApiEnvelope<T> {
 function isApiSuccess(json: ApiEnvelope<unknown>): boolean {
   if (typeof json.success === "boolean") return json.success;
   return json.status === 200 || json.status === 0;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 type RequestPreview = {
@@ -183,8 +191,6 @@ async function fetchImageBytes(url: string, quiet: boolean): Promise<FetchResult
       msg.includes("EAI_AGAIN")
     );
   };
-
-  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
   for (let attempt = 1; attempt <= DOWNLOAD_MAX_ATTEMPTS; attempt++) {
     let res: Response | null = null;
@@ -380,14 +386,47 @@ function parseExtendYaml(yaml: string): ExtendConfig {
   return config;
 }
 
+function pushProjectCandidate(
+  candidates: string[],
+  seen: Set<string>,
+  value: string | undefined | null
+): void {
+  if (!value?.trim()) return;
+  const resolved = path.resolve(value);
+  if (seen.has(resolved)) return;
+  seen.add(resolved);
+  candidates.push(resolved);
+}
+
+function hasProjectScopedConfig(projectRoot: string): boolean {
+  const baseDir = path.join(projectRoot, ".image-skills", SKILL_NAMESPACE);
+  return existsSync(path.join(baseDir, ".env")) || existsSync(path.join(baseDir, "EXTEND.md"));
+}
+
 function resolveProjectRoot(argv: string[] = process.argv.slice(2)): string {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] !== "--project") continue;
-    const value = argv[i + 1];
-    if (!value || value.startsWith("-")) break;
-    return path.resolve(value);
+    const current = argv[i];
+    if (current === "--project") {
+      const value = argv[i + 1];
+      if (value && !value.startsWith("-")) {
+        pushProjectCandidate(candidates, seen, value);
+      }
+      break;
+    }
+    if (current?.startsWith("--project=")) {
+      pushProjectCandidate(candidates, seen, current.slice("--project=".length));
+      break;
+    }
   }
-  return process.cwd();
+
+  pushProjectCandidate(candidates, seen, process.env.IMAGE_PROJECT_ROOT);
+  pushProjectCandidate(candidates, seen, process.env.INIT_CWD);
+  pushProjectCandidate(candidates, seen, process.cwd());
+
+  return candidates.find((candidate) => hasProjectScopedConfig(candidate)) ?? candidates[0] ?? process.cwd();
 }
 
 async function loadExtendConfig(projectRoot = resolveProjectRoot()): Promise<ExtendConfig> {
@@ -927,7 +966,7 @@ async function runAsyncGeneration(input: {
   dryRun?: boolean;
 }): Promise<{
   submit: SubmitResult | undefined;
-  detail: TaskDetail | undefined;
+  taskId?: string;
   requestPreview?: RequestPreview;
   dryRun?: boolean;
 }> {
@@ -977,7 +1016,7 @@ async function runAsyncGeneration(input: {
     }
     return {
       submit: undefined,
-      detail: undefined,
+      taskId: undefined,
       dryRun: true,
       requestPreview: {
         endpoint: `${BASE_URL}${pathSuffix}`,
@@ -990,8 +1029,49 @@ async function runAsyncGeneration(input: {
   const submit = await apiPost<SubmitResult>(pathSuffix, body);
   const taskIds = submit.data?.task_ids;
   if (!taskIds?.length) throw new Error("No task_ids in response");
-  const detail = await pollTask(taskIds[0]!, pollIntervalMs, pollTimeoutMs, quietPoll);
-  return { submit: submit.data, detail };
+  return { submit: submit.data, taskId: taskIds[0]! };
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function isRateLimitLikeMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return [
+    "http 429",
+    "rate limit",
+    "too many requests",
+    "quota",
+    "capacity",
+    "overloaded",
+    "try again later",
+    "temporarily unavailable",
+    "frequency",
+    "busy",
+  ].some((part) => lower.includes(part));
+}
+
+function isTransientNetworkLikeMessage(message: string): boolean {
+  const lower = message.toLowerCase();
+  return [
+    "timeout",
+    "timed out",
+    "fetch failed",
+    "econnreset",
+    "etimedout",
+    "eai_again",
+    "socket hang up",
+    "network",
+    "503",
+    "504",
+    "502",
+    "520",
+    "521",
+    "522",
+    "523",
+    "524",
+  ].some((part) => lower.includes(part));
 }
 
 function isRetryable(err: unknown): boolean {
@@ -1013,6 +1093,25 @@ function isRetryable(err: unknown): boolean {
     "required",
   ];
   return !bad.some((b) => msg.includes(b));
+}
+
+function shouldRetrySubmission(err: unknown): boolean {
+  const message = errorMessage(err);
+  return isRateLimitLikeMessage(message) || isTransientNetworkLikeMessage(message) || isRetryable(err);
+}
+
+function shouldRetryPolling(err: unknown): boolean {
+  const message = errorMessage(err);
+  return isRateLimitLikeMessage(message) || isTransientNetworkLikeMessage(message);
+}
+
+function shouldRetryTaskFailure(detail: TaskDetail): boolean {
+  return isRateLimitLikeMessage(detail.msg ?? "") || isTransientNetworkLikeMessage(detail.msg ?? "");
+}
+
+function retryDelayMs(attempt: number, message: string): number {
+  const base = isRateLimitLikeMessage(message) ? RATE_LIMIT_BACKOFF_BASE_MS : RETRY_BACKOFF_BASE_MS;
+  return Math.min(RETRY_BACKOFF_MAX_MS, base * 2 ** Math.max(0, attempt - 1));
 }
 
 async function saveResultImages(
@@ -1072,13 +1171,13 @@ async function generateOne(
   console.error(`Using model ${model} (${label})`);
   console.error(`Switch model: --model <id> | EXTEND.md default_model | IMAGE_GEN_DEFAULT_MODEL`);
 
-  let attempts = 0;
-  while (attempts < MAX_ATTEMPTS) {
-    attempts++;
+  let submitAttempts = 0;
+  while (submitAttempts < MAX_SUBMIT_ATTEMPTS) {
+    submitAttempts++;
     try {
       assertWeryaiPromptBounds(styledPrompt, args.negativePrompt);
       if (args.referenceImages.length > 0) await validateReferenceImages(args.referenceImages);
-      const { submit, detail, dryRun, requestPreview } = await runAsyncGeneration({
+      const { submit, taskId, dryRun, requestPreview } = await runAsyncGeneration({
         prompt: styledPrompt,
         model,
         aspectRatio,
@@ -1100,20 +1199,55 @@ async function generateOne(
           dryRun: true,
           outputPath: "",
           model,
-          attempts,
+          attempts: submitAttempts,
           error: null,
           submit,
-          detail,
+          detail: undefined,
           requestPreview,
         };
       }
+
+      if (!taskId) {
+        throw new Error("Gateway returned no task id");
+      }
+
+      let pollAttempts = 0;
+      let detail: TaskDetail | undefined;
+      while (pollAttempts < MAX_POLL_ATTEMPTS) {
+        pollAttempts++;
+        try {
+          detail = await pollTask(taskId, args.pollIntervalMs, args.pollTimeoutMs, quietPoll);
+          break;
+        } catch (pollError) {
+          const pollMessage = errorMessage(pollError);
+          if (pollAttempts < MAX_POLL_ATTEMPTS && shouldRetryPolling(pollError)) {
+            const waitMs = retryDelayMs(pollAttempts, pollMessage);
+            console.error(
+              `[${label}] Status check failed for task ${taskId}; retrying poll ${pollAttempts}/${MAX_POLL_ATTEMPTS} in ${waitMs}ms (${pollMessage})`
+            );
+            await sleep(waitMs);
+            continue;
+          }
+          throw new Error(`Task ${taskId} polling failed: ${pollMessage}`);
+        }
+      }
+
       if (!detail) {
-        throw new Error("Gateway returned no task detail");
+        throw new Error(`Task ${taskId} returned no final detail`);
       }
       if (detail.task_status === "failed") {
-        throw new Error(
-          detail.msg ? `WeryAI task failed: ${detail.msg}` : "WeryAI task failed (see data.msg)"
-        );
+        const failureMessage = detail.msg
+          ? `WeryAI task failed: ${detail.msg}`
+          : "WeryAI task failed (see data.msg)";
+        if (submitAttempts < MAX_SUBMIT_ATTEMPTS && shouldRetryTaskFailure(detail)) {
+          const waitMs = retryDelayMs(submitAttempts, failureMessage);
+          console.error(
+            `[${label}] Task ${taskId} failed with a retryable error; resubmitting ${submitAttempts}/${MAX_SUBMIT_ATTEMPTS} in ${waitMs}ms (${failureMessage})`
+          );
+          await sleep(waitMs);
+          continue;
+        }
+        throw new Error(failureMessage);
       }
       const images = detail.images ?? [];
       if (outputPath && !args.noDownload) {
@@ -1129,7 +1263,7 @@ async function generateOne(
             success: false,
             outputPath,
             model,
-            attempts,
+            attempts: submitAttempts,
             error: `Download after succeed: ${msg}`,
             images,
             submit,
@@ -1141,22 +1275,26 @@ async function generateOne(
         success: true,
         outputPath,
         model,
-        attempts,
+        attempts: submitAttempts,
         error: null,
         images,
         submit,
         detail,
       };
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      if (attempts < MAX_ATTEMPTS && isRetryable(e)) {
-        console.error(`[${label}] Attempt ${attempts}/${MAX_ATTEMPTS} failed, retrying... (${message})`);
+      const message = errorMessage(e);
+      if (submitAttempts < MAX_SUBMIT_ATTEMPTS && shouldRetrySubmission(e)) {
+        const waitMs = retryDelayMs(submitAttempts, message);
+        console.error(
+          `[${label}] Submit attempt ${submitAttempts}/${MAX_SUBMIT_ATTEMPTS} failed, retrying in ${waitMs}ms (${message})`
+        );
+        await sleep(waitMs);
         continue;
       }
-      return { success: false, outputPath, model, attempts, error: message };
+      return { success: false, outputPath, model, attempts: submitAttempts, error: message };
     }
   }
-  return { success: false, outputPath, model, attempts: MAX_ATTEMPTS, error: "Unknown failure" };
+  return { success: false, outputPath, model, attempts: MAX_SUBMIT_ATTEMPTS, error: "Unknown failure" };
 }
 
 // --- Batch ---
