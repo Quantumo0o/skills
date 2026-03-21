@@ -1,11 +1,11 @@
 ---
 name: stock-manager
-description: 股票管理技能，支持股票订单管理和股票信息获取。支持A股、港股、美股等多种股票类型，使用本地文本目录存储数据。Use when user wants to manage stock orders or get stock information including adding, deleting, updating, and querying orders, and fetching real-time stock data.
+description: 股票管理技能，支持股票订单管理、交易规则管理和股票信息获取。支持A股、港股、美股等多种股票类型，使用本地文本目录存储数据。Use when user wants to manage stock orders, trading rules or get stock information including adding, deleting, updating, and querying orders and rules, and fetching real-time stock data.
 ---
 
 # Stock Manager - 股票管理技能
 
-本地化的股票管理系统，支持股票订单管理和股票信息获取，支持A股、美股、港股等多种股票类型，所有数据存储在本地文本文件中。
+本地化的股票管理系统，支持股票订单管理、交易规则管理和股票信息获取，支持A股、美股、港股等多种股票类型，所有数据存储在本地文本文件中。
 
 ## 功能特性
 
@@ -99,7 +99,104 @@ python main.py stock cleanup --days 30
 - 港股：00700 → hk00700
 - 美股：TSLA → usTSLA
 
-### 3. 日志管理
+### 3. 交易规则管理
+
+管理股票的买入规则和卖出规则，支持完整的CRUD操作：
+
+**功能特性：**
+- 添加买入规则和卖出规则
+- 支持自定义触发条件和执行动作
+- 支持按股票类型、股票代码设置规则
+- 支持规则的启用/禁用状态管理
+- 自动备份机制：每次修改规则时自动备份rules.json
+- 备份管理：自动保留最近10个备份文件
+
+**使用方法：**
+```bash
+# 添加买入规则
+python main.py rule add --type 买入规则 --name "价格低于均线买入" --description "当价格低于20日均线时买入" \
+  --conditions '[{"indicator": "price", "operator": "<", "value": "ma20"}]' \
+  --actions '[{"type": "buy", "quantity": 100}]'
+
+# 添加卖出规则
+python main.py rule add --type 卖出规则 --name "盈利超过10%卖出" --description "当盈利超过10%时卖出" \
+  --conditions '[{"indicator": "profit_percent", "operator": ">", "value": 10}]' \
+  --actions '[{"type": "sell", "quantity": "all"}]'
+
+# 列出所有规则
+python main.py rule list
+
+# 按规则类型筛选
+python main.py rule list --type 买入规则
+
+# 按股票类型筛选
+python main.py rule list --stock-type A股
+
+# 按股票代码筛选
+python main.py rule list --stock-code 600000
+
+# 只显示启用的规则
+python main.py rule list --enabled
+
+# 获取规则详情
+python main.py rule get --id RULE_20260314123456_1
+
+# 更新规则
+python main.py rule update --id RULE_20260314123456_1 --name "新规则名称" --description "新描述"
+
+# 删除规则
+python main.py rule delete --id RULE_20260314123456_1
+
+# 切换规则启用状态
+python main.py rule toggle --id RULE_20260314123456_1
+
+# 查看备份文件
+python main.py rule backup list
+
+# 清理多余备份（保留最近10个）
+python main.py rule backup cleanup
+```
+
+**规则数据格式：**
+
+触发条件示例：
+```json
+[
+  {"indicator": "price", "operator": "<", "value": "ma20"},
+  {"indicator": "volume", "operator": ">", "value": 1000000}
+]
+```
+
+执行动作示例：
+```json
+[
+  {"type": "buy", "quantity": 100},
+  {"type": "notification", "message": "买入信号触发"}
+]
+```
+
+**支持的指标：**
+- price: 当前价格
+- ma5, ma10, ma20: 5日、10日、20日均线
+- volume: 成交量
+- profit_percent: 盈利百分比
+- loss_percent: 亏损百分比
+
+**支持的操作符：**
+- >: 大于
+- <: 小于
+- >=: 大于等于
+- <=: 小于等于
+- ==: 等于
+- !=: 不等于
+
+**支持的动作类型：**
+- buy: 买入
+- sell: 卖出
+- notification: 发送通知
+- log: 记录日志
+
+### 4. 日志管理
 
 自动管理日志文件：
 
@@ -134,18 +231,23 @@ stock_predict_skill/
 │   ├── orders/                    # 订单信息
 │   │   ├── orders.json            # 当前订单
 │   │   └── orders.json_*         # 历史备份（保留最近10个）
+│   ├── rules/                     # 交易规则
+│   │   ├── rules.json             # 当前规则
+│   │   └── rules.json_*          # 历史备份（保留最近10个）
 │   ├── stock_info/                # 股票信息
 │   │   └── 20260315/              # 按日期分目录
 │   │       └── stock_info_20260315.json  # 每日JSON文件
 │   └── logs/                      # 日志文件
 │       ├── stock_order_20260315.log
 │       ├── stock_info_20260315.log
+│       ├── stock_rule_20260315.log
 │       └── log_manager_20260315.log
 ├── README.md                      # 项目说明
 ├── SKILL.md                       # 本文件
 ├── main.py                        # 主入口
 ├── stock_order.py                 # 股票订单管理模块
 ├── stock_info.py                  # 股票信息获取模块
+├── stock_rule.py                  # 交易规则管理模块
 ├── log_manager.py                 # 日志管理模块
 ├── config.py                      # 配置文件
 ├── command_parser.py              # 命令解析脚本
@@ -187,7 +289,53 @@ python main.py order backup list
 python main.py order backup cleanup
 ```
 
-### 2. 股票信息获取
+### 2. 交易规则管理
+```bash
+# 添加买入规则
+python main.py rule add --type 买入规则 --name "价格低于均线买入" --description "当价格低于20日均线时买入" \
+  --conditions '[{"indicator": "price", "operator": "<", "value": "ma20"}]' \
+  --actions '[{"type": "buy", "quantity": 100}]'
+
+# 添加卖出规则
+python main.py rule add --type 卖出规则 --name "盈利超过10%卖出" --description "当盈利超过10%时卖出" \
+  --conditions '[{"indicator": "profit_percent", "operator": ">", "value": 10}]' \
+  --actions '[{"type": "sell", "quantity": "all"}]'
+
+# 列出所有规则
+python main.py rule list
+
+# 按规则类型筛选
+python main.py rule list --type 买入规则
+
+# 按股票类型筛选
+python main.py rule list --stock-type A股
+
+# 按股票代码筛选
+python main.py rule list --stock-code 600000
+
+# 只显示启用的规则
+python main.py rule list --enabled
+
+# 获取规则详情
+python main.py rule get --id RULE_20260314123456_1
+
+# 更新规则
+python main.py rule update --id RULE_20260314123456_1 --name "新规则名称" --description "新描述"
+
+# 删除规则
+python main.py rule delete --id RULE_20260314123456_1
+
+# 切换规则启用状态
+python main.py rule toggle --id RULE_20260314123456_1
+
+# 查看备份文件
+python main.py rule backup list
+
+# 清理多余备份（保留最近10个）
+python main.py rule backup cleanup
+```
+
+### 3. 股票信息获取
 ```bash
 # 获取单个股票信息
 python main.py stock get --code 002594
@@ -208,7 +356,7 @@ python main.py stock show --code 002594
 python main.py stock cleanup --days 30
 ```
 
-### 3. 日志管理
+### 4. 日志管理
 ```bash
 # 列出所有日志文件
 python main.py log list
@@ -236,9 +384,10 @@ DATA_DIR = "data"
 
 1. **数据存储**：所有数据存储在本地文本文件中，无网络依赖
 2. **订单管理**：订单信息存储在本地文件中，每次修改自动备份，保留最近10个备份
-3. **股票信息**：股票信息按日期分目录存储，每天一个JSON文件记录所有股票信息
-4. **API依赖**：股票信息获取需要网络连接，优先使用腾讯证券API
-5. **日志管理**：日志文件自动清理7天前的旧数据
+3. **规则管理**：交易规则存储在本地文件中，每次修改自动备份，保留最近10个备份
+4. **股票信息**：股票信息按日期分目录存储，每天一个JSON文件记录所有股票信息
+5. **API依赖**：股票信息获取需要网络连接，优先使用腾讯证券API
+6. **日志管理**：日志文件自动清理7天前的旧数据
 
 ## 故障排查
 
@@ -248,6 +397,7 @@ DATA_DIR = "data"
 2. Python依赖是否安装
 3. 配置文件是否正确
 4. 网络连接是否正常（股票信息获取需要）
+
 
 
 ## OpenClaw 集成
@@ -425,6 +575,133 @@ toolcall(
 )
 ```
 
+#### 9. 添加交易规则
+
+**命令格式**：`添加交易规则 <规则类型> <规则名称> <规则描述>`
+
+**示例**：
+```
+添加交易规则 买入规则 价格低于均线买入 当价格低于20日均线时买入
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="add_trading_rule",
+    params={
+        "rule_type": "买入规则",
+        "rule_name": "价格低于均线买入",
+        "rule_description": "当价格低于20日均线时买入",
+        "conditions": [{"indicator": "price", "operator": "<", "value": "ma20"}],
+        "actions": [{"type": "buy", "quantity": 100}],
+        "stock_type": "A股"
+    }
+)
+```
+
+#### 10. 列出交易规则
+
+**命令格式**：`查看交易规则 [规则类型] [股票类型] [股票代码]`
+
+**示例**：
+```
+查看交易规则
+查看交易规则 买入规则
+查看交易规则 A股
+查看交易规则 买入规则 A股
+查看交易规则 600000
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="list_trading_rules",
+    params={
+        "rule_type": "买入规则",  # 可选
+        "stock_type": "A股",  # 可选
+        "stock_code": "600000"  # 可选
+    }
+)
+```
+
+#### 11. 获取规则详情
+
+**命令格式**：`查看规则详情 <规则ID>`
+
+**示例**：
+```
+查看规则详情 RULE_20260314100000_1
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="get_trading_rule",
+    params={
+        "rule_id": "RULE_20260314100000_1"
+    }
+)
+```
+
+#### 12. 更新规则
+
+**命令格式**：`更新规则 <规则ID> <新规则名称> <新规则描述>`
+
+**示例**：
+```
+更新规则 RULE_20260314100000_1 新规则名称 新规则描述
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="update_trading_rule",
+    params={
+        "rule_id": "RULE_20260314100000_1",
+        "rule_name": "新规则名称",
+        "rule_description": "新规则描述"
+    }
+)
+```
+
+#### 13. 删除规则
+
+**命令格式**：`删除规则 <规则ID>`
+
+**示例**：
+```
+删除规则 RULE_20260314100000_1
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="delete_trading_rule",
+    params={
+        "rule_id": "RULE_20260314100000_1"
+    }
+)
+```
+
+#### 14. 切换规则状态
+
+**命令格式**：`切换规则状态 <规则ID>`
+
+**示例**：
+```
+切换规则状态 RULE_20260314100000_1
+```
+
+**OpenClaw调用**：
+```python
+toolcall(
+    name="toggle_trading_rule",
+    params={
+        "rule_id": "RULE_20260314100000_1"
+    }
+)
+```
+
 ### 自动增加日期
 
 当用户使用命令格式添加股票订单时，系统会自动使用当前日期和时间作为买入时间，无需用户手动输入。
@@ -451,9 +728,8 @@ toolcall(
 ### 数据存储说明
 
 1. **订单数据**：存储在 `data/orders/orders.json`，每次修改自动备份，保留最近10个备份
-2. **股票信息**：按日期分目录存储，每天一个JSON文件 `stock_info_YYYYMMDD.json`
-3. **日志文件**：存储在 `data/logs/` 目录，自动清理7天前的旧日志
+2. **规则数据**：存储在 `data/rules/rules.json`，每次修改自动备份，保留最近10个备份
+3. **股票信息**：按日期分目录存储，每天一个JSON文件 `stock_info_YYYYMMDD.json`
+4. **日志文件**：存储在 `data/logs/` 目录，自动清理7天前的旧日志
 
-### 代码仓库地址
-
-git地址：https://github.com/a925907195/stock_manage_skill
+github:https://github.com/a925907195/stock_manage_skill

@@ -4,6 +4,7 @@
 
 import os
 import sys
+import json
 from datetime import datetime
 
 # 添加当前目录到Python路径
@@ -12,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from stock_order import StockOrderManager
 from stock_info import StockInfoFetcher
 from log_manager import LogManager
+from stock_rule import StockRuleManager
 import argparse
 
 
@@ -32,6 +34,10 @@ def main():
     # 日志管理命令
     log_parser = subparsers.add_parser('log', help='日志管理')
     log_subparsers = log_parser.add_subparsers(dest='log_command', help='日志管理命令')
+
+    # 规则管理命令
+    rule_parser = subparsers.add_parser('rule', help='规则管理')
+    rule_subparsers = rule_parser.add_subparsers(dest='rule_command', help='规则管理命令')
 
     # 获取股票信息
     get_stock_info_parser = stock_info_subparsers.add_parser('get', help='获取股票信息')
@@ -98,6 +104,57 @@ def main():
     # 清理旧备份
     cleanup_backups_parser = backup_subparsers.add_parser('cleanup', help='清理多余备份，只保留最近的10个')
     cleanup_backups_parser.add_argument('--max', type=int, default=10, help='保留的最大备份数量（默认10）')
+
+    # 添加规则
+    add_rule_parser = rule_subparsers.add_parser('add', help='添加交易规则')
+    add_rule_parser.add_argument('--type', type=str, required=True, choices=['买入规则', '卖出规则'], help='规则类型')
+    add_rule_parser.add_argument('--name', type=str, required=True, help='规则名称')
+    add_rule_parser.add_argument('--description', type=str, required=True, help='规则描述')
+    add_rule_parser.add_argument('--conditions', type=str, required=True, help='触发条件（JSON格式）')
+    add_rule_parser.add_argument('--actions', type=str, required=True, help='执行动作（JSON格式）')
+    add_rule_parser.add_argument('--stock-type', type=str, help='股票类型（可选）')
+    add_rule_parser.add_argument('--stock-code', type=str, help='股票代码（可选）')
+
+    # 列出所有规则
+    list_rules_parser = rule_subparsers.add_parser('list', help='列出所有规则')
+    list_rules_parser.add_argument('--type', type=str, help='按规则类型筛选')
+    list_rules_parser.add_argument('--stock-type', type=str, help='按股票类型筛选')
+    list_rules_parser.add_argument('--stock-code', type=str, help='按股票代码筛选')
+    list_rules_parser.add_argument('--enabled', action='store_true', help='只显示启用的规则')
+
+    # 获取规则详情
+    get_rule_parser = rule_subparsers.add_parser('get', help='获取规则详情')
+    get_rule_parser.add_argument('--id', type=str, required=True, help='规则ID')
+
+    # 更新规则
+    update_rule_parser = rule_subparsers.add_parser('update', help='更新规则')
+    update_rule_parser.add_argument('--id', type=str, required=True, help='规则ID')
+    update_rule_parser.add_argument('--name', type=str, help='规则名称')
+    update_rule_parser.add_argument('--description', type=str, help='规则描述')
+    update_rule_parser.add_argument('--conditions', type=str, help='触发条件（JSON格式）')
+    update_rule_parser.add_argument('--actions', type=str, help='执行动作（JSON格式）')
+    update_rule_parser.add_argument('--stock-type', type=str, help='股票类型')
+    update_rule_parser.add_argument('--stock-code', type=str, help='股票代码')
+    update_rule_parser.add_argument('--enabled', type=str, choices=['true', 'false'], help='是否启用')
+
+    # 删除规则
+    delete_rule_parser = rule_subparsers.add_parser('delete', help='删除规则')
+    delete_rule_parser.add_argument('--id', type=str, required=True, help='规则ID')
+
+    # 切换规则状态
+    toggle_rule_parser = rule_subparsers.add_parser('toggle', help='切换规则的启用/禁用状态')
+    toggle_rule_parser.add_argument('--id', type=str, required=True, help='规则ID')
+
+    # 规则备份管理
+    rule_backup_parser = rule_subparsers.add_parser('backup', help='规则备份管理')
+    rule_backup_subparsers = rule_backup_parser.add_subparsers(dest='rule_backup_command', help='备份管理命令')
+
+    # 查看备份
+    list_rule_backups_parser = rule_backup_subparsers.add_parser('list', help='查看所有备份')
+
+    # 清理旧备份
+    cleanup_rule_backups_parser = rule_backup_subparsers.add_parser('cleanup', help='清理多余备份，只保留最近的10个')
+    cleanup_rule_backups_parser.add_argument('--max', type=int, default=10, help='保留的最大备份数量（默认10）')
 
     args = parser.parse_args()
 
@@ -262,6 +319,178 @@ def main():
 
             else:
                 order_parser.print_help()
+
+        elif args.command == 'rule':
+            rule_manager = StockRuleManager()
+
+            if args.rule_command == 'add':
+                try:
+                    conditions = json.loads(args.conditions)
+                    actions = json.loads(args.actions)
+                    rule_id = rule_manager.add_rule(
+                        rule_type=args.type,
+                        rule_name=args.name,
+                        rule_description=args.description,
+                        conditions=conditions,
+                        actions=actions,
+                        stock_type=args.stock_type,
+                        stock_code=args.stock_code
+                    )
+                    print(f"\n成功添加规则，规则ID: {rule_id}")
+                    print(f"规则名称: {args.name}")
+                    print(f"规则类型: {args.type}")
+                    print(f"规则描述: {args.description}")
+                    if args.stock_type:
+                        print(f"股票类型: {args.stock_type}")
+                    if args.stock_code:
+                        print(f"股票代码: {args.stock_code}")
+                except json.JSONDecodeError as e:
+                    print(f"JSON解析错误: {e}")
+                    print("请确保条件和动作是有效的JSON格式")
+
+            elif args.rule_command == 'list':
+                rules = rule_manager.get_all_rules()
+
+                # 按规则类型筛选
+                if args.type:
+                    rules = [rule for rule in rules if rule['rule_type'] == args.type]
+
+                # 按股票类型筛选
+                if args.stock_type:
+                    rules = [rule for rule in rules if rule.get('stock_type') == args.stock_type]
+
+                # 按股票代码筛选
+                if args.stock_code:
+                    rules = [rule for rule in rules if rule.get('stock_code') == args.stock_code]
+
+                # 只显示启用的规则
+                if args.enabled:
+                    rules = [rule for rule in rules if rule.get('enabled', True)]
+
+                print(f"\n共找到 {len(rules)} 个规则:")
+                print("-" * 160)
+                print(f"{'规则ID':<25} {'规则名称':<20} {'规则类型':<10} {'股票类型':<10} {'股票代码':<10} {'启用':<8} {'创建时间':<20}")
+                print("-" * 160)
+                for rule in rules:
+                    stock_type = rule.get('stock_type', '-') or '-'
+                    stock_code = rule.get('stock_code', '-') or '-'
+                    enabled = '是' if rule.get('enabled', True) else '否'
+                    print(f"{rule['rule_id']:<25} {rule['rule_name']:<20} {rule['rule_type']:<10} "
+                          f"{stock_type:<10} {stock_code:<10} {enabled:<8} {rule['create_time']:<20}")
+                print("-" * 160)
+
+            elif args.rule_command == 'get':
+                rule = rule_manager.get_rule_by_id(args.id)
+                if rule:
+                    print(f"\n规则详情:")
+                    print("-" * 50)
+                    print(f"规则ID: {rule['rule_id']}")
+                    print(f"规则名称: {rule['rule_name']}")
+                    print(f"规则类型: {rule['rule_type']}")
+                    print(f"规则描述: {rule['rule_description']}")
+                    print(f"触发条件: {json.dumps(rule['conditions'], ensure_ascii=False, indent=2)}")
+                    print(f"执行动作: {json.dumps(rule['actions'], ensure_ascii=False, indent=2)}")
+                    if rule.get('stock_type'):
+                        print(f"股票类型: {rule['stock_type']}")
+                    if rule.get('stock_code'):
+                        print(f"股票代码: {rule['stock_code']}")
+                    print(f"启用状态: {'启用' if rule.get('enabled', True) else '禁用'}")
+                    print(f"创建时间: {rule['create_time']}")
+                    if 'update_time' in rule:
+                        print(f"更新时间: {rule['update_time']}")
+                    print("-" * 50)
+                else:
+                    print(f"未找到规则: {args.id}")
+
+            elif args.rule_command == 'update':
+                # 构建更新参数
+                update_params = {}
+                if args.name:
+                    update_params['rule_name'] = args.name
+                if args.description:
+                    update_params['rule_description'] = args.description
+                if args.conditions:
+                    try:
+                        update_params['conditions'] = json.loads(args.conditions)
+                    except json.JSONDecodeError as e:
+                        print(f"JSON解析错误: {e}")
+                        return
+                if args.actions:
+                    try:
+                        update_params['actions'] = json.loads(args.actions)
+                    except json.JSONDecodeError as e:
+                        print(f"JSON解析错误: {e}")
+                        return
+                if args.stock_type:
+                    update_params['stock_type'] = args.stock_type
+                if args.stock_code:
+                    update_params['stock_code'] = args.stock_code
+                if args.enabled:
+                    update_params['enabled'] = args.enabled == 'true'
+                
+                if update_params:
+                    success = rule_manager.update_rule(args.id, **update_params)
+                    if success:
+                        print(f"成功更新规则: {args.id}")
+                        for key, value in update_params.items():
+                            print(f"  {key}: {value}")
+                    else:
+                        print(f"更新规则失败: {args.id}")
+                else:
+                    print("未提供任何更新参数")
+
+            elif args.rule_command == 'delete':
+                success = rule_manager.delete_rule(args.id)
+                if success:
+                    print(f"成功删除规则: {args.id}")
+                else:
+                    print(f"删除规则失败: {args.id}")
+
+            elif args.rule_command == 'toggle':
+                success = rule_manager.toggle_rule(args.id)
+                if success:
+                    rule = rule_manager.get_rule_by_id(args.id)
+                    status = "启用" if rule.get('enabled', True) else "禁用"
+                    print(f"成功切换规则状态: {args.id} -> {status}")
+                else:
+                    print(f"切换规则状态失败: {args.id}")
+
+            elif args.rule_command == 'backup':
+                if args.rule_backup_command == 'list':
+                    backups = []
+                    for filename in os.listdir(rule_manager.rule_dir):
+                        if filename.startswith('rules.json_'):
+                            filepath = os.path.join(rule_manager.rule_dir, filename)
+                            file_mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
+                            backups.append({
+                                'filename': filename,
+                                'filepath': filepath,
+                                'mtime': file_mtime
+                            })
+                    
+                    if backups:
+                        backups.sort(key=lambda x: x['mtime'], reverse=True)
+                        print(f"\n所有规则备份:")
+                        print("-" * 80)
+                        print(f"{'备份文件名':<30} {'备份时间':<20} {'文件大小':<15}")
+                        print("-" * 80)
+                        for backup in backups:
+                            file_size = os.path.getsize(backup['filepath'])
+                            size_str = f"{file_size / 1024:.2f} KB"
+                            print(f"{backup['filename']:<30} {backup['mtime'].strftime('%Y-%m-%d %H:%M:%S'):<20} {size_str:<15}")
+                        print("-" * 80)
+                    else:
+                        print("\n没有找到规则备份")
+
+                elif args.rule_backup_command == 'cleanup':
+                    deleted_count = rule_manager._cleanup_excess_backups(max_backups=args.max)
+                    print(f"清理了 {deleted_count} 个多余备份（保留最近{args.max}个）")
+
+                else:
+                    rule_backup_parser.print_help()
+
+            else:
+                rule_parser.print_help()
 
         elif args.command == 'stock':
             stock_info_fetcher = StockInfoFetcher()
