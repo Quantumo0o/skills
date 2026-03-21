@@ -7,6 +7,30 @@ description: Calculate true ecommerce profit margin after product cost, shipping
 
 不要只看毛利，要看最后真正剩下多少。
 
+## 先交互，再计算
+
+开始前先确认：
+1. 你要看的是 gross margin、contribution margin，还是 net margin？
+2. 你们平时利润率口径里，是否包含：
+   - 运费 / 包装
+   - 平台费 / 支付费
+   - 折扣 / 补贴
+   - 退款 / 售后损耗
+   - 固定成本分摊
+3. 你想沿用你们现有算法，还是让我给推荐的电商利润拆解方式？
+
+如果用户没有统一口径，先给推荐框架，再让用户确认。
+
+## Python script guidance
+
+当用户给出结构化数字后：
+- 生成 Python 脚本完成利润拆解
+- 先列公式与假设
+- 再返回毛利 / 净利结果
+- 同时返回可复用脚本
+
+如果输入不完整，先追问，不要直接输出看似精确的结果。
+
 ## 解决的问题
 
 很多团队说“这个产品利润不错”，其实只算了售价减进货价，没把这些算进去：
@@ -37,10 +61,12 @@ description: Calculate true ecommerce profit margin after product cost, shipping
 
 ## 工作流
 
-1. 计算毛利与毛利率。
-2. 扣除履约、渠道、折扣、退款影响。
-3. 输出净利润与净利率。
-4. 标记利润被侵蚀最严重的环节。
+1. 明确用户的 margin 口径。
+2. 计算毛利与毛利率。
+3. 扣除履约、渠道、折扣、退款影响。
+4. 输出净利润与净利率。
+5. 标记利润被侵蚀最严重的环节。
+6. 返回可复用 Python 脚本。
 
 ## 输出格式
 
@@ -48,6 +74,7 @@ description: Calculate true ecommerce profit margin after product cost, shipping
 2. 毛利 / 净利结果
 3. Margin 风险点
 4. 优化建议
+5. Python 脚本
 
 ## 质量标准
 
@@ -55,6 +82,7 @@ description: Calculate true ecommerce profit margin after product cost, shipping
 - 清楚指出利润被谁吃掉。
 - 结果可用于 SKU 比较或经营复盘。
 - 明确哪些数字是估算值。
+- 未确认口径前不要假装精确。
 
 ## 资源
 
