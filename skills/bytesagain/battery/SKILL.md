@@ -1,8 +1,10 @@
 ---
 name: "Battery"
-description: "Take control of Battery with this home management toolkit. Clean interface, local storage, zero configuration."
+description: "Monitor battery levels, track charge cycles, and analyze power usage. Use when checking device health, optimizing power, or logging history."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["organize", "battery", "maintenance", "smart-home", "household"]
 ---
 
