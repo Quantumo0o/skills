@@ -3,9 +3,15 @@
   "slug": "polymarket-equity-markets-trader",
   "displayName": "Equity Markets & IPO Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773568811549,
-    "commit": "https://github.com/openclaw/skills/commit/da1680b524c6d883456eaa9830b9b5965a36768d"
+    "version": "1.0.1",
+    "publishedAt": 1773864824111,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773568811549,
+      "commit": "https://github.com/openclaw/skills/commit/da1680b524c6d883456eaa9830b9b5965a36768d"
+    }
+  ]
 }
