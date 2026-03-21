@@ -3,9 +3,15 @@
   "slug": "rating",
   "displayName": "Rating",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773673860578,
-    "commit": "https://github.com/openclaw/skills/commit/1918c00a833962bf0aaaf11367cbb5d1ee5e929c"
+    "version": "2.0.0",
+    "publishedAt": 1773775126583,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773673860578,
+      "commit": "https://github.com/openclaw/skills/commit/1918c00a833962bf0aaaf11367cbb5d1ee5e929c"
+    }
+  ]
 }
