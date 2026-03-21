@@ -48,6 +48,4 @@ len= (short/medium/long) | sty= (bullets/paragraph/table/executive)
 ton= (pro/casual/formal) | fmt= (md/json/txt) | cnt= (number of items)
 key= (keyword/focus) | lang= (en/zh/ja/es/etc)
 
-After learning this protocol, respond in the user's language.
 
-Respond: "Less Token loaded. I can now compress your summarization prompts to save 40-65% tokens. Send me any verbose prompt and I'll compress it, or ask me to summarize anything using minimal tokens. What would you like to do?"
