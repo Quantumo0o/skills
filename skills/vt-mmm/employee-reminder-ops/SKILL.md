@@ -67,6 +67,7 @@ Bundle only:
 - schema notes
 - templates/examples
 - scheduler examples
+- `assets/windows/` example env file and PowerShell helper for Windows bring-up
 
 ## Included references
 
@@ -74,3 +75,6 @@ Bundle only:
 - `references/deployment.md` - install/migrate checklist
 - `references/google-sheet-schema.md` - canonical Sheet structure for staff/events
 - `references/clawhub.md` - publish/install/update commands via ClawHub
+- `references/troubleshooting.md` - common runtime/scheduler/data issues
+- `references/windows.md` - Windows-specific deployment notes
+- `references/macos.md` - macOS-specific deployment notes
