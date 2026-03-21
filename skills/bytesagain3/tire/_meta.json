@@ -3,9 +3,15 @@
   "slug": "tire",
   "displayName": "Tire",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773674062570,
-    "commit": "https://github.com/openclaw/skills/commit/349fe6a99ce79451f23189c25547142a851d4458"
+    "version": "2.0.1",
+    "publishedAt": 1773775213369,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773674062570,
+      "commit": "https://github.com/openclaw/skills/commit/349fe6a99ce79451f23189c25547142a851d4458"
+    }
+  ]
 }

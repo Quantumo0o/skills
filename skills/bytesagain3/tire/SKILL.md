@@ -1,8 +1,10 @@
 ---
 name: "Tire"
-description: "Your personal Tire assistant. Track, analyze, and manage all your home management needs from the command line."
+description: "Your personal Tire assistant. Use when you need tire."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["maintenance", "smart-home", "inventory", "household", "tire"]
 ---
 
