@@ -57,11 +57,26 @@ Use the scripts mainly as functional helpers:
 - If message delivery blocks remote URLs, download locally first and then send the local file.
 - If a remote file cannot be fetched locally but the raw link may still help, provide the original link clearly.
 
-## Image generation helper
+## Helper quick guide
 
-Use `scripts/generate_image.py` for direct still-image generation.
+Use the smallest helper that matches the request:
 
-Example:
+- `scripts/generate_image.py` → direct still-image generation
+- `scripts/edit_image.py` → direct full-image edits
+- `scripts/mask_inpaint.py` → localized edits with an explicit or generated mask
+- `scripts/outpaint_image.py` → canvas expansion before an edit call
+- `scripts/reference_media.py` → reference-image transport and delegation
+- `scripts/generate_consistent_media.py` → backward-compatible wrapper only
+- `scripts/generate_batch_media.py` → repeatable manifest-driven batches
+- `scripts/object_select_edit.py` → simple object-vs-background edits on transparent or clean-backdrop assets
+- `scripts/generate_video.py` → direct video generation and async polling
+- `scripts/fetch_generated_media.py` → normalize returned media refs into local files
+
+Use `references/model-capabilities.md` when deciding which helper fits the modality, transport, or return shape.
+Use `references/reference-image-workflow.md` for reference-image transport details.
+Use `references/batch-workflows.md` for manifest structure and batch execution behavior.
+
+Minimal examples:
 
 ```bash
 python3 skills/media-generation/scripts/generate_image.py \
@@ -69,67 +84,20 @@ python3 skills/media-generation/scripts/generate_image.py \
   --size '1024x1024' \
   --out-dir 'tmp/images' \
   --prefix 'generated'
-```
 
-The helper:
-- reads provider credentials from OpenClaw config (`~/.openclaw/openclaw.json` by default, or `--config` / `$OPENCLAW_CONFIG`)
-- calls `/images/generations` by default
-- supports `size`, `quality`, `style`, `background`, `n`, `seed`, `extra-json`, and `extra-json-file`
-- downloads the returned image into `tmp/images/` by default
-- handles providers that reply with URL/path, `data:` URL, or `b64_json`
-
-## Image edit helper
-
-Use `scripts/edit_image.py` for direct image-edit calls.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/edit_image.py \
   --image 'tmp/images/source.jpg' \
   --prompt 'replace the background' \
   --out-dir 'tmp/images' \
   --prefix 'edited'
-```
 
-The helper:
-- reads provider credentials from OpenClaw config
-- calls `/images/edits` by default
-- supports optional `--mask` input for localized edits
-- downloads the returned image into `tmp/images/` by default
-- handles URL/path, `data:` URL, or `b64_json`
-
-## Mask inpaint helper
-
-Use `scripts/mask_inpaint.py` for localized repainting tasks.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/mask_inpaint.py \
   --image 'tmp/images/source.jpg' \
   --x 120 --y 80 --width 220 --height 180 \
   --prompt 'replace the masked area' \
   --out-dir 'tmp/images' \
   --prefix 'mask-result'
-```
 
-The helper:
-- accepts either an existing `--mask` image or generated regions
-- supports rectangle / ellipse regions and repeatable `--region` specs
-- supports percentage-based regions like `rect-pct` / `ellipse-pct`
-- supports `--expand` / `--shrink` before feathering
-- supports `--mask-only` for local preparation / testing without a live API call
-- forwards `--config`, `--provider`, `--model`, and `--endpoint` to `scripts/edit_image.py`
-- reuses `scripts/edit_image.py` for the final edit call
-
-## Outpaint helper
-
-Use `scripts/outpaint_image.py` for extension / canvas expansion tasks.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/outpaint_image.py \
   --image 'tmp/images/source.jpg' \
   --left 512 --right 512 --top 128 --bottom 128 \
@@ -137,73 +105,22 @@ python3 skills/media-generation/scripts/outpaint_image.py \
   --prompt 'extend outward' \
   --out-dir 'tmp/images' \
   --prefix 'outpaint-result'
-```
 
-The helper:
-- expands the canvas locally before calling the model
-- supports directional expansion on each side
-- supports `transparent`, `blur`, and `solid` initialization modes
-- forwards `--config`, `--provider`, `--model`, and `--endpoint` to `scripts/edit_image.py`
-- reuses `scripts/edit_image.py` for the final edit call
-
-## Reference-image helper
-
-Use `scripts/generate_consistent_media.py` when one or more reference images need to be passed through to the provider.
-
-Note: the script name is historical; its current role is reference-image transport and delegation.
-
-Example:
-
-```bash
-python3 skills/media-generation/scripts/generate_consistent_media.py \
+python3 skills/media-generation/scripts/reference_media.py \
   --mode image \
   --reference-image 'tmp/images/reference.png' \
   --prompt 'character' \
   --size '1024x1024' \
   --out-dir 'tmp/images' \
   --prefix 'reference-output'
-```
 
-The helper:
-- for image mode, can pass encoded reference images in provider JSON (default key: `reference_images`)
-- for image mode, can retry without provider-json references when transport is `auto`
-- for image mode, can also forward normal image options like `size`, `quality`, `style`, `background`, `seed`, and optional `nsfw`
-- delegates to `scripts/generate_image.py` or `scripts/generate_video.py`
-- for video delegation, passes only the first reference image to `generate_video.py` via `--input-reference`
-- `generate_video.py` uploads that file as multipart/form-data and sends it only under the `input_reference` field
-
-## Batch generation helper
-
-Use `scripts/generate_batch_media.py` when the user wants several related outputs, repeatable batch rendering, or a manifest-driven workflow.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/generate_batch_media.py \
   --manifest 'tmp/images/media-batch.jsonl' \
   --vars-json '{"subject":"item"}' \
   --summary-out 'tmp/images/media-batch-summary.json' \
   --continue-on-error \
   --print-json
-```
 
-The helper supports:
-- JSON array or JSONL manifests
-- image generation, video generation, and reference-image generation
-- shared templating vars via `--vars-json` or `--vars-file`
-- item-local `vars` objects for per-item string rendering such as `{index}`
-- video items should use `input_reference` or `reference_image` rather than the old `image` field
-- batch items can also forward image `nsfw` and video `preset` when those provider-specific extensions are needed
-- `--summary-out` to persist the resolved batch result JSON
-- `--dry-run` to validate a manifest before spending live generation calls
-
-## Object-select edit helper
-
-Use `scripts/object_select_edit.py` when the source has a transparent background or a simple clean backdrop and the user wants a one-step object or background edit workflow.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/object_select_edit.py \
   --image 'tmp/images/product.png' \
   --selection-mode alpha \
@@ -211,21 +128,7 @@ python3 skills/media-generation/scripts/object_select_edit.py \
   --prompt 'replace the background' \
   --out-dir 'tmp/images' \
   --prefix 'product-bg-edit'
-```
 
-The helper:
-- prepares an object/background mask with `prepare_object_mask.py`
-- flips the mask automatically when editing the background instead of the object
-- passes the prepared mask into `mask_inpaint.py`
-- supports `--prepare-only` for local inspection/testing without a live edit call
-
-## Video generation helper
-
-Use `scripts/generate_video.py` for direct video-generation calls.
-
-Example:
-
-```bash
 python3 skills/media-generation/scripts/generate_video.py \
   --prompt 'motion clip' \
   --size '720x1280' \
@@ -233,19 +136,6 @@ python3 skills/media-generation/scripts/generate_video.py \
   --out-dir 'tmp/videos' \
   --prefix 'generated-video'
 ```
-
-The helper:
-- reads provider credentials from OpenClaw config
-- calls `/videos` by default
-- supports `size`, `seconds` / `duration`, `fps`, `seed`, optional `preset` (`normal`/`fun`/`spicy`/`custom`), optional `input_reference`, `extra-json`, and `extra-json-file`
-- when `input_reference` is present, uploads it as multipart/form-data under the `input_reference` file field
-- can resolve both immediate-result and async job responses by polling when the provider returns job metadata instead of the final media directly
-- downloads the returned video into `tmp/videos/` by default
-
-## Retrieval helper
-
-Use `scripts/fetch_generated_media.py` for both images and videos.
-It can extract downloadable refs from markdown / HTML / JSON, and can also persist `data:` URLs or `b64_json` payloads directly to local files.
 
 ## Quick compatibility checklist
 
@@ -283,27 +173,24 @@ Use `--print-json` when debugging so the response body, resolved endpoint, and f
 
 ## References
 
-- Batch workflow reference: `references/batch-workflows.md`
-- Model capability matrix: `references/model-capabilities.md`
-- Reference-image workflow: `references/reference-image-workflow.md`
-- Image generation helper: `scripts/generate_image.py`
-- Reference-image helper: `scripts/reference_media.py`
-- Backward-compatible wrapper: `scripts/generate_consistent_media.py`
-- Image edit helper: `scripts/edit_image.py`
-- Mask inpaint helper: `scripts/mask_inpaint.py`
-- Outpaint helper: `scripts/outpaint_image.py`
-- Video generation helper: `scripts/generate_video.py`
-- Batch generation helper: `scripts/generate_batch_media.py`
-- Object-select edit helper: `scripts/object_select_edit.py`
-- Object mask prep helper: `scripts/prepare_object_mask.py`
-- Shared request utility: `scripts/media_request_common.py`
-- Smoke tests: `scripts/smoke_test.py`
-- Unified fetch helper: `scripts/fetch_generated_media.py`
-e_test.py`
-- Unified fetch helper: `scripts/fetch_generated_media.py`
-elper: `scripts/generate_batch_media.py`
-- Object-select edit helper: `scripts/object_select_edit.py`
-- Object mask prep helper: `scripts/prepare_object_mask.py`
-- Shared request utility: `scripts/media_request_common.py`
-- Smoke tests: `scripts/smoke_test.py`
-- Unified fetch helper: `scripts/fetch_generated_media.py`
+Read these selectively:
+
+- helper selection, modality fit, transport notes, return-shape handling → `references/model-capabilities.md`
+- reference-image transport rules and compatibility notes → `references/reference-image-workflow.md`
+- manifest format, templating, and batch execution behavior → `references/batch-workflows.md`
+
+Primary helpers:
+
+- image generation → `scripts/generate_image.py`
+- image edit → `scripts/edit_image.py`
+- mask inpaint → `scripts/mask_inpaint.py`
+- outpaint → `scripts/outpaint_image.py`
+- reference-image transport → `scripts/reference_media.py`
+- backward-compatible wrapper → `scripts/generate_consistent_media.py`
+- video generation → `scripts/generate_video.py`
+- batch generation → `scripts/generate_batch_media.py`
+- object-select edit → `scripts/object_select_edit.py`
+- object mask prep → `scripts/prepare_object_mask.py`
+- shared request utility → `scripts/media_request_common.py`
+- smoke tests → `scripts/smoke_test.py`
+- media retrieval → `scripts/fetch_generated_media.py`

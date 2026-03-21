@@ -3,9 +3,15 @@
   "slug": "media-generation",
   "displayName": "Media Generation",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1773634085292,
-    "commit": "https://github.com/openclaw/skills/commit/fa2a1a4a17528138f169a405d59867dc06415277"
+    "version": "2.2.0",
+    "publishedAt": 1773773685937,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1773634085292,
+      "commit": "https://github.com/openclaw/skills/commit/fa2a1a4a17528138f169a405d59867dc06415277"
+    }
+  ]
 }
