@@ -1,11 +1,17 @@
 {
   "owner": "nemovideonemo",
   "slug": "nemo-video",
-  "displayName": "Mega Skill",
+  "displayName": "NemoVideo — AI Video Editor: Create, Edit, Export Videos in Chat",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1773769312468,
-    "commit": "https://github.com/openclaw/skills/commit/db10379835bd7cf768512d8c28e4c47bbdf8609d"
+    "version": "1.9.1",
+    "publishedAt": 1773921810978,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1773769312468,
+      "commit": "https://github.com/openclaw/skills/commit/db10379835bd7cf768512d8c28e4c47bbdf8609d"
+    }
+  ]
 }
