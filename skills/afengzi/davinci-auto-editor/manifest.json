@@ -1,7 +1,7 @@
 {
   "name": "DaVinci Auto Editor",
   "slug": "davinci-auto-editor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Scan local media, request a cloud editing plan, and generate a Resolve-importable EDL package with pure Node.",
   "category": "video-automation",
   "tags": [
@@ -112,7 +112,7 @@
     "Network access to the configured cloud API"
   ],
   "author": {
-    "name": "OpenAI Codex",
-    "contact": "local-skill-template"
+    "name": "afengzi",
+    "contact": "https://github.com/imfengziaaa/video-auto-editor-skills"
   }
 }

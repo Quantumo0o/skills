@@ -1,7 +1,7 @@
 ---
 name: davinci-auto-editor
 description: Generate DaVinci Resolve import packages from local media plus a cloud editing API. Use when Codex needs to scan a material folder, request a cloud editing plan, and write a Resolve-importable EDL package with pure Node on the user machine.
-metadata: {"openclaw":{"emoji":"🎞️","homepage":"https://example.com/davinci-auto-editor","requires":{"bins":["node"]},"skillKey":"davinci-auto-editor","os":["darwin","linux","win32"]}}
+metadata: {"openclaw":{"emoji":"🎞️","homepage":"https://github.com/imfengziaaa/video-auto-editor-skills","requires":{"bins":["node"]},"skillKey":"davinci-auto-editor","os":["darwin","linux","win32"]}}
 ---
 
 # DaVinci Auto Editor

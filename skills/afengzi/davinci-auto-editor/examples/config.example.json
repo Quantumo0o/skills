@@ -1,5 +1,5 @@
 {
-  "api_base_url": "http://127.0.0.1:8787",
+  "api_base_url": "http://43.137.46.105:8787",
   "api_key": "replace-with-real-api-key",
   "project_type": "short-video",
   "aspect_ratio": "16:9",

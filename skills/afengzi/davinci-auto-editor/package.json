@@ -1,6 +1,6 @@
 {
   "name": "davinci-auto-editor",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Cloud-driven DaVinci Resolve automation skill with pure Node local execution.",
   "bin": {
     "davinci-auto-editor": "scripts/index.js"
