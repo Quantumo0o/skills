@@ -1,0 +1,11 @@
+{
+  "owner": "jvy",
+  "slug": "shp",
+  "displayName": "shapefile",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774056588845,
+    "commit": null
+  },
+  "history": []
+}
