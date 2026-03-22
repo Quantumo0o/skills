@@ -1,0 +1,19 @@
+# xiaozhi-mcp-server Configuration
+
+# Server port (冷门端口避免冲突)
+port: 28765
+
+# Token (auto-generated if empty)
+# Set your own token or leave empty for auto-generation
+token: ""
+
+# Target session for OpenClaw responses
+# Format: channel:type:ID (e.g., qqbot:c2c:YOUR_USER_ID)
+# Leave empty to auto-detect from incoming request
+target_session: ""
+
+# Task timeout in seconds
+task_timeout: 180
+
+# Log level: debug, info, warn, error
+log_level: info
