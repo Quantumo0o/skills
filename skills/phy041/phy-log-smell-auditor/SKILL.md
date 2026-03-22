@@ -2,9 +2,10 @@
 name: phy-log-smell-auditor
 description: Application logging quality auditor. Scans source files for logging anti-patterns — debug/print statements left in production paths, log level mismatches (errors logged as info, warnings swallowed), PII exposure risk (email, token, password appearing in log strings), missing structured context fields (no request_id/trace_id in web handler log calls), and noisy debug flooding in tight loops. Supports JavaScript/TypeScript (console.log, winston, pino), Python (logging, structlog, print), Go (log, zap, logrus), Java (SLF4J, Log4j), and Ruby (Rails logger). Reports by severity with file and line citations. Generates a one-command fix for the most common issues. Zero external API — pure static file analysis. Triggers on "logging audit", "bad logs", "debug left in code", "PII in logs", "log level wrong", "missing trace id", "/log-audit".
 license: Apache-2.0
+homepage: https://canlah.ai
 metadata:
-  author: PHY041
-  version: "1.0.0"
+  author: Canlah AI
+  version: "1.0.1"
   tags:
     - logging
     - observability

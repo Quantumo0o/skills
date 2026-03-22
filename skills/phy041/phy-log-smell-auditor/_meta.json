@@ -3,9 +3,15 @@
   "slug": "phy-log-smell-auditor",
   "displayName": "Phy Log Smell Auditor",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774044849344,
-    "commit": "https://github.com/openclaw/skills/commit/a3acbbc4660637039fc61e75b766c3e6474a70a2"
+    "version": "1.0.1",
+    "publishedAt": 1774181515462,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774044849344,
+      "commit": "https://github.com/openclaw/skills/commit/a3acbbc4660637039fc61e75b766c3e6474a70a2"
+    }
+  ]
 }
