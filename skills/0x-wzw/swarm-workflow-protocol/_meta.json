@@ -1,0 +1,11 @@
+{
+  "owner": "0x-wzw",
+  "slug": "swarm-workflow-protocol",
+  "displayName": "Swarm Workflow Protocol",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774073033342,
+    "commit": null
+  },
+  "history": []
+}
