@@ -1,0 +1,11 @@
+{
+  "owner": "arterialist",
+  "slug": "meta-mcp-creator",
+  "displayName": "Create MCP Servers using Meta-MCP",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774106624241,
+    "commit": null
+  },
+  "history": []
+}
