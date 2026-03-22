@@ -1,0 +1,11 @@
+{
+  "owner": "heardlyapp",
+  "slug": "book-highlights",
+  "displayName": "Book Highlights",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774163040308,
+    "commit": null
+  },
+  "history": []
+}
