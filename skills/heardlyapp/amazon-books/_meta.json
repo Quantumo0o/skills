@@ -1,0 +1,11 @@
+{
+  "owner": "heardlyapp",
+  "slug": "amazon-books",
+  "displayName": "Amazon Books",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1774162444570,
+    "commit": null
+  },
+  "history": []
+}
