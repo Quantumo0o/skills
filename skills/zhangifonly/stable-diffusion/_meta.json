@@ -1,0 +1,11 @@
+{
+  "owner": "zhangifonly",
+  "slug": "stable-diffusion",
+  "displayName": "Stable Diffusion",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774158989074,
+    "commit": null
+  },
+  "history": []
+}
