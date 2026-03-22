@@ -12,8 +12,8 @@ const verboseJSON = JSON.stringify({
   directive: 'proceed',
   category: 'finance',
   timestamp: '2026-03-20T12:00:00Z',
-  source: 'apex-trading-bot',
-  details: 'Evaluation complete with high confidence. Proceeding with the recommended action based on current market conditions.',
+  source: 'monitoring-agent',
+  details: 'Evaluation complete with high confidence. Proceeding with the recommended action based on current analysis.',
 }, null, 2);
 
 const omegaEquiv = serialize({
@@ -23,7 +23,7 @@ const omegaEquiv = serialize({
     type: 'eval',
     confidence: 0.95,
     directive: 'proceed',
-    tags: [{ cat: 'cat', val: 'finance' }, { cat: 'src', val: 'apex' }],
+    tags: [{ cat: 'cat', val: 'finance' }, { cat: 'src', val: 'monitor' }],
   }],
 });
 

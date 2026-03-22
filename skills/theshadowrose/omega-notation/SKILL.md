@@ -84,11 +84,15 @@ t.es {from:1 to:2 reason:"regime-shift"}
 
 Omega Notation includes a TypeScript serializer/deserializer with full round-trip verification. Structured data compressed → decompressed returns identical objects. The `test()` function validates this automatically.
 
-## Activation
+## Usage
 
-Tell your agent: "Use Ω Notation for structured outputs only. Keep conversational replies normal."
+When you want structured output compressed, include Ω Notation format in your request:
 
-Or in system prompt: "For structured data (evals, decisions, routing), reply in Ω Notation format. For conversation, reply normally."
+```
+Give me the eval results in Ω Notation format.
+```
+
+The agent will use the prefix syntax (`e.d`, `d.c`, `r.d`, etc.) for that response. Conversational replies stay normal — Ω Notation is invoked per-request, not globally.
 
 ## Dictionary System
 
