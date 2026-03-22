@@ -1,0 +1,11 @@
+{
+  "owner": "sxlderek",
+  "slug": "domaininfo",
+  "displayName": "Domain WHOIS Lookup",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1774134840653,
+    "commit": null
+  },
+  "history": []
+}
