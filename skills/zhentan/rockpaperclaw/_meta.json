@@ -3,11 +3,16 @@
   "slug": "rockpaperclaw",
   "displayName": "Rockpaperclaw",
   "latest": {
-    "version": "1.10.0",
-    "publishedAt": 1773736413696,
-    "commit": "https://github.com/openclaw/skills/commit/e5ebc6d2f06a41e7c5ac5184ad1c1d9957fdafc4"
+    "version": "1.11.0",
+    "publishedAt": 1774070715675,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.10.0",
+      "publishedAt": 1773736413696,
+      "commit": "https://github.com/openclaw/skills/commit/e5ebc6d2f06a41e7c5ac5184ad1c1d9957fdafc4"
+    },
     {
       "version": "1.4.1",
       "publishedAt": 1773638530855,
