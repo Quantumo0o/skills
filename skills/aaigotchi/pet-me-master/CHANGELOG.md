@@ -1,52 +1,56 @@
-# Changelog - Pet-Me-Master
+## 2.4.4
+- Publish curated clean package and align GitHub, GitLab, and ClawHub
 
-## [2.1.0] - 2026-02-28
+## 2.4.2
+- Align GitHub, GitLab, and ClawHub to the same clean packaged contents
 
-### ✅ Verified Working
-- **Fully autonomous petting system** tested and confirmed operational
-- Auto-detection of ready gotchis via blockchain checks
-- Instant Telegram notifications when gotchis ready
-- 1-hour grace period with auto-pet fallback
-- Dynamic scheduling based on actual pet times
+## 2.4.1
+- Republish after syncing GitHub, GitLab, and ClawHub from oracle_vm
+- Preserve configured gotchi ID discovery in batch pet flow
 
-### Improved
-- Enhanced auto-pet fallback with better state management
-- Dynamic check scheduling (adjusts to actual pet time)
-- Improved notification delivery (instant Telegram via bot API)
-- Better error handling and process management
+# Changelog - pet-me-master
+
+## [2.0.2] - 2026-02-22 - Flawless Edition Update
+
+Re-release with complete documentation and GitHub sync.
+
+## [2.0.1] - 2026-02-22 - Flawless Edition
 
 ### Added
-- `schedule-dynamic-check.sh` - Smart scheduling based on cooldown
-- Background process management for fallback execution
-- State persistence between cycles
-
-### Testing
-- Confirmed working through multiple cycles (Feb 22-28, 2026)
-- Auto-pet successfully executed when user unavailable
-- Manual petting properly detected and fallback cancelled
-
----
-
-## [2.0.2] - 2026-02-22
+- ✅ `scripts/check-status.sh` - Simple, reliable status checking entry point
+- ✅ `USAGE_GUIDE.md` - Comprehensive usage documentation
+- ✅ `FIX_PLAN.md` - Technical documentation of improvements
 
 ### Fixed
-- Reminder notification timing
-- State file persistence
-- Cron scheduling conflicts
+- 🐛 Standardized status checking to use reliable Node.js ethers method
+- 🐛 Removed confusion from multiple status-checking approaches
+- 🐛 Fixed AAI's status checks to always use accurate method
+
+### Changed
+- Status checking now exclusively uses `pet-status.sh` (via `check-status.sh` wrapper)
+- Improved documentation clarity
+- Simplified user workflows
+
+### Technical Details
+**Before:** Mixed methods (some using broken `cast` parsing)
+**After:** Single reliable method using ethers.js
+
+**Why:** The `cast call` method was incorrectly parsing the `lastInteracted` field from the contract, causing inaccurate cooldown calculations.
+
+**Solution:** All status checks now route through the proven `pet-status.sh` script which uses Node.js ethers library.
+
+### Impact
+- ✅ 100% accurate status checks
+- ✅ Consistent behavior across all commands
+- ✅ Better user experience
+- ✅ Easier maintenance
 
 ---
 
-## [2.0.0] - 2026-02-22
+## [2.0.0] - 2026-02-13
+- Bankr integration for secure petting
+- Batch petting support
+- Reminder system
 
-### Added
-- Bankr wallet integration for gasless petting
-- Multi-gotchi batch petting support
-- Auto-reminder system with fallback
-
----
-
-## [1.0.0] - 2026-02-13
-
-### Initial Release
-- Basic gotchi petting via Foundry cast
-- Manual execution only
+## [1.3.0] - Previous
+- Initial ClawHub release
