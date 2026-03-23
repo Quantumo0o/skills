@@ -3,11 +3,16 @@
   "slug": "agent-owner-unique-chat-skill",
   "displayName": "Aixin",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1772541339636,
-    "commit": "https://github.com/openclaw/skills/commit/bcff41adae637236463f83da66bffb4563f75a74"
+    "version": "0.1.2",
+    "publishedAt": 1774000953015,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1772541339636,
+      "commit": "https://github.com/openclaw/skills/commit/bcff41adae637236463f83da66bffb4563f75a74"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1772271439350,
