@@ -1,6 +1,8 @@
 ---
-name: mcporter-railway-query
-description: Query and book Chinese railway tickets via 12306 using mcporter CLI. Use when user wants to search for G/D/C train tickets, check train schedules, query seat availability, or plan rail travel between Chinese cities. Supports filtering by date, time range, train type, and sorting results.
+name: Mcporter Railway Query
+description: 通过 mcporter CLI 查询中国铁路票务信息。适用于用户想要搜索 G/D/C 车票、查看列车时刻表、查询座位可用性或规划中国城市之间的铁路旅行。支持按日期、时间范围、列车类型进行筛选，并对结果进行排序。
+version: 1.1.0
+license: MIT
 ---
 
 # mcporter Railway Ticket Query
@@ -18,10 +20,10 @@ description: Query and book Chinese railway tickets via 12306 using mcporter CLI
 ### 1. 使用快捷脚本查询
 
 ```bash
-# 查询下午班次 (12:00-18:00)
+# 查询下午班次 (12:00-18:00，含 G/D/C 全部车型)
 ./scripts/query-afternoon.sh 2026-02-18 SHH KYH
 
-# 查询全天班次
+# 查询全天班次（含 G/D/C 全部车型）
 ./scripts/query-tickets.sh 2026-02-18 AOH HZH
 
 # 查询车站代码
@@ -89,7 +91,7 @@ mcporter call 12306.get-tickets \
 | date | string | 必填 | 日期格式 YYYY-MM-DD |
 | fromStation | string | 必填 | 出发站代码 (如 SHH) |
 | toStation | string | 必填 | 到达站代码 (如 KYH) |
-| trainFilterFlags | string | "" | G=高铁, D=动车, GD=高铁+动车 |
+| trainFilterFlags | string | "" | G=高铁, D=动车, GD=高铁+动车（空值=全部含G/D/C） |
 | earliestStartTime | number | 0 | 最早出发时间 (0-24) |
 | latestStartTime | number | 24 | 最晚出发时间 (0-24) |
 | sortFlag | string | "" | startTime/arriveTime/duration |
@@ -102,7 +104,7 @@ mcporter call 12306.get-tickets \
 | 城市 | 代码 | 城市 | 代码 |
 |------|------|------|------|
 | 上海 | SHH | 上海虹桥 | AOH |
-| 杭州东 | HZH | 无锡 | WXH |
+| 杭州 | HZH | 无锡 | WXH |
 | 江阴 | KYH | 南京南 | NKH |
 
 完整列表见 [station-codes.md](references/station-codes.md)
