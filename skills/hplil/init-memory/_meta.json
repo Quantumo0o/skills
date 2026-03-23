@@ -1,0 +1,11 @@
+{
+  "owner": "hplil",
+  "slug": "init-memory",
+  "displayName": "Claude 持久化记忆系统初始化",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774247264471,
+    "commit": null
+  },
+  "history": []
+}
