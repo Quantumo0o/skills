@@ -74,21 +74,11 @@ ra balance --json
 | `ra dashboard` | Open Stripe Dashboard |
 | `ra unlink` | Disconnect Stripe account |
 
-## Using with Claude Desktop
-
-Ra Pay also has an MCP server for Claude Desktop and other MCP-compatible clients:
-
-```bash
-npm install -g @rapay/mcp-server
-```
-
-See the [MCP server on npm](https://www.npmjs.com/package/@rapay/mcp-server) for setup instructions.
-
 ## Links
 
 - **Website:** [rapay.ai](https://rapay.ai)
 - **CLI on npm:** [@rapay/cli](https://www.npmjs.com/package/@rapay/cli)
-- **MCP Server:** [@rapay/mcp-server](https://www.npmjs.com/package/@rapay/mcp-server)
+- **Docs:** [rapay.ai/docs](https://rapay.ai/docs)
 
 ## License
 

@@ -217,7 +217,7 @@ Returns recent payments with timestamps and status. To show more transactions:
 ra history --limit 50 --json
 ```
 
-The `--limit` flag accepts values from 1 to 100 (default: 20 in CLI, 10 in MCP).
+The `--limit` flag accepts values from 1 to 100 (default: 20).
 
 ### Account Info
 
