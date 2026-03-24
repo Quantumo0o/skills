@@ -3,11 +3,16 @@
   "slug": "roomba-control",
   "displayName": "Roomba Control",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773830989249,
-    "commit": "https://github.com/openclaw/skills/commit/094c276546396d0485446484d06819970c981c67"
+    "version": "3.0.1",
+    "publishedAt": 1774316666264,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773830989249,
+      "commit": "https://github.com/openclaw/skills/commit/094c276546396d0485446484d06819970c981c67"
+    },
     {
       "version": "2.3.5",
       "publishedAt": 1773666960086,
