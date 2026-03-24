@@ -3,11 +3,16 @@
   "slug": "botmark-skill",
   "displayName": "Botmark Skill",
   "latest": {
-    "version": "2.13.0",
-    "publishedAt": 1774063013696,
-    "commit": "https://github.com/openclaw/skills/commit/596b09c02e8be771c84cc69b8a5ce58200a2d64c"
+    "version": "2.20.0",
+    "publishedAt": 1774159568260,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.13.0",
+      "publishedAt": 1774063013696,
+      "commit": "https://github.com/openclaw/skills/commit/596b09c02e8be771c84cc69b8a5ce58200a2d64c"
+    },
     {
       "version": "2.10.0",
       "publishedAt": 1774031182886,

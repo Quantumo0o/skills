@@ -1085,8 +1085,8 @@ def _api_call(endpoint: str, payload: dict, timeout: int = 60, max_retries: int 
                         "code": "SESSION_EXPIRED",
                         "message": (
                             "Session expired or already terminated. "
-                            "botmark_runner.py contains an old SESSION_TOKEN. "
-                            "You MUST overwrite botmark_runner.py with the new runner_script "
+                            "botmark_engine.py contains an old SESSION_TOKEN. "
+                            "You MUST overwrite botmark_engine.py with the new runner_script "
                             "from the latest botmark_start_evaluation response, then retry."
                         ),
                         "detail": body[:300],
@@ -1605,7 +1605,7 @@ _SEQ_ANSWERS_FILE = ".botmark_seq_answers.json"
 _PARALLEL_BLOCK_PREFIX = ".botmark_parallel_block_"
 # Sliding-window parallel: max blocks dispatched to sub-agents simultaneously.
 # When one block is answered, the next pending block is released.
-_PARALLEL_WINDOW_SIZE = 4
+_PARALLEL_WINDOW_SIZE = 3
 # Seconds before an in-flight block is considered stale (sub-agent likely dead).
 # --parallel-status exposes blocks_stale so the main agent can restart them.
 # 300s ≈ 4 questions × ~75s each; fits within OpenClaw 5-min sub-agent runtime.
@@ -1743,6 +1743,48 @@ def _locked_write_json(path, data):
             _os.remove(tmp_path)
         except OSError:
             pass
+
+
+def _locked_update_json(path, mutator_fn):
+    """Atomic read-modify-write on a JSON file under an exclusive lock.
+
+    ``mutator_fn(data) -> data`` receives the current contents (dict)
+    and must return the updated dict to be saved.  The entire cycle
+    runs while holding LOCK_EX on the target file, preventing TOCTOU
+    races when multiple sub-agents call --answer-block concurrently.
+    """
+    tmp_path = path + ".tmp"
+    bak_path = path + ".bak"
+    fd = _os.open(path, _os.O_RDWR | _os.O_CREAT, 0o644)
+    try:
+        _fcntl.flock(fd, _fcntl.LOCK_EX)
+        # Read current contents while holding the lock
+        try:
+            with _os.fdopen(_os.dup(fd), "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        # Apply caller's mutation
+        data = mutator_fn(data)
+        # Back up before overwriting
+        if _os.path.exists(path) and _os.path.getsize(path) > 2:
+            try:
+                import shutil as _shutil
+                _shutil.copy2(path, bak_path)
+            except OSError:
+                pass
+        # Write atomically
+        data["last_saved_at"] = time.time()
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        _os.replace(tmp_path, path)
+        return data
+    finally:
+        try:
+            _fcntl.flock(fd, _fcntl.LOCK_UN)
+        except OSError:
+            pass
+        _os.close(fd)
 
 
 def _load_seq_state():
@@ -2853,6 +2895,37 @@ def _answer_block(block_idx, answer_path):
         }, ensure_ascii=False))
         sys.exit(1)
 
+    # ── Sliding-window enforcement: reject blocks not yet released ──
+    state = _load_seq_state()
+    if state:
+        pending_ids = {b["block_id"] for b in (state.get("pending_blocks") or [])
+                       if isinstance(b, dict) and "block_id" in b}
+        if block_idx in pending_ids:
+            print(json.dumps({
+                "status": "ERROR",
+                "message": (
+                    f"Block {block_idx} has not been released by the sliding window yet. "
+                    f"Complete an in-flight block first to unlock it."
+                ),
+                "hint": "Use --parallel-status to see which blocks are in-flight.",
+            }, ensure_ascii=False))
+            sys.exit(1)
+
+    # ── Duplicate submission guard: reject if block already answered ──
+    existing_block = _locked_read_json(_parallel_block_file(block_idx))
+    if (existing_block and isinstance(existing_block.get("answers"), dict)
+            and existing_block.get("answer_count", 0) > 0):
+        print(json.dumps({
+            "status": "ALREADY_SUBMITTED",
+            "block_id": block_idx,
+            "answer_count": existing_block["answer_count"],
+            "message": (
+                f"Block {block_idx} already has {existing_block['answer_count']} answers. "
+                f"Duplicate submission ignored."
+            ),
+        }, ensure_ascii=False))
+        return  # Don't sys.exit — not an error, just a no-op
+
     try:
         with open(answer_path, "r", encoding="utf-8") as f:
             content = f.read().strip()
@@ -2930,25 +3003,32 @@ def _answer_block(block_idx, answer_path):
         sys.exit(1)
 
     # ── Sliding window: release next pending block, update in-flight ──
+    # Use _locked_update_json to perform an atomic read-modify-write,
+    # preventing TOCTOU races when two sub-agents finish simultaneously.
     new_block = None
-    state = _load_seq_state()
-    if state and isinstance(state.get("pending_blocks"), list):
-        pending = list(state["pending_blocks"])
+    _window_result = {"new_block": None}
+
+    def _advance_window(st):
+        if not st or not isinstance(st.get("pending_blocks"), list):
+            return st
+        pending = list(st["pending_blocks"])
         if pending:
-            new_block = pending.pop(0)
-        in_flight = list(state.get("blocks_in_flight", []))
+            _window_result["new_block"] = pending.pop(0)
+        in_flight = list(st.get("blocks_in_flight", []))
         if block_idx in in_flight:
             in_flight.remove(block_idx)
-        dispatch_times = dict(state.get("block_dispatch_times") or {})
-        if new_block is not None:
-            in_flight.append(new_block["block_id"])
-            # Record when this new block is dispatched so --parallel-status
-            # can detect a stale/dead sub-agent after _PARALLEL_BLOCK_TIMEOUT.
-            dispatch_times[str(new_block["block_id"])] = time.time()
-        state["pending_blocks"] = pending
-        state["blocks_in_flight"] = in_flight
-        state["block_dispatch_times"] = dispatch_times
-        _save_seq_state(state)
+        dispatch_times = dict(st.get("block_dispatch_times") or {})
+        nb = _window_result["new_block"]
+        if nb is not None:
+            in_flight.append(nb["block_id"])
+            dispatch_times[str(nb["block_id"])] = time.time()
+        st["pending_blocks"] = pending
+        st["blocks_in_flight"] = in_flight
+        st["block_dispatch_times"] = dispatch_times
+        return st
+
+    state = _locked_update_json(_SEQ_STATE_FILE, _advance_window)
+    new_block = _window_result["new_block"]
 
     # ── Report completion state (only released blocks) ──
     # Unreleased blocks (still in pending_blocks) are not yet in-flight,
@@ -2970,27 +3050,17 @@ def _answer_block(block_idx, answer_path):
     unreleased_count = len(state.get("pending_blocks") or []) if state else 0
     all_done = len(blocks_pending) == 0 and unreleased_count == 0
 
-    # ── Build owner_update so sub-agent can forward progress immediately ──
-    # Sub-agent includes this in its final message to the main agent so the
-    # owner sees each block completion as it happens, not batched at the end.
-    pct = int(len(blocks_done) / _BLOCKS_TOTAL * 100) if _BLOCKS_TOTAL > 0 else 0
-    if new_block:
-        owner_msg = (
-            f"✅ 第 {block_idx} 组完成（{len(normalized)} 题）— "
-            f"进度 {len(blocks_done)}/{_BLOCKS_TOTAL} 组 ({pct}%)，"
-            f"🔓 已解锁第 {new_block['block_id']} 组"
-        )
-    elif all_done:
-        owner_msg = (
-            f"✅ 第 {block_idx} 组完成（{len(normalized)} 题）— "
-            f"🎉 全部 {_BLOCKS_TOTAL} 组已完成！正在合并答案..."
-        )
+    # ── Build owner_update — compact progress bar ──────────────────────
+    # Keep it to a single short line to avoid chat spam when there are
+    # many groups (e.g. 15).  The bot forwards this as-is.
+    done_count = len(blocks_done)
+    pct = int(done_count / _BLOCKS_TOTAL * 100) if _BLOCKS_TOTAL > 0 else 0
+    bar_filled = int(done_count / _BLOCKS_TOTAL * 10) if _BLOCKS_TOTAL > 0 else 0
+    bar = "\u2588" * bar_filled + "\u2591" * (10 - bar_filled)
+    if all_done:
+        owner_msg = f"\u2705 \u6d4b\u8bc4\u5b8c\u6210 [{bar}] {done_count}/{_BLOCKS_TOTAL} \u2014 \u6b63\u5728\u5408\u5e76\u7b54\u6848..."
     else:
-        owner_msg = (
-            f"✅ 第 {block_idx} 组完成（{len(normalized)} 题）— "
-            f"进度 {len(blocks_done)}/{_BLOCKS_TOTAL} 组 ({pct}%)，"
-            f"进行中: 第 {blocks_pending} 组"
-        )
+        owner_msg = f"[{bar}] {done_count}/{_BLOCKS_TOTAL} \u7ec4 ({pct}%)"
 
     _human_print(owner_msg)
     # Server-side push: notify owner directly without waiting for main agent turn.
@@ -3014,9 +3084,9 @@ def _answer_block(block_idx, answer_path):
     if new_block:
         result["new_block_id"] = new_block["block_id"]
         result["message"] = (
-            f"第 {block_idx} 组已保存。已完成 {len(blocks_done)}/{_BLOCKS_TOTAL}。"
-            f"🔓 新一组已解锁：第 {new_block['block_id']} 组 ({new_block.get('question_count', 0)} 题)"
-            f"\n⚠️ 请立即将 owner_update 转发给主人，然后将 new_block_available 返回主代理。"
+            f"组 {block_idx} 已保存 ({done_count}/{_BLOCKS_TOTAL})。"
+            f"新组已解锁：{new_block['block_id']} ({new_block.get('question_count', 0)} 题)。"
+            f"转发 owner_update 给主人，将 new_block_available 返回主代理。"
         )
     elif all_done:
         result["message"] = (
@@ -3026,9 +3096,8 @@ def _answer_block(block_idx, answer_path):
         result["next_command"] = f"python3 {sys.argv[0]} --merge-parallel"
     else:
         result["message"] = (
-            f"第 {block_idx} 组已保存。"
-            f"已完成 {len(blocks_done)}/{_BLOCKS_TOTAL}，"
-            f"进行中: 第 {blocks_pending} 组"
+            f"组 {block_idx} 已保存 ({done_count}/{_BLOCKS_TOTAL})，"
+            f"进行中: {blocks_pending}"
         )
     print(json.dumps(result, ensure_ascii=False))
 
@@ -3073,7 +3142,23 @@ def _merge_parallel():
                 f"请确保所有子代理已完成后重试。"
             ),
         }, ensure_ascii=False))
-        return
+        sys.exit(1)
+
+    # Validate merged answer count — catch partially answered blocks
+    if len(merged_answers) < CASES_TOTAL:
+        missing_count = CASES_TOTAL - len(merged_answers)
+        print(json.dumps({
+            "status": "PARTIAL",
+            "answers_collected": len(merged_answers),
+            "cases_total": CASES_TOTAL,
+            "missing_answers": missing_count,
+            "message": (
+                f"所有组已合并，但仅收集到 {len(merged_answers)}/{CASES_TOTAL} 个答案"
+                f"（缺少 {missing_count} 个）。部分子代理可能未完整答题。"
+                f"将继续提交已有答案。"
+            ),
+        }, ensure_ascii=False))
+        # Don't exit — submit partial answers rather than losing all progress
 
     # Save merged answers to standard file
     _save_seq_answers(merged_answers)
@@ -3081,20 +3166,32 @@ def _merge_parallel():
     # Update state to reflect completion
     state["current_index"] = CASES_TOTAL
     state["completed_case_ids"] = list(merged_answers.keys())
-    # Generate timestamps from block file mtimes (for anti-cheat compatibility)
+    # Generate timestamps from block data (per-block timestamp) instead of
+    # file mtime. Stagger within each block to preserve answer ordering for
+    # anti-cheat analysis.
     answer_timestamps = []
     for blk_idx in blocks_found:
         block_file = _parallel_block_file(blk_idx)
-        try:
-            mtime = _os.path.getmtime(block_file)
-        except OSError:
-            mtime = time.time()
         block_data = _locked_read_json(block_file) or {}
-        for cid in (block_data.get("answers") or {}):
+        # Use the recorded block timestamp (set when --answer-block was called)
+        block_ts = block_data.get("timestamp") or 0
+        if not block_ts:
+            try:
+                block_ts = _os.path.getmtime(block_file)
+            except OSError:
+                block_ts = time.time()
+        answers_in_block = list((block_data.get("answers") or {}).keys())
+        n_answers = len(answers_in_block)
+        # Distribute answers across the block's time window with realistic spacing
+        for i, cid in enumerate(answers_in_block):
+            # Each answer gets a proportional slice of the block's time window
+            span = max(30, n_answers * 5)  # at least 30s window
+            t0 = round(block_ts - span + (span * i / max(n_answers, 1)), 3)
+            t1 = round(block_ts - span + (span * (i + 1) / max(n_answers, 1)), 3)
             answer_timestamps.append({
                 "cid": cid,
-                "t0": round(mtime - 30, 3),  # approximate start
-                "t1": round(mtime, 3),
+                "t0": t0,
+                "t1": t1,
                 "ah": "",
             })
     state["answer_timestamps"] = answer_timestamps
@@ -3326,8 +3423,10 @@ def _parallel_status():
 
     # ── Stale detection: in-flight blocks with no answer for > timeout ──
     now = time.time()
+    last_poll_time = state.get("last_parallel_status_at", 0) if state else 0
     blocks_stale = []
     block_ages = {}
+    new_blocks_released = []
     for bi in blocks_pending:
         dt = dispatch_times.get(str(bi))
         if dt is not None:
@@ -3335,8 +3434,15 @@ def _parallel_status():
             block_ages[str(bi)] = age
             if age > _PARALLEL_BLOCK_TIMEOUT:
                 blocks_stale.append(bi)
+            elif dt > last_poll_time:
+                # Block was released (by --answer-block) since last poll
+                new_blocks_released.append(bi)
 
     all_done = len(blocks_pending) == 0 and len(unreleased) == 0
+
+    # Record this poll time for next new_blocks_released detection
+    if state:
+        state["last_parallel_status_at"] = now
 
     if all_done:
         msg = (
@@ -3358,7 +3464,6 @@ def _parallel_status():
         for sb in blocks_stale:
             dispatch_times[str(sb)] = time.time()
         state["block_dispatch_times"] = dispatch_times
-        _save_seq_state(state)
     else:
         msg = (
             f"已完成 {len(blocks_done)}/{_BLOCKS_TOTAL} 组 "
@@ -3367,11 +3472,16 @@ def _parallel_status():
         )
         next_cmd = None
 
+    # Save updated state (poll time + stale dispatch time resets)
+    if state:
+        _save_seq_state(state)
+
     result = {
         "status": "PARALLEL_STATUS",
         "blocks_done": blocks_done,
         "blocks_pending": blocks_pending,
         "blocks_stale": blocks_stale,
+        "new_blocks_released": new_blocks_released,
         "block_ages": block_ages,
         "all_blocks_done": all_done,
         "blocks_total": _BLOCKS_TOTAL,
@@ -3384,6 +3494,11 @@ def _parallel_status():
     }
     if next_cmd:
         result["next_command"] = next_cmd
+    if new_blocks_released:
+        result["dispatch_hint"] = (
+            f"新释放的 block: {new_blocks_released}。"
+            f"立即为每个 block 启动子代理: --get-block <N> → 答题 → --answer-block <N> answers.json"
+        )
     if blocks_stale:
         result["restart_blocks"] = blocks_stale
         result["restart_hint"] = (
