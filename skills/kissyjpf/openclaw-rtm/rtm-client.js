@@ -153,6 +153,43 @@ class RTMClient {
         const rsp = await this.callApi('rtm.tasks.delete', params);
         return rsp.list;
     }
+
+    async addNote(timeline, listId, taskseriesId, taskId, noteTitle, noteText) {
+        const params = {
+            timeline,
+            list_id: listId,
+            taskseries_id: taskseriesId,
+            task_id: taskId,
+            note_title: noteTitle,
+            note_text: noteText
+        };
+        const rsp = await this.callApi('rtm.tasks.notes.add', params);
+        return rsp.note;
+    }
+
+    async setDueDate(timeline, listId, taskseriesId, taskId, due) {
+        const params = { timeline, list_id: listId, taskseries_id: taskseriesId, task_id: taskId, due, parse: '1' };
+        const rsp = await this.callApi('rtm.tasks.setDueDate', params);
+        return rsp.list;
+    }
+
+    async setStartDate(timeline, listId, taskseriesId, taskId, start) {
+        const params = { timeline, list_id: listId, taskseries_id: taskseriesId, task_id: taskId, start, parse: '1' };
+        const rsp = await this.callApi('rtm.tasks.setStartDate', params);
+        return rsp.list;
+    }
+
+    async setPriority(timeline, listId, taskseriesId, taskId, priority) {
+        const params = { timeline, list_id: listId, taskseries_id: taskseriesId, task_id: taskId, priority };
+        const rsp = await this.callApi('rtm.tasks.setPriority', params);
+        return rsp.list;
+    }
+
+    async postponeTask(timeline, listId, taskseriesId, taskId) {
+        const params = { timeline, list_id: listId, taskseries_id: taskseriesId, task_id: taskId };
+        const rsp = await this.callApi('rtm.tasks.postpone', params);
+        return rsp.list;
+    }
 }
 
 module.exports = RTMClient;

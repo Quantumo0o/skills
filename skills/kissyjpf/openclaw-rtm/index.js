@@ -3,9 +3,6 @@ const path = require('path');
 const os = require('os');
 const RTMClient = require('./rtm-client');
 
-// Using the provided keys
-const API_KEY = 'e722a3fa98943b14145c599c9b429bec';
-const SHARED_SECRET = '477f54b2c6b4f874';
 const TOKEN_FILE = path.join(os.homedir(), '.rtm-token.json');
 
 module.exports = {
@@ -14,6 +11,13 @@ module.exports = {
     register: function (context) {
         const logger = context.logger || console;
         logger.info('[rtm-skill] registering skill');
+
+        const API_KEY = process.env.RTM_API_KEY || '';
+        const SHARED_SECRET = process.env.RTM_SHARED_SECRET || '';
+
+        if (!API_KEY || !SHARED_SECRET) {
+            logger.warn('[rtm-skill] RTM_API_KEY or RTM_SHARED_SECRET environment variables are missing.');
+        }
 
         const client = new RTMClient(API_KEY, SHARED_SECRET);
 
@@ -36,7 +40,7 @@ module.exports = {
 
         context.registerCommand && context.registerCommand({
             name: 'rtm',
-            description: 'Manage Remember The Milk tasks (rtm auth, list, add, complete, delete)',
+            description: 'Manage Remember The Milk tasks (rtm auth, list, add, note, due, start, postpone, priority, complete, delete)',
             async handler({ argv, reply }) {
                 const subcmd = argv[0] || 'list';
 
@@ -55,8 +59,8 @@ module.exports = {
                         if (!frob) throw new Error('You must provide the frob from the auth command: rtm token <frob>');
                         const token = await client.getToken(frob);
                         client.setToken(token);
-                        fs.writeFileSync(TOKEN_FILE, JSON.stringify({ token }));
-                        const msg = `Success! RTM is authorized. Token saved.`;
+                        fs.writeFileSync(TOKEN_FILE, JSON.stringify({ token }), { mode: 0o600 });
+                        const msg = `Success! RTM is authorized. Token saved securely.`;
                         if (reply) await reply(msg);
                         return msg;
                     }
@@ -67,7 +71,7 @@ module.exports = {
                     }
 
                     if (subcmd === 'list') {
-                        const tasks = await client.getTasks('status:incomplete');
+                        const tasks = await client.getTasks();
                         const listsObj = await client.getLists();
 
                         // map list ids to names
@@ -82,7 +86,7 @@ module.exports = {
                         taskCache = tasks; // Save for short ID mapping
 
                         if (tasks.length === 0) {
-                            const msg = "No incomplete tasks found!";
+                            const msg = "No tasks found!";
                             if (reply) await reply(msg);
                             return msg;
                         }
@@ -91,7 +95,8 @@ module.exports = {
                         tasks.forEach((t, i) => {
                             const shortId = i + 1;
                             const cat = listMap[t.list_id] || 'Inbox';
-                            let line = `[${shortId}] [${cat}] ${t.name}`;
+                            const statusIcon = t.completed ? '✅' : '⬜️';
+                            let line = `[${shortId}] ${statusIcon} [${cat}] ${t.name}`;
 
                             const extras = [];
                             if (t.priority && t.priority !== 'N') extras.push(`Priority: ${t.priority}`);
@@ -117,6 +122,62 @@ module.exports = {
                         const tl = await client.createTimeline();
                         await client.addTask(tl, name);
                         const msg = `✅ Added task: "${name}"`;
+                        if (reply) await reply(msg);
+                        return msg;
+                    }
+
+                    if (subcmd === 'note') {
+                        const shortIdStr = argv[1];
+                        const noteText = argv.slice(2).join(' ');
+                        if (!shortIdStr || !noteText) throw new Error('Provide a task ID and note text: rtm note <id> <text>');
+                        const idx = parseInt(shortIdStr, 10) - 1;
+
+                        if (taskCache.length === 0) {
+                            throw new Error('Please run `rtm list` first so I can find the task IDs.');
+                        }
+                        if (idx < 0 || idx >= taskCache.length) {
+                            throw new Error(`Invalid task ID. Must be between 1 and ${taskCache.length}.`);
+                        }
+
+                        const task = taskCache[idx];
+                        const tl = await client.createTimeline();
+
+                        await client.addNote(tl, task.list_id, task.taskseries_id, task.task_id, 'Note', noteText);
+                        const msg = `📝 Added note to task "${task.name}": "${noteText}"`;
+                        if (reply) await reply(msg);
+                        return msg;
+                    }
+
+                    if (['due', 'start', 'priority', 'postpone'].includes(subcmd)) {
+                        const shortIdStr = argv[1];
+                        if (!shortIdStr) throw new Error(`Provide a task ID: rtm ${subcmd} <id> [value]`);
+                        const idx = parseInt(shortIdStr, 10) - 1;
+
+                        if (taskCache.length === 0) throw new Error('Please run `rtm list` first so I can find the task IDs.');
+                        if (idx < 0 || idx >= taskCache.length) throw new Error(`Invalid task ID. Must be between 1 and ${taskCache.length}.`);
+
+                        const task = taskCache[idx];
+                        const tl = await client.createTimeline();
+                        let msg = "";
+
+                        if (subcmd === 'due') {
+                            const dueStr = argv.slice(2).join(' ') || '';
+                            await client.setDueDate(tl, task.list_id, task.taskseries_id, task.task_id, dueStr);
+                            msg = dueStr ? `📅 Set due date for "${task.name}" to "${dueStr}"` : `🗑️ Removed due date for "${task.name}"`;
+                        } else if (subcmd === 'start') {
+                            const startStr = argv.slice(2).join(' ') || '';
+                            await client.setStartDate(tl, task.list_id, task.taskseries_id, task.task_id, startStr);
+                            msg = startStr ? `⏳ Set start date for "${task.name}" to "${startStr}"` : `🗑️ Removed start date for "${task.name}"`;
+                        } else if (subcmd === 'priority') {
+                            const p = argv[2];
+                            if (!['1', '2', '3', 'N'].includes(p)) throw new Error("Priority must be 1, 2, 3, or N (none).");
+                            await client.setPriority(tl, task.list_id, task.taskseries_id, task.task_id, p);
+                            msg = `🔥 Set priority for "${task.name}" to ${p}`;
+                        } else if (subcmd === 'postpone') {
+                            await client.postponeTask(tl, task.list_id, task.taskseries_id, task.task_id);
+                            msg = `⏭️ Postponed task: "${task.name}"`;
+                        }
+
                         if (reply) await reply(msg);
                         return msg;
                     }

@@ -10,6 +10,10 @@
             "description": "Manage Remember The Milk tasks"
         }
     ],
+    "requiredEnv": [
+        "RTM_API_KEY",
+        "RTM_SHARED_SECRET"
+    ],
     "configSchema": {
         "type": "object",
         "additionalProperties": false,
