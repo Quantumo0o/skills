@@ -1,11 +1,17 @@
 {
   "owner": "harrylabsj",
   "slug": "logistics",
-  "displayName": "Logistics 物流查询",
+  "displayName": "Logistics",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773492079293,
-    "commit": "https://github.com/openclaw/skills/commit/3e2f08983e694981c7f7722397c81bed5e49969e"
+    "version": "1.0.2",
+    "publishedAt": 1774072522984,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773492079293,
+      "commit": "https://github.com/openclaw/skills/commit/3e2f08983e694981c7f7722397c81bed5e49969e"
+    }
+  ]
 }

@@ -1,13 +1,13 @@
 ---
 name: logistics
-description: Query and explain parcel logistics across courier providers, including tracking, courier identification, multi-package lookup, status interpretation, and delivery-update guidance. Use when the user asks about 快递查询、物流跟踪、查单号、识别快递公司、批量物流查询, or wants help understanding shipment progress across one or more couriers.
+description: Query and explain parcel logistics across courier providers, including tracking, courier identification, multi-package lookup, status interpretation, and delivery-update guidance. Use when the user asks about package tracking, logistics tracking, tracking numbers, identifying courier companies, batch logistics queries, or wants help understanding shipment progress across one or more couriers.
 ---
 
 # Logistics
 
 ## Overview
 
-Use this skill to help the user track parcels, identify couriers, interpret logistics statuses, and understand what a shipment update usually means.
+Use this skill to help the user track parcels, identify couriers, interpret logistics statuses, and understand what a shipment update usually means. It serves as a unified entry point for multi-courier logistics queries, including major Chinese courier networks such as SF Express (顺丰), JD Logistics (京东快递), ZTO (中通), Cainiao (菜鸟), J&T Express (极兔), and others.
 
 ## Workflow
 
