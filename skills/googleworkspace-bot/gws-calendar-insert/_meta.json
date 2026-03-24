@@ -3,11 +3,16 @@
   "slug": "gws-calendar-insert",
   "displayName": "Gws Calendar Insert",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773775542050,
-    "commit": "https://github.com/openclaw/skills/commit/e8a055243e9594e08007e29fab9d8fabf0bb7b60"
+    "version": "1.0.2",
+    "publishedAt": 1774300426831,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773775542050,
+      "commit": "https://github.com/openclaw/skills/commit/e8a055243e9594e08007e29fab9d8fabf0bb7b60"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772658679475,
