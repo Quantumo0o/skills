@@ -1,11 +1,17 @@
 {
   "owner": "jimmywangjimmy",
   "slug": "x-growth-operator",
-  "displayName": "X Growth Operator",
+  "displayName": "X Growth Operator / X 增长运营助手",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772642758608,
-    "commit": "https://github.com/openclaw/skills/commit/7d7a85085ec63da0129e4ee81079eb1dab5a79c4"
+    "version": "1.0.4",
+    "publishedAt": 1774076382588,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772642758608,
+      "commit": "https://github.com/openclaw/skills/commit/7d7a85085ec63da0129e4ee81079eb1dab5a79c4"
+    }
+  ]
 }
