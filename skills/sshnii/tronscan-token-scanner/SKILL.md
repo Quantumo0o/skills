@@ -30,6 +30,16 @@ metadata:
 | getTrc20TotalSupply | TRC20 supply | Circulating / total supply |
 | getTrc721Inventory | TRC721 inventory | NFT contract inventory |
 | getTrc1155Inventory | TRC1155 inventory | Multi-token contract inventory |
+| getToken10Transfers | TRC10 transfers | TRC10 token transfer records for an address |
+| getTokenAnalysis | Token analysis | Token transfer and holder analysis data |
+| getTokenAssetValueInfo | Asset value chart | Asset value change chart for a token in an account |
+| getTokenBalanceFlow | Balance flow | Token balance flow records for an account |
+| getTokenTransferAnalysis | Transfer amount | Transfer amount of core tokens on TRON |
+| getTokenTvc | Token TVC | On-chain Total Value Captured (TVC) data |
+| getTrc1155TokenInventory | TRC1155 token holders | Holder info for a specific token ID in TRC1155 |
+| getTrc20TransferCount | TRC20 transfer count | Transfer count stats for a TRC20 token in an account |
+| getTrc721Transfers | TRC721 transfers | Transfer history for a specific TRC721 NFT |
+| getTrxTransfers | TRX transfers | TRX transfer records for an address |
 
 ## Use Cases
 
@@ -100,6 +110,66 @@ metadata:
 
 - **API**: `getTrc20TotalSupply` — Get TRC20 circulating supply and total supply
 - **Use when**: User asks for "supply" or "circulation" of a TRC20.
+
+### getToken10Transfers
+
+- **API**: `getToken10Transfers` — Get TRC10 token transfer records for an address
+- **Use when**: User asks for "TRC10 transfer history" for a specific token and address.
+- **Input**: `address`, `trc10Id` (both required); optional pagination and filters. Note: start+limit ≤ 10000.
+
+### getTokenAnalysis
+
+- **API**: `getTokenAnalysis` — Get analysis data for token transfers and holders
+- **Use when**: User asks for "token activity analysis", "transfer trends", or "holder stats over time".
+- **Input**: Optional `token`, `startDay`, `endDay`, `type`.
+
+### getTokenAssetValueInfo
+
+- **API**: `getTokenAssetValueInfo` — Get asset value change chart for a specific token in an account
+- **Use when**: User asks for "how has the value of my token changed" or "token asset value history".
+- **Input**: `accountAddress`, `tokenAddress` (both required); optional `startTime`, `endTime`.
+
+### getTokenBalanceFlow
+
+- **API**: `getTokenBalanceFlow` — Get balance flow change records for a token in an account
+- **Use when**: User asks for "token balance history" or "how my token balance changed over time".
+- **Input**: `accountAddress`, `tokenAddress` (both required); optional `endTime`.
+
+### getTokenTransferAnalysis
+
+- **API**: `getTokenTransferAnalysis` — Get transfer amount of core tokens on TRON
+- **Use when**: User asks for "token transfer volume", "core token transfer analysis".
+- **Input**: Optional `token`, `days`.
+
+### getTokenTvc
+
+- **API**: `getTokenTvc` — Get token on-chain Total Value Captured (TVC) data (default last 7 days)
+- **Use when**: User asks for "token TVC", "on-chain value captured", or "token economic activity".
+- **Input**: Optional `startTime`, `endTime`.
+
+### getTrc1155TokenInventory
+
+- **API**: `getTrc1155TokenInventory` — Get holder info for a specific token ID in a TRC1155 contract
+- **Use when**: User asks for "who holds token ID X in this TRC1155 contract".
+- **Input**: `contract`, `tokenId` (both required); optional `start`, `limit`. Note: start+limit ≤ 10000.
+
+### getTrc20TransferCount
+
+- **API**: `getTrc20TransferCount` — Get transfer count statistics for a TRC20 token in an account
+- **Use when**: User asks for "how many times has this address transferred this token".
+- **Input**: `accountAddress`, `tokenAddress` (both required).
+
+### getTrc721Transfers
+
+- **API**: `getTrc721Transfers` — Get transfer history for a specific TRC721 NFT token
+- **Use when**: User asks for "NFT transfer history" for a specific contract and token ID.
+- **Input**: `contract`, `tokenId` (both required); optional `start`, `limit`. Note: start+limit ≤ 10000.
+
+### getTrxTransfers
+
+- **API**: `getTrxTransfers` — Get TRX transfer records for an address
+- **Use when**: User asks for "TRX transfer history", "TRX in/out", or "TRX transaction records".
+- **Input**: `address` (required); optional `direction`, `startTimestamp`, `endTimestamp`, `start`, `limit`. Note: start+limit ≤ 10000.
 
 ## Token Rating (level)
 

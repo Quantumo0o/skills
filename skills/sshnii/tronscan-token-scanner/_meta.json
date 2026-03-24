@@ -3,9 +3,15 @@
   "slug": "tronscan-token-scanner",
   "displayName": "TronScan Token Scanner",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773451361286,
-    "commit": "https://github.com/openclaw/skills/commit/3bc0270b42a958d00f192cee33eecb76410a42ac"
+    "version": "1.0.8",
+    "publishedAt": 1774248455855,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773451361286,
+      "commit": "https://github.com/openclaw/skills/commit/3bc0270b42a958d00f192cee33eecb76410a42ac"
+    }
+  ]
 }
