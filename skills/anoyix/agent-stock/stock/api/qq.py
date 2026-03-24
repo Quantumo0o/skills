@@ -6,6 +6,7 @@ import click
 import requests
 
 from . import http_get_with_proxy_fallback
+from .baidu import get_stock_with_prefix, is_a_code, is_hk_code
 
 COMMON_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
@@ -98,6 +99,39 @@ def fetch_search_payload(query: str) -> dict:
         raise click.ClickException("搜索接口返回解析失败") from exc
 
 
+def fetch_board_rank_payload(
+    board_code: str = "aStock",
+    sort_type: str = "turnover",
+    direct: str = "down",
+    offset: int = 0,
+    count: int = 20,
+) -> dict:
+    url = "https://proxy.finance.qq.com/cgi/cgi-bin/rank/hs/getBoardRankList"
+    try:
+        response = http_get_with_proxy_fallback(
+            url,
+            params={
+                "_appver": "11.17.0",
+                "board_code": board_code,
+                "sort_type": sort_type,
+                "direct": direct,
+                "offset": str(offset),
+                "count": str(count),
+            },
+            headers=COMMON_HEADERS,
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        return payload
+    except requests.HTTPError as exc:
+        raise click.ClickException(f"排行接口请求失败: HTTP {exc.response.status_code}") from exc
+    except requests.RequestException as exc:
+        raise click.ClickException(f"排行接口不可用: {exc}") from exc
+    except ValueError as exc:
+        raise click.ClickException("排行接口返回解析失败") from exc
+
+
 def _to_float(value: str, default: float = 0.0) -> float:
     try:
         return float(value)
@@ -138,3 +172,28 @@ def arr2obj(arr: list[str]) -> dict:
         "pb": _get(arr, 46),
         "vr": _get(arr, 49 + index_offset),
     }
+
+
+def get_query_code(symbol: str) -> str:
+    lower = symbol.lower()
+    if lower.startswith("us"):
+        return lower.split(".")[0]
+    if is_a_code(lower):
+        return get_stock_with_prefix(lower)
+    if is_hk_code(lower):
+        return f"hk{lower}"
+    return lower
+
+
+def get_stock_by_query(query: str) -> dict:
+    result = fetch_quote_json(query)
+    return [arr2obj(arr) for arr in result.values()]
+
+
+def get_stock_by_code(symbol: str) -> dict:
+    query = get_query_code(symbol)
+    result = fetch_quote_json(query)
+    arr = result.get(query)
+    if not isinstance(arr, list) or len(arr) < 2:
+        raise click.ClickException("无效股票代码或暂无行情数据")
+    return arr2obj(arr)
