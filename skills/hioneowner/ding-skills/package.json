@@ -1,7 +1,7 @@
 {
   "name": "ding-skills",
-  "version": "2.1.2",
-  "description": "钉钉全功能技能集 - 用户管理、部门管理、消息发送、OA审批、会议与日程管理",
+  "version": "2.3.1",
+  "description": "钉钉全功能技能集 - 用户管理、部门管理、消息发送、OA审批、会议与日程管理、知识库文档管理",
   "scripts": {
     "search-user": "python scripts/search_user.py",
     "get-user": "python scripts/get_user.py",
@@ -41,7 +41,11 @@
     "get-event": "python scripts/get_event.py",
     "delete-event": "python scripts/delete_event.py",
     "add-event-attendee": "python scripts/add_event_attendee.py",
-    "remove-event-attendee": "python scripts/remove_event_attendee.py"
+    "remove-event-attendee": "python scripts/remove_event_attendee.py",
+    "list-workspaces": "python scripts/list_workspaces.py",
+    "create-doc": "python scripts/create_doc.py",
+    "search-doc": "python scripts/search_doc.py",
+    "overwrite-doc": "python scripts/overwrite_doc.py"
   },
   "keywords": [
     "dingtalk",
@@ -49,7 +53,9 @@
     "skill",
     "meeting",
     "calendar",
-    "approval"
+    "approval",
+    "knowledge-base",
+    "wiki"
   ],
   "license": "MIT"
 }

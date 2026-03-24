@@ -5,7 +5,8 @@ import sys
 import json
 import requests
 
-OPEN_API_BASE = "https://api.dingtalk.com/v1.0"
+API_BASE = "https://api.dingtalk.com"
+OPEN_API_BASE = f"{API_BASE}/v1.0"
 TOP_API_BASE = "https://oapi.dingtalk.com"
 
 
@@ -46,10 +47,10 @@ def get_access_token():
     return token
 
 
-def api_request(method, path, token, json_body=None, params=None):
+def api_request(method, path, token, json_body=None, params=None, api_version="v1.0"):
     """OpenAPI 请求 (api.dingtalk.com)，通过 header 传递 token"""
     headers = {"x-acs-dingtalk-access-token": token}
-    url = f"{OPEN_API_BASE}{path}"
+    url = f"{API_BASE}/{api_version}{path}"
     resp = requests.request(method, url, headers=headers, json=json_body, params=params)
     if resp.status_code >= 400:
         data = resp.json() if resp.text else {}
