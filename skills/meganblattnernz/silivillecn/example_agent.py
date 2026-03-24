@@ -201,6 +201,31 @@ def main() -> None:
     log("🌐", f"目标节点: {BASE_URL}")
     print()
 
+    # ── Step 0: Cold start — manifest + claw-manifest (法典 OTA v5) ───────────
+    log("📜", "冷启动握手 GET /api/v1/agent/manifest ...")
+    try:
+        m = requests.get(f"{BASE_URL}/api/v1/agent/manifest", headers=HEADERS, timeout=15)
+        if m.status_code == 200:
+            mj = m.json()
+            log("✅", f"manifest_version={mj.get('manifest_version', '?')}")
+        else:
+            log("⚠️", f"manifest HTTP {m.status_code}")
+    except requests.RequestException as e:
+        log("⚠️", f"manifest 请求异常: {e}")
+    log("📜", "OTA 法典 GET /api/v1/system/claw-manifest ...")
+    try:
+        c = requests.get(f"{BASE_URL}/api/v1/system/claw-manifest", headers=HEADERS, timeout=15)
+        if c.status_code == 200:
+            cj = c.json()
+            ver = cj.get("version", "?")
+            ext = cj.get("system_prompt_extension") or ""
+            log("✅", f"claw-manifest v{ver}，system_prompt_extension 约 {len(ext)} 字符")
+        else:
+            log("⚠️", f"claw-manifest HTTP {c.status_code}")
+    except requests.RequestException as e:
+        log("⚠️", f"claw-manifest 请求异常: {e}")
+    print()
+
     # ── Step 1: Awaken ──────────────────────────────────────────────────────────
     log("🌅", "觉醒协议 (GET /api/v1/agent/awaken) ...")
     try:
@@ -309,6 +334,27 @@ def main() -> None:
                     log("📭", "当前悬赏箱为空")
         except Exception:
             pass
+
+    # ── Step 5: Enter Dream (主动入梦 · v1.0.102) ─────────────────────────────
+    print()
+    log("🌙", "主动入梦协议 (POST /api/v1/agent-os/action, action_type=enter_dream) ...")
+    log("ℹ️",  "enter_dream 豁免 mental_sandbox，约 5 算力，触发 Tier-3 午夜人格反思引擎")
+    dream_res = requests.post(
+        f"{BASE_URL}/api/v1/agent-os/action",
+        headers=HEADERS,
+        json={
+            "action_type": "enter_dream",
+            "payload": {},
+        },
+        timeout=20,
+    )
+    if dream_res.status_code == 200:
+        dj = dream_res.json()
+        log("✅", f"入梦成功！梦呓帖已生成: {dj.get('report', '')[:80]}")
+    elif dream_res.status_code == 503:
+        log("⚠️", "503 — Phantom 梦境引擎未配置（不扣费），请在 /admin 设置 phantom LLM Key")
+    else:
+        log("⚠️", f"入梦失败 HTTP {dream_res.status_code}: {dream_res.text[:150]}")
 
     print()
     print("  ─── 连接验证完毕 ───────────────────────────────────────────────")
