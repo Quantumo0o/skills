@@ -1,12 +1,28 @@
 ---
 name: daxiapi
-version: 1.0.0
+version: 1.1.0
 description: 大虾皮(daxiapi.com)金融数据API接口，获取A股市场宽度、行业相对强度、市场估值水平、个股动量排名，帮助进行自下向上选股。系统理论来自马克米勒维尼的VCP、欧奈尔的RPS、Wyckoff与价格行为学理论。此skill应在用户请求股票数据、市场分析、板块热度、个股动量等金融数据时触发。
+metadata:
+  category: 金融分析
+  tags: [大虾皮, daxiapi, 金融分析, 股票, 市场热力图, 动量, 估值, 风格轮动]
+  compatibility: [Linux, macOS, Windows]
 ---
 
 # 大虾皮 API Skill
 
 大虾皮(daxiapi.com)提供专业的A股量化数据API服务，本skill指导如何正确调用这些接口。
+
+## 使用前提
+可以先安装 `daxiapi-cli` 命令行工具，安装后可直接在终端调用：
+
+```bash
+npx daxiapi-cli@latest {command_args}
+```
+如果电脑没有安装 `Nodejs` 环境，可以使用HTTP工具来发送请求，具体参考 [使用方式](#使用方式) 部分。
+
+## 关于数据更新
+
+- 数据更新频率：每日收盘后开始更新，一般在17:00之前更新完K线、热力图和个股数据，在20:30更新市场恐慌指数等汇总信息
 
 ## 核心概念
 
@@ -107,7 +123,30 @@ dxp market                  # 使用 dxp 别名
 | `daxiapi market -d` | 市场温度分析 |
 | `daxiapi sector` | 板块热力图 |
 | `daxiapi stock <codes>` | 查询个股（多个用逗号分隔） |
+| `daxiapi kline <code>` | 获取个股K线数据 |
 | `daxiapi search <keyword>` | 搜索股票/行业 |
+
+**K线命令详解：**
+
+```bash
+# 获取日线数据（默认300条）
+daxiapi kline 600519
+
+# 获取最近500条日线
+daxiapi kline 600519 -l 500
+
+# 获取周线数据
+daxiapi kline 600519 -t week
+
+# 获取月线数据
+daxiapi kline 600519 -t month
+
+# 输出JSON格式
+daxiapi kline 600519 -j
+
+# 简单输出格式
+daxiapi kline 600519 -s
+```
 
 ### 方式二：HTTP 请求
 
@@ -227,6 +266,50 @@ module.exports = {
 |---------|------|----------|
 | `/coze/get_stock_data` | POST | 获取个股详细信息（动量、形态、估值） |
 | `/coze/query_stock_data` | POST | 根据关键字查询股票/行业代码 |
+
+### K线数据类
+| API路径 | 方法 | 功能描述 |
+|---------|------|----------|
+| `/coze/get_index_k` | GET | 获取上证指数K线数据（需要VIP Token） |
+| 腾讯财经API | GET | 免费获取个股K线数据，支持前复权 |
+| 东方财富API | GET | 免费获取个股K线数据（备选数据源） |
+
+**K线数据获取方式：**
+
+1. **CLI方式（推荐）**：使用 `daxiapi kline <code>` 命令，自动选择最优数据源
+2. **腾讯财经API**：直接调用腾讯接口，数据更稳定
+3. **东方财富API**：备选数据源，当腾讯接口失败时自动切换
+
+**数据源详解：**
+
+首选：腾讯财经API
+```bash
+# 单只股票实时行情
+curl -sL 'https://qt.gtimg.cn/q=sh600547' | iconv -f gbk -t utf-8
+
+# K线数据（前复权）
+# 格式：https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newfqkline/get?_var=&param={市场代码}{股票代码},{类型},,,{条数},qfq
+# 市场代码：sh(上海)、sz(深圳)
+# 类型：day(日线)、week(周线)、month(月线)
+curl 'https://proxy.finance.qq.com/ifzqgtimg/appstock/app/newfqkline/get?_var=&param=sh600519,day,,,300,qfq&r=0.123'
+```
+
+备选：东方财富API
+```bash
+# K线数据
+# secid: 1.{代码}(上海)、0.{代码}(深圳)
+# klt: 101(日线)、102(周线)、103(月线)
+curl 'https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=1.600519&klt=101&fqt=1&lmt=300'
+```
+
+**返回字段说明：**
+- `date`: 交易日期
+- `open`: 开盘价
+- `close`: 收盘价
+- `high`: 最高价
+- `low`: 最低价
+- `volume`: 成交量（手）
+- `amount`: 成交额（万元）
 
 ## 响应格式
 
