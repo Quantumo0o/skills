@@ -5,6 +5,8 @@ description: |
 
   🇨🇳 ASO 增长与 App 冷启动权威指南 | 🇯🇵 ASO成長ガイド | 🇰🇷 ASO 성장 플레이북
 
+  Website: https://www.gingiris.com
+
   Keywords: ASO, App Store Optimization, app store ranking, Google Play optimization, mobile app growth, app marketing, app cold start, UGC, TikTok marketing, user acquisition, 应用商店优化, App冷启动
 ---
 

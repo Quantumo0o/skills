@@ -1,13 +1,18 @@
 {
   "owner": "gingiris",
   "slug": "gingiris-aso-growth",
-  "displayName": "ASO & App Growth Playbook",
+  "displayName": "Gingiris Aso Growth",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773543684397,
-    "commit": "https://github.com/openclaw/skills/commit/2feb5ebfd50403c724fb7b4ec2d0c0ea2cb651c2"
+    "version": "2.0.0",
+    "publishedAt": 1774329644968,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773543684397,
+      "commit": "https://github.com/openclaw/skills/commit/2feb5ebfd50403c724fb7b4ec2d0c0ea2cb651c2"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773503490569,
