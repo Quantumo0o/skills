@@ -10,8 +10,9 @@
 
 ## 配置文件读取规则
 1. 优先读取：`json/config.json`
-2. 回退读取：`json/config.example.json`（存在时）
-3. 若都不存在，抛出 `FileNotFoundError`
+2. 回退读取：`json/config_example.json`（存在时）
+3. 兼容读取：`json/config.example.json`（旧命名存在时）
+4. 若都不存在，抛出 `FileNotFoundError`
 
 ## 配置示例
 ```json

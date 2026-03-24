@@ -410,6 +410,78 @@ def set_orderbook_callback(callback: Callable[[Dict[str, Any]], None]) -> Dict[s
     return _quote_service.set_orderbook_callback(callback)
 
 
+def start_quote_stream(
+    code_list: List[str],
+    callback: Callable[[Dict[str, Any]], None],
+    is_first_push: bool = True,
+    extended_time: bool = False,
+    session: str = "NONE",
+) -> Dict[str, Any]:
+    callback_result = set_quote_callback(callback)
+    if not callback_result.get("success"):
+        return callback_result
+    subscribe_result = subscribe(
+        code_list=code_list,
+        subtype_list=["QUOTE"],
+        is_first_push=is_first_push,
+        subscribe_push=True,
+        extended_time=extended_time,
+        session=session,
+    )
+    if not subscribe_result.get("success"):
+        return {
+            "success": False,
+            "message": f"行情流启动失败: {subscribe_result.get('message')}",
+            "callback_result": callback_result,
+            "subscribe_result": subscribe_result,
+        }
+    return {
+        "success": True,
+        "message": "实时报价监听已启动",
+        "code_list": code_list,
+        "subtype": "QUOTE",
+        "callback_result": callback_result,
+        "subscribe_result": subscribe_result,
+    }
+
+
+def start_orderbook_stream(
+    code_list: List[str],
+    callback: Callable[[Dict[str, Any]], None],
+    is_first_push: bool = True,
+    is_detailed_orderbook: bool = False,
+    extended_time: bool = False,
+    session: str = "NONE",
+) -> Dict[str, Any]:
+    callback_result = set_orderbook_callback(callback)
+    if not callback_result.get("success"):
+        return callback_result
+    subscribe_result = subscribe(
+        code_list=code_list,
+        subtype_list=["ORDER_BOOK"],
+        is_first_push=is_first_push,
+        subscribe_push=True,
+        is_detailed_orderbook=is_detailed_orderbook,
+        extended_time=extended_time,
+        session=session,
+    )
+    if not subscribe_result.get("success"):
+        return {
+            "success": False,
+            "message": f"摆盘流启动失败: {subscribe_result.get('message')}",
+            "callback_result": callback_result,
+            "subscribe_result": subscribe_result,
+        }
+    return {
+        "success": True,
+        "message": "实时摆盘监听已启动",
+        "code_list": code_list,
+        "subtype": "ORDER_BOOK",
+        "callback_result": callback_result,
+        "subscribe_result": subscribe_result,
+    }
+
+
 def get_market_snapshot(code_list: List[str]) -> Dict[str, Any]:
     try:
         return _quote_service.get_market_snapshot(code_list)

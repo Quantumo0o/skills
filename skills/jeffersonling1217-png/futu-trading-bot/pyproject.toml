@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-py-modules = ["account_manager", "config_manager", "trade_service", "quote_service", "preflight_check"]
+py-modules = ["account_manager", "config_manager", "trade_service", "quote_service", "preflight_check", "strategy_runtime", "strategy"]
 
 [tool.setuptools.package-dir]
 "" = "src"

@@ -507,6 +507,8 @@ class _HKTradeService:
         :param trail_spread: 指定价差（跟踪止损限价单需要）
         :return: 统一格式的结果字典
         """
+        self._ensure_contexts_initialized()
+
         # 转换枚举值为富途的枚举值
         futu_modify_op = getattr(FutuModifyOrderOp, modify_op.value)
         futu_trd_env = FutuTrdEnv.REAL if trd_env == TrdEnv.REAL else FutuTrdEnv.SIMULATE
@@ -557,6 +559,8 @@ class _HKTradeService:
         :param trdmarket: 指定交易市场，如 TrdMarket.HK，不传则撤销全部市场
         :return: 统一格式的结果字典
         """
+        self._ensure_contexts_initialized()
+
         # 转换枚举值为富途的枚举值
         futu_trd_env = FutuTrdEnv.REAL if trd_env == TrdEnv.REAL else FutuTrdEnv.SIMULATE
 

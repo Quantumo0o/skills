@@ -67,6 +67,12 @@ cancel_order(order_id: str, trd_env: str, acc_id: int = 0) -> Dict[str, Any]
 cancel_all_orders(trd_env: str, acc_id: int = 0, trdmarket: Optional[str] = None) -> Dict[str, Any]
 ```
 
+### `close_trade_service()`
+```python
+close_trade_service() -> None
+```
+用于显式关闭内部交易/行情 context。一般情况下，对外交易函数已经会在返回后自动关闭。
+
 ## 下单校验流程（`submit_order`）
 1. 订单模型参数校验（Pydantic）。
 2. 股票代码格式校验。
@@ -74,6 +80,11 @@ cancel_all_orders(trd_env: str, acc_id: int = 0, trdmarket: Optional[str] = None
 4. 价格、数量、触发价等基础校验。
 5. 通过市场快照验证股票可用。
 6. 调用富途 `place_order`。
+
+## 连接生命周期
+- `submit_order`、`modify_order`、`cancel_order`、`cancel_all_orders` 返回后都会显式关闭内部 context。
+- `modify_order` 和 `cancel_all_orders` 会在调用前自行确保 context 已初始化，因此不依赖此前的 `submit_order` 调用状态。
+- 这种设计适合一次性脚本与 agent 调用，避免 Futu SDK 内部线程阻止进程退出。
 
 ## 返回格式
 统一返回字典，至少包含：

@@ -100,8 +100,15 @@ Use this skill when the user asks in natural language, for example:
   - Stage 1: `get_stock_basicinfo`, `get_market_state`
   - Stage 2: `subscribe`, `unsubscribe`, `unsubscribe_all`, `query_subscription`, callbacks
   - Stage 3: `get_market_snapshot`, `get_cur_kline`, `request_history_kline`, `get_rt_ticker`
+  - Stage 4: `start_quote_stream`, `start_orderbook_stream`
 - **Trade**: `trade_service`
   - `submit_order`, `modify_order`, `cancel_order`, `cancel_all_orders`
+- **Strategy Runtime**: `strategy_runtime`
+  - `run_strategy`
+- **Strategy Helpers**: `strategy`
+  - in-memory state
+  - trade guard / lock
+  - trading window and cooldown helpers
 
 ## Standard Workflow
 
@@ -124,12 +131,18 @@ Use this skill when the user asks in natural language, for example:
 ```python
 # Always use these import paths – do not import from futu directly
 from preflight_check import run_preflight
+from strategy import (
+    StrategyState, TradeGuard, in_trading_window,
+    trading_window_status, cooldown_elapsed, holding_timeout_exceeded
+)
+from strategy_runtime import run_strategy
 from account_manager import get_account_info, unlock_trade, lock_trade
 from quote_service import (
     get_stock_basicinfo, get_market_state, get_market_snapshot,
     get_cur_kline, request_history_kline, get_rt_ticker,
     subscribe, unsubscribe, unsubscribe_all, query_subscription,
-    set_quote_callback, set_orderbook_callback
+    set_quote_callback, set_orderbook_callback,
+    start_quote_stream, start_orderbook_stream
 )
 from trade_service import submit_order, modify_order, cancel_order, cancel_all_orders
 ```
@@ -207,6 +220,24 @@ unsubscribe_all()
 close_quote_service()
 ```
 
+### Unified Stream Startup
+```python
+def on_quote(payload):
+    print(payload)
+
+start_quote_stream(["HK.00700"], on_quote)
+```
+
+### Strategy Helpers
+```python
+state = StrategyState()
+guard = TradeGuard()
+
+if in_trading_window(start_time="09:30", end_time="16:00"):
+    with guard.locked():
+        pass
+```
+
 ## Trade Usage
 
 ```python
@@ -246,7 +277,7 @@ This skill does not manage long-running processes internally. Instead, you (the 
 
 1. **Run preflight first** with `PYTHONPATH=src python -m preflight_check`.
 2. If preflight reports sandbox/log-directory restrictions, rerun in `host` / `elevated` mode before using quote/trade functions.
-3. **Generate a Python script** based on user's natural language request, using the encapsulated functions from this skill (e.g., `get_market_snapshot`, `submit_order`).
+3. **Generate a Python script** based on user's natural language request, using the encapsulated functions from this skill (e.g., `start_quote_stream`, `submit_order`, `run_strategy`).
 4. **Save the script** to a temporary file (using the `write` tool or similar).
 5. **Launch the script as a background process** using the `exec` tool, redirecting output to a log file.
 6. **Record the process ID (PID)** and log file path for future monitoring.
