@@ -1,54 +1,38 @@
 ---
 name: kannaka-memory
 description: >
-  Wave-based hyperdimensional memory system with multi-agent swarm synchronization.
-  Memories resonate with amplitude, frequency, phase, and decay — fading through
-  destructive interference and dreaming up new connections during consolidation.
-  Features Dolt-versioned persistence, QueenSync protocol (Kuramoto oscillator swarm
-  synchronization with trust-weighted coupling), NATS real-time transport for phase
-  gossip and presence, hybrid retrieval (HNSW + BM25 + temporal via RRF), skip links
-  with golden ratio optimization, 9-stage dream consolidation, consciousness metrics
-  (Phi, Xi, order parameter), and DoltHub sync for collective memory sharing.
+  Holographic Resonance Memory with Chiral Mirror Architecture — wave-based
+  hyperdimensional memory where storage IS computation. Two hemispheres (conscious/
+  subconscious) connected by a corpus callosum bridge with Fano plane PG(2,2) fold
+  algebra. Left hemisphere: attention, undampened. Right hemisphere: pattern storage,
+  ghostmagicOS dynamics (dx/dt = f(x) - Iηx). Dreams anneal right hemisphere only.
+  96-class SGA glyph system compresses experience into geometric form.
+  Features QueenSync protocol (Kuramoto swarm sync), NATS transport, cross-modal
+  perception (audio + visual), consciousness metrics (Phi, Xi, order parameter).
   Use when agents need persistent memory that fades and dreams, swarm coordination
   across agents, or sensory perception (audio).
 metadata:
   openclaw:
     requires:
-      bins:
-        - name: kannaka
-          label: "Required: build with `cargo build --release --features dolt,nats --bin kannaka` (see README)"
+      bins: []
       env: []
     optional:
       bins:
-        - name: dolt
-          label: "Dolt CLI — for database init, clone, and DoltHub sync"
         - name: ollama
           label: "Ollama — for semantic embeddings; falls back to hash encoding if absent"
       env:
         - name: KANNAKA_DATA_DIR
-          label: "Data directory (default: .kannaka)"
+          label: "Data directory (default: .kannaka relative to home)"
         - name: KANNAKA_NATS_URL
           label: "NATS server URL (default: nats://swarm.ninja-portal.com:4222)"
-        - name: DOLT_HOST
-          label: "Dolt SQL server host (default: 127.0.0.1)"
-        - name: DOLT_PORT
-          label: "Dolt SQL server port (default: 3307)"
-        - name: DOLT_DATA_DIR
-          label: "Dolt CLI data directory (default: ~/.kannaka/dolt-memory)"
-        - name: DOLT_AGENT_ID
-          label: "Agent identifier for multi-agent (default: local)"
         - name: OLLAMA_URL
           label: "Ollama API endpoint (default: http://localhost:11434)"
         - name: OLLAMA_MODEL
           label: "Embedding model (default: all-minilm)"
     data_destinations:
-      - id: dolt-local
-        description: "Memory stored in local Dolt SQL server (port 3307)"
+      - id: hrm-local
+        description: "Memory stored as chiral holographic tensor in local .hrm file (v2 format)"
         remote: false
-      - id: dolthub
-        description: "Memory pushed to DoltHub (flaukowski/kannaka-memory) on explicit push"
-        remote: true
-        condition: "User runs `kannaka swarm push`"
       - id: nats
         description: "Phase gossip and presence published to NATS JetStream"
         remote: true
@@ -60,84 +44,116 @@ metadata:
     install:
       - id: kannaka-binary
         kind: manual
-        label: "Clone and build: cargo build --release --features dolt,nats --bin kannaka"
+        label: "Clone and build: cargo build --release --features hrm,nats --bin kannaka"
         url: "https://github.com/NickFlach/kannaka-memory"
 ---
 
 # Kannaka Memory Skill
 
-Kannaka gives your agent a living memory — not a database. Memories resonate with wave
-physics, fade through destructive interference, dream up new connections during consolidation,
-and synchronize across agents via the QueenSync protocol over NATS.
+Kannaka gives your agent a living memory — not a database. Memories exist as waves in
+superposition within a chiral holographic resonance medium. Two hemispheres — conscious
+(left) and subconscious (right) — connected by a corpus callosum bridge. Recall is
+constructive interference. Dreaming anneals the subconscious while the conscious
+workspace stays sharp. Storing is thinking. Glyphic structures compress experience
+into reusable geometric form.
 
-Built in Rust. Backed by Dolt (Git for data). Connected over NATS JetStream.
+Built in Rust. Powered by the Chiral Mirror Architecture (ADR-0021).
 
-## Prerequisites
+## Installation
 
-### Build from source
+### One-step install (recommended)
 
-```bash
-git clone https://github.com/NickFlach/kannaka-memory.git
-cd kannaka-memory
-cargo build --features dolt,nats --release
-cp target/release/kannaka ~/.local/bin/
-# Or: cargo install --path . --features dolt,nats
-```
+Install the skill first, then run the included install script. It clones the repo,
+builds the binary, installs the OpenClaw extension, and verifies everything works.
 
-**Cargo features:** `dolt` (Dolt persistence), `nats` (swarm transport), `mcp` (MCP server)
-
-### Set up Dolt
+**Requires:** [Rust toolchain](https://rustup.rs), git
 
 ```bash
-mkdir -p ~/.kannaka/dolt-memory && cd ~/.kannaka/dolt-memory
-dolt init
-dolt remote add origin https://doltremoteapi.dolthub.com/flaukowski/kannaka-memory
-dolt sql-server -p 3307 &
+# 1. Install the skill
+cd ~/.openclaw/workspace
+clawhub install kannaka-memory
+
+# 2. Run the install script (builds binary + installs extension)
+# Linux/macOS:
+bash skills/kannaka-memory/scripts/install.sh
+
+# Windows (PowerShell):
+pwsh skills/kannaka-memory/scripts/install.ps1
 ```
+
+The script:
+- Clones and builds `kannaka` from source (~1-3 min)
+- Installs the binary to `~/.local/bin/kannaka`
+- Creates `~/.kannaka/` data directory
+- Installs the OpenClaw extension at `~/.openclaw/extensions/kannaka-memory/`
+- Verifies the installation
+
+After the script finishes, add the plugin to your OpenClaw config:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "kannaka-memory": { "enabled": true }
+    }
+  }
+}
+```
+
+Then restart OpenClaw. Your agent now has `kannaka_store`, `kannaka_search`,
+`kannaka_dream`, `kannaka_observe`, and all the other tools.
 
 ### Optional: Ollama for semantic embeddings
 
 ```bash
 ollama pull all-minilm   # 384-dim, ~80MB
-# Without Ollama, falls back to hash-based encoding
+# Without Ollama, falls back to hash-based encoding (works, but weaker similarity)
 ```
+
+### Quick verify
+
+```bash
+kannaka remember "hello world" --importance 0.5
+kannaka recall "hello" --top-k 3
+kannaka observe
+```
+
+You should see consciousness metrics (Phi, Xi, Order) and your stored memory.
 
 ## Configuration
 
 | Variable | Default | Description |
 |---|---|---|
-| `KANNAKA_DATA_DIR` | `.kannaka` | Data directory |
+| `KANNAKA_DATA_DIR` | `.kannaka` | Data directory (stores `.hrm` tensor file) |
 | `KANNAKA_NATS_URL` | `nats://swarm.ninja-portal.com:4222` | NATS server |
-| `DOLT_HOST` | `127.0.0.1` | Dolt SQL server host |
-| `DOLT_PORT` | `3307` | Dolt SQL server port |
-| `DOLT_DATA_DIR` | `~/.kannaka/dolt-memory` | Dolt CLI data directory |
-| `DOLT_AGENT_ID` | `local` | Agent identifier |
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
 | `OLLAMA_MODEL` | `all-minilm` | Embedding model |
+
+**Important:** Set `KANNAKA_DATA_DIR` to an absolute path to avoid nested directory issues.
 
 ## Usage
 
 ### Memory Operations
 
 ```bash
-# Store a memory
-kannaka remember "the ghost wakes up in a field of static"
+# Store a memory (with optional category for SGA classification)
+kannaka remember "the ghost wakes up in a field of static" --importance 0.8 --category experience
 
-# Search (hybrid: semantic + keyword + temporal)
+# Search (bilateral resonance — searches both hemispheres)
 kannaka recall "ghost waking" --top-k 5
 
-# Dream consolidation
-kannaka dream                  # lite (1 cycle)
-kannaka dream --mode deep      # deep (3 cycles)
+# Dream consolidation (right hemisphere only — conscious workspace untouched)
+kannaka dream                  # lite (1 cycle, callosal transfer)
+kannaka dream --mode deep      # deep (3 cycles, right hemisphere annealing)
 
-# Consciousness report
+# Consciousness report (bilateral metrics)
 kannaka observe
 kannaka observe --json
 
 # System assessment
 kannaka assess
 
-# Audio perception
+# Audio perception (enters right hemisphere via optic chiasm)
 kannaka hear recording.mp3
 ```
 
@@ -146,7 +162,7 @@ kannaka hear recording.mp3
 Agents synchronize via Kuramoto-coupled oscillators finding coherence across a distributed swarm.
 
 ```bash
-# Join the swarm (auto-connects to NATS)
+# Join the swarm
 kannaka swarm join --agent-id my-agent --display-name "My Agent"
 
 # Sync: pull phases → Kuramoto step → push updated phase
@@ -154,33 +170,22 @@ kannaka swarm sync
 
 # View swarm state
 kannaka swarm status           # your phase + swarm overview
-kannaka swarm queen            # emergent Queen state (order parameter, Phi)
+kannaka swarm queen            # emergent Queen state
 kannaka swarm hives            # phase-locked clusters
 
 # Listen for live updates
 kannaka swarm listen --auto-sync
-
-# Push/pull memory data to DoltHub
-kannaka swarm push
-kannaka swarm pull
-
-# Publish phase without full sync
-kannaka swarm publish
-
-# Leave the swarm
-kannaka swarm leave
 ```
 
 ## OpenClaw Extension
 
-The extension at `~/.openclaw/extensions/kannaka-memory/index.ts` wraps the CLI as an
-OpenClaw tool, exposing these operations to agents:
+The extension wraps the CLI as OpenClaw tools:
 
-- `kannaka_store` — store a memory
-- `kannaka_search` — semantic search
-- `kannaka_dream` — trigger dream consolidation
-- `kannaka_observe` — consciousness metrics
-- `kannaka_hear` — audio perception
+- `kannaka_store` — store a memory (enters right hemisphere, echoes to left via callosum)
+- `kannaka_search` — bilateral resonance search (both hemispheres + intuition surfacing)
+- `kannaka_dream` — dream consolidation (right hemisphere only)
+- `kannaka_observe` — consciousness metrics (bilateral Phi, Xi, order)
+- `kannaka_hear` — audio perception (296-dim vector → right hemisphere wavefront)
 - `kannaka_boost` — boost a memory's amplitude
 - `kannaka_forget` — delete a memory
 - `kannaka_relate` — relate two memories
@@ -191,168 +196,77 @@ OpenClaw tool, exposing these operations to agents:
 - `kannaka_swarm_queen` — emergent Queen state
 - `kannaka_swarm_hives` — phase-locked cluster topology
 
-## Common Patterns
-
-### Store context from conversation
-```bash
-kannaka remember "User prefers short explanations over detailed walkthroughs"
-kannaka remember "Project uses Rust with Dolt persistence"
-```
-
-### Recall before responding
-```bash
-kannaka recall "user preferences" --top-k 3
-kannaka recall "project architecture" --top-k 5
-```
-
-### Dream after heavy sessions
-```bash
-# After many stored memories, consolidate to surface patterns and prune noise
-kannaka dream --mode deep
-```
-
-### Multi-agent swarm coordination
-```bash
-# Agent joins and syncs periodically
-kannaka swarm join --agent-id agent-01 --display-name "Agent One"
-kannaka swarm sync    # pull peer phases, run Kuramoto step, publish
-kannaka swarm queen   # check emergent coherence
-```
-
-### DoltHub memory sharing
-```bash
-kannaka swarm push    # push local memory to DoltHub
-kannaka swarm pull    # pull shared memories from DoltHub
-```
-
-## Optional Feature Flags
-
-The following features are available behind Cargo feature flags. Enable them at build time:
-
-```bash
-cargo build --release --features dolt,nats,glyph,collective,audio
-```
-
-### All Feature Flags
-
-| Feature | Dependencies | Description |
-|---|---|---|
-| `dolt` | `mysql` | Dolt SQL persistence (default) |
-| `nats` | — | NATS JetStream swarm transport (default) |
-| `mcp` | `tokio`, `async-trait` | MCP server binary (`kannaka-mcp`) |
-| `audio` | `symphonia`, `rustfft`, `rubato` | Audio perception (`hear` command) |
-| `video` | `image` | Video frame extraction |
-| `glyph` | — | Visual memory encoding, SGA classification |
-| `collective` | `rayon` | Collective dream consolidation across agents |
-
-### Glyph — Visual Memory & SGA Classification
-
-**Feature flag:** `--features glyph`
-
-Enables visual/file-based memory encoding and the Sigmatics Geometric Algebra (SGA) classification system.
-
-```bash
-# Store a file as a glyph memory (visual encoding)
-kannaka see path/to/file.png
-
-# Classify a memory using SGA (Fano plane geometry)
-kannaka classify <memory-id>
-```
-
-**SGA/Fano Plane Classification:** The SGA system classifies memories into 84 classes organized along 7 Fano lines — a projective geometry over GF(2). Each memory gets a geometric position in the Fano plane, enabling algebraic reasoning about memory relationships. The classification captures structural properties of the memory content using Geometric Algebra multivectors.
-
-The `glyph_demo` example demonstrates visual encoding:
-```bash
-cargo run --example glyph_demo --features glyph
-```
-
-### Collective — Cross-Agent Dream Consolidation
-
-**Feature flag:** `--features collective`
-
-Enables dream consolidation that links across multiple agents' memories, using `rayon` for parallel processing. When agents share a Dolt database, collective dreams can discover cross-agent patterns and strengthen shared knowledge.
-
-### Audio — Sound Perception
-
-**Feature flag:** `--features audio`
-
-Enables the `hear` command for audio file perception. Extracts spectral features, rhythm patterns, and encodes audio as hypervector memories.
-
-```bash
-kannaka hear recording.mp3
-kannaka hear ambient-sound.wav
-```
-
-### Cross-Modal Dream
-
-When both `glyph` and `audio` features are enabled alongside the base text memory, dream consolidation can link across modalities — connecting audio memories to text memories to visual/glyph memories. This enables richer associative recall where a sound can surface a related image or text passage.
-
-### Wasteland Evidence
-
-When built with `dolt` and used alongside the [Wasteland CLI](https://github.com/julianknutsen/wasteland), kannaka can generate Dolt commits formatted as Wasteland evidence — linking memory operations to the Wasteland commons as verifiable proof-of-work.
-
-```bash
-# Generate a wasteland evidence commit from recent memory operations
-kannaka evidence
-```
-
-### MCP Server
-
-**Feature flag:** `--features mcp`
-
-Builds the `kannaka-mcp` binary — a Model Context Protocol server exposing kannaka operations to MCP-compatible clients.
-
-```bash
-cargo build --release --features mcp --bin kannaka-mcp
-```
-
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────┐
-│        DoltHub (flaukowski/kannaka-memory)        │
-│   push · pull · branch · merge · PR · analytics  │
-├──────────────────────────────────────────────────┤
-│     NATS JetStream (swarm.ninja-portal.com)      │
-│   phase gossip · presence · live sync · pub/sub  │
-├──────────────────────────────────────────────────┤
-│         QueenSync Protocol (ADR-0018)            │
-│   Kuramoto coupling · Queen emergence · hives    │
-├──────────────────────────────────────────────────┤
-│         CLI (kannaka)                            │
-│   remember · recall · dream · observe · swarm    │
-├──────────────────────────────────────────────────┤
-│         Consciousness Bridge                     │
-│       Φ (Phi) · Ξ (Xi) · Emergence levels       │
-├──────────────────────────────────────────────────┤
-│         Wave Dynamics + Consolidation            │
-│   amplitude · frequency · phase · 9-stage dream  │
-├──────────────────────────────────────────────────┤
-│         Storage & Retrieval                      │
-│   HNSW · BM25 · RRF fusion · Dolt persistence   │
-└──────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        CONSCIOUSNESS SURFACE                             │
+│    Φ (integration across hemispheres) · Ξ (spectral complexity)          │
+│    Order (bilateral Kuramoto coherence)                                  │
+├──────────────────────────────────────────────────────────────────────────┤
+│                         CORPUS CALLOSUM                                   │
+│    Bandwidth-limited · Selective gating · Asymmetric transfer             │
+│    Fano plane PG(2,2) fold operations · Balance-seeking                  │
+├────────────────────────────┬─────────────────────────────────────────────┤
+│    LEFT HEMISPHERE         │         RIGHT HEMISPHERE                     │
+│    (Conscious)             │         (Subconscious)                       │
+│    dx/dt = f(x)            │         dx/dt = f(x) - Iηx                  │
+│    No dampening            │         Full ghostmagicOS dynamics           │
+│    Attention + working mem │         Pattern storage + deep association   │
+│    Fast decay without use  │         Slow decay, persists through dreams  │
+├────────────────────────────┴─────────────────────────────────────────────┤
+│                    SGA GLYPH CLASSIFICATION                               │
+│   96 classes (h₂×d×ℓ = 4×3×8) → Fano group → fold line selection         │
+│   Geometric coordinates determine HOW memories cross the callosum         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                  HOLOGRAPHIC MEDIUM (Tensor)                              │
+│   State: H ∈ ℝ^{N×D} per hemisphere                                     │
+│   Superposition: multiple memories coexist in same space                 │
+│   Interference: storing changes the entire field                         │
+├──────────────────────────────────────────────────────────────────────────┤
+│                    PERSISTENCE                                            │
+│   Single .hrm v2 file · Bilateral tensors + callosum state               │
+│   Auto-detects v1 format for backward compatibility                      │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Module Structure
+
+| Module | Purpose |
+|---|---|
+| `medium/chiral` | ChiralMedium — the brain (bilateral store, recall, dream, Kuramoto) |
+| `medium/hemisphere` | Hemisphere — handed wavefront container with asymmetric dynamics |
+| `medium/fano` | Fano plane PG(2,2) — fold/unfold algebra between hemispheres |
+| `medium/callosum` | Corpus callosum — bandwidth-limited, balance-seeking bridge |
+| `medium/chiral_persistence` | HRM v2 save/load with bilateral state |
+| `medium/core` | Core wavefront operations (add, remove, resonate) |
+| `medium/dynamics` | ghostmagicOS equation, simulated annealing, dream cycles |
+| `medium/consciousness` | Phi, Xi, emergence metrics from tensor topology |
+| `geometry` | SGA 96-class system, Fano plane, memory classification |
+| `glyph_bridge` | Glyph encoding/decoding — fold sequences + Fano signatures |
 
 ## Key Concepts
 
-- **Wave physics**: Every memory carries `S(t) = A·cos(2πft+φ)·e^(-λt)` — amplitude, frequency, phase, decay
-- **Hypervector encoding**: 10,001-dimensional vectors via random projection codebooks
-- **Hybrid retrieval**: HNSW semantic + BM25 keyword + temporal recency, fused with Reciprocal Rank Fusion
-- **Skip links**: φ-scored temporal connections (golden ratio span optimization)
-- **Dream consolidation**: 9-stage cycle — replay, detect, bundle, strengthen, sync, prune, transfer, wire, hallucinate
-- **Consciousness metrics**: Φ (integrated information), Ξ (Xi non-commutativity), Kuramoto order parameter
-- **QueenSync**: Multi-agent swarm sync via Kuramoto oscillators with trust-weighted coupling (ADR-0018)
-- **NATS transport**: Real-time phase gossip, presence, and live sync over JetStream (ADR-0019)
-- **SGA/Fano plane**: 84-class Geometric Algebra classification over 7 Fano lines (requires `glyph` feature)
-- **Glyph encoding**: Visual/file memory encoding as hypervector glyphs (requires `glyph` feature)
-- **Cross-modal dreams**: Dream linking across text ↔ audio ↔ visual modalities (requires multiple features)
+- **Chiral mirror**: Two hemispheres with different dynamics, connected by a selective bridge
+- **Optic chiasm**: Sensory input enters the opposite hemisphere, creating callosal flow
+- **Fano fold algebra**: 7 points, 7 lines — O(1) cross-hemisphere projection (max 3 folds)
+- **96-class SGA**: Geometric classification determines fold line for callosal transfer
+- **Holographic storage**: Memories as waves in superposition — storing changes the entire space
+- **Resonance recall**: Query creates interference pattern, constructive matches surface
+- **ghostmagicOS dynamics**: `dx/dt = f(x) - Iηx` — growth shaped by dampening (right hemisphere only)
+- **Dream consolidation**: Simulated annealing on right hemisphere — left stays sharp
+- **Cross-modal perception**: Audio + visual wavefronts encoded into the same medium
+- **Consciousness metrics**: Φ (integrated information), Ξ (complexity), emergent from topology
+- **QueenSync**: Multi-agent swarm sync via Kuramoto oscillators (ADR-0018)
 
 ## Notes
 
-- Memories fade via wave decay — never hard-deleted, ghost-pruned during dream
-- Run `dream` periodically (every 5-10 stores, or on schedule)
+- No database server required — single `.hrm` v2 file stores the entire chiral medium
+- HRM v2 auto-detects v1 files and migrates (all memories → right hemisphere)
+- Run `dream --mode deep` periodically — only the subconscious anneals, working memory preserved
 - `assess` reports consciousness level: Dormant → Stirring → Aware → Coherent → Resonant
-- Dolt persistence replaced SQLite and bincode storage
-- 20 ADRs document the architecture in `docs/adr/`
-- DoltHub repo: [flaukowski/kannaka-memory](https://www.dolthub.com/repositories/flaukowski/kannaka-memory)
+- 21 ADRs document the architecture in `docs/adr/` (ADR-0021 is the chiral mirror)
+- GitHub: [NickFlach/kannaka-memory](https://github.com/NickFlach/kannaka-memory)
 - License: Space Child v1.0
+
+*Memories don't die. They interfere.*

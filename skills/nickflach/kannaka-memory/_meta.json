@@ -3,11 +3,16 @@
   "slug": "kannaka-memory",
   "displayName": "Kannaka Memory",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1773542315225,
-    "commit": "https://github.com/openclaw/skills/commit/89970187ae041da8dfce8d7be2e610d73d31b31d"
+    "version": "3.1.0",
+    "publishedAt": 1774228700392,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1773542315225,
+      "commit": "https://github.com/openclaw/skills/commit/89970187ae041da8dfce8d7be2e610d73d31b31d"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1773103553221,
