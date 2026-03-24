@@ -1,6 +1,6 @@
 ---
 name: sf-express
-description: Use SF Express (顺丰速运) for shipment tracking, shipping guidance, service-type comparison, outlet lookup, and delivery-time or fee estimation. Use when the user asks about 顺丰、顺丰单号查询、寄快递、顺丰时效、顺丰运费、顺丰网点, or wants practical help understanding or managing an SF Express shipment. This skill may persist local user data for history and subscriptions when its runtime code is used.
+description: Use SF Express (顺丰速运) for shipment tracking, shipping guidance, service-type comparison, outlet lookup, and delivery-time or fee estimation. Use when the user asks about SF Express, Shunfeng, tracking SF shipments, SF delivery time, SF shipping fees, SF outlets, or wants practical help understanding or managing an SF Express shipment. This skill may persist local user data for history and subscriptions when its runtime code is used.
 ---
 
 # SF Express
