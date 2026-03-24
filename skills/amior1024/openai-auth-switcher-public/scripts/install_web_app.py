@@ -17,7 +17,7 @@ from config import build_ssh_tunnel_command, build_web_url, save_install_info  #
 from generate_web_credentials import build_credentials  # noqa: E402
 from paths import ensure_skill_dirs, get_runtime_dir  # noqa: E402
 from pick_port import pick_port  # noqa: E402
-from web_process_lib import read_unit_env, systemd_unit_exists, systemd_unit_status, systemd_user_available, wait_for_port, write_unit_file  # noqa: E402
+from web_process_lib import detect_systemd_user, read_unit_env, systemd_unit_exists, systemd_unit_status, systemd_user_available, wait_for_port, write_unit_file  # noqa: E402
 
 
 DEFAULT_SYSTEMD_TEMPLATE = """[Unit]\nDescription=OpenAI Auth Switcher Public Web Preview\nAfter=default.target\n\n[Service]\nType=simple\nWorkingDirectory=__WORKSPACE__\nEnvironment=PYTHONUNBUFFERED=1\nEnvironment=OPENAI_AUTH_SWITCHER_HOST=127.0.0.1\nEnvironment=OPENAI_AUTH_SWITCHER_PORT=8765\nExecStart=/usr/bin/env python3 __WORKSPACE__/skills/openai-auth-switcher-public/service/app.py\nRestart=on-failure\nRestartSec=2\n\n[Install]\nWantedBy=default.target\n"""
@@ -70,11 +70,11 @@ def start_systemd_service(host: str, port: int) -> dict:
     log_path = get_runtime_dir() / 'web-preview.log'
     had_existing_unit = systemd_unit_exists(unit_name)
     write_unit_file(template_path, unit_path, workspace=workspace, host=host, port=port)
-    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=False)
+    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if had_existing_unit:
-        subprocess.run(['systemctl', '--user', 'reset-failed', unit_name], check=False)
-    subprocess.run(['systemctl', '--user', 'enable', unit_name], check=False)
-    subprocess.run(['systemctl', '--user', 'restart', unit_name], check=False)
+        subprocess.run(['systemctl', '--user', 'reset-failed', unit_name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(['systemctl', '--user', 'enable', unit_name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(['systemctl', '--user', 'restart', unit_name], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     status_ok, status = wait_for_systemd_ready(unit_name, host, port)
     env = read_unit_env(unit_name)
     ready = bool(status_ok or wait_for_port(host, port, timeout_seconds=2.0, interval_seconds=0.2))
@@ -115,13 +115,17 @@ def main() -> int:
         'port_source': port_info['source'],
     }
     save_install_info(install_info)
-    service = start_systemd_service(args.host, port) if systemd_user_available() else start_background_service(args.host, port)
+    systemd_probe = detect_systemd_user()
+    install_info['systemd_probe'] = systemd_probe
+    service = start_systemd_service(args.host, port) if systemd_probe.get('available') else start_background_service(args.host, port)
     attempted_systemd = service if service.get('mode') == 'systemd-user' else None
     if not service.get('ok') and service.get('mode') == 'systemd-user':
         fallback_reason = service.get('error') or 'systemd-user not active or port not ready within startup window'
         service = start_background_service(args.host, port)
         service['fallback_reason'] = fallback_reason
         service['attempted_systemd'] = attempted_systemd
+    elif service.get('mode') == 'background-process' and not systemd_probe.get('available') and systemd_probe.get('reason'):
+        service['fallback_reason'] = systemd_probe.get('reason')
     install_info['service'] = service
     install_info['ready'] = bool(service.get('ready') or service.get('ok'))
     save_install_info(install_info)

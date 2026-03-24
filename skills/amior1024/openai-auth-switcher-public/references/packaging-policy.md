@@ -23,6 +23,10 @@ Do not package these into a public artifact:
 - `__pycache__`
 - machine-specific generated service files with user paths baked in
 
+State layout guidance:
+- temporary runtime files may stay under the skill runtime area for easy cleanup during uninstall
+- important persistent state should prefer an external state base via `OPENAI_AUTH_SWITCHER_PUBLIC_STATE_DIR`, not the skill tree itself
+
 ## Release checklist
 
 Before publication:

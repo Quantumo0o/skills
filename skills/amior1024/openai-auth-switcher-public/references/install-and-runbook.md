@@ -48,11 +48,14 @@ Then, only if the target profile is correct, run the actual switch experiment.
 python3 skills/openai-auth-switcher-public/scripts/status_web_app.py
 python3 skills/openai-auth-switcher-public/scripts/restart_web_app.py
 python3 skills/openai-auth-switcher-public/scripts/stop_web_app.py
+bash ~/.openclaw/workspace/skills/openai-auth-switcher-public/uninstall.sh
 ```
 
 Notes:
 - `stop_web_app.py` now stops both the `systemd --user` preview service and any fallback background PID file process.
+- `uninstall.sh` is the recommended cleanup entrypoint before `clawhub uninstall`; it stops the preview service, removes the local systemd unit, and clears temporary runtime files under `skill-data/runtime`.
 - `install_web_app.py` only runs `systemctl --user reset-failed` when the preview unit already exists, to avoid harmless first-install noise.
+- Temporary runtime files can live inside the skill runtime area, but important persistent state should be moved outside the skill tree with `OPENAI_AUTH_SWITCHER_PUBLIC_STATE_DIR` to avoid accidental loss during uninstall or upgrade.
 
 ## Rollback helper now available in the public track
 

@@ -20,6 +20,7 @@ This public track must:
 - avoid machine-specific hard-coded paths where possible
 - document compatibility boundaries explicitly
 - provide a release-safe packaging workflow
+- keep temporary runtime files inside the skill runtime area, while encouraging important persistent state to live in an external state base via `OPENAI_AUTH_SWITCHER_PUBLIC_STATE_DIR`
 
 ## Core operating model
 
@@ -40,6 +41,7 @@ Always do work in this order:
 Primary public-release scripts:
 
 - `install.sh` — recommended user entrypoint; wraps the web bootstrap into a single shell command
+- `uninstall.sh` — recommended cleanup entrypoint before `clawhub uninstall`
 - `scripts/install_web_app.py` — one-shot web bootstrap for first-run access
 - `scripts/pick_port.py` — port selection helper (`9527` → `12138` → fallback)
 - `scripts/generate_web_credentials.py` — default admin credential generator

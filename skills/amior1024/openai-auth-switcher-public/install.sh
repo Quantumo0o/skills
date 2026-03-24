@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 INSTALLER="$SCRIPT_DIR/scripts/install_web_app.py"
 DOCTOR="$SCRIPT_DIR/scripts/doctor.py"
+STOPPER="$SCRIPT_DIR/scripts/stop_web_app.py"
+RUNTIME_DIR="$SCRIPT_DIR/skill-data/runtime"
+UNIT_PATH="$HOME/.config/systemd/user/openai-auth-switcher-web-preview.service"
 
 if [[ -t 1 ]]; then
   C_RESET=$'\033[0m'
@@ -37,6 +40,20 @@ fi
 section "OPENAI AUTH SWITCHER PUBLIC"
 ok "开始安装 Web 预览入口"
 printf "workspace     %s\n" "$WORKSPACE_DIR"
+
+section "PRE-CLEANUP"
+if [[ -f "$STOPPER" ]]; then
+  python3 "$STOPPER" >/dev/null 2>&1 || true
+fi
+rm -f "$RUNTIME_DIR/web-preview.pid" "$RUNTIME_DIR/web-preview.log" || true
+if [[ -f "$UNIT_PATH" ]]; then
+  rm -f "$UNIT_PATH"
+  systemctl --user daemon-reload >/dev/null 2>&1 || true
+  ok "已清理旧服务注册信息"
+else
+  ok "未发现旧服务注册信息"
+fi
+warn "pre-cleanup 仅清理服务态，不删除用户持久数据"
 
 set +e
 INSTALL_JSON="$(python3 "$INSTALLER" --json 2>&1)"
@@ -77,6 +94,7 @@ print(service.get('mode') or '')
 print(str(data.get('ready')))
 print(service.get('unit_name') or '')
 print(service.get('log_path') or '')
+print((data.get('systemd_probe') or {}).get('reason') or '')
 PY
 )
 
@@ -95,6 +113,7 @@ SERVICE_MODE="${LINES[13]:-}"
 SERVICE_READY="${LINES[14]:-}"
 SYSTEMD_UNIT="${LINES[15]:-}"
 LOG_FILE="${LINES[16]:-}"
+SYSTEMD_HINT="${LINES[17]:-}"
 
 section "RESULT"
 ok "安装完成"
@@ -105,6 +124,9 @@ else
 fi
 if [[ -n "$WARNING_MSG" ]]; then
   warn "$WARNING_MSG"
+fi
+if [[ -n "$SYSTEMD_HINT" && "$SERVICE_MODE" == "background-process" ]]; then
+  warn "$SYSTEMD_HINT"
 fi
 
 section "WEB"

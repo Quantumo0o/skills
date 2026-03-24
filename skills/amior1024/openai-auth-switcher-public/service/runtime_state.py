@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from config import get_runtime_summary, load_install_info
+from channel_store import get_current_channel_slot, get_live_current_account, list_channels
 
 import sys
 CURRENT_DIR = Path(__file__).resolve().parent
@@ -30,6 +31,9 @@ def build_page_state() -> JsonDict:
     status = live_status if live_status.get('ok') else (service.get('status') or attempted_systemd.get('status') or {})
     effective_mode = 'systemd-user' if live_systemd_known else service.get('mode')
     effective_ready = bool(live_systemd_ready and install.get('port')) if live_systemd_known else bool(install.get('ready') or service.get('ready') or service.get('ok'))
+    channels = list_channels()
+    current_slot = get_current_channel_slot()
+    live_current = get_live_current_account()
     return {
         'ok': True,
         'install': install,
@@ -38,6 +42,12 @@ def build_page_state() -> JsonDict:
         'auth_ready': runtime.get('auth_ready'),
         'service_mode': effective_mode,
         'service_ready': effective_ready,
+        'channels': channels,
+        'channel_summary': {
+            'count': len(channels),
+            'current_slot': current_slot,
+            'live_current_account': live_current,
+        },
         'service_summary': {
             'mode': effective_mode,
             'ready': effective_ready,

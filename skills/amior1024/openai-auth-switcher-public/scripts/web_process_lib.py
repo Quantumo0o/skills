@@ -28,9 +28,22 @@ def wait_for_port(host: str, port: int, timeout_seconds: float = 8.0, interval_s
     return False
 
 
+def detect_systemd_user() -> dict:
+    probe = subprocess.run(['systemctl', '--user', 'is-enabled', 'default.target'], capture_output=True, text=True)
+    stderr = (probe.stderr or '').strip()
+    stdout = (probe.stdout or '').strip()
+    available = probe.returncode in (0, 1)
+    reason = ''
+    if not available:
+        if 'Failed to connect to bus' in stderr or 'Failed to connect to bus' in stdout:
+            reason = '当前会话无法连接 systemd --user bus；常见于 ssh ubuntu 后 su root 的场景，可直接 ssh root 登录，或继续使用自动降级的后台模式。'
+        else:
+            reason = stderr or stdout or f'systemctl --user unavailable (code={probe.returncode})'
+    return {'available': available, 'reason': reason, 'returncode': probe.returncode}
+
+
 def systemd_user_available() -> bool:
-    probe = subprocess.run(['systemctl', '--user', 'is-enabled', 'default.target'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return probe.returncode in (0, 1)
+    return bool(detect_systemd_user().get('available'))
 
 
 def write_unit_file(template_path: Path, unit_path: Path, *, workspace: Path, host: str, port: int) -> None:
