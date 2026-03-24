@@ -1,3 +1,34 @@
+---
+metadata:
+  openclaw:
+    primaryEnv: NYLAS_API_KEY
+    requires:
+      env:
+        - NYLAS_API_KEY
+    envVars:
+      - name: NYLAS_API_KEY
+        description: Nylas API v3 key from dashboard-v3.nylas.com
+        required: true
+      - name: NYLAS_GRANT_ID
+        description: Explicit grant ID (optional, skips auto-discovery)
+        required: false
+      - name: NYLAS_API_URI
+        description: API region endpoint (default https://api.us.nylas.com)
+        required: false
+      - name: NYLAS_TIMEZONE
+        description: Default timezone for date/time operations (default UTC)
+        required: false
+    install:
+      - kind: npm
+        package: "@nylas/openclaw-nylas-plugin"
+    dependencies:
+      - name: "@nylas/openclaw-nylas-plugin"
+        kind: npm
+        description: Nylas API v3 client with email, calendar, and contacts support
+    links:
+      homepage: https://www.npmjs.com/package/@nylas/openclaw-nylas-plugin
+---
+
 # Nylas Email, Calendar & Contacts
 
 Unified access to email, calendar, and contacts across Gmail, Outlook, Exchange, Yahoo, iCloud, and IMAP — powered by the Nylas API.
