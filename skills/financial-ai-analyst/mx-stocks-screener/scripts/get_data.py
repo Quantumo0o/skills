@@ -44,12 +44,6 @@ import httpx
 EM_API_KEY = os.environ.get("EM_API_KEY", "")
 
 if not EM_API_KEY:
-    key_file_path = "/home/wuying/.openclaw/workspace/em_api_key.txt"
-    if os.path.exists(key_file_path):
-        with open(key_file_path, "r", encoding="utf-8") as f:
-            EM_API_KEY = f.readline().strip()
-
-if not EM_API_KEY:
     raise RuntimeError(
         """
 
