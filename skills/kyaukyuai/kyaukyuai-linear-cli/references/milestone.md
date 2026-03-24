@@ -40,9 +40,11 @@ Description:
 
 Options:
 
-  -h, --help                    - Show this help.                                
-  -w, --workspace  <slug>       - Target workspace (uses credentials)            
-  --project        <projectId>  - Project ID                           (required)
+  -h, --help                    - Show this help.                                     
+  -w, --workspace  <slug>       - Target workspace (uses credentials)                 
+  --project        <projectId>  - Project ID                                (required)
+  -j, --json                    - Output as JSON                                      
+  --no-pager                    - Disable automatic paging for long output
 ```
 
 ### view
@@ -59,7 +61,8 @@ Description:
 Options:
 
   -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -j, --json               - Output as JSON
 ```
 
 ### create
@@ -75,12 +78,13 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                                
-  -w, --workspace  <slug>         - Target workspace (uses credentials)            
-  --project        <projectId>    - Project ID                           (required)
-  --name           <name>         - Milestone name                       (required)
-  --description    <description>  - Milestone description                          
-  --target-date    <date>         - Target date (YYYY-MM-DD)
+  -h, --help                      - Show this help.                                      
+  -w, --workspace  <slug>         - Target workspace (uses credentials)                  
+  --project        <projectId>    - Project ID                                 (required)
+  --name           <name>         - Milestone name                             (required)
+  --description    <description>  - Milestone description                                
+  --target-date    <date>         - Target date (YYYY-MM-DD)                             
+  --dry-run                       - Preview the milestone without creating it
 ```
 
 ### update
@@ -96,13 +100,14 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                          
-  -w, --workspace  <slug>         - Target workspace (uses credentials)      
-  --name           <name>         - Milestone name                           
-  --description    <description>  - Milestone description                    
-  --target-date    <date>         - Target date (YYYY-MM-DD)                 
-  --sort-order     <value>        - Sort order relative to other milestones  
-  --project        <projectId>    - Move to a different project
+  -h, --help                      - Show this help.                                    
+  -w, --workspace  <slug>         - Target workspace (uses credentials)                
+  --name           <name>         - Milestone name                                     
+  --description    <description>  - Milestone description                              
+  --target-date    <date>         - Target date (YYYY-MM-DD)                           
+  --sort-order     <value>        - Sort order relative to other milestones            
+  --project        <projectId>    - Move to a different project                        
+  --dry-run                       - Preview the update without mutating the milestone
 ```
 
 ### delete
@@ -118,7 +123,8 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -f, --force              - Skip confirmation prompt
+  -h, --help               - Show this help.                                      
+  -w, --workspace  <slug>  - Target workspace (uses credentials)                  
+  -f, --force              - Skip confirmation prompt                             
+  --dry-run                - Preview the deletion without mutating the milestone
 ```

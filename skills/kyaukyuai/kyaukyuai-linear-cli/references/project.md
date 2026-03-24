@@ -18,12 +18,12 @@ Options:
 
 Commands:
 
-  list                  - List projects                     
-  view, v  <projectId>  - View project details              
-  create                - Create a new Linear project       
-  update   <projectId>  - Update a Linear project           
-  delete   <projectId>  - Delete (trash) a Linear project   
-  label                 - Manage project labels on a project
+  list                        - List projects                     
+  view, v  <projectIdOrSlug>  - View project details              
+  create                      - Create a new Linear project       
+  update   <projectId>        - Update a Linear project           
+  delete   <projectId>        - Delete (trash) a Linear project   
+  label                       - Manage project labels on a project
 ```
 
 ## Subcommands
@@ -41,14 +41,15 @@ Description:
 
 Options:
 
-  -h, --help                 - Show this help.                      
-  -w, --workspace  <slug>    - Target workspace (uses credentials)  
-  --team           <team>    - Filter by team key                   
-  --all-teams                - Show projects from all teams         
-  --status         <status>  - Filter by status name                
-  -w, --web                  - Open in web browser                  
-  -a, --app                  - Open in Linear.app                   
-  -j, --json                 - Output as JSON
+  -h, --help                 - Show this help.                           
+  -w, --workspace  <slug>    - Target workspace (uses credentials)       
+  --team           <team>    - Filter by team key                        
+  --all-teams                - Show projects from all teams              
+  --status         <status>  - Filter by status name                     
+  -w, --web                  - Open in web browser                       
+  -a, --app                  - Open in Linear.app                        
+  -j, --json                 - Output as JSON                            
+  --no-pager                 - Disable automatic paging for long output
 ```
 
 ### view
@@ -56,7 +57,7 @@ Options:
 > View project details
 
 ```
-Usage:   linear project view <projectId>
+Usage:   linear project view <projectIdOrSlug>
 
 Description:
 
@@ -67,7 +68,8 @@ Options:
   -h, --help               - Show this help.                      
   -w, --workspace  <slug>  - Target workspace (uses credentials)  
   -w, --web                - Open in web browser                  
-  -a, --app                - Open in Linear.app
+  -a, --app                - Open in Linear.app                   
+  -j, --json               - Output as JSON
 ```
 
 ### create
@@ -94,7 +96,8 @@ Options:
   --target-date      <targetDate>   - Target completion date (YYYY-MM-DD)                                      
   --initiative       <initiative>   - Add to initiative immediately (ID, slug, or name)                        
   -i, --interactive                 - Interactive mode (default if no flags provided)                          
-  -j, --json                        - Output created project as JSON
+  -j, --json                        - Output created project as JSON                                           
+  --dry-run                         - Preview the project without creating it
 ```
 
 ### update
@@ -118,7 +121,8 @@ Options:
   -l, --lead         <lead>         - Project lead (username, email, or @me)                           
   --start-date       <startDate>    - Start date (YYYY-MM-DD)                                          
   --target-date      <targetDate>   - Target date (YYYY-MM-DD)                                         
-  -t, --team         <team>         - Team key (can be repeated for multiple teams)
+  -t, --team         <team>         - Team key (can be repeated for multiple teams)                    
+  --dry-run                         - Preview the update without mutating the project
 ```
 
 ### delete
@@ -134,9 +138,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -f, --force              - Skip confirmation prompt
+  -h, --help               - Show this help.                                    
+  -w, --workspace  <slug>  - Target workspace (uses credentials)                
+  -f, --force              - Skip confirmation prompt                           
+  --dry-run                - Preview the deletion without mutating the project
 ```
 
 ### label

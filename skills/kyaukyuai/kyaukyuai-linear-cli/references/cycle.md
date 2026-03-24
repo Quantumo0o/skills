@@ -42,9 +42,11 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)
+  -h, --help               - Show this help.                           
+  -w, --workspace  <slug>  - Target workspace (uses credentials)       
+  --team           <team>  - Team key (defaults to current team)       
+  -j, --json               - Output as JSON                            
+  --no-pager               - Disable automatic paging for long output
 ```
 
 ### view
@@ -62,7 +64,8 @@ Options:
 
   -h, --help               - Show this help.                      
   -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)
+  --team           <team>  - Team key (defaults to current team)  
+  -j, --json               - Output as JSON
 ```
 
 ### current
@@ -99,7 +102,8 @@ Options:
 
   -h, --help               - Show this help.                      
   -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)
+  --team           <team>  - Team key (defaults to current team)  
+  -j, --json               - Output as JSON
 ```
 
 ### create

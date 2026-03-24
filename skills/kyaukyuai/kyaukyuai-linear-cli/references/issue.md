@@ -76,29 +76,30 @@ Description:
 
 Options:
 
-  -h, --help                            - Show this help.                                                                                                              
-  -w, --workspace      <slug>           - Target workspace (uses credentials)                                                                                          
-  -s, --state          <state>          - Filter by issue state (can be repeated for multiple states)           (Default: [ "unstarted" ], Values: "triage", "backlog",
-                                                                                                                "unstarted", "started", "completed", "canceled")       
-  --all-states                          - Show issues from all states                                                                                                  
-  --all                                 - Shortcut for --all-states --all-assignees --limit 0                                                                          
-  --assignee           <assignee>       - Filter by assignee (username)                                                                                                
-  -A, --all-assignees                   - Show issues for all assignees                                                                                                
-  -U, --unassigned                      - Show only unassigned issues                                                                                                  
-  --sort               <sort>           - Sort order (can also be set via LINEAR_ISSUE_SORT)                    (Values: "manual", "priority")                         
-  --team               <team>           - Team to list issues for (if not your default team)                                                                           
-  --project            <project>        - Filter by project name                                                                                                       
-  --cycle              <cycle>          - Filter by cycle name, number, or 'active'                                                                                    
-  --milestone          <milestone>      - Filter by project milestone name (requires --project)                                                                        
-  --query              <query>          - Filter by title or description substring                                                                                     
-  --parent             <parent>         - Filter by parent issue identifier                                                                                            
-  --priority           <priority>       - Filter by priority (0-4 or none/urgent/high/medium/low)                                                                      
-  --updated-before     <updatedBefore>  - Filter issues updated before an ISO date or datetime                                                                         
-  --due-before         <dueBefore>      - Filter issues due before a date (YYYY-MM-DD)                                                                                 
-  --limit              <limit>          - Maximum number of issues to fetch (default: 50, use 0 for unlimited)  (Default: 50)                                          
-  -j, --json                            - Output as JSON                                                                                                               
-  -w, --web                             - Open in web browser                                                                                                          
-  -a, --app                             - Open in Linear.app                                                                                                           
+  -h, --help                            - Show this help.                                                                                                
+  -w, --workspace      <slug>           - Target workspace (uses credentials)                                                                            
+  -s, --state          <state>          - Filter by issue state (triage, backlog, unstarted|todo, started, completed,      (Default: [ "unstarted" ])    
+                                          canceled). May be repeated.                                                                                    
+  --all-states                          - Show issues from all states                                                                                    
+  --all                                 - Shortcut for --all-states --all-assignees --limit 0 (explicit --state overrides                                
+                                          all-states)                                                                                                    
+  --assignee           <assignee>       - Filter by assignee (username)                                                                                  
+  -A, --all-assignees                   - Show issues for all assignees                                                                                  
+  -U, --unassigned                      - Show only unassigned issues                                                                                    
+  --sort               <sort>           - Sort order (can also be set via LINEAR_ISSUE_SORT)                               (Values: "manual", "priority")
+  --team               <team>           - Team to list issues for (if not your default team)                                                             
+  --project            <project>        - Filter by project name                                                                                         
+  --cycle              <cycle>          - Filter by cycle name, number, or 'active'                                                                      
+  --milestone          <milestone>      - Filter by project milestone name (requires --project)                                                          
+  --query              <query>          - Filter by title or description substring                                                                       
+  --parent             <parent>         - Filter by parent issue identifier                                                                              
+  --priority           <priority>       - Filter by priority (0-4 or none/urgent/high/medium/low)                                                        
+  --updated-before     <updatedBefore>  - Filter issues updated before an ISO date or datetime                                                           
+  --due-before         <dueBefore>      - Filter issues due before a date (YYYY-MM-DD)                                                                   
+  --limit              <limit>          - Maximum number of issues to fetch (default: 50, use 0 for unlimited)             (Default: 50)                 
+  -j, --json                            - Output as JSON                                                                                                 
+  -w, --web                             - Open in web browser                                                                                            
+  -a, --app                             - Open in Linear.app                                                                                             
   --no-pager                            - Disable automatic paging for long output
 ```
 
@@ -152,12 +153,13 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                                            
-  -w, --workspace      <slug>     - Target workspace (uses credentials)                        
-  -A, --all-assignees             - Show issues for all assignees                              
-  -U, --unassigned                - Show only unassigned issues                                
-  -f, --from-ref       <fromRef>  - Git ref to create new branch from                          
-  -b, --branch         <branch>   - Custom branch name to use instead of the issue identifier
+  -h, --help                      - Show this help.                                                 
+  -w, --workspace      <slug>     - Target workspace (uses credentials)                             
+  -A, --all-assignees             - Show issues for all assignees                                   
+  -U, --unassigned                - Show only unassigned issues                                     
+  -f, --from-ref       <fromRef>  - Git ref to create new branch from                               
+  -b, --branch         <branch>   - Custom branch name to use instead of the issue identifier       
+  --dry-run                       - Preview the branch and state transition without making changes
 ```
 
 ### view
@@ -308,6 +310,7 @@ Options:
   --milestone                <milestone>    - Name of the project milestone                                  
   --cycle                    <cycle>        - Cycle name, number, or 'active'                                
   -j, --json                                - Output as JSON                                                 
+  --dry-run                                 - Preview the created issue without creating it                  
   --no-use-default-template                 - Do not use default template for the issue                      
   --no-interactive                          - Disable interactive prompts                                    
   -t, --title                <title>        - Title of the issue
@@ -331,7 +334,8 @@ Options:
   --file           <path>     - Path to a JSON file describing the issue batch  
   --team           <team>     - Team key override for the batch file            
   --project        <project>  - Project name override for the batch file        
-  -j, --json                  - Output as JSON
+  -j, --json                  - Output as JSON                                  
+  --dry-run                   - Preview the batch without creating issues
 ```
 
 ### update
@@ -347,23 +351,26 @@ Description:
 
 Options:
 
-  -h, --help                         - Show this help.                                                
-  -w, --workspace     <slug>         - Target workspace (uses credentials)                            
-  -a, --assignee      <assignee>     - Assign the issue to 'self' or someone (by username or name)    
-  --due-date          <dueDate>      - Due date of the issue                                          
-  --clear-due-date                   - Clear the due date on the issue                                
-  --parent            <parent>       - Parent issue (if any) as a team_number code                    
-  -p, --priority      <priority>     - Priority of the issue (1-4, descending priority)               
-  --estimate          <estimate>     - Points estimate of the issue                                   
-  -d, --description   <description>  - Description of the issue                                       
-  --description-file  <path>         - Read description from a file (preferred for markdown content)  
-  -l, --label         <label>        - Issue label associated with the issue. May be repeated.        
-  --team              <team>         - Team associated with the issue (if not your default team)      
-  --project           <project>      - Name or slug ID of the project with the issue                  
-  -s, --state         <state>        - Workflow state for the issue (by name or type)                 
-  --milestone         <milestone>    - Name of the project milestone                                  
-  --cycle             <cycle>        - Cycle name, number, or 'active'                                
-  -j, --json                         - Output as JSON                                                 
+  -h, --help                         - Show this help.                                                     
+  -w, --workspace     <slug>         - Target workspace (uses credentials)                                 
+  -a, --assignee      <assignee>     - Assign the issue to 'self' or someone (by username or name)         
+  --due-date          <dueDate>      - Due date of the issue                                               
+  --clear-due-date                   - Clear the due date on the issue                                     
+  --parent            <parent>       - Parent issue (if any) as a team_number code                         
+  -p, --priority      <priority>     - Priority of the issue (1-4, descending priority)                    
+  --estimate          <estimate>     - Points estimate of the issue                                        
+  -d, --description   <description>  - Description of the issue                                            
+  --comment           <comment>      - Add a comment after successfully updating the issue                 
+  --description-file  <path>         - Read description from a file (preferred for markdown content)       
+  -l, --label         <label>        - Issue label associated with the issue. May be repeated.             
+  --team              <team>         - Team associated with the issue (if not your default team)           
+  --project           <project>      - Name or slug ID of the project with the issue                       
+  -s, --state         <state>        - Workflow state for the issue (by name or type)                      
+  --milestone         <milestone>    - Name of the project milestone                                       
+  --cycle             <cycle>        - Cycle name, number, or 'active'                                     
+  --no-interactive                   - Accepted for compatibility; issue update is always non-interactive  
+  -j, --json                         - Output as JSON                                                      
+  --dry-run                          - Preview the update without mutating the issue                       
   -t, --title         <title>        - Title of the issue
 ```
 
@@ -583,10 +590,10 @@ Options:
 
 Commands:
 
-  add     [issueId]    - Add a comment to an issue or reply to a comment
-  delete  <commentId>  - Delete a comment                               
-  update  <commentId>  - Update an existing comment                     
-  list    [issueId]    - List comments for an issue
+  add     [issueId] [body]  - Add a comment to an issue or reply to a comment
+  delete  <commentId>       - Delete a comment                               
+  update  <commentId>       - Update an existing comment                     
+  list    [issueId]         - List comments for an issue
 ```
 
 #### comment subcommands
@@ -594,7 +601,7 @@ Commands:
 ##### add
 
 ```
-Usage:   linear issue comment add [issueId]
+Usage:   linear issue comment add [issueId] [body]
 
 Description:
 
@@ -608,7 +615,8 @@ Options:
   --body-file      <path>      - Read comment body from a file (preferred for markdown content)  
   -p, --parent     <id>        - Parent comment ID for replies                                   
   -a, --attach     <filepath>  - Attach a file to the comment (can be used multiple times)       
-  -j, --json                   - Output as JSON
+  -j, --json                   - Output as JSON                                                  
+  --dry-run                    - Preview the comment without creating it
 ```
 
 ##### delete
@@ -654,9 +662,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help               - Show this help.                           
+  -w, --workspace  <slug>  - Target workspace (uses credentials)       
+  -j, --json               - Output as JSON                            
+  --no-pager               - Disable automatic paging for long output
 ```
 
 ### attach
@@ -714,9 +723,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON                       
+  -h, --help               - Show this help.                                    
+  -w, --workspace  <slug>  - Target workspace (uses credentials)                
+  -j, --json               - Output as JSON                                     
+  --dry-run                - Preview relation creation without mutating Linear  
 
 Examples:
 
@@ -737,9 +747,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help               - Show this help.                                    
+  -w, --workspace  <slug>  - Target workspace (uses credentials)                
+  -j, --json               - Output as JSON                                     
+  --dry-run                - Preview relation deletion without mutating Linear
 ```
 
 ##### list
