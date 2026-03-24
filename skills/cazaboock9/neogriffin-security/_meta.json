@@ -3,11 +3,16 @@
   "slug": "neogriffin-security",
   "displayName": "NeoGriffin Security",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1774316811636,
-    "commit": "https://github.com/openclaw/skills/commit/98c94796ec21a989b77a30ff487b754450bf65c7"
+    "version": "2.2.1",
+    "publishedAt": 1774317237533,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1774316811636,
+      "commit": "https://github.com/openclaw/skills/commit/98c94796ec21a989b77a30ff487b754450bf65c7"
+    },
     {
       "version": "2.1.0",
       "publishedAt": 1772999068757,
