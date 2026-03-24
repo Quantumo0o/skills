@@ -3,11 +3,16 @@
   "slug": "onchain-analyzer",
   "displayName": "Onchain Analyzer",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1773920589969,
-    "commit": "https://github.com/openclaw/skills/commit/25e3fb21ec5bf9f6dc86e87c1d6a440fa3967b10"
+    "version": "4.0.1",
+    "publishedAt": 1774313237373,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1773920589969,
+      "commit": "https://github.com/openclaw/skills/commit/25e3fb21ec5bf9f6dc86e87c1d6a440fa3967b10"
+    },
     {
       "version": "2.3.6",
       "publishedAt": 1773666646742,
