@@ -3,9 +3,15 @@
   "slug": "hitem3d",
   "displayName": "Hitem3D",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772898254472,
-    "commit": "https://github.com/openclaw/skills/commit/bbffcb71ce76debcc843ca8e4bf7908921512984"
+    "version": "0.2.0",
+    "publishedAt": 1774353468339,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772898254472,
+      "commit": "https://github.com/openclaw/skills/commit/bbffcb71ce76debcc843ca8e4bf7908921512984"
+    }
+  ]
 }
