@@ -3,11 +3,16 @@
   "slug": "baoyu-format-markdown",
   "displayName": "Baoyu Format Markdown",
   "latest": {
-    "version": "1.70.0",
-    "publishedAt": 1773730828334,
-    "commit": "https://github.com/openclaw/skills/commit/5994ec53f5980d94fef2f86a9cfe8c562b00997c"
+    "version": "1.76.1",
+    "publishedAt": 1774153369311,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.70.0",
+      "publishedAt": 1773730828334,
+      "commit": "https://github.com/openclaw/skills/commit/5994ec53f5980d94fef2f86a9cfe8c562b00997c"
+    },
     {
       "version": "1.60.0",
       "publishedAt": 1773287379771,
