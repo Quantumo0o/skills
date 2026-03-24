@@ -1,11 +1,17 @@
 {
   "owner": "ccconan",
   "slug": "agent-skills-creator-sn",
-  "displayName": "Agent-Skills-Creator-SN (Eng)",
+  "displayName": "Agent-Skills-Creator-SN",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773581382553,
-    "commit": "https://github.com/openclaw/skills/commit/abd58707aa2643b92853a86accc4e83c50aa253b"
+    "version": "1.0.4",
+    "publishedAt": 1774181144736,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773581382553,
+      "commit": "https://github.com/openclaw/skills/commit/abd58707aa2643b92853a86accc4e83c50aa253b"
+    }
+  ]
 }
