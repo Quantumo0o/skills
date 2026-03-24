@@ -1,82 +1,155 @@
 ---
-name: qianyi-wms-test
-version: 0.1.3
-description: 千易 Q-WMS 测试技能。安装意图统一返回安装页链接；库存查询调用 q-wms-flow。
+name: q-wms-test
+version: 1.0.29
+description: 千易 SaaS 智能助手（测试环境，WMS/ERP），负责库存、仓库、货主、库存日志查询；WMS 对话必须优先调用 q-wms-flow。
 user-invocable: true
 ---
 
-> **此文件是 `q-wms/SKILL.md` 的发布副本（ClawHub 用）。**
-> 请勿直接编辑此文件，修改请在 `q-wms/SKILL.md` 进行后同步过来。
+# q-wms
 
-<!-- BEGIN SYNC FROM q-wms/SKILL.md -->
+## 1) When to Use
 
-# q-wms-edi-inventory
+使用本 Skill 的场景：
+- 查库存、库存数量、库存明细
+- 查仓库、选择仓库、仓库列表
+- 查货主、选择货主、货主列表
+- 查库存变动日志
+- 查订单池、订单池配置、波次开关配置
+- 查订单完成情况、任务完成情况、任务异常排查
 
-## 核心规则
+不使用本 Skill 的场景：
+- 与 WMS/ERP 无关的闲聊/翻译/写作
 
-- 语言跟随用户；用户消息包含中文时，必须使用简体中文。
-- 安装意图优先级最高，覆盖所有上下文与流程状态。
-- 禁止臆测执行结果；没有真实工具结果时，不得回复“已安装/安装中/限流中/重试中”。
+---
 
-## 安装意图（最高优先级）
+## 2) Critical Rules
 
-若用户消息包含任一安装相关表达，直接回复安装页三行，不调用库存工具：
+1. 只要是 WMS/ERP 请求，必须先调用 `q-wms-flow`，禁止直接回答。
+2. 在多轮选择中，用户只回数字（如 `1/2/0/9`）时，也必须调用 `q-wms-flow`，禁止自己分页、禁止自己映射编码。
+3. 禁止使用历史记忆自行拼列表。仓库/货主列表只能来自本轮工具返回。
+4. 只要工具返回 `assistantReplyLines` 且非空，最终回复必须严格等于它按换行拼接后的文本；不得新增、删减、改写、翻译、换模板。
+5. 工具返回 `assistantReplyLines` 为空时，才根据 `data` 做补充说明。
+6. 编码参数只能来自用户明确输入或工具返回，不得猜测。
+7. 用户意图含“查货主/货主列表/所有货主”时，scene 必须是 `wms.owner.options`，禁止改调 `wms.inventory.query`。
 
-- `安装` / `重装` / `更新插件` / `启用插件`
-- `openclaw plugins install`
-- `clawhub install`
-- `q-wms-flow.tgz`
-- `qlink/q-claw/v1/plugin/install-page`
+---
 
-固定回复（中文场景）：
+## 3) Scene Routing
 
-1. `请点击安装 Q-WMS 插件：[安装 Q-WMS 插件](http://<TEST_SERVER_HOST>/qlink/q-claw/v1/plugin/install-page)`
-2. `页面会自动拉起 OpenClaw 安装助手完成安装。`
-3. `安装完成后回到对话继续使用。`
+| 用户意图 | scene |
+| --- | --- |
+| 查库存 | `wms.inventory.query` |
+| 查仓库 | `wms.warehouse.options` |
+| 查货主 | `wms.owner.options` |
+| 查库存日志 | `wms.stock.log.query` |
+| 查订单池/订单池配置 | `wms.order.pool.query` |
+| 查订单/任务完成情况与异常 | `wms.order.task.status.query` |
 
-约束：
+调用字段：`scene`、`userInput`、`params`（`tenantKey/openId` 由运行时注入）。
 
-- 不要输出终端安装命令。
-- 不要输出“我来帮你安装/我正在安装/是否监控进度/是否重试”等话术。
-- 不要输出外部风险模板（如 external_untrusted_content）。
+---
 
-## 库存与授权流程
+## 4) Call Patterns (Must Follow)
 
-非安装意图时，调用工具 `q-wms-flow`，参数至少包含：
+### 4.1 首轮
 
-- `scenario=inventory`
-- 当前用户原文放入 `userInput`（便于工具做意图识别）
-- `queryMode`：默认 `normal`；用户要求查整仓库存时改为 `warehouse_all`
-- 从渠道上下文传入 `tenantKey` 和 `openId`
+- 查库存：
+```json
+{"scene":"wms.inventory.query","userInput":"我要查库存","params":{}}
+```
 
-强制约束：
+- 查订单池：
+```json
+{"scene":"wms.order.pool.query","userInput":"查下我的订单池","params":{}}
+```
 
-- 库存/仓库/授权相关请求，必须先调用 `q-wms-flow` 再回复。
-- 若上一条助手回复属于库存链路并要求“选择仓库”或“输入 SKU”，则当前用户消息（包括短文本、单个编码、纯字母数字串）必须视为库存链路 follow-up，先调用 `q-wms-flow`；禁止跳转到其他知识检索类工具。
-- 在上述库存链路 follow-up 中，禁止调用 `feishu_doc` / `feishu_wiki` / `feishu_drive` / `feishu_bitable`。
-- 未拿到工具结果前，不得输出泛化授权步骤（如“获取授权链接/访问授权链接/完成授权”）。
-- 若工具结果包含 `assistantReplyLines` 且非空，必须逐行原样输出，不得改写、删减、补充。
+- 查订单/任务完成情况：
+```json
+{"scene":"wms.order.task.status.query","userInput":"查询订单和任务完成情况，排查异常","params":{}}
+```
 
-根据工具结果回复：
+- 查仓库：
+```json
+{"scene":"wms.warehouse.options","userInput":"查下仓库","params":{}}
+```
 
-- 如果 `code` 为 `USER_NOT_BOUND` / `REQUESTER_TENANT_KEY_REQUIRED` / `REQUESTER_OPEN_ID_REQUIRED`：
-  - 仅回复授权引导，不输出仓库/SKU提示。
-  - 优先使用 `authorizationGuide.verificationUri` 输出登录按钮，格式固定为：
-    1. `当前查询需先完成授权。`
-    2. `[点击登录授权]({verificationUri})`
-    3. `完成后直接继续发送你的查询即可。`
-- 如果 `code=CUSTOMER_FORBIDDEN`：
-  - 明确提示“当前账号对该货主无权限”，不要引导重新授权。
-- 如果 `stage=choose_warehouse`：
-  - 只展示 `仓库代码 - 仓库名称`，不展示地址/联系人/电话。
-- 如果 `stage=choose_sku`：
-  - 只提示输入 SKU（可逗号分隔）。
-- 如果有 `inventoryVOList`：
-  - 输出简洁库存结果摘要。
+- 查货主：
+```json
+{"scene":"wms.owner.options","userInput":"查下货主","params":{}}
+```
 
-## 失败兜底
+### 4.2 选择/翻页回合（关键）
 
-- 若工具不可用（如 `Tool q-wms-flow not found`），回复：
-  1. `当前环境还未安装 Q-WMS 插件，暂时无法查询。`
-  2. `请先安装插件：[安装 Q-WMS 插件](http://<TEST_SERVER_HOST>/qlink/q-claw/v1/plugin/install-page)`
-  3. `安装完成后请重新发送你的查询。`
+当上一轮结果是 `choose_warehouse` / `choose_owner`，用户回复 `1/2/0/9/...`：
+- 必须再次调用同一 scene；
+- `userInput` 原样传用户数字；
+- `params` 默认传 `{}`（不要本地推断编码）。
+
+示例：
+```json
+{"scene":"wms.inventory.query","userInput":"2","params":{}}
+```
+```json
+{"scene":"wms.inventory.query","userInput":"0","params":{}}
+```
+
+禁止行为：
+- 直接输出“第 2 页内容”而不调工具
+- 直接把 `2` 当 `warehouseCode/ownerCode`
+
+---
+
+## 5) Result Handling
+
+按顺序处理：
+1. `assistantReplyLines` 非空：直接输出。
+2. `AUTH_REQUIRED/AUTH_EXPIRED` 且无 `assistantReplyLines`：提示需要授权，并输出 `authorizationGuide.verificationUri`（若有）。
+   输出要求：必须使用可点击文字链接格式输出，如 `点击登录授权`（链接目标为 `verificationUri`）；不要只回裸 URL。
+3. `WAREHOUSE_REQUIRED`：优先调用 `wms.warehouse.options`（`params:{}`）拿候选仓库。
+4. `OWNER_REQUIRED`：若已知仓库，先调 `wms.owner.options`（仅带 `warehouseCode`）拿候选货主。
+5. 其他失败：输出 `message`，并给“重试/切换条件”的下一步。
+
+---
+
+## 6) Inventory Constraints
+
+- `wms.inventory.query` 合法参数：`warehouseCode`、`ownerCode`、`skus`、`queryMode`。
+- 新一轮“查库存”不要复用旧轮仓库/货主；先走工具引导。
+- 有候选列表时，不要求用户手填编码。
+- 当 `wms.inventory.query` 返回 `assistantReplyLines` 为空时，库存描述优先使用 `data.queryOwnerName`、`data.queryOwnerCode`、`data.ownerScoped`。
+- 当 `data.ownerScoped=false` 或 `data.queryOwnerCode` 为空时，必须描述为“全部货主”，禁止从 `data.inventoryRows` 的前几行推断某个具体货主。
+- 当返回包含 `data.resultNote` 时，回复中必须包含该说明，帮助用户理解当前返回范围。
+- 当 `data.resultTruncated=true` 时，必须明确告知“当前仅返回默认第 1 页（pageNo=1,pageSize=200）”，避免用户误解为全量结果。
+
+---
+
+## 7) Stock Log
+
+`wms.stock.log.query` 且 `assistantReplyLines` 为空时：
+- 先结论
+- 再关键记录
+- 最后异常点（数量跳变/链路断点/可疑操作）
+
+---
+
+## 8) Order Pool
+
+`wms.order.pool.query` 且 `assistantReplyLines` 为空时：
+- 必须先说明仓库（`warehouseCode` / `warehouseName`）与总订单数（`totalOrders`）。
+- 分类说明优先使用 `classSummaryRows`，每行至少包含：分类名（`className`）与订单数（`orderCount`）。
+- 若 `maxOrdersForWave` / `countPerWave` / `leftoverHandling` 有值，需一并带出；为空时明确说明“未配置/为空”。
+- 波次开关使用 `waveConfigRows`：按 `field + selected` 输出（如 `AUTO_ALLOCATE`、`AUTO_RELEASE`）。
+- 若 `ruleConfigAvailable=false`，必须明确告知“当前仅拿到实时订单池与波次开关，未读取到规则配置明细”。
+- 若有 `resultNote`，回复中应包含该说明。
+
+---
+
+## 9) Order Task Status
+
+`wms.order.task.status.query` 且 `assistantReplyLines` 为空时：
+- 先说明仓库（`warehouseCode` / `warehouseName`）与风险等级概况（`highRiskSignalCount`、`mediumRiskSignalCount`）。
+- 订单完成情况使用 `orderCard`：至少覆盖 `toReleaseQty`、`toPickQty`、`toPackQty`、`toShipQty`、`shippedQty`、`openQty`。
+- 任务与异常使用 `taskCard`：至少覆盖 `heldTaskQty`、`suspendedTaskQty`、`pickExceptionQty`、`sortExceptionQty`、`packExceptionQty`、`waveAllocateFailed`。
+- 异常结论优先基于 `anomalySignals`：按 `severity=HIGH/MEDIUM/LOW` 分层说明，并给出排查优先级。
+- 趋势引用 `orderTrend7Days`（近 7 天出库数量）做补充判断，避免只看单时点。
+- 若有 `resultNote`，回复中应包含该说明。
