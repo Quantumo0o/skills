@@ -25,10 +25,13 @@ def _bootstrap_shared_senseaudio_env() -> None:
 
 _bootstrap_shared_senseaudio_env()
 
+from audioclaw_paths import get_clone_voices_path
+from senseaudio_api_guard import ensure_runtime_api_key
 from senseaudio_tts_client import SenseAudioError, synthesize
 
 
 DEFAULT_PREFERENCES_FILE = Path.home() / ".codex" / "senseaudio_openclaw_voice_preferences.json"
+DEFAULT_CLONE_VOICES_FILE = get_clone_voices_path()
 
 
 OFFICIAL_VOICES = [
@@ -486,6 +489,112 @@ def get_voice(voice_id: str) -> Optional[Dict[str, object]]:
     return None
 
 
+def load_clone_voices(path: Path) -> Dict[str, object]:
+    if not path.exists():
+        return {"voices": {}}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {"voices": {}}
+    if not isinstance(data, dict):
+        return {"voices": {}}
+    voices = data.get("voices")
+    if not isinstance(voices, dict):
+        data["voices"] = {}
+    return data
+
+
+def save_clone_voices(path: Path, data: Dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def build_custom_voice_entry(
+    voice_id: str,
+    *,
+    name: str = "",
+    validated_access: bool = False,
+    source: str = "custom",
+) -> Dict[str, object]:
+    family = voice_id.split("_", 1)[0] if "_" in voice_id else voice_id.split("-", 1)[0]
+    if voice_id.startswith("vc-"):
+        family = "clone_voice"
+    return {
+        "voice_id": voice_id,
+        "family": family or "custom",
+        "name": name or ("Cloned Voice" if voice_id.startswith("vc-") else "Custom Voice"),
+        "tier": "clone" if voice_id.startswith("vc-") else "custom",
+        "official_emotion": "自定义",
+        "tags": ["custom", "clone"] if voice_id.startswith("vc-") else ["custom"],
+        "validated_access": validated_access,
+        "source": source,
+    }
+
+
+def get_clone_voice_entry(clone_data: Dict[str, object], voice_id: str) -> Optional[Dict[str, object]]:
+    voices = clone_data.get("voices")
+    if not isinstance(voices, dict):
+        return None
+    raw = voices.get(voice_id)
+    if not isinstance(raw, dict):
+        return None
+    return build_custom_voice_entry(
+        voice_id,
+        name=str(raw.get("name") or ""),
+        validated_access=bool(raw.get("validated_access", False)),
+        source=str(raw.get("source") or "registered_clone"),
+    )
+
+
+def upsert_clone_voice(
+    clone_data: Dict[str, object],
+    *,
+    voice_id: str,
+    name: str = "",
+    validated_access: Optional[bool] = None,
+    source: str = "registered_clone",
+) -> Dict[str, object]:
+    voices = clone_data.setdefault("voices", {})
+    if not isinstance(voices, dict):
+        clone_data["voices"] = {}
+        voices = clone_data["voices"]
+    entry = voices.get(voice_id)
+    if not isinstance(entry, dict):
+        entry = {}
+    entry["voice_id"] = voice_id
+    if name:
+        entry["name"] = name
+    elif "name" not in entry:
+        entry["name"] = "Cloned Voice" if voice_id.startswith("vc-") else "Custom Voice"
+    if validated_access is not None:
+        entry["validated_access"] = bool(validated_access)
+    elif "validated_access" not in entry:
+        entry["validated_access"] = False
+    entry["source"] = source
+    voices[voice_id] = entry
+    return entry
+
+
+def all_voices(clone_data: Dict[str, object]) -> List[Dict[str, object]]:
+    voices: List[Dict[str, object]] = list(OFFICIAL_VOICES)
+    raw = clone_data.get("voices")
+    if isinstance(raw, dict):
+        for voice_id, payload in raw.items():
+            if any(item["voice_id"] == voice_id for item in voices):
+                continue
+            if not isinstance(payload, dict):
+                payload = {}
+            voices.append(
+                build_custom_voice_entry(
+                    voice_id,
+                    name=str(payload.get("name") or ""),
+                    validated_access=bool(payload.get("validated_access", False)),
+                    source=str(payload.get("source") or "registered_clone"),
+                )
+            )
+    return voices
+
+
 def load_preferences(path: Path) -> Dict[str, object]:
     if not path.exists():
         return {"users": {}}
@@ -607,39 +716,42 @@ def score_voice(
     scene: str,
     validated_only: bool,
 ) -> int:
-    if validated_only and not voice["validated_access"]:
+    if validated_only and not bool(voice.get("validated_access")):
         return -10_000
 
     score = 0
-    if voice["validated_access"]:
+    if bool(voice.get("validated_access")):
         score += 20
 
-    official_emotion = str(voice["official_emotion"])
+    official_emotion = str(voice.get("official_emotion") or "")
     if official_emotion in preset["official_emotions"]:
         score += 50
-    if scene in voice["tags"]:
+    tags = set(voice.get("tags") or [])
+    if scene in tags:
         score += 25
 
-    tags = set(voice["tags"])
     for tag in preset["tags"]:
         if tag in tags:
             score += 8
 
     scene_hints = SCENE_HINTS.get(scene, [])
-    if voice["voice_id"] in scene_hints:
-        score += max(15 - scene_hints.index(voice["voice_id"]) * 3, 1)
+    if str(voice.get("voice_id") or "") in scene_hints:
+        score += max(15 - scene_hints.index(str(voice.get("voice_id") or "")) * 3, 1)
 
     return score
 
 
-def resolve_voice(request: Dict[str, object], validated_only: bool) -> Dict[str, object]:
+def resolve_voice(request: Dict[str, object], validated_only: bool, clone_data: Dict[str, object]) -> Dict[str, object]:
     emotion = str(request.get("emotion") or "neutral").strip().lower()
     scene = str(request.get("scene") or "assistant").strip()
     preset = EMOTION_PRESETS.get(emotion, EMOTION_PRESETS["neutral"])
+    voices = all_voices(clone_data)
 
     requested_voice_id = request.get("voice_id")
     if requested_voice_id:
         voice = get_voice(str(requested_voice_id))
+        if not voice:
+            voice = get_clone_voice_entry(clone_data, str(requested_voice_id))
         if voice:
             return {
                 "voice": voice,
@@ -647,14 +759,20 @@ def resolve_voice(request: Dict[str, object], validated_only: bool) -> Dict[str,
                 "emotion_strategy": "parameter_shaping",
                 "preset": preset,
             }
+        return {
+            "voice": build_custom_voice_entry(str(requested_voice_id), source="explicit_voice_id"),
+            "resolution_mode": "exact_voice_id",
+            "emotion_strategy": "parameter_shaping",
+            "preset": preset,
+        }
 
     requested_family = request.get("voice_family")
     if requested_family:
         family_candidates = [
             voice
-            for voice in OFFICIAL_VOICES
+            for voice in voices
             if voice["family"] == requested_family
-            and (voice["validated_access"] or not validated_only)
+            and (bool(voice.get("validated_access")) or not validated_only)
         ]
         family_candidates.sort(
             key=lambda voice: score_voice(voice, preset=preset, scene=scene, validated_only=validated_only),
@@ -673,7 +791,7 @@ def resolve_voice(request: Dict[str, object], validated_only: bool) -> Dict[str,
             }
 
     candidates = sorted(
-        OFFICIAL_VOICES,
+        voices,
         key=lambda voice: score_voice(voice, preset=preset, scene=scene, validated_only=validated_only),
         reverse=True,
     )
@@ -686,7 +804,7 @@ def resolve_voice(request: Dict[str, object], validated_only: bool) -> Dict[str,
         None,
     )
     if not best and validated_only:
-        return resolve_voice(request, validated_only=False)
+        return resolve_voice(request, validated_only=False, clone_data=clone_data)
     if not best:
         raise SystemExit("No compatible voice candidate found.")
 
@@ -907,6 +1025,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--chmod", default="644")
     parser.add_argument("--openclaw-workspace-root")
     parser.add_argument("--preferences-file")
+    parser.add_argument("--clone-voices-file")
     parser.add_argument("--preference-key")
     parser.add_argument("--reply-mode", choices=["voice", "text", "auto"])
     parser.add_argument("--set-reply-mode", choices=["voice", "text", "auto"])
@@ -914,23 +1033,36 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--set-default-emotion")
     parser.add_argument("--set-default-scene")
     parser.add_argument("--show-preference", action="store_true")
+    parser.add_argument("--show-clone-voices", action="store_true")
+    parser.add_argument("--register-clone-voice-id")
+    parser.add_argument("--register-clone-name")
+    parser.add_argument("--remove-clone-voice-id")
     parser.add_argument("--api-key-env", default="SENSEAUDIO_API_KEY")
     parser.add_argument("--list-voices", action="store_true")
     parser.add_argument("--list-emotions", action="store_true")
     parser.add_argument("--list-scenes", action="store_true")
     parser.add_argument("--allow-fallback", dest="allow_fallback", action="store_true")
     parser.add_argument("--no-fallback", dest="allow_fallback", action="store_false")
-    parser.add_argument("--strict-voice", action="store_true")
-    parser.add_argument("--validated-only", action="store_true")
-    parser.set_defaults(allow_fallback=True)
+    parser.add_argument("--strict-voice", dest="strict_voice", action="store_true")
+    parser.add_argument("--no-strict-voice", dest="strict_voice", action="store_false")
+    parser.add_argument("--validated-only", dest="validated_only", action="store_true")
+    parser.add_argument("--no-validated-only", dest="validated_only", action="store_false")
+    parser.set_defaults(allow_fallback=None, strict_voice=None, validated_only=None)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
 
+    clone_voices_path = Path(
+        args.clone_voices_file
+        or os.getenv("SENSEAUDIO_CLONE_VOICES_FILE")
+        or DEFAULT_CLONE_VOICES_FILE
+    )
+    clone_data = load_clone_voices(clone_voices_path)
+
     if args.list_voices:
-        json.dump(OFFICIAL_VOICES, sys.stdout, ensure_ascii=False, indent=2)
+        json.dump(all_voices(clone_data), sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
     if args.list_emotions:
@@ -950,6 +1082,57 @@ def main() -> int:
     file_mode = parse_file_mode(args.chmod)
     workspace_root = Path(args.openclaw_workspace_root).expanduser() if args.openclaw_workspace_root else None
     preferences_data = load_preferences(preferences_path)
+
+    if args.register_clone_voice_id:
+        entry = upsert_clone_voice(
+            clone_data,
+            voice_id=str(args.register_clone_voice_id).strip(),
+            name=str(args.register_clone_name or "").strip(),
+            source="manual_registration",
+        )
+        save_clone_voices(clone_voices_path, clone_data)
+        json.dump(
+            {
+                "clone_voices_file": str(clone_voices_path),
+                "registered": entry,
+            },
+            sys.stdout,
+            ensure_ascii=False,
+            indent=2,
+        )
+        sys.stdout.write("\n")
+        return 0
+
+    if args.remove_clone_voice_id:
+        voices = clone_data.get("voices")
+        removed = None
+        if isinstance(voices, dict):
+            removed = voices.pop(str(args.remove_clone_voice_id).strip(), None)
+        save_clone_voices(clone_voices_path, clone_data)
+        json.dump(
+            {
+                "clone_voices_file": str(clone_voices_path),
+                "removed": removed,
+            },
+            sys.stdout,
+            ensure_ascii=False,
+            indent=2,
+        )
+        sys.stdout.write("\n")
+        return 0
+
+    if args.show_clone_voices:
+        json.dump(
+            {
+                "clone_voices_file": str(clone_voices_path),
+                "voices": clone_data.get("voices", {}),
+            },
+            sys.stdout,
+            ensure_ascii=False,
+            indent=2,
+        )
+        sys.stdout.write("\n")
+        return 0
 
     wants_preference_op = any(
         [
@@ -978,6 +1161,13 @@ def main() -> int:
                 default_scene=args.set_default_scene,
             )
             save_preferences(preferences_path, preferences_data)
+            if args.set_default_voice_id and str(args.set_default_voice_id).startswith("vc-"):
+                upsert_clone_voice(
+                    clone_data,
+                    voice_id=str(args.set_default_voice_id),
+                    source="preference_default",
+                )
+                save_clone_voices(clone_voices_path, clone_data)
         else:
             preference = get_preference(preferences_data, args.preference_key)
 
@@ -991,9 +1181,7 @@ def main() -> int:
             sys.stdout.write("\n")
             return 0
 
-    api_key = os.getenv(args.api_key_env)
-    if not api_key:
-        raise SystemExit(f"Missing API key in ${args.api_key_env}.")
+    api_key = ensure_runtime_api_key(os.getenv(args.api_key_env), args.api_key_env, purpose="tts")
 
     request = load_request(args)
     preference_key = request.get("preference_key")
@@ -1026,7 +1214,7 @@ def main() -> int:
         return 0
 
     text = str(request["text"]).strip()
-    resolved = resolve_voice(request, validated_only=bool(request.get("validated_only", False)))
+    resolved = resolve_voice(request, validated_only=bool(request.get("validated_only", False)), clone_data=clone_data)
     settings = build_effective_settings(request, resolved)
     selected_voice = resolved["voice"]
 
@@ -1105,6 +1293,7 @@ def main() -> int:
                 "voice_family": None,
             },
             validated_only=True,
+            clone_data=clone_data,
         )["voice"]
         if fallback["voice_id"] != selected_voice["voice_id"]:
             attempt_voices.append(fallback)
@@ -1113,6 +1302,7 @@ def main() -> int:
     final_trace_id = None
     final_voice = None
     extra_info = None
+    model_used = None
     final_source_cache_file = None
     final_delivery_cache_file = None
     final_cache_hit = False
@@ -1150,6 +1340,7 @@ def main() -> int:
                 attempt_cache_file.write_bytes(result.audio_bytes)
                 final_trace_id = result.trace_id
                 extra_info = result.extra_info
+                model_used = result.model_used
             else:
                 result = None
             ensure_file_mode(attempt_cache_file, file_mode)
@@ -1167,6 +1358,15 @@ def main() -> int:
             final_source_cache_file = attempt_cache_file
             final_delivery_cache_file = attempt_delivery_cache_file
             final_cache_hit = False
+            if str(voice.get("voice_id") or "").startswith("vc-"):
+                upsert_clone_voice(
+                    clone_data,
+                    voice_id=str(voice["voice_id"]),
+                    name=str(voice.get("name") or ""),
+                    validated_access=True,
+                    source=str(voice.get("source") or "runtime_success"),
+                )
+                save_clone_voices(clone_voices_path, clone_data)
             break
         except SenseAudioError as exc:
             last_exc = exc
@@ -1223,6 +1423,7 @@ def main() -> int:
             "bytes": final_delivery_cache_file.stat().st_size,
             "trace_id": final_trace_id,
             "extra_info": extra_info,
+            "model_used": model_used,
         },
     }
     json.dump(manifest, sys.stdout, ensure_ascii=False, indent=2)

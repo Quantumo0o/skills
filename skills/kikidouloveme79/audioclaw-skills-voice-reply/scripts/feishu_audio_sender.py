@@ -11,9 +11,19 @@ import urllib.request
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+for parent in SCRIPT_DIR.parents:
+    candidate = parent / "_shared" / "audioclaw_paths.py"
+    if candidate.exists():
+        candidate_dir = str(candidate.parent)
+        if candidate_dir not in sys.path:
+            sys.path.insert(0, candidate_dir)
+        break
 
-DEFAULT_CONFIG_PATH = Path.home() / ".picoclaw" / "config.json"
-DEFAULT_WORKSPACE = Path.home() / ".picoclaw" / "workspace"
+from audioclaw_paths import get_config_path, get_workspace_root
+
+DEFAULT_CONFIG_PATH = get_config_path()
+DEFAULT_WORKSPACE = get_workspace_root()
 CHAT_ID_PATTERN = re.compile(r'oc_[0-9a-z]+')
 
 
@@ -113,6 +123,16 @@ def infer_chat_id(workspace_root: Path, explicit_chat_id: str, session_file: str
         chat_id = extract_chat_id(candidate)
         if chat_id:
             return chat_id, str(candidate)
+    state_path = workspace_root / "state" / "state.json"
+    try:
+        state = load_json(state_path)
+    except SystemExit:
+        state = {}
+    last_channel = str(state.get("last_channel") or "").strip()
+    if last_channel.startswith("feishu:"):
+        chat_id = last_channel.split(":", 1)[1].strip()
+        if chat_id:
+            return chat_id, str(state_path)
     raise SystemExit("could not infer feishu chat_id from session logs; pass --chat-id")
 
 

@@ -8,9 +8,19 @@ from pathlib import Path
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+for parent in SCRIPT_DIR.parents:
+    candidate = parent / "_shared" / "audioclaw_paths.py"
+    if candidate.exists():
+        candidate_dir = str(candidate.parent)
+        if candidate_dir not in sys.path:
+            sys.path.insert(0, candidate_dir)
+        break
+
+from audioclaw_paths import get_workspace_root
+
 SWITCHBOARD_SCRIPT = SCRIPT_DIR / "openclaw_voice_switchboard.py"
 FEISHU_AUDIO_SENDER = SCRIPT_DIR / "feishu_audio_sender.py"
-DEFAULT_WORKSPACE = Path.home() / ".picoclaw" / "workspace"
+DEFAULT_WORKSPACE = get_workspace_root()
 
 
 def run_switchboard(args: list[str], env: dict) -> dict:
@@ -49,7 +59,14 @@ def main() -> int:
     parser.add_argument("--volume", type=float)
     parser.add_argument("--preference-key")
     parser.add_argument("--reply-mode")
-    parser.add_argument("--workspace-root", default=os.getenv("PICOCLAW_WORKSPACE", str(DEFAULT_WORKSPACE)))
+    parser.add_argument(
+        "--workspace-root",
+        default=(
+            os.getenv("AUDIOCLAW_WORKSPACE")
+            or os.getenv("PICOCLAW_WORKSPACE")
+            or str(DEFAULT_WORKSPACE)
+        ),
+    )
     parser.add_argument("--delivery-profile", default="feishu_voice", choices=["default", "feishu_voice"])
     parser.add_argument("--api-key-env", default="SENSEAUDIO_API_KEY")
     parser.add_argument("--chat-id")
@@ -137,7 +154,8 @@ def main() -> int:
             "The Feishu audio message is already sent.",
             "Do not call the `send_file` tool for this audio again.",
             "Do not send the MEDIA reference as text.",
-            "Do not send any follow-up confirmation text after the audio unless the user explicitly asks for text too.",
+            "Prefer no follow-up confirmation text after the audio.",
+            "If the host runtime still requires one final assistant message, send one short natural Chinese line such as: 我已经用语音回复你了。",
         ],
         "send_result": send_result,
         "manifest": manifest,

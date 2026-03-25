@@ -4,6 +4,18 @@ Sources used:
 - `https://senseaudio.cn/docs/text_to_speech_api`
 - `https://senseaudio.cn/docs/voice_api`
 
+# Voice lookup rule
+
+When AudioClaw needs to find or verify a voice:
+- Check the local runtime catalog first with `python3 scripts/openclaw_voice_switchboard.py --list-voices`
+- If the user asks for the official public voice list, pricing tier, or a voice not present in the local catalog, open `https://senseaudio.cn/docs/voice_api`
+- Treat `https://senseaudio.cn/docs/voice_api` as the canonical public reference for:
+  - official voice names
+  - `voice_id`
+  - free / VIP / SVIP package notes
+  - whether a voice family exposes multiple emotional variants
+- After selecting a candidate `voice_id`, still validate it at runtime because API-key permissions may differ across accounts
+
 Confirmed public TTS request fields:
 - `model`
 - `text`
@@ -24,13 +36,13 @@ Important boundary:
 - The public TTS docs do not show a standalone `emotion` field.
 - Emotion is surfaced in practice through different official `voice_id` variants and voice-family bundles.
 - The voice API page also states that multi-scene emotional switching such as `温柔 / 严肃 / 活力` is part of custom or selected voice offerings.
-- For OpenClaw final-file generation, prefer non-stream TTS unless you truly need token-by-token playback. It is simpler and avoids stream reassembly edge cases.
+- For AudioClaw final-file generation, prefer non-stream TTS unless you truly need token-by-token playback. It is simpler and avoids stream reassembly edge cases.
 - The current official HTTP TTS path still authenticates with `Authorization: Bearer API_KEY`.
 - The API key page shows both `API Key` and `Public Key`, but the public TTS HTTP docs do not require `Public Key` for this server-side path.
 
 # Why this skill exists
 
-OpenClaw usually wants a stable contract:
+AudioClaw usually wants a stable contract:
 - pass text
 - pass desired tone
 - get back one local audio file and a trace id
@@ -40,11 +52,11 @@ This skill hides three runtime problems:
 - a requested paid voice may not be available to the current key
 - repeated replies should reuse cached audio instead of regenerating it
 - some users want a persistent "always reply with voice" mode
-- OpenClaw media send may fail if the output file is not readable by the sender or is not referenced relative to the workspace
-- some Feishu-style voice channels prefer `ogg/opus`, while SenseAudio public TTS returns `mp3/wav/pcm/flac`
-- PicoClaw may try `send_file(path=...)` even when Feishu really needs an `audio` message type
+- AudioClaw media send may fail if the output file is not readable by the sender or is not referenced relative to the workspace
+- some Feishu-style voice channels prefer `ogg/opus`, while the public TTS service returns `mp3/wav/pcm/flac`
+- AudioClaw may try `send_file(path=...)` even when Feishu really needs an `audio` message type
 
-# OpenClaw request examples
+# AudioClaw request examples
 
 Basic assistant reply:
 
@@ -104,7 +116,7 @@ Force a Feishu-friendly voice-note delivery:
 
 # Response shape
 
-The main script prints a JSON manifest. The fields OpenClaw usually needs are:
+The main script prints a JSON manifest. The fields AudioClaw usually needs are:
 - `delivery.reply_mode`
 - `delivery.voice_enabled`
 - `delivery.delivery_profile`
@@ -117,7 +129,7 @@ The main script prints a JSON manifest. The fields OpenClaw usually needs are:
 - `audio.path`
 - `audio.trace_id`
 
-The PicoClaw wrapper script prints:
+The AudioClaw wrapper script prints:
 - `mode`
 - `audio_path`
 - `chat_id`
@@ -125,19 +137,19 @@ The PicoClaw wrapper script prints:
 - `send_result`
 - `manifest`
 
-# OpenClaw workspace note
+# AudioClaw workspace note
 
 For Feishu or Lark media sending, the most reliable pattern is:
-- write the output under the OpenClaw workspace
+- write the output under the AudioClaw workspace
 - keep the file mode readable, typically `0644`
 - send `MEDIA:./relative/path` instead of a random absolute path when the channel expects workspace-relative media
 - if the downstream channel expects a voice-note style upload, use `delivery_profile=feishu_voice` so the final file is transcoded to `ogg/opus`
 - this publishable bundle does not include a bundled ffmpeg binary; use system `ffmpeg` or install `imageio-ffmpeg`
 - if you do not provide `--out` but do provide `--openclaw-workspace-root`, this skill will now write into `workspace/state/audio/` automatically to avoid fragile temp files at the workspace root
-- current OpenClaw docs still describe `MEDIA:...` lines for outbound attachments, but this PicoClaw environment is not rendering them
-- PicoClaw's generic `send_file` path is fine for normal files, but Feishu voice notes need official upload plus `msg_type=audio`
-- for PicoClaw on Feishu, prefer `scripts/picoclaw_voice_reply.py` and let it send the audio directly
-- do not pass the local path or `MEDIA:...` to the `message` tool, because PicoClaw will send those strings literally
+- current AudioClaw docs still describe `MEDIA:...` lines for outbound attachments, but this AudioClaw environment is not rendering them
+- AudioClaw's generic `send_file` path is fine for normal files, but Feishu voice notes need official upload plus `msg_type=audio`
+- for AudioClaw on Feishu, prefer `scripts/picoclaw_voice_reply.py` and let it send the audio directly
+- do not pass the local path or `MEDIA:...` to the `message` tool, because AudioClaw will send those strings literally
 
 # Notes for same-speaker emotion switching
 

@@ -29,9 +29,10 @@ class TTSResult:
     audio_bytes: bytes
     trace_id: Optional[str]
     extra_info: Optional[Dict[str, object]]
+    model_used: Optional[str] = None
 
 
-def _parse_sse_audio(response) -> TTSResult:
+def _parse_sse_audio(response, *, model_used: Optional[str] = None) -> TTSResult:
     audio_parts = []
     trace_id = None
     extra_info = None
@@ -65,10 +66,10 @@ def _parse_sse_audio(response) -> TTSResult:
     audio_bytes = b"".join(audio_parts)
     if not audio_bytes:
         raise SenseAudioError("No audio data returned.", trace_id=trace_id)
-    return TTSResult(audio_bytes=audio_bytes, trace_id=trace_id, extra_info=extra_info)
+    return TTSResult(audio_bytes=audio_bytes, trace_id=trace_id, extra_info=extra_info, model_used=model_used)
 
 
-def _parse_json_audio(body: str) -> TTSResult:
+def _parse_json_audio(body: str, *, model_used: Optional[str] = None) -> TTSResult:
     try:
         payload = json.loads(body)
     except json.JSONDecodeError as exc:
@@ -94,7 +95,21 @@ def _parse_json_audio(body: str) -> TTSResult:
         audio_bytes=bytes.fromhex(audio_hex),
         trace_id=trace_id,
         extra_info=payload.get("extra_info"),
+        model_used=model_used,
     )
+
+
+def _candidate_models(requested_model: str, voice_id: str) -> list[str]:
+    if requested_model != "auto":
+        return [requested_model]
+    if voice_id.startswith("vc-"):
+        return ["SenseAudio-TTS-1.5", "SenseAudio-TTS-1.0"]
+    return ["SenseAudio-TTS-1.0"]
+
+
+def _supports_capability_error(exc: SenseAudioError) -> bool:
+    haystack = f"{exc} {exc.raw_body or ''}".lower()
+    return "model does not support this capability" in haystack
 
 
 def synthesize(
@@ -104,52 +119,59 @@ def synthesize(
     voice_id: str,
     audio_format: str = "mp3",
     sample_rate: int = 32000,
-    model: str = "SenseAudio-TTS-1.0",
+    model: str = "auto",
     speed: float = 1.0,
     volume: float = 1.0,
     pitch: int = 0,
     stream: bool = False,
     timeout: int = 120,
 ) -> TTSResult:
-    payload = {
-        "model": model,
-        "text": text,
-        "stream": stream,
-        "voice_setting": {
-            "voice_id": voice_id,
-            "speed": speed,
-            "vol": volume,
-            "pitch": pitch,
-        },
-        "audio_setting": {
-            "format": audio_format,
-            "sample_rate": sample_rate,
-        },
-    }
+    last_exc: Optional[SenseAudioError] = None
+    for candidate_model in _candidate_models(model, voice_id):
+        payload = {
+            "model": candidate_model,
+            "text": text,
+            "stream": stream,
+            "voice_setting": {
+                "voice_id": voice_id,
+                "speed": speed,
+                "vol": volume,
+                "pitch": pitch,
+            },
+            "audio_setting": {
+                "format": audio_format,
+                "sample_rate": sample_rate,
+            },
+        }
 
-    request = urllib.request.Request(
-        API_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "Codex-SenseAudio-OpenClaw-Voice/1.0",
-        },
-        method="POST",
-    )
+        request = urllib.request.Request(
+            API_URL,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": "Codex-SenseAudio-OpenClaw-Voice/1.0",
+            },
+            method="POST",
+        )
 
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            if stream:
-                return _parse_sse_audio(response)
-            body = response.read().decode("utf-8", "replace")
-            return _parse_json_audio(body)
-    except urllib.error.HTTPError as exc:
-        body = exc.read().decode("utf-8", "replace")
-        raise SenseAudioError(
-            f"HTTP {exc.code}: {body}",
-            status_code=exc.code,
-            raw_body=body,
-        ) from exc
-    except urllib.error.URLError as exc:
-        raise SenseAudioError(f"Network error: {exc}") from exc
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                if stream:
+                    return _parse_sse_audio(response, model_used=candidate_model)
+                body = response.read().decode("utf-8", "replace")
+                return _parse_json_audio(body, model_used=candidate_model)
+        except urllib.error.HTTPError as exc:
+            body = exc.read().decode("utf-8", "replace")
+            error = SenseAudioError(
+                f"HTTP {exc.code}: {body}",
+                status_code=exc.code,
+                raw_body=body,
+            )
+            last_exc = error
+            if voice_id.startswith("vc-") and _supports_capability_error(error):
+                continue
+            raise error from exc
+        except urllib.error.URLError as exc:
+            raise SenseAudioError(f"Network error: {exc}") from exc
+    raise last_exc or SenseAudioError("No compatible TTS model found.")
