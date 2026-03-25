@@ -5,7 +5,7 @@
   - query parameters:
     - symbol (required): trading pair symbol, e.g. `BTCUSDT`, `ETHUSDT`
     - interval (required): kline interval. Supported values: `1m`, `3m`, `5m`, `15m`, `30m`, `1h`, `2h`, `4h`, `6h`, `8h`, `12h`, `1d`, `3d`, `1w`, `1M`
-    - exchange (required): exchange name. Supported values: `Binance`, `Hyper`, `Aster`, `Grvt`, `StandX`, `Lighter`
+    - exchange (required): exchange name. Supported values: `Binance`, `Taco`, `Aster`, `Grvt`, `StandX`, `Lighter`
     - start_time (optional): start time in Unix milliseconds. If omitted together with end_time, returns the latest 100 klines.
     - end_time (optional): end time in Unix milliseconds. If omitted together with start_time, returns the latest 100 klines.
 - response (example below in json format):
@@ -51,7 +51,7 @@
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
          "side": "Short",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "notional_position": 100.0,
          "leverage": 3,
@@ -71,7 +71,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "notional_position": 100.0,
          "side": "Short"
@@ -89,7 +89,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "leverage": 5
        }
@@ -106,7 +106,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "is_cross_margin": true
        }
@@ -123,7 +123,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "side": "Long",
          "notional_position": 100.0,
@@ -142,7 +142,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "side": "Long",
          "notional_position": 100.0,
@@ -161,7 +161,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT"
        }
        ```
@@ -177,7 +177,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT"
        }
        ```
@@ -193,7 +193,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT"
        }
        ```
@@ -209,7 +209,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT"
        }
        ```
@@ -225,7 +225,7 @@
        {
          "api_token": "please use taco api key same as authentication bearer token in header",
          "user_id": "same as in query parameter",
-         "exchange": "Hyper",
+         "exchange": "Taco",
          "symbol": "BTCUSDT",
          "order_id": "123456"
        }
@@ -237,7 +237,7 @@
 - parameters:
   - query parameters:
      - user_id: tacoclaw user id
-     - exchange: Hyper
+     - exchange: Taco
 
 #### get_open_orders
 - endpoint: /auth/tacoclaw/trade/get_open_orders
@@ -245,4 +245,4 @@
 - parameters:
   - query parameters:
      - user_id: tacoclaw user id
-     - exchange: Hyper
+     - exchange: Taco

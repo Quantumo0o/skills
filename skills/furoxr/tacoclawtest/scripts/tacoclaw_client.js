@@ -3456,12 +3456,6 @@ var fs = require("fs");
 var path = require("path");
 var os = require("os");
 var readline = require("readline");
-try {
-  require.resolve("commander");
-} catch (e) {
-  console.error("Error: 'commander' package required. Install with: npm install commander");
-  process.exit(1);
-}
 var { Command } = require_commander();
 var BASE_URL = "https://api.dev.taco.trading";
 var CONFIG_PATH = path.join(os.homedir(), ".openclaw", "workspace", "tacoclaw", "config.json");

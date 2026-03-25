@@ -42,18 +42,6 @@ command -v node
 node --version
 ```
 
-3. Ensure the `commander` package is available. The script exits with an error if it is missing.
-
-```bash
-node -e "require.resolve('commander')"
-```
-
-If that check fails, install it:
-
-```bash
-npm install commander
-```
-
 ## Usage
 
 Run commands from this skill directory unless using absolute paths:
@@ -76,7 +64,7 @@ node scripts/tacoclaw_client.js init
 
 ```bash
 node scripts/tacoclaw_client.js open-position \
-  --exchange Hyper --symbol BTCUSDT --notional 100 --side Long \
+  --exchange Taco --symbol BTCUSDT --notional 100 --side Long \
   --leverage 3 --stop-loss 80000 --take-profit 100000
 ```
 
@@ -88,7 +76,7 @@ node scripts/tacoclaw_client.js open-position \
 
 ```bash
 node scripts/tacoclaw_client.js close-position \
-  --exchange Hyper --symbol BTCUSDT --notional 100 --side Short
+  --exchange Taco --symbol BTCUSDT --notional 100 --side Short
 ```
 
 Optional: `--limit-price <price>`
@@ -97,7 +85,7 @@ Optional: `--limit-price <price>`
 
 ```bash
 node scripts/tacoclaw_client.js set-leverage \
-  --exchange Hyper --symbol BTCUSDT --leverage 5
+  --exchange Taco --symbol BTCUSDT --leverage 5
 ```
 
 ### Set margin mode
@@ -105,38 +93,38 @@ node scripts/tacoclaw_client.js set-leverage \
 ```bash
 # Cross margin
 node scripts/tacoclaw_client.js set-margin-mode \
-  --exchange Hyper --symbol BTCUSDT --cross
+  --exchange Taco --symbol BTCUSDT --cross
 
 # Isolated margin
 node scripts/tacoclaw_client.js set-margin-mode \
-  --exchange Hyper --symbol BTCUSDT
+  --exchange Taco --symbol BTCUSDT
 ```
 
 ### Set stop loss / take profit
 
 ```bash
 node scripts/tacoclaw_client.js set-stop-loss \
-  --exchange Hyper --symbol BTCUSDT --side Long --notional 100 --price 85000
+  --exchange Taco --symbol BTCUSDT --side Long --notional 100 --price 85000
 
 node scripts/tacoclaw_client.js set-take-profit \
-  --exchange Hyper --symbol BTCUSDT --side Long --notional 100 --price 95000
+  --exchange Taco --symbol BTCUSDT --side Long --notional 100 --price 95000
 ```
 
 ### Cancel orders
 
 ```bash
-node scripts/tacoclaw_client.js cancel-stop-loss --exchange Hyper --symbol BTCUSDT
-node scripts/tacoclaw_client.js cancel-take-profit --exchange Hyper --symbol BTCUSDT
-node scripts/tacoclaw_client.js cancel-stops --exchange Hyper --symbol BTCUSDT
-node scripts/tacoclaw_client.js cancel-all --exchange Hyper --symbol BTCUSDT
-node scripts/tacoclaw_client.js cancel-order --exchange Hyper --symbol BTCUSDT --order-id "12345"
+node scripts/tacoclaw_client.js cancel-stop-loss --exchange Taco --symbol BTCUSDT
+node scripts/tacoclaw_client.js cancel-take-profit --exchange Taco --symbol BTCUSDT
+node scripts/tacoclaw_client.js cancel-stops --exchange Taco --symbol BTCUSDT
+node scripts/tacoclaw_client.js cancel-all --exchange Taco --symbol BTCUSDT
+node scripts/tacoclaw_client.js cancel-order --exchange Taco --symbol BTCUSDT --order-id "12345"
 ```
 
 ### Get filled order
 
 ```bash
 node scripts/tacoclaw_client.js get-filled-order \
-  --exchange Hyper --symbol BTCUSDT --order-id "12345"
+  --exchange Taco --symbol BTCUSDT --order-id "12345"
 ```
 
 Add `--algo` if the order ID is an algorithmic order ID.
@@ -146,7 +134,7 @@ Add `--algo` if the order ID is an algorithmic order ID.
 Returns all open positions for the specified exchange.
 
 ```bash
-node scripts/tacoclaw_client.js get-positions --exchange Hyper
+node scripts/tacoclaw_client.js get-positions --exchange Taco
 ```
 
 ### Get open orders
@@ -154,7 +142,7 @@ node scripts/tacoclaw_client.js get-positions --exchange Hyper
 Returns all open orders for the specified exchange.
 
 ```bash
-node scripts/tacoclaw_client.js get-open-orders --exchange Hyper
+node scripts/tacoclaw_client.js get-open-orders --exchange Taco
 ```
 
 ### Get kline data
@@ -163,7 +151,7 @@ No auth required. Returns up to 100 klines per request.
 
 ```bash
 node scripts/tacoclaw_client.js get-kline \
-  --exchange Hyper --symbol BTCUSDT --interval 1h
+  --exchange Taco --symbol BTCUSDT --interval 1h
 ```
 
 Optional:
