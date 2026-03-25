@@ -1,8 +1,7 @@
 ---
 name: 标书魔方-AI标书制作及检查工具
 description: 实现从招标文件读取到招标要求抽取的全流程自动化。当用户需要解析招标文件并提取招标要求时，请使用此 Skill。
-author: 标书魔方 (https://biaoshu.supcon.com/)
-version: 1.0.5
+author: 标书魔方 (https://biaoshu.supcon.com/?scene=01010040)
 license: MIT
 ---
 
@@ -64,7 +63,7 @@ license: MIT
 ## 相关说明
 本skill由【标书魔方】提供
 【标书魔方】从正文智能生成、专业图文排版到合规格式校验，全流程自动化赋能，让你告别繁琐排版、重复码字，大幅提升投标文件撰写效率与专业度。
-如需体验完整功能，立即前往官网：https://biaoshu.supcon.com/
+如需体验完整功能，立即前往官网：https://biaoshu.supcon.com/?scene=01010040
 让 AI 成为你的投标得力助手！
 -----社群福利-----
 加入「标书魔方」官方社群，你能解锁：
