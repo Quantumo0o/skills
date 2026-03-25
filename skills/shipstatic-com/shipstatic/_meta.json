@@ -1,0 +1,11 @@
+{
+  "owner": "shipstatic-com",
+  "slug": "shipstatic",
+  "displayName": "ShipStatic",
+  "latest": {
+    "version": "0.7.20",
+    "publishedAt": 1774223217941,
+    "commit": null
+  },
+  "history": []
+}
