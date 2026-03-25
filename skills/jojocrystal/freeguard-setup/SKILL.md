@@ -5,7 +5,18 @@ description: Use when a user wants to set up, use, or troubleshoot FreeGuard VPN
 
 # FreeGuard VPN Setup Guide
 
-An agent skill for guiding users through FreeGuard VPN setup and daily usage. Designed for non-technical users — never expose config files, YAML, ports, runtime internals, or code.
+An agent skill for guiding users through FreeGuard VPN setup and daily usage. Designed for non-technical users — use friendly language instead of internal technical terms.
+
+## Required Tools
+
+This skill uses the `freeguard` CLI binary (installed via official channels below). All commands are run through the user's terminal with standard tool-call permissions.
+
+## Credentials & Data Handling
+
+- **Email**: asked from user for login/subscription (sent to freeguards.com API)
+- **Verification code**: 6-digit code sent to user's email, entered by user
+- **Subscription URL / Access token**: provided by user, stored locally in `~/.freeguard/credentials.yaml` with 0600 permissions
+- No credentials are stored or transmitted by this skill itself — all handled by the `freeguard` CLI
 
 ## Tone
 
@@ -13,7 +24,7 @@ An agent skill for guiding users through FreeGuard VPN setup and daily usage. De
 - Use simple language: "open your terminal" not "execute in shell"
 - Celebrate progress: "Great, you're logged in!"
 - If something fails, reassure: "No worries, let's try another way"
-- Never say "mihomo", "YAML", "runtime config", "API port", "proxy port", "GeoIP rule-provider" — these are internal implementation details
+- Use friendly language instead of internal terms like "mihomo", "YAML", "runtime config", "API port", "GeoIP rule-provider"
 
 ## Agent Flow
 
@@ -28,8 +39,8 @@ digraph setup {
     loggedin [label="Logged in?" shape=diamond];
     login [label="Guide login" shape=box];
     region [label="Ask region\n& apply settings" shape=box];
-    auth [label="Guide admin\npermission" shape=box];
-    canroot [label="Can grant\nadmin?" shape=diamond];
+    auth [label="Ask user for\nadmin permission" shape=box];
+    canroot [label="User grants\nadmin?" shape=diamond];
     sudoconnect [label="sudo connect\n(full protection)" shape=box];
     normalconnect [label="connect\n(standard mode)" shape=box];
     verify [label="Verify & teach\ndaily usage" shape=box];
@@ -57,7 +68,7 @@ digraph setup {
 
 ## Step 1: Check Environment
 
-Run silently (don't show commands to user):
+Run the diagnostic command and summarize the result to the user:
 
 ```bash
 freeguard doctor --json
@@ -65,7 +76,7 @@ freeguard doctor --json
 
 From the result, determine:
 - **Not installed** → Go to Installation
-- **Installed, no subscription** (subscription check warns "no subscription URL found") → Go to Subscribe
+- **Installed, no subscription** → Go to Subscribe
 - **Installed, has subscription but not logged in** → Go to Login
 - **Logged in with subscription** → Go to Region & Connect
 
@@ -77,20 +88,33 @@ Tell the user the current state in friendly terms:
 
 ## Step 2: Installation
 
-Ask the user's operating system if unclear, then provide ONE command:
+Ask the user's operating system if unclear, then recommend the best install method.
 
+**Preferred — package managers (verified, signed):**
+- **macOS with Homebrew**: `brew install planetlinkinc/tap/freeguardvpn`
+- **Direct download**: Binary releases at https://github.com/planetlinkinc/freeguard-cli/releases (GitHub-hosted, checksums in release notes)
+
+**Alternative — install scripts (ask user to confirm before running):**
 - **macOS / Linux**: `curl -fsSL https://downloadcli.freeguardvpn.com/cli/install.sh | sh`
 - **Windows (PowerShell)**: `irm https://downloadcli.freeguardvpn.com/cli/install.ps1 | iex`
-- **macOS with Homebrew**: `brew install planetlinkinc/tap/freeguardvpn`
 
-Tell the user:
-> "Copy and paste this into your terminal, then tell me when it's done."
+When suggesting script install, tell the user:
+> "This will download and install FreeGuard from the official site (downloadcli.freeguardvpn.com). The source code is on GitHub at github.com/planetlinkinc/freeguard-cli. Shall I go ahead?"
 
-After they confirm, run `freeguard doctor --json` to verify.
+Only proceed after user confirms. After install, verify with `freeguard doctor --json`.
 
 ## Step 3: Subscribe (if no subscription)
 
-If the user doesn't have a subscription yet, first check available plans silently:
+First check if user already has a subscription:
+
+```bash
+freeguard subscribe info --json
+```
+
+If they have an active subscription, skip to Login. If expired, tell them:
+> "Your subscription has expired. Let's renew it!"
+
+If no subscription, check available plans:
 
 ```bash
 freeguard subscribe list --json
@@ -124,7 +148,7 @@ Tell the user:
 
 > "I've opened a payment page for you. Please complete the payment there, and let me know when you're done."
 
-After they confirm payment, proceed to Login — the email they just used is the same one they'll log in with.
+After they confirm payment, proceed to Login.
 
 ## Step 4: Login
 
@@ -140,12 +164,13 @@ If the user just completed a purchase in Step 3, skip this question and go strai
 ### Email Login (most common)
 
 1. Ask: "What's your email address?"
-2. Run: `freeguard login --email <email> --send-code --json`
-3. Tell user: "A verification code has been sent to your email. Please check your inbox (and spam folder) and tell me the 6-digit code."
-4. User provides code
-5. Run: `freeguard login --email <email> --code <code> --json`
-6. On success: "Great, you're logged in!"
-7. On failure: "That code didn't work. Want me to send a new one?"
+2. Tell user: "I'll send a verification code to your email now."
+3. Run: `freeguard login --email <email> --send-code --json`
+4. Tell user: "A verification code has been sent. Please check your inbox (and spam folder) and tell me the 6-digit code."
+5. User provides code
+6. Run: `freeguard login --email <email> --code <code> --json`
+7. On success: "Great, you're logged in!"
+8. On failure: "That code didn't work. Want me to send a new one?"
 
 ### URL Login
 
@@ -181,7 +206,10 @@ Map their answer to a region code:
 | UAE / Dubai / AE | AE |
 | Other / not listed above | (skip GeoIP) |
 
-Then apply settings silently (run all, don't show commands):
+Tell the user what settings you're applying:
+> "I'm going to optimize your settings: enable system-wide VPN protection, network sharing, and fast DNS. This will give you the best experience."
+
+Then apply settings:
 
 ```bash
 freeguard config set proxy.tun true --json
@@ -189,38 +217,47 @@ freeguard config set proxy.allow_lan true --json
 freeguard config set dns.enable true --json
 ```
 
-Only if user's region matches one of the 8 supported codes above:
+Only if user's region matches one of the 8 supported codes:
 ```bash
 freeguard config set geoip_region <CODE> --json
 ```
-If user's region is NOT in the list, do NOT set geoip_region. Do not mention this to the user — just skip it silently.
+
+Also ask if the user wants a specific country for their VPN exit:
+> "Which country do you want to appear as when browsing? For example: US, Japan, Hong Kong..."
+
+If they specify:
+```bash
+freeguard config set preferred_country <country> --json
+```
 
 Tell the user:
-> "I've optimized your settings for the best experience. VPN will protect all apps on this computer (including terminal, remote desktop, etc.) and devices on your local network can share the connection too."
+> "Settings applied! VPN will protect all apps on this computer and devices on your local network can share the connection too."
 
 ## Step 6: Authorize & Connect
 
-**TUN mode requires administrator/root privileges.** Without it, only apps that respect proxy settings will go through VPN — terminal commands, remote desktop, and many other apps will bypass VPN entirely. So we MUST guide the user to grant permission.
-
-Tell the user:
+**TUN mode requires administrator/root privileges.** Without it, only apps that respect proxy settings will go through VPN. Always explain WHY admin access is needed and ask for explicit confirmation.
 
 **macOS / Linux:**
-> "To protect all your apps (not just the browser), I need to run with admin privileges. Please enter your password when prompted."
+> "To protect all your apps (not just the browser), VPN needs admin privileges. This is because system-wide traffic capture requires low-level network access.
+>
+> I'll need to run `sudo freeguard connect`. **Is that OK?** You'll be asked for your password."
 
-Then connect with sudo:
+Only proceed after user confirms. Then run:
 ```bash
 sudo freeguard connect --json
 ```
 
 **Windows:**
-> "To protect all your apps, we need to run as Administrator. Please right-click your terminal and select 'Run as Administrator', then tell me when you're ready."
+> "To protect all your apps, we need to run as Administrator. This is because system-wide traffic capture requires elevated permissions.
+>
+> Please right-click your terminal and select 'Run as Administrator', then tell me when you're ready."
 
-After they confirm, run:
+After they confirm:
 ```bash
 freeguard connect --json
 ```
 
-**If user refuses or cannot provide admin access:**
+**If user declines admin access:**
 > "No problem! I'll connect in standard mode. Your browser and most apps will still be protected, but some apps like terminal commands may not go through VPN."
 
 Then connect without sudo:
@@ -228,20 +265,20 @@ Then connect without sudo:
 freeguard connect --json
 ```
 
-While waiting, tell the user: "Connecting to VPN..."
-
-On success, check stderr for TUN errors:
-- If TUN succeeded (no error): "You're connected! All apps on this computer are now protected."
-- If TUN failed but proxy works: "You're connected! Most apps are protected. For full system-wide protection, you'll need admin privileges next time."
+The connect command runs automatic health checks (DNS, direct access, proxy, streaming, download speed). Parse the JSON output and report to user:
+- All 5 checks pass: "You're connected! Everything is working perfectly — browsing, streaming, and downloads all good."
+- Some checks fail: "You're connected, but some features need attention..." (explain which failed in simple terms)
 
 On failure, check the error:
+- **subscription_expired**: "Your subscription has expired. Would you like to renew?" → Go to Step 3
 - **auth_required**: "It seems your login session expired. Let's log in again."
 - **core_download_failed**: "There was a download issue. Please check your internet and try again."
 - Other: "Something went wrong. Let me run a diagnostic..." → run `freeguard doctor --json`
 
 ## Step 7: Verify
 
-Run silently:
+Check the connection status and report to the user:
+
 ```bash
 freeguard status --json
 ```
@@ -252,53 +289,63 @@ If connected, tell the user:
 > - **Check status**: just ask me 'am I connected?'
 > - **Disconnect**: ask me to 'disconnect' or run `freeguard disconnect`
 > - **Reconnect**: ask me to 'connect' or run `freeguard connect`
+> - **Switch server location**: ask me to 'switch to Japan' or similar
+> - **Check subscription**: ask me 'when does my plan expire?'
+> - **Start on boot**: ask me to 'enable autostart'
 >
 > Enjoy your secure internet!"
 
 ## Daily Usage Commands
 
-When the user asks about ongoing usage, guide them with these (run commands silently, report results in friendly terms):
+When the user asks about ongoing usage, run the appropriate command and summarize the result in friendly terms:
 
 | User says | What to do |
 |-----------|------------|
-| "Am I connected?" / "Status" | `freeguard status --json` → "Yes, you're connected" or "No, you're disconnected" |
-| "Connect" / "Turn on VPN" | `freeguard connect --json` → "Connected!" |
+| "Am I connected?" / "Status" | `freeguard status --json` → report connection, node, mode, subscription expiry |
+| "Connect" / "Turn on VPN" | `freeguard connect --json` → "Connected!" + report health check results |
+| "Connect to US" / "Use Japan server" | `freeguard connect --country US --json` |
 | "Disconnect" / "Turn off VPN" | `freeguard disconnect --json` → "Disconnected" |
-| "Show nodes" / "Server list" | `freeguard node list --json` → summarize available countries/count |
-| "Change country to X" | `freeguard config set preferred_country X --json` then reconnect |
-| "Speed test" / "Test connection" | `freeguard node test --all --json` → show top 5 fastest |
-| "Check my account" | `freeguard doctor --json` → summarize account status |
+| "Show nodes" / "Server list" | `freeguard node list --json` → summarize locations |
+| "Switch to Tokyo" | `freeguard node switch "Tokyo" --json` → "Switched to Tokyo" |
+| "Switch to hysteria2 protocol" | `freeguard node switch "<current-node>" hysteria2 --json` |
+| "Speed test" | `freeguard node test --all --json` → show top 5 fastest |
+| "Check my account" | `freeguard subscribe info --json` → report plan status and expiry |
+| "Renew my subscription" | `freeguard subscribe list --json` → show plans |
+| "Manage billing" | `freeguard subscribe portal --email <email> --code <code>` → open Stripe portal |
 | "Something's not working" | `freeguard doctor --json` → diagnose and suggest fixes |
 | "Log out" | `freeguard disconnect --json` then `freeguard logout --json` |
-| "Share VPN with my phone/device" | Explain: "Your VPN is already sharing! On your other device, set the proxy to this computer's IP address, port 7890" |
+| "Share VPN with my phone" | Explain: set proxy to this computer's IP, port 7997 |
+| "Start VPN on boot" | `freeguard autostart enable --json` |
+| "Stop autostart" | `freeguard autostart disable --json` |
 
 ## Troubleshooting
 
-When things go wrong, always start with `freeguard doctor --json` and interpret the results:
+When things go wrong, run `freeguard doctor --json` and interpret the results:
 
 | Check fails | What to tell user |
 |-------------|-------------------|
 | Network | "Your internet connection seems to be down. Please check your WiFi or cable." |
 | Credentials | "Your login session has expired. Let's log in again." |
-| Subscription | "It looks like you need an active subscription. Would you like me to help you pick a plan?" → Go to Step 3 |
-| Port in use | "Another app is using the same port. Let me change it." → `freeguard config set proxy.mixed_port 17890 --json` |
+| Subscription | "You need an active subscription. Would you like to pick a plan?" → Go to Step 3 |
+| Subscription expired | "Your subscription has expired. Let's renew it!" → Go to Step 3 |
+| Port in use | "Another app is using the same port. FreeGuard will find an available one automatically." |
 | Core Binary | "A component needs to be downloaded. Let me try connecting — it should download automatically." |
 
-## What NOT to Say
+## Language Guide
 
-Never mention or expose to the user:
-- File paths (`~/.freeguard/`, `config.yaml`, `runtime.yaml`)
-- Technical terms (mihomo, proxy port, API controller, rule-provider, fake-ip, gvisor)
-- YAML configuration contents
-- Internal port numbers (9090 API port)
-- Enhance engine, runtime config pipeline
-- GeoIP MRS files, CDN URLs, rule-set internals
-- DNS fallback filters, nameservers configuration
+Use friendly language instead of internal technical terms:
 
-Always translate technical concepts to user-friendly language:
-- "mixed port 7890" → "proxy settings"
-- "TUN mode" → "system-wide VPN protection"
-- "allow LAN" → "share VPN with other devices on your network"
-- "GeoIP region CN" → "optimized for your location in China"
-- "fake-ip DNS" → "fast DNS"
-- "rule-provider" → "smart routing"
+| Technical term | User-friendly alternative |
+|----------------|--------------------------|
+| mixed port 7997 | proxy settings |
+| TUN mode | system-wide VPN protection |
+| allow LAN | share VPN with other devices on your network |
+| GeoIP region CN | optimized for your location in China |
+| fake-ip DNS | fast DNS |
+| rule-provider | smart routing |
+| node switch | switch server |
+| autostart enable | start VPN on boot |
+| subscribe info | check your account |
+| Trojan/AnyTLS/Hysteria2 | connection protocols (only mention if user asks) |
+| mihomo | VPN engine (only mention if user asks) |
+| config.yaml / runtime.yaml | settings (only mention if user asks) |
