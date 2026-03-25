@@ -189,8 +189,7 @@ POS clients (e.g. SB Paulson): inflows flattened to equal weekly distribution.
 ```
 pip install openpyxl
 ```
-Node.js QBO client must be authenticated:
-`integrations/qbo-client/` (token already set via `.env.wallet`)
+Node.js QBO client must be authenticated with a valid token.
 
 ## Output Naming
 `CashFlowForecast_{slug}_{YYYY-MM-DD}.xlsx`
