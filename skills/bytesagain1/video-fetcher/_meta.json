@@ -3,9 +3,15 @@
   "slug": "video-fetcher",
   "displayName": "Video Fetcher",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773983956385,
-    "commit": "https://github.com/openclaw/skills/commit/4b2cbe6f5d0cfab34a7315cb8a1acf4adacc5383"
+    "version": "2.0.1",
+    "publishedAt": 1774317046188,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773983956385,
+      "commit": "https://github.com/openclaw/skills/commit/4b2cbe6f5d0cfab34a7315cb8a1acf4adacc5383"
+    }
+  ]
 }
