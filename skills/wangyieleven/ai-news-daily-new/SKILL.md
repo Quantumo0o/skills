@@ -1,6 +1,6 @@
 ---
-name: "ai-news-daily-brief"
-description: "从指定信源检索最近24小时AI新闻，完成去重/分类/摘要，生成结构化AI新闻日报。Invoke when user wants AI news digest or daily brief."
+name: ai-news-daily-brief
+description: 从指定信源检索最近24小时AI新闻，完成去重/分类/摘要，生成结构化AI新闻日报。Invoke when user wants AI news digest or daily brief.
 ---
 
 # AI News Daily Brief
@@ -35,13 +35,15 @@ Rules:
 ## Supported Sources
 
 ### Chinese AI / tech media
-- AIBase
+- AIBase（入口：https://news.aibase.com/zh/daily）
 - 36Kr AI
 - 机器之心
 - 量子位
 
 ### Global media
 - Reuters
+- **TechCrunch**（新增）
+- **The Information**（新增）
 - The Verge
 - WIRED
 - VentureBeat
@@ -111,7 +113,7 @@ Your job is to:
 4. Prioritize official first-party announcements when available.
 5. Merge repeated coverage of the same event into a single unified news item.
 6. Rank the final news items by importance.
-7. Output a structured AI news daily brief with **10–20 items**.
+7. Output a structured AI news daily brief. Standard target: **8–12 items** (expand to 12–15 when news is dense; reduce to 5–8 when verified sources are limited).
 
 Do not merely list headlines. Extract facts, summarize clearly, and explain why each item matters.
 
@@ -147,6 +149,53 @@ The skill must strictly follow these constraints:
 
 6. If a page is a landing page, archive page, category page, rolling update page, or release notes hub without a clearly verifiable article timestamp, do not use it as a final story source.
    - Only use a specific article or post page with an explicit publication date/time.
+   - If the article page cannot be opened by any extraction method (`web_fetch` → `browser.snapshot`), exclude the story. Search snippets are not acceptable as sole evidence of publication time.
+
+7. **Emergency exception — major breaking news**: If a significant AI event is generating widespread coverage but ALL approved sources are unable to verify publication time (e.g., a major model launch breaking on a source not yet in the whitelist), you may include it as a "待核实" item with explicit note that time could not be verified. This exception requires: (a) the event is genuinely major and globally recognized; (b) at least one credible approved source links to or mentions the event; (c) the item is clearly labeled as "待核实". Do not use this exception to circumvent source quality rules for routine news.
+
+---
+
+## Source Access — Tools & Fallback Chain
+
+Different sources require different tools. Use the following recommended strategy:
+
+### Tools Comparison
+| Tool | Coverage | Speed | Best for |
+|------|----------|-------|----------|
+| `web_fetch` | 9/14 sites | Fast | The Verge, Wired, VentureBeat*, NVIDIA Blog, TechCrunch, The Information, Anthropic, OpenAI (article pages), AIBase, 36Kr |
+| `agent-browser` | 2/14 sites | Medium | 机器之心, 量子位 (blocked by HTTP/Cloudflare) |
+| `tavily` | 5/14 sites | Fast | Reuters, DeepMind Blog, OpenAI (fallback), VentureBeat (primary to avoid 429), 机器之心 (fallback) |
+
+*VentureBeat triggers 429 rate limit via web_fetch; use tavily as primary
+
+*OpenAI main page returns 403, but article-level URLs work via web_fetch
+
+### Recommended Extraction Order
+1. **Try `web_fetch`** first (fast, works for 9/14 sites: Western media + OpenAI article pages + AIBase + 36Kr)
+2. **Try `agent-browser`** for Chinese sites that block HTTP (机器之心, 量子位)
+3. **Try `tavily`** as primary for blocked domains (Reuters, DeepMind) and rate-limited sites (VentureBeat)
+4. **Try article-level URLs** — category/homepage blocked doesn't mean all article pages are
+
+### Site-by-Site Strategy
+| Source | Primary Tool | Fallback | Notes |
+|--------|-------------|----------|-------|
+| AIBase | web_fetch | agent-browser | Direct fetch works |
+| 36Kr | web_fetch | agent-browser | Homepage anti-bot; try section URLs |
+| 机器之心 | agent-browser | tavily | HTTP blocked; browser required |
+| 量子位 | agent-browser | tavily | Cloudflare blocks; browser required |
+| Reuters | tavily | — | Domain blocked; tavily is the ONLY reliable path |
+| TechCrunch | web_fetch | tavily | Direct fetch works |
+| The Information | web_fetch | tavily | Direct fetch works |
+| The Verge | web_fetch | — | Direct fetch works |
+| WIRED | web_fetch | — | Direct fetch works |
+| VentureBeat | tavily | agent-browser | web_fetch triggers 429 rate limit |
+| DeepMind Blog | tavily | — | Redirect loop; tavily is the ONLY reliable path |
+| OpenAI News | web_fetch (article pages) | tavily | Homepage returns 403; article URLs work |
+| Anthropic News | web_fetch | agent-browser | Direct fetch works |
+| NVIDIA Blog | web_fetch | — | Direct fetch works |
+
+### Strict Rule
+If no method can access a source, the story must be excluded. Never pad with low-signal content just to hit a count target.
 
 ---
 
@@ -185,7 +234,7 @@ When the same event appears across multiple sources, use the following priority 
 
 1. Official first-party source
 2. Reuters
-3. The Verge / WIRED / VentureBeat
+3. TechCrunch / The Information / The Verge / WIRED / VentureBeat
 4. 机器之心 / 量子位 / 36Kr AI
 5. AIBase
 
@@ -307,6 +356,23 @@ A good result should:
 - avoid duplicate noise
 - provide usable insight for product, strategy, and industry tracking
 - produce a clean, readable Chinese daily brief
+
+---
+
+## Task Scheduling
+
+This skill is designed to be run on a daily schedule. To automate it, set up a cron job that triggers this skill once per day (recommended time: 07:00–09:00 Asia/Shanghai).
+
+**Recommended cron configuration:**
+- Schedule: `cron` expression `0 7 * * *` with timezone `Asia/Shanghai`
+- Session target: `isolated` (do not run in the main conversation session)
+- Delivery: `none` (results are written directly to Tencent Docs; no Feishu push needed)
+
+**Output targets:**
+- Daily AI news doc: `https://docs.qq.com/aio/DUEtYTUNWaVNxeXN4`
+- AI knowledge base: `https://docs.qq.com/aio/DUG9ocVBZU01sRmtG`
+
+Use the Tencent Docs API (`mcporter call "tencent-docs" "smartcanvas.append_insert_smartcanvas_by_markdown"`) to write results. Do not send Feishu messages from the scheduled session.
 
 ---
 

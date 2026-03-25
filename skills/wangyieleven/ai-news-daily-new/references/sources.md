@@ -72,6 +72,24 @@ The skill should prioritize these sources and should not expand to unrelated sou
   - Strong for corporate moves, regulation, legal developments, funding, M&A, and global market impact
   - Preferred over most media sources when no official source is available
 
+### TechCrunch
+- Type: Global technology / startup media
+- Entry URL: https://techcrunch.com/category/artificial-intelligence/
+- Search Language: English first
+- Notes:
+  - Strong for AI startup funding, product launches, M&A, and enterprise AI adoption stories
+  - Useful for tracking the AI startup ecosystem and venture capital moves
+  - Tier 2 global media, same priority as The Verge / WIRED / VentureBeat
+
+### The Information
+- Type: Global premium technology / business media
+- Entry URL: https://www.theinformation.com/topics/artificial-intelligence
+- Search Language: English first
+- Notes:
+  - High-signal investigative reporting on AI companies, strategy, and commercialization
+  - Strong for deep-dive business analysis not found in broader media
+  - Tier 2 global media, same priority as TechCrunch / The Verge / WIRED / VentureBeat
+
 ### The Verge AI
 - Type: Global technology and product media
 - Entry URL: https://www.theverge.com/ai-artificial-intelligence
@@ -143,7 +161,7 @@ When the same event appears in multiple sources, use the following order of pref
 
 1. Official first-party source
 2. Reuters
-3. The Verge / WIRED / VentureBeat
+3. TechCrunch / The Information / The Verge / WIRED / VentureBeat
 4. 机器之心 / 量子位 / 36Kr AI
 5. AIBase
 
@@ -151,11 +169,51 @@ If multiple official sources are involved in the same story, prefer the source d
 
 ---
 
-## 5. Usage Guidance
+## 5. Source Page Extraction — Tool Strategy
+
+Different sources require different tools based on network accessibility.
+
+### Source Access Matrix
+
+| Source | Primary Tool | Fallback | Notes |
+|--------|-------------|----------|-------|
+| AIBase | web_fetch | agent-browser | |
+| 36Kr | web_fetch | agent-browser | Homepage anti-bot; try section URLs |
+| 机器之心 | agent-browser | tavily | HTTP connection refused; browser required |
+| 量子位 | agent-browser | tavily | Cloudflare blocks; browser required |
+| Reuters | tavily | — | Domain blocked; tavily is the ONLY reliable path |
+| TechCrunch | web_fetch | tavily | |
+| The Information | web_fetch | tavily | |
+| The Verge | web_fetch | — | |
+| WIRED | web_fetch | — | |
+| VentureBeat | tavily | agent-browser | web_fetch triggers 429; tavily avoids rate limit |
+| DeepMind Blog | tavily | — | Redirect loop; tavily is the ONLY reliable path |
+| OpenAI News | web_fetch (article pages) | tavily | Homepage returns 403; article URLs work |
+| Anthropic News | web_fetch | agent-browser | |
+| NVIDIA Blog | web_fetch | — | |
+
+### Tool Coverage Summary
+- **web_fetch (9/14)**: AIBase, 36Kr, TechCrunch, The Information, The Verge, WIRED, Anthropic, NVIDIA, OpenAI (articles)
+- **agent-browser (2/14)**: 机器之心, 量子位
+- **tavily (5/14)**: Reuters, DeepMind, VentureBeat (primary), 机器之心 (fallback), 量子位 (fallback)
+
+### Fallback Chain
+If the primary method fails, use the fallback tool in order:
+
+1. **web_fetch** → if blocked/fails → **agent-browser** (Chinese sites) or **tavily** (blocked Western sites)
+2. **agent-browser** → if fails → **tavily** (for Chinese sites only)
+3. **tavily** → if fails → story must be excluded
+
+**Strict rule**: If no method can access a source, the story must be excluded. Never pad with low-signal content just to hit a count target.
+
+---
+
+## 6. Usage Guidance
 
 - Use source-specific search language whenever possible.
 - Prefer official source pages for product, model, API, and corporate announcements.
 - Use Reuters for hard-news confirmation when official detail is limited.
+- Use TechCrunch to supplement startup and venture-capital coverage.
 - Use media sources to supplement context, interpretation, and business implications.
 - Do not treat low-information reposts as separate news items.
 - Do not expand beyond the approved source list unless explicitly requested by the user.
