@@ -1,15 +1,15 @@
 ---
 name: auto-subtitle-generator
-version: "1.0.1"
+version: "1.0.2"
 displayName: "Auto Subtitle Generator - AI Captions Translation and SRT Export"
 description: >
   Subtitle generator with auto transcribe — drop any video and get accurate subtitles with
   word-level timing in seconds. Translates into 50+ languages for multilingual captions,
-  burns hardcoded text directly onto footage, or exports clean SRT and VTT files. The full
-  subtitle pipeline runs in chat: speech-to-text transcription, timing sync, font and position
-  styling, then burn or export. Handles auto captions for TikTok, YouTube subtitles, and Reels
-  accessibility captions — no timeline editing, just describe what you need. Supports mp4,
-  mov, avi, webm, mkv.
+  burns hardcoded text directly onto footage, or exports clean SRT and VTT files. Runs
+  speech to text video transcription in chat: timing sync, font and position styling, then
+  burn or export. Generates closed captions, auto captions for TikTok, YouTube subtitles,
+  and Reels accessibility captions — no timeline editing, just describe what you need.
+  Supports mp4, mov, avi, webm, mkv.
 metadata: {"openclaw": {"emoji": "💬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
