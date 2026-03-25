@@ -1,6 +1,6 @@
 {
   "name": "ding-skills",
-  "version": "2.2.1",
+  "version": "2.2.3",
   "description": "钉钉全功能技能集 - 用户管理、部门管理、消息发送、OA审批、会议与日程管理、知识库文档管理",
   "scripts": {
     "search-user": "python scripts/search_user.py",
