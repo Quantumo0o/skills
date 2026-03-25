@@ -1,0 +1,11 @@
+{
+  "owner": "msaleme",
+  "slug": "agent-security-harness",
+  "displayName": "Agent Security Harness",
+  "latest": {
+    "version": "3.6.0",
+    "publishedAt": 1774368312300,
+    "commit": null
+  },
+  "history": []
+}
