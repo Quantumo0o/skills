@@ -1,11 +1,17 @@
 {
   "owner": "oblio-falootin",
   "slug": "sql-connector",
-  "displayName": "SQL Connector",
+  "displayName": "Sql Connector",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773995126145,
-    "commit": "https://github.com/openclaw/skills/commit/f1f645c45a80558e8c01e55a3ae31e5f09e31b40"
+    "version": "2.1.0-alpha",
+    "publishedAt": 1774124046190,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773995126145,
+      "commit": "https://github.com/openclaw/skills/commit/f1f645c45a80558e8c01e55a3ae31e5f09e31b40"
+    }
+  ]
 }
