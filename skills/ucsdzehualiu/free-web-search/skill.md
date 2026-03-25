@@ -1,42 +1,99 @@
 ---
 name: free-web-search
-description: Fast web search for external knowledge. Automatically fetches the most relevant page and returns a concise answer.
-version: 8.0.0
-tags: [search, web, duckduckgo, bing, no-api, realtime, fast]
+description: >
+  Real-time web search skill for Claude Code / OpenClaw agents. Use this skill
+  whenever you need to look up current information, recent events, documentation,
+  library versions, error messages, or anything that may have changed since your
+  training cutoff. Triggers on: "search for", "look up", "find info about",
+  "what is the latest", "check online", "google", "browse", or any task where
+  up-to-date external knowledge would meaningfully improve the answer. Always
+  prefer this skill over guessing when the information might be stale.
+version: 9.3.0
+tags: [search, web, duckduckgo, bing, realtime, fast, lightweight, json]
 author: ucsdzehualiu
 dependencies:
-  - playwright>=1.42.0
+  - httpx>=0.27.0
   - beautifulsoup4>=4.12.3
-  - readability-lxml>=0.8.1
+  - lxml>=5.0.0
 runtime: python3.10
 setup: |
-  pip install playwright beautifulsoup4 readability-lxml
-  playwright install chromium
+  pip install httpx beautifulsoup4 lxml
 ---
 
-# Web Search (v8.1.0)
-高性能网页搜索工具，用于获取实时信息和外部知识，具备多引擎降级、智能内容提取、完善的错误处理能力。
+# Web Search Skill (v9.3.0)
 
-## 环境要求
-- Python 3.10 及以上版本
-- 支持 Windows/macOS/Linux 系统
-- 网络可访问 DuckDuckGo/Bing 搜索引擎
+Lightweight, fast web search for Claude Code / OpenClaw agents.
+Uses `httpx` (no browser required) with DuckDuckGo → Bing fallback.
 
-## 使用流程
-1. **解析用户问题** - 深度分析用户意图，提取核心关键词
-2. **生成精准搜索词** - 基于关键词生成高召回率的搜索Query
-3. **多引擎搜索** - 优先使用DuckDuckGo，结果不足时自动降级到Bing
-4. **智能排序** - 按标题相关性、权威来源权重排序结果
-5. **内容提取** - 过滤广告/冗余内容，提取核心文本
-6. **结构化输出** - 按易读格式返回标题、核心内容、来源链接
+## When to Use
 
-## 调用方式
+- Looking up current docs, API changes, library releases
+- Researching error messages or Stack Overflow solutions
+- Fact-checking anything time-sensitive
+- Competitor/technology landscape research
+
+## Quick Start
+
 ```bash
-# 基础用法
-python scripts/web_search.py "搜索词"
+# Basic search — returns structured text
+python scripts/web_search.py "your query here"
 
-# 输出JSON格式（便于程序调用）
-python scripts/web_search.py "搜索词" --json
+# JSON output (recommended for agent pipelines)
+python scripts/web_search.py "your query here" --json
 
-# 指定抓取页面数（默认5，范围1-10）
-python scripts/web_search.py "搜索词" --pages 3
+# Force recency boost + year injection
+python scripts/web_search.py "your query here" --recent --json
+
+# Control how many pages to fetch (default: 5, max: 10)
+python scripts/web_search.py "your query here" --pages 3
+```
+
+## Output Format (JSON)
+
+```json
+{
+  "query": "original query",
+  "engine": "duckduckgo",
+  "total_results": 12,
+  "fetched_pages": 3,
+  "results": [
+    {
+      "rank": 1,
+      "title": "Page Title",
+      "url": "https://...",
+      "snippet": "Search engine snippet",
+      "text": "Extracted page content (up to 1000 chars)"
+    }
+  ]
+}
+```
+
+## Query Writing Tips (for agents)
+
+| Goal | Good Query |
+|------|-----------|
+| Library version | `httpx latest version 2024` |
+| Error fix | `python asyncio RuntimeError exact error message` |
+| API docs | `openai chat completions API parameters` |
+| News | `rust 2024 edition features` |
+
+- **Be specific** — include version numbers, language, framework
+- **Add year** for time-sensitive topics
+- **Use error text verbatim** for debugging queries
+
+## Workflow for Agents
+
+1. **Analyze the task** — identify what external knowledge is needed
+2. **Generate a focused query** — extract keywords, add context
+3. **Run search** — prefer `--json` for structured parsing
+4. **Parse results** — use `results[].text` for content, `results[].url` for citations
+5. **Synthesize** — combine findings to answer the original task
+
+## Error Handling
+
+If both engines fail, the script returns:
+```json
+{"error": "No results found for query: ...", "query": "..."}
+```
+
+Check `stderr` for per-step debug logs.
