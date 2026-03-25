@@ -1,0 +1,11 @@
+{
+  "owner": "imou-openplatform",
+  "slug": "imou-device-operate",
+  "displayName": "Imou Open Device Operate",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773833564375,
+    "commit": null
+  },
+  "history": []
+}
