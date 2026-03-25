@@ -7,7 +7,6 @@ description: >
   deliver the final executive summary deliverable to clients. NOT a substitute for P&L variance
   analysis, not for mid-month snapshots, and not for clients without QBO integration.
 version: 1.0.0
-author: PrecisionLedger
 tags:
   - finance
   - accounting
@@ -27,9 +26,8 @@ Generates a client-facing executive KPI dashboard from QuickBooks Online data. P
 ## When To Use
 
 - Monthly close is complete and it's time to generate the client dashboard
-- Irfan asks for KPI report, dashboard, or executive summary for any client
+- User asks for KPI report, dashboard, or executive summary for any client
 - After running P&L Quick Compare and bank rec — this is the final deliverable step
-- Running our own internal numbers (PL slug) — eat our own cooking
 
 ## When NOT To Use
 
@@ -51,17 +49,14 @@ pip install openpyxl
 ### Usage
 
 ```bash
-# SB Paulson / Willo Salons — March 2026
-python3 scripts/pipelines/client-dashboard.py --slug sb-paulson --month 2026-03
-
-# PrecisionLedger internal report
-python3 scripts/pipelines/client-dashboard.py --slug pl --month 2026-03
+# Example — March 2026
+python3 scripts/pipelines/client-dashboard.py --slug <client-slug> --month 2026-03
 
 # Custom output directory
-python3 scripts/pipelines/client-dashboard.py --slug sb-paulson --month 2026-03 --out ~/Desktop/reports
+python3 scripts/pipelines/client-dashboard.py --slug <client-slug> --month 2026-03 --out ~/Desktop/reports
 
 # QBO sandbox
-python3 scripts/pipelines/client-dashboard.py --slug sb-paulson --month 2026-03 --sandbox
+python3 scripts/pipelines/client-dashboard.py --slug <client-slug> --month 2026-03 --sandbox
 ```
 
 ### Arguments
@@ -130,22 +125,6 @@ Thresholds are defined in `CLIENT_CONFIGS` in the script — one config block pe
 
 ## Client SOP Integration
 
-### SB Paulson (Willo Salons) — `slug: sb-paulson`
-- **No AR:** POS collection — DSO skipped
-- **Watch #1:** Interest expense ratio (~$214K annualized = 100% of net loss)
-- **Watch #2:** Gross margin compression (54% → 49% trend)
-- **Watch #3:** Retail revenue declining (-35% YoY)
-- **Green thresholds:** Gross margin ≥ 50%, current ratio ≥ 1.5x, cash runway ≥ 6 mo
-- **Benchmarks:** Beauty services industry (IBISWorld 2025 — manual config)
-
-### PrecisionLedger Internal — `slug: pl`
-- **AR applicable:** Retainer clients on net terms — DSO tracked
-- **Watch #1:** Revenue growth rate (MoM) — north-star metric for growth phase
-- **Watch #2:** Cash runway — critical during pre-revenue growth
-- **Watch #3:** DSO — flag if > 30 days
-- **Green thresholds:** Revenue MoM ≥ 5%, cash runway ≥ 9 mo, net margin ≥ 20%
-- **Benchmarks:** Professional services / accounting (IBISWorld 2025 — manual config)
-
 ### Adding a New Client
 Add a block to `CLIENT_CONFIGS` in the script:
 ```python
@@ -198,7 +177,7 @@ To update: edit `benchmarks` dict and `benchmark_source` string per client.
 This pipeline is designed to run **after** monthly close is complete:
 
 ```
-1. Bank Reconciliation      (pl-bank-rec.py)
+1. Bank Reconciliation      (bank-reconciliation.py)
 2. P&L Quick Compare        (pl-quick-compare.py)
 3. P&L Deep Analysis        (pl-deep-analysis.py)      ← optional for controller level
 4. Client Dashboard         (client-dashboard.py)      ← this script
@@ -220,7 +199,7 @@ This pipeline is designed to run **after** monthly close is complete:
 
 ## Troubleshooting
 
-**QBO CLI error:** Ensure `integrations/qbo-client/` is authenticated for the slug. Run `node integrations/qbo-client/bin/qbo auth {slug}`.
+**QBO CLI error:** Ensure your QBO integration is authenticated for the slug.
 
 **Missing KPIs:** If Balance Sheet accounts don't match expected labels, values default to 0. Check `extract_bs_metrics()` candidates list for account name variants.
 
