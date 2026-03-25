@@ -26,15 +26,27 @@ function expandPath(p: string): string {
 
 /**
  * 扫描记忆目录获取所有文件
+ * 安全：只扫描 memoryDir 内的文件
  */
 async function scanMemoryFiles(memoryDir: string, group?: string): Promise<string[]> {
   const files: string[] = [];
   const baseDir = expandPath(memoryDir);
   
+  // 解析为绝对路径并验证
+  const resolvedBaseDir = path.resolve(baseDir);
+  
   // 确定搜索目录
-  let searchDir = baseDir;
+  let searchDir = resolvedBaseDir;
   if (group) {
-    searchDir = path.join(baseDir, 'groups', group);
+    // 防止 group 参数进行路径遍历
+    const safeGroup = group.replace(/[^a-zA-Z0-9_-]/g, '');
+    searchDir = path.join(resolvedBaseDir, 'groups', safeGroup);
+  }
+
+  // 验证搜索目录在 baseDir 内
+  if (!searchDir.startsWith(resolvedBaseDir + path.sep) && searchDir !== resolvedBaseDir) {
+    console.warn('[MemorySearch] 拒绝访问目录外:', searchDir);
+    return files;
   }
 
   try {

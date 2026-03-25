@@ -1,5 +1,6 @@
 /**
  * Memory Write - 写入记忆文件
+ * 安全修复：添加路径验证，防止目录遍历攻击
  */
 
 import * as fs from 'fs/promises';
@@ -9,14 +10,49 @@ import type { MemorySystemConfig } from './index.js';
 /**
  * 展开路径中的 ~
  */
-function expandPath(p: string, baseDir: string): string {
+function expandPath(p: string): string {
   if (p.startsWith('~')) {
     return path.join(process.env.HOME || '', p.slice(1));
   }
-  if (!path.isAbsolute(p)) {
-    return path.join(baseDir, p);
-  }
   return path.resolve(p);
+}
+
+/**
+ * 安全验证：确保最终路径在 memoryDir 内
+ * 防止 ../ 目录遍历攻击
+ */
+function validatePath(filePath: string, memoryDir: string): string {
+  // 展开 memoryDir
+  const resolvedMemDir = expandPath(memoryDir);
+  
+  // 展开请求的路径
+  let resolvedPath: string;
+  if (path.isAbsolute(filePath)) {
+    resolvedPath = expandPath(filePath);
+  } else {
+    // 相对路径基于 memoryDir
+    resolvedPath = path.resolve(resolvedMemDir, filePath);
+  }
+
+  // 解析符号链接，获取真实路径
+  try {
+    resolvedPath = path.resolve(resolvedPath);
+  } catch {
+    throw new Error('Invalid path');
+  }
+
+  // 验证最终路径是否在 memoryDir 内
+  if (!resolvedPath.startsWith(resolvedMemDir + path.sep) && resolvedPath !== resolvedMemDir) {
+    throw new Error(`Path traversal denied: "${filePath}" resolves outside memory directory`);
+  }
+
+  // 验证文件名不包含危险字符
+  const basename = path.basename(filePath);
+  if (basename.startsWith('.') || basename === '..') {
+    throw new Error('Invalid filename');
+  }
+
+  return resolvedPath;
 }
 
 /**
@@ -27,12 +63,22 @@ export async function memoryWrite(
   content: string,
   mode: 'overwrite' | 'append' = 'append',
   config?: MemorySystemConfig
-): Promise<{ success: boolean; path: string }> {
+): Promise<{ success: boolean; path: string; error?: string }> {
   const cfg = config || {
     memoryDir: '~/.openclaw/workspace/memory'
   } as MemorySystemConfig;
 
-  const fullPath = expandPath(filePath, cfg.memoryDir);
+  // 安全验证路径
+  let fullPath: string;
+  try {
+    fullPath = validatePath(filePath, cfg.memoryDir);
+  } catch (e) {
+    return {
+      success: false,
+      path: filePath,
+      error: (e as Error).message
+    };
+  }
   
   console.log(`[MemoryWrite] 写入: ${fullPath} (mode: ${mode})`);
 

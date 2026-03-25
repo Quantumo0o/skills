@@ -1,5 +1,6 @@
 /**
  * Memory Get - 读取记忆文件
+ * 安全修复：添加路径验证，防止目录遍历攻击
  */
 
 import * as fs from 'fs/promises';
@@ -7,17 +8,45 @@ import * as path from 'path';
 import type { MemorySystemConfig } from './index.js';
 
 /**
- * 展开路径中的 ~
+ * 展开路径中的 ~ 并转换为绝对路径
  */
-function expandPath(p: string, baseDir: string): string {
+function expandPath(p: string): string {
   if (p.startsWith('~')) {
     return path.join(process.env.HOME || '', p.slice(1));
   }
-  // 相对路径基于 memoryDir
-  if (!path.isAbsolute(p)) {
-    return path.join(baseDir, p);
-  }
   return path.resolve(p);
+}
+
+/**
+ * 安全验证：确保最终路径在 memoryDir 内
+ * 防止 ../ 目录遍历攻击
+ */
+function validatePath(filePath: string, memoryDir: string): string {
+  // 展开 memoryDir
+  const resolvedMemDir = expandPath(memoryDir);
+  
+  // 展开请求的路径
+  let resolvedPath: string;
+  if (path.isAbsolute(filePath)) {
+    resolvedPath = expandPath(filePath);
+  } else {
+    // 相对路径基于 memoryDir
+    resolvedPath = path.resolve(resolvedMemDir, filePath);
+  }
+
+  // 解析符号链接，获取真实路径
+  try {
+    resolvedPath = path.resolve(resolvedPath);
+  } catch {
+    throw new Error('Invalid path');
+  }
+
+  // 验证最终路径是否在 memoryDir 内
+  if (!resolvedPath.startsWith(resolvedMemDir + path.sep) && resolvedPath !== resolvedMemDir) {
+    throw new Error(`Path traversal denied: "${filePath}" resolves outside memory directory`);
+  }
+
+  return resolvedPath;
 }
 
 /**
@@ -33,7 +62,18 @@ export async function memoryGet(
     memoryDir: '~/.openclaw/workspace/memory'
   } as MemorySystemConfig;
 
-  const fullPath = expandPath(filePath, cfg.memoryDir);
+  // 安全验证路径
+  let fullPath: string;
+  try {
+    fullPath = validatePath(filePath, cfg.memoryDir);
+  } catch (e) {
+    return {
+      path: filePath,
+      content: '',
+      totalLines: 0,
+      error: (e as Error).message
+    };
+  }
   
   console.log(`[MemoryGet] 读取: ${fullPath}`);
 
@@ -79,6 +119,7 @@ export async function memoryGet(
 
 /**
  * 读取多个文件（用于自动加载）
+ * 自动加载使用受信任的内部路径，不做额外验证
  */
 export async function memoryGetMultiple(
   filePaths: string[],
