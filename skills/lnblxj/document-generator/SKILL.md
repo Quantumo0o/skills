@@ -1,260 +1,203 @@
 ---
 name: document-generator
-description: Creates professional documents from scratch or templates. Use this skill whenever the user needs to generate Word (.docx), Excel (.xlsx), or PDF documents with rich formatting, tables, images, or dynamic content. Ideal for reports, invoices, manuals, and data-driven documents.
-compatibility:
-  tools:
-    - exec
-  dependencies:
-    - python-docx
-    - openpyxl
-    - fpdf2
-    - weasyprint
-    - jinja2
+description: Generate professional Word, Excel, and PDF documents with rich formatting, tables, images, and layouts. Use this skill whenever the user mentions creating documents, generating reports, exporting to DOCX/XLSX/PDF, making spreadsheets, building presentations in document form, or needs any kind of formatted document output. This includes requests like "create a report", "generate an Excel file", "export to PDF", "make a Word document", "build a spreadsheet", or even indirect mentions like "I need this data in a table" or "format this as a document".
 ---
 
-# Document Generator 📄
+# Document Generator Skill
 
-A comprehensive document generation system that creates professional Word, Excel, and PDF documents programmatically. Supports rich formatting, multi-level headings, tables, images, templates, and dynamic data insertion.
+Generate professional Word (.docx), Excel (.xlsx), and PDF documents with comprehensive formatting support including fonts, colors, tables, images, layouts, and more.
 
 ## When to Use This Skill
 
-Trigger this skill when the user:
-- Requests creation of any document (Word/Excel/PDF) from scratch or data
-- Needs formatted reports, invoices, manuals, or certificates
-- Requires tables, multi-level headings, images with captions, or custom styling
-- Mentions "generate document", "create report", "make invoice", "export to PDF/Word/Excel"
-- Works with structured data that needs to be turned into a polished document
-
-Avoid for simple plain-text outputs; use direct file writes instead.
+Use this skill when the user needs to:
+- Create Word documents with rich formatting (headings, paragraphs, tables, images, styles)
+- Generate Excel spreadsheets with formulas, styling, and data
+- Export content to PDF format with professional layouts
+- Work with document templates and fill them with data
+- Create reports, invoices, data exports, or any formatted document output
 
 ## Core Capabilities
 
 ### Word Documents (.docx)
-- Create blank or templated documents
-- Multi-level headings (levels 1-9)
-- Tables with headers, custom styles, column widths
-- Images with width, alignment, captions
-- Paragraphs, bullet/numbered lists
-- Rich styling: font size, color, bold, italic, underline, alignment
+- Text formatting: font family, size, color, bold, italic, underline
+- Paragraph styles: alignment, spacing, indentation
+- Tables with custom styling and borders
+- Images with positioning and sizing
 - Headers and footers
+- Page layout: margins, orientation, page size
+- Bullet and numbered lists
+- Hyperlinks
 
-### Excel Workbooks (.xlsx)
-- Create workbooks and worksheets
-- Fill cells with data
-- Apply cell formatting (number formats, colors, borders)
-- Add formulas and references
-- Generate basic charts (bar, line, pie)
+### Excel Spreadsheets (.xlsx)
+- Cell formatting: font, size, color, background
+- Formulas and calculations
+- Multiple sheets
+- Column widths and row heights
+- Cell borders and alignment
+- Number formatting (currency, percentage, dates)
+- Merged cells
+- Freeze panes
 
 ### PDF Documents (.pdf)
-- Convert HTML to PDF (high-quality via WeasyPrint)
-- Generate from plain text with custom styles
-- Add headers, footers, page numbers
-- Control page layout and margins
+- Text with custom fonts, sizes, and colors
+- Paragraphs with alignment
+- Tables with styling
+- Images
+- Page layout and margins
+- Multi-page documents
+- Headers and footers
 
-### Template System
-- Predefined templates for common document types
-- Custom template support (HTML-based for PDFs, JSON structure for Word)
-- Variable substitution with Jinja2
-- Dynamic content from JSON data
+## How to Use
 
-## Quick Start
+### Step 1: Understand the Requirements
 
-### Basic Usage
+Ask clarifying questions if needed:
+- What type of document? (Word/Excel/PDF)
+- What content should it contain?
+- Any specific formatting requirements?
+- Should it use a template?
+- Where should the output be saved?
+
+### Step 2: Choose the Right Script
+
+The skill provides three main scripts in the `scripts/` directory:
+- `generate_word.py` - For Word documents
+- `generate_excel.py` - For Excel spreadsheets  
+- `generate_pdf.py` - For PDF documents
+
+Each script accepts a JSON configuration that describes the document structure and content.
+
+### Step 3: Prepare the Configuration
+
+Create a JSON configuration file that describes the document. The structure varies by document type - see the reference files for detailed schemas:
+- `references/word_schema.md` - Word document configuration
+- `references/excel_schema.md` - Excel spreadsheet configuration
+- `references/pdf_schema.md` - PDF document configuration
+
+### Step 4: Generate the Document
+
+Run the appropriate script with the configuration:
 
 ```bash
-# Create a Word document with simple content
-python3 create_word.py "report.docx" --title "Quarterly Report" --content "Summary text here"
-
-# Create Excel from JSON data
-python3 create_excel.py "data.xlsx" --data '{"sheet1": [{"A1": "Name", "B1": "Score"}]}'
-
-# Create PDF from HTML
-python3 create_pdf.py "output.pdf" --html "<h1>Hello</h1><p>World</p>"
+python document-generator/scripts/generate_word.py config.json output.docx
+python document-generator/scripts/generate_excel.py config.json output.xlsx
+python document-generator/scripts/generate_pdf.py config.json output.pdf
 ```
 
-### Advanced: Rich JSON Content for Word
+### Step 5: Verify and Iterate
 
-For complex documents, use a JSON content structure:
+Check the generated document and make adjustments to the configuration if needed.
+
+## Working with Templates
+
+All three document types support template-based generation:
+
+1. **Word Templates**: Use existing .docx files and replace placeholders
+2. **Excel Templates**: Use existing .xlsx files and fill in data
+3. **PDF Templates**: Define reusable layouts in the configuration
+
+To use a template, include a `template` field in your configuration pointing to the template file path.
+
+## Configuration Examples
+
+### Simple Word Document
 
 ```json
 {
-  "sections": [
+  "page_setup": {
+    "margins": {"top": 1, "bottom": 1, "left": 1, "right": 1}
+  },
+  "content": [
     {
-      "heading": "Project Overview",
-      "level": 1,
-      "content": [
-        {
-          "type": "paragraph",
-          "text": "This project aims to develop an advanced document generation system...",
-          "bold": true,
-          "font_size": 14
-        }
-      ]
+      "type": "heading",
+      "text": "Monthly Report",
+      "level": 1
     },
     {
-      "heading": "Technical Architecture",
-      "level": 2,
-      "content": [
-        {
-          "type": "list",
-          "list_type": "bullet",
-          "items": [
-            "Document parsing engine",
-            "Template rendering system",
-            "Format conversion module"
-          ]
-        },
-        {
-          "type": "table",
-          "headers": ["Component", "Technology", "Version", "Status"],
-          "data": [
-            ["Word generation", "python-docx", "0.8.11", "Stable"]
-          ],
-          "style": "Light Grid Accent 1"
-        }
-      ]
+      "type": "paragraph",
+      "text": "This is the report content.",
+      "font": {"name": "Arial", "size": 11}
     }
   ]
 }
 ```
 
-Run with:
-```bash
-python3 create_word.py "report.docx" --content-file "content.json" --title "Technical Doc"
-```
+### Simple Excel Spreadsheet
 
-## File Structure
-
-```
-document-generator/
-├── SKILL.md               # This file
-├── create_word.py         # Word document generator
-├── create_excel.py        # Excel workbook generator
-├── create_pdf.py          # PDF generator
-├── install_dependencies.py # Install required Python packages
-├── demo_example.py        # Example script with rich content
-└── USER_GUIDE.md          # Detailed user guide (optional)
-```
-
-## Dependencies
-
-This skill requires Python packages to be installed **beforehand** by the user:
-
-```bash
-pip install python-docx openpyxl fpdf2 weasyprint jinja2
-```
-
-Do not run `apt install` inside the skill; the system should already have a working Python environment. If dependencies are missing, the skill will raise an error prompting the user to install them.
-
-System libraries for WeasyPrint (optional but recommended on Linux):
-```bash
-apt install libpango-1.0-0 libgdk-pixbuf2.0-0 libffi-dev
-```
-
-## Examples
-
-### Example 1: Sales Report with Table
-
-```python
-import json
-
-content = {
-    "sections": [
-        {
-            "heading": "2026 Q1 Sales Report",
-            "level": 1,
-            "content": [
-                {
-                    "type": "paragraph",
-                    "text": "Regional performance summary:"
-                },
-                {
-                    "type": "table",
-                    "headers": ["Region", "Revenue (10k)", "Growth", "Rank"],
-                    "data": [
-                        ["East", 1250, "+15.2%", 1],
-                        ["South", 980, "+8.5%", 2],
-                        ["North", 820, "+12.3%", 3]
-                    ],
-                    "style": "Light Shading Accent 2"
-                }
-            ]
-        }
-    ]
+```json
+{
+  "sheets": [
+    {
+      "name": "Sales Data",
+      "data": [
+        ["Product", "Quantity", "Price", "Total"],
+        ["Widget A", 10, 25.50, "=B2*C2"],
+        ["Widget B", 5, 30.00, "=B3*C3"]
+      ],
+      "formatting": {
+        "header_row": 0,
+        "column_widths": [15, 10, 10, 10]
+      }
+    }
+  ]
 }
-
-with open('sales.json', 'w') as f:
-    json.dump(content, f, indent=2)
-
-# Generate
-# python3 create_word.py "sales_report.docx" --content-file "sales.json" --title "Q1 Sales"
 ```
 
-### Example 2: PDF from HTML Template
+### Simple PDF Document
 
-```bash
-# template.html
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-      body { font-family: 'Microsoft YaHei'; }
-      h1 { color: #2c3e50; }
-    </style>
-</head>
-<body>
-    <h1>{{title}}</h1>
-    <p>{{date}}</p>
-    <div>{{content}}</div>
-</body>
-</html>
-
-# Generate
-python3 create_pdf.py "newsletter.pdf" --template "template.html" --variables "title=Weekly News,date=2026-03-18,content=..."
+```json
+{
+  "page_setup": {
+    "size": "A4",
+    "margins": {"top": 20, "bottom": 20, "left": 20, "right": 20}
+  },
+  "content": [
+    {
+      "type": "text",
+      "text": "Invoice #12345",
+      "font": {"name": "Helvetica-Bold", "size": 18}
+    },
+    {
+      "type": "paragraph",
+      "text": "Thank you for your business.",
+      "font": {"name": "Helvetica", "size": 12}
+    }
+  ]
+}
 ```
 
-### Example 3: Excel with Formulas and Chart
+## Best Practices
 
-```bash
-python3 create_excel.py "budget.xlsx" \
-  --data '{"Sheet1": [{"A1": "Item", "B1": "Budget", "C1": "Actual"},
-                     {"A2": "Marketing", "B2": 10000, "C2": 9500},
-                     {"A2": "R&D", "B2": 20000, "C2": 22000}]}' \
-  --formula "C3=SUM(C2:C10)" \
-  --chart "Bar Chart of Budget vs Actual"
-```
-
-## Tips & Best Practices
-
-- For large documents, use `--content-file` instead of inline JSON to avoid command-line length limits
-- Table styles use Excel/Word built-in styles; common ones: `Light Grid Accent 1`, `Light Shading Accent 2`
-- Image paths can be absolute or relative; for cross-platform, use absolute paths
-- PDF generation via WeasyPrint requires system libraries (Pango, Cairo) on Linux; if missing, fall back to fpdf2 with `--backend fpdf`
-
-## Security Considerations
-
-- This skill **does not** perform any network I/O or system modifications beyond generating files in the specified output directory.
-- All Python scripts are deterministic and only act on user-provided data and templates.
-- The `install_dependencies.py` script is provided for convenience; it only installs Python packages via pip. Recommend reviewing it before running.
-- For first-time use, test in an isolated environment to verify behavior matches expectations.
-- No hidden or background processes are initiated.
+1. **Start Simple**: Begin with basic formatting and add complexity as needed
+2. **Use Templates**: For recurring document types, create templates to save time
+3. **Validate Data**: Check that data types match expected formats (numbers, dates, etc.)
+4. **Test Incrementally**: Generate documents frequently during development to catch issues early
+5. **Handle Errors Gracefully**: Provide clear error messages if configuration is invalid
 
 ## Troubleshooting
 
-- **Import errors**: Ensure dependencies installed in correct Python environment
-- **WeasyPrint build failures**: Install system deps: `apt install libpango-1.0-0 libgdk-pixbuf2.0-0 libffi-dev`
-- **File not found**: Use absolute paths for images and templates
-- **Permission denied**: Write to current directory or a writable path
+**Missing Dependencies**: If scripts fail, ensure required Python packages are installed:
+```bash
+pip install python-docx openpyxl reportlab Pillow
+```
 
-## Performance Notes
+**Font Issues**: If custom fonts don't work, verify the font name is correct and available on the system.
 
-- Large Excel files (>10k rows): stream with `openpyxl` in write-only mode
-- Big images: resize before insertion to keep file size manageable
-- Batch generation: reuse a single script invocation with multiple output targets
+**Image Problems**: Ensure image paths are absolute or relative to the script execution directory.
 
----
+**Excel Formulas**: Use Excel formula syntax (e.g., `=SUM(A1:A10)`) as strings in the data array.
 
-**Skill name**: `document-generator`  
-**Version**: 1.1.0  
-**Status**: ✅ Production-ready  
-**Last updated**: 2026-03-15
+## Advanced Features
+
+For complex documents, refer to the detailed reference files:
+- `references/word_schema.md` - Complete Word configuration options
+- `references/excel_schema.md` - Complete Excel configuration options
+- `references/pdf_schema.md` - Complete PDF configuration options
+
+These references include examples of:
+- Complex table layouts
+- Image positioning and sizing
+- Advanced styling and themes
+- Multi-page layouts
+- Template variable substitution
+- Conditional formatting
