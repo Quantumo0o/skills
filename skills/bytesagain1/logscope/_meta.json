@@ -3,9 +3,15 @@
   "slug": "logscope",
   "displayName": "Logscope",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773831736068,
-    "commit": "https://github.com/openclaw/skills/commit/cba05288bc077b64a7f717882cfdab6608121ac6"
+    "version": "2.0.3",
+    "publishedAt": 1774313073964,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773831736068,
+      "commit": "https://github.com/openclaw/skills/commit/cba05288bc077b64a7f717882cfdab6608121ac6"
+    }
+  ]
 }
