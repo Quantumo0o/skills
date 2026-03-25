@@ -1,8 +1,8 @@
 ---
 name: cardzero
-version: 1.1.0
-description: CardZero Agent Wallet — create wallets, check balance, execute USDC payments, view transaction history
-tags: [payment, wallet, usdc, web3, agent]
+version: 1.3.0
+description: "CardZero — the first payment wallet built for AI agents. Create USDC wallets on Base L2, make payments, pay x402 paywalls, pay other agents, check balance, view transactions. Human owner sets spending rules via Dashboard; agent pays autonomously within limits. Use when agent needs to: 'pay for API access', 'send USDC', 'pay 402 paywall', 'create a wallet', 'check my balance', 'make a payment', 'buy with crypto', 'agent wallet', 'autonomous payment', 'micropayment', 'pay another agent', 'agent-to-agent payment', 'A2A payment'."
+tags: [payment, wallet, usdc, web3, agent, x402, base, micropayment, autonomous, crypto, a2a]
 requires:
   - CARDZERO_API_URL: CardZero API base URL (e.g. https://api.cardzero.ai)
   - CARDZERO_API_KEY: Your API Key (received from Owner after they claim the wallet)
@@ -31,8 +31,10 @@ You have a CardZero payment wallet on Base (Coinbase L2). This wallet holds USDC
 
 1. **Create a new wallet** — Register a wallet for your Owner to claim
 2. **Check balance** — Query your current USDC balance
-3. **Make payments** — Send USDC to any address
-4. **View payment history** — See recent transactions
+3. **Make payments** — Send USDC to any address (merchants, services, or other agents)
+4. **Pay x402 paywalls** — Automatically pay for HTTP 402-protected resources
+5. **Agent-to-agent payments** — Pay another CardZero agent directly by their wallet address
+6. **View payment history** — See recent transactions
 
 ## Authentication
 
