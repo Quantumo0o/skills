@@ -1,0 +1,11 @@
+{
+  "owner": "suderbot",
+  "slug": "gateway-restart",
+  "displayName": "Gateway Restart",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774036470095,
+    "commit": null
+  },
+  "history": []
+}
