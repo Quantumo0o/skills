@@ -3,9 +3,15 @@
   "slug": "traceroute-visual",
   "displayName": "Traceroute Visual",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773983950764,
-    "commit": "https://github.com/openclaw/skills/commit/c2041ebc28a0b177955bc425b1b0aaf02d22118d"
+    "version": "2.0.1",
+    "publishedAt": 1774316993669,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773983950764,
+      "commit": "https://github.com/openclaw/skills/commit/c2041ebc28a0b177955bc425b1b0aaf02d22118d"
+    }
+  ]
 }
