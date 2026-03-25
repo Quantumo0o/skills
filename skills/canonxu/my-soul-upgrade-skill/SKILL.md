@@ -5,7 +5,10 @@ Manage and synchronize Soul definitions across the agent system using a two-laye
 
 ## Architecture
 - **Global Layer**: `/home/admin/.openclaw/soul/SOUL.md` (Common principles, constraints, formatting)
-- **Agent Layer**: `/home/admin/.openclaw/agents/<agent_id>/template.md` (Personalized role, specific capabilities)
+- **Agent Layer**: `/home/admin/.openclaw/workspaces/workspace-<agent_id>/template.md` (Personalized role, specific capabilities)
+- **Output**: Built SOUL.md → `/home/admin/.openclaw/workspaces/workspace-<agent_id>/SOUL.md`
+
+New layout aligns with OpenClaw's per-agent workspace pattern.
 
 ## Workflow
 
@@ -14,7 +17,7 @@ Manage and synchronize Soul definitions across the agent system using a two-laye
 2.  **Sync**: Execute `python3 ~/.openclaw/scripts/build_all_souls.py` to regenerate all agent SOUL files.
 
 ### 2. Update Agent-Specific Soul
-1.  **Edit**: Modify `/home/admin/.openclaw/agents/<agent_id>/template.md`.
+1.  **Edit**: Modify `/home/admin/.openclaw/workspaces/workspace-<agent_id>/template.md`.
 2.  **Sync**: Execute `python3 ~/.openclaw/scripts/build_all_souls.py` to rebuild the specific agent's SOUL.
 
 ---
