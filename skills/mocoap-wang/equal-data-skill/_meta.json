@@ -3,11 +3,16 @@
   "slug": "equal-data-skill",
   "displayName": "看究竟API查询",
   "latest": {
-    "version": "0.0.6",
-    "publishedAt": 1773978754329,
-    "commit": "https://github.com/openclaw/skills/commit/33e207930da7cf0de2068d9a526691f53e7e6f04"
+    "version": "0.0.11",
+    "publishedAt": 1774247995948,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.6",
+      "publishedAt": 1773978754329,
+      "commit": "https://github.com/openclaw/skills/commit/33e207930da7cf0de2068d9a526691f53e7e6f04"
+    },
     {
       "version": "0.0.5",
       "publishedAt": 1773733814762,

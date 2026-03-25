@@ -1,19 +1,15 @@
 {
   "name": "equal-data",
-  "version": "0.0.6",
+  "version": "0.0.2",
   "description": "专业级金融数据服务解决方案，提供A股/基金/指数实时与历史数据、财报及三大报表、基金画像等金融数据查询服务",
   "author": "看究竟",
   "tags": ["金融数据", "A股", "量化", "股票", "基金", "Tushare", "游资"],
   "repository": "https://github.com/mocoap-wang/equal-data-skill",
   "license": "Apache-2.0",
-  "dependencies": {
-    "python": ">=3.8",
-    "packages": ["pandas>=2.0.0"]
+  "config_paths": ["~/.kjiujing/config.yaml"],
+  "install_spec": {
+    "type": "pip",
+    "package": "equal-data==0.0.2"
   },
-  "openclaw": {
-    "requires": {
-      "bins": ["python3"],
-      "env": ["KJJ_API_TOKEN"]
-    }
-  }
+  "required_env_vars": ["KJJ_API_TOKEN"]
 }
