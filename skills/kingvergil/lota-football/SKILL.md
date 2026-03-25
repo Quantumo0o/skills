@@ -1,6 +1,6 @@
 ---
 name: lota-football
-version: 1.0.0
+version: 1.0.1
 description: 在聊天中查询足球比赛数据并生成API命令，获取比赛列表和AI分析特征文本
 disable-model-invocation: false
 

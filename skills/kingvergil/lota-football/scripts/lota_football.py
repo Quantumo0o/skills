@@ -314,7 +314,7 @@ class LotaFootballSkill:
             api_params['status'] = '未开赛'
 
         # 限制返回数量
-        api_params['limit'] = '10'
+        api_params['limit'] = '10000'
 
         return api_params
 

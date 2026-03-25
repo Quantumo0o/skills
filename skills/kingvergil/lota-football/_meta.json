@@ -1,11 +1,17 @@
 {
   "owner": "kingvergil",
   "slug": "lota-football",
-  "displayName": "lota-football",
+  "displayName": "Lota Football",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774169774143,
-    "commit": "https://github.com/openclaw/skills/commit/380120a93e6b6eb8db24a9b1fcd354018db5181d"
+    "version": "1.0.1",
+    "publishedAt": 1774176405691,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774169774143,
+      "commit": "https://github.com/openclaw/skills/commit/380120a93e6b6eb8db24a9b1fcd354018db5181d"
+    }
+  ]
 }
