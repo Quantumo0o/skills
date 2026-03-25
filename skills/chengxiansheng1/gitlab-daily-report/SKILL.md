@@ -1,123 +1,184 @@
----
-name: gitlab-daily-report
-description: 自动拉取 GitLab 团队每日提交记录，汇总成报告推送到飞书群机器人。当用户需要生成团队提交汇总报告、配置每日自动化任务、或将提交记录推送到飞书时使用此技能。
----
+# GitLab Daily Report Skill
 
-# GitLab 团队每日提交汇总
+## 角色定义
 
-## Overview
+你是 GitLab 项目数据分析师，擅长从原始 Git 数据中提取有价值的信息，并以清晰、结构化的方式呈现。同时你也是飞书报告助手，负责生成高质量的团队进度总结。
 
-本技能用于自动化收集 GitLab 团队成员的每日代码提交，生成格式化的汇总报告，并通过飞书群机器人推送到指定群组。支持配置多个仓库、定时任务自动执行。
+## 核心工作流程
+
+### Step 1: 获取数据（无需用户干预）
+```bash
+python gitlab_report.py --preview
+```
+- 自动获取过去 24 小时的 Commits / MRs / Pipelines 数据
+- 数据保存到 `latest_data.json`
+- 输出原始 JSON 供 AI 分析
+
+### Step 2: AI 智能分析与总结（关键步骤）
+**只有当用户明确要求"汇报"或"推送飞书"时，才执行此步骤**
+
+读取 `latest_data.json` 中的原始数据，按以下结构进行分析和总结：
+
+**分析维度：**
+1. 过滤：剔除无意义的 Merge commit
+2. 聚类：按功能模块分类（✨新功能/🐛Bug修复/🛠重构/📄文档/🔐安全）
+3. 摘要：合并相似任务，用精炼的语言概括核心变动
+4. 评估：计算活跃度 (High/Med/Low)，识别关键贡献者
+5. 识别阻塞点：24h+ 未合并的 MR，失败的 Pipeline
+6. 风险预警：敏感文件变更、权限相关改动
+
+**AI 输出内容结构（用于飞书推送）：**
+```
+📅 [项目名] 每日进度总结 (日期)
+━━━━━━━━━━━━━━━━━━━
+
+🎯 核心成果 (TOP 3)
+  • [成果1，简明有力]
+  • [成果2，突出价值]
+  • [成果3，影响范围]
+
+📊 工作量统计
+  代码提交: X 次 | 活跃成员: Y 人 | 代码行数变化: +Z/-W
+
+🔥 关键亮点
+  [突出这个项目今天最有意义的工作]
+
+⚠️ 需要关注
+  [如果有阻塞或风险，简洁指出；否则显示"暂无阻塞"]
+
+👥 主力贡献者
+  [列出贡献数最多的前 3 名成员]
+```
+
+### Step 3: 发送飞书（需用户明确确认）
+**步骤 2 完成后，将 AI 生成的智能总结内容推送到飞书**
+
+用户明确要求"推送飞书"、"发送飞书"或"汇报"时，才执行：
+```bash
+# 使用 AI 总结的内容发送飞书
+python gitlab_report.py --send-ai-summary
+```
 
 ## 使用场景
 
-1. **生成每日提交汇总**：自动拉取当日所有提交，按成员和仓库分组展示
-2. **推送到飞书**：将汇总结果以富文本卡片形式推送到飞书群
-3. **配置定时任务**：设置自动化定时执行（如每天下班前）
+| 场景 | 命令 | 说明 |
+|------|------|------|
+| 获取今日数据 | `python gitlab_report.py --preview` | 仅获取数据，不进行 AI 分析 |
+| 汇报（推荐工作流） | 1. 先运行 --preview 获取数据<br>2. AI 分析生成智能总结<br>3. 用户确认后推送飞书 | 标准的报告流程 |
+| 快速查看 | 查看终端输出 | 数据已获取，可查看脚本格式化的报告 |
 
-## 快速开始
-
-### 1. 配置脚本
-
-进入 skill 目录并复制配置模板：
-
-```bash
-cd skills/gitlab-daily-report/scripts/
-cp config.example.json config.json
-```
-
-### 2. 填写配置
-
-编辑 `config.json`，填入以下信息：
-
-| 配置项 | 说明 | 示例 |
-|--------|------|------|
-| `gitlab_url` | GitLab 实例地址 | `https://gitlab.yourcompany.com` |
-| `gitlab_token` | Personal Access Token | 在 GitLab 个人设置中生成 |
-| `repositories` | 要监控的仓库列表 | `["team/project-a", "team/project-b"]` |
-| `feishu_webhooks` | 飞书机器人 Webhook 地址 | `https://open.feishu.cn/open-apis/bot/v2/hook/xxx` |
-| `timezone_offset` | 时区偏移（小时） | `8`（中国时区） |
-
-**获取 GitLab Token**：
-1. 登录 GitLab → 点击右上角头像 → Preferences
-2. 左侧菜单选择 Access Tokens
-3. 创建新 Token，勾选 `read_api` 权限
-
-**获取飞书 Webhook**：
-1. 飞书群设置 → 群机器人 → 添加机器人 → 自定义机器人
-2. 复制 Webhook 地址
-
-### 3. 运行脚本
-
-```bash
-python gitlab_report.py
-```
-
-脚本会：
-1. 拉取配置中所有仓库当日的提交记录
-2. 按成员和仓库分组汇总
-3. 本地打印预览
-4. 推送到飞书群
-
-## 配置定时任务（可选）
-
-### Windows 计划任务
-
-```powershell
-# 每天 18:00 执行
-schtasks /create /tn "GitLab Daily Report" /tr "python C:\path\to\gitlab_report.py" /sc daily /st 18:00
-```
-
-### 使用 WorkBuddy 自动化
-
-可通过 WorkBuddy 的自动化功能配置每周一至周五下午6点执行：
+## 工作流示意
 
 ```
-FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=18;BYMINUTE=0
+┌─────────────────────┐
+│  用户请求"汇报"      │
+└──────────┬──────────┘
+           │
+           ▼
+┌─────────────────────────────────────┐
+│ Step 1: 脚本获取数据 (--preview)     │
+│ └─ 从 GitLab 拉取 Commits/MRs/等   │
+│ └─ 保存到 latest_data.json          │
+└──────────┬──────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────────┐
+│ Step 2: AI 智能分析总结              │
+│ 读取 latest_data.json，生成：       │
+│ • 核心成果摘要                       │
+│ • 工作量统计                         │
+│ • 关键亮点与风险                     │
+│ • 主力贡献者                         │
+└──────────┬──────────────────────────┘
+           │
+           ▼
+┌─────────────────────────────────────┐
+│ 用户确认是否推送飞书                 │
+└──────┬──────────────────┬───────────┘
+       │ 是               │ 否
+       ▼                  ▼
+  推送飞书           直接结束
+(使用AI总结内容)
 ```
 
-## 输出示例
+## 输出风格
 
-脚本运行后会输出类似以下格式：
+- `--style concise`: 极简模式
+- `--style detailed`: 详细模式（默认）
+- `--style executive`: 管理层汇报
 
+## 关键规则
+
+**⚠️ 重要：自动化行为调整**
+
+1. **不要自动推送飞书**：获取数据后只显示结果，不自动推送。除非用户明确说"推送飞书"、"发送飞书"或"汇报"
+2. **AI 分析优先**：仅当用户明确要求"汇报"时，才执行 AI 分析和飞书推送
+3. **两步确认**：
+   - Step 1: 获取数据并展示
+   - Step 2: 等待用户确认是否需要 AI 分析和推送
+
+## 数据结构 (latest_data.json)
+
+```json
+{
+  "date": "2026-03-19",
+  "summary": {
+    "total_commits": 63,
+    "active_members": 12,
+    "repositories": ["Jianxiang907", "manbing-java"]
+  },
+  "projects": [
+    {
+      "name": "Jianxiang907",
+      "commits": {
+        "total": 58,
+        "by_category": { "✨ 新功能": [...], "🐛 Bug 修复": [...] },
+        "by_author": { "liuyun": [...], "zhy": [...] },
+        "active_members": ["liuyun", "zhy", ...]
+      },
+      "merge_requests": { "total": 0, "opened": 0, "blocked": [] },
+      "pipelines": { "total": 0, "success": 0, "failed": 0 }
+    }
+  ]
+}
 ```
-👤 张三（3 条）
-  📁 project-a
-    1. feat: 添加用户登录接口
-    2. fix: 修复缓存失效问题
-  📁 project-b
-    1. refactor: 优化数据库查询
-👤 李四（2 条）
-  📁 project-a
-    1. docs: 更新 README
-    2. chore: 升级依赖版本
-```
 
-飞书收到的消息会格式化为富文本卡片，包含标题、成员头像（emoji）、仓库名称和提交标题。
+## AI 分析提示词
 
-## 脚本说明
+当用户要求汇报时，你应该：
 
-- **支持私有部署 GitLab**：自动忽略自签名证书
-- **跨分支去重**：遍历所有分支，按 commit ID 自动去重
-- **过滤 Merge 提交**：自动跳过以 "Merge" 开头的提交标题
-- **多仓库支持**：可同时监控多个仓库
-- **多 Webhook**：支持推送到多个飞书群
+**第一步：数据解读**
+- 读取脚本输出的原始 JSON 数据（latest_data.json）
+- 识别提交类型的分布、活跃成员、关键改动
 
-## 依赖
+**第二步：智能摘要**
+- 提炼 **核心成果**（TOP 3，最有价值的工作）
+- 生成 **工作量统计**（提交数、成员数、代码行变化）
+- 突出 **关键亮点**（最值得强调的工作）
+- 指出 **需要关注的问题**（如有阻塞或风险）
+- 列出 **主力贡献者**（贡献最多的人）
 
-- Python 3.7+
-- 无需额外安装依赖（仅使用标准库）
+**第三步：输出格式**
+使用本 SKILL 定义的"AI 输出内容结构"格式生成飞书消息
 
-## 常见问题
+**分类规则参考**:
+- ✨ 新功能 (feat/新增/添加/支持)
+- 🐞 Bug 修复 (fix/修复/bug/问题)
+- 🛠 重构优化 (refactor/优化/chore)
+- 📄 文档配置 (docs/文档/readme)
+- 🔐 安全权限 (security/权限/auth)
+- 🚀 部署CI (ci/cd/docker/k8s)
+- 🧪 测试 (test/测试)
+- 📌 其他
 
-**Q: 提示 "配置文件不存在"**
-A: 需要将 `config.example.json` 复制为 `config.json` 并填入真实配置
+**活跃度评级**:
+- High: ≥30 commits 或 (≥15 commits + ≥5 成员)
+- Med: ≥10 commits 或 (≥5 commits + ≥3 成员)
+- Low: 其他
 
-**Q: GitLab API 请求失败**
-A: 检查 `gitlab_url` 是否正确、Token 是否有 `read_api` 权限、是否可访问 GitLab
+## 配置
 
-**Q: 提交数量为 0**
-A: 确认仓库路径正确，或当日确实没有提交记录
+- `config.json`: GitLab URL、Token、仓库列表、飞书 Webhook
 
-**Q: 飞书消息发送失败**
-A: 检查 Webhook 地址是否正确、群机器人是否启用
+---
+*此 Skill 适用于 gitlab-daily-report 自动化任务*

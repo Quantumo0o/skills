@@ -1,17 +1,14 @@
 {
-  "_comment": "复制此文件为 config.json，填写真实配置后保存即可生效",
-
   "gitlab_url": "https://gitlab.yourcompany.com",
-  "gitlab_token": "your_personal_access_token_here",
+  "gitlab_token": "glpat-xxxxxxxxxxxx",
 
   "repositories": [
-    "your-group/repo-name-1",
-    "your-group/repo-name-2",
-    "another-group/repo-name-3"
+    "namespace/project1",
+    "namespace/project2"
   ],
 
   "feishu_webhooks": [
-    "https://open.feishu.cn/open-apis/bot/v2/hook/your_webhook_token_here"
+    "https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
   ],
 
   "timezone_offset": 8
