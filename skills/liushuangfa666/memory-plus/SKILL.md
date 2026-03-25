@@ -1,180 +1,196 @@
 ---
-name: memory-plus
-description: >
-  🧠 OpenClaw Enhanced Memory System — Provide Milvus + embedding endpoint, deploy hybrid search + reranking RAG in minutes. Conversation-triggered memory retrieval manages your context for deeper dialogue. Tiered memory: hot in session, cold in vector store.
-homepage: https://github.com/openclaw/skills
-metadata:
-  openclaw:
-    emoji: 🧠
-    requires:
-      bins: [python3]
-      python_pkgs: [pymilvus, requests, rank-bm25]
+name: memory-workflow
+version: 2.1.1
+description: |
+  虾宝智能记忆工作流。开箱即用，数据目录与代码分离，支持轻量降级。
+
+  特性：
+  - 文件系统存储，无外部数据库依赖
+  - Ollama 向量嵌入（可选，降级为 BM25）
+  - bge-reranker-v2-m3 重排（可选）
+  - HyDE + Query Rewriting（可选）
+  - 后台线程自动存储（每10分钟）
+  - 两阶段混合检索（向量 + BM25 + RRF + rerank）
 ---
 
-# 🧠 Memory Plus - 增强记忆系统
+# 🧠 Memory Workflow Skill
 
-> 🧠 增强记忆系统 — 只需提供 Milvus 和嵌入模型服务地址，即可快速部署混合检索 + 重排的 RAG 系统。对话触发记忆检索，自动管理上下文，实现深度连续对话。分层记忆：热点数据在 session，冷数据在向量库。
+## 核心特性
 
----
+### 先进性
 
-## 🤖 Agent 工具调用（推荐方式）
-
-**不需要 hook！Agent 可以主动调用 `memory_search` 工具来搜索记忆库。**
-
-### 工具：memory_search
-
-**描述：**
-搜索记忆库，找到与当前对话相关的历史记忆。
-
-**使用场景：**
-- 用户提到"之前讨论过"、"还记得吗"时使用
-- 需要引用之前的技术方案或决策时使用
-- 开启新话题前想确认是否有相关背景时使用
-
-**输入参数：**
-- `query` (string): 搜索查询，使用当前对话的关键词或问题
-
-**返回：** 相关记忆列表，每条包含内容摘要、时间、来源
-
-**Agent 使用示例：**
-```
-当用户说"还记得我们之前讨论过什么吗"时，Agent 应主动调用：
-
-Tool: memory_search
-参数: {"query": "之前讨论过的 RAG 或 Agent 相关内容"}
-```
-
----
-
-## ⚙️ 架构说明
-
-本 skill 包含**两个组件**，配合工作：
-
-| 组件 | 文件 | 作用 |
-|------|------|------|
-| **Skill** | `rag_integration.py` | Python 脚本，处理 Milvus 存储/搜索底层逻辑 |
-| **Plugin** | `memory-plus-plugin` | OpenClaw 插件，注册 `memory_search` 工具供 Agent 调用 + 定时自动存库 |
-
-> 📦 Plugin 下载地址：https://clawhub.com（搜索 memory-plus-plugin）
-
----
-
-## 🚀 快速开始
-
-### 1. 安装依赖
-
-```bash
-pip install pymilvus requests rank-bm25
-```
-
-### 2. 配置环境变量
-
-```bash
-export MILVUS_URI=http://your-milvus:19530
-export OLLAMA_URL=http://your-ollama:11434
-export OLLAMA_MODEL=bge-m3
-```
-
-### 3. 安装 Plugin（开启工具 + 自动存库）
-
-```bash
-# 从 clawhub.com 下载 memory-plus-plugin
-# 放置到 ~/.openclaw/extensions/memory-plus-plugin/
-```
-
-### 4. 测试
-
-```bash
-python3 rag_integration.py test
-python3 rag_integration.py status
-```
-
----
-
-## 📖 使用方法
-
-### Agent 主动搜索（推荐）
-
-Agent 在回复前主动调用 `memory_search` 工具，无需用户触发：
-
-```
-用户: 记得我们上次讨论过 RAG 优化方案吗？
-Agent: [调用 memory_search] → 搜 "RAG 优化方案"
-     → 结合搜索结果回答
-```
-
-### 手动存储记忆
-
-```bash
-python3 rag_integration.py store \
-  --content "这是一个重要的技术决策" \
-  --source "manual" \
-  --topic "tech"
-```
-
-### 手动搜索
-
-```bash
-python3 rag_integration.py search \
-  --query "之前的技术方案是什么" \
-  --limit 5
-```
-
----
-
-## ⚙️ 配置参数
-
-| 环境变量 | 默认值 | 说明 |
-|----------|---------|------|
-| `MILVUS_URI` | http://host.docker.internal:19530 | Milvus 连接地址 |
-| `RAG_COLLECTION` | openclaw_memory | Milvus 集合名 |
-| `OLLAMA_URL` | http://host.docker.internal:11434 | Ollama 服务地址 |
-| `OLLAMA_MODEL` | bge-m3 | 嵌入模型 |
-
----
-
-## 📊 性能指标
-
-| 指标 | 数值 |
+| 特性 | 说明 |
 |------|------|
-| Hit Rate | 80%+ |
-| 平均延迟 | ~100ms（搜索） |
-| P95 延迟 | ~130ms |
+| **两阶段混合检索** | Stage 1: 向量 + BM25 → RRF粗排 → rerank精排 → 取前1/3；Stage 2: 二次RRF融合，结果更精准 |
+| **Query Expansion** | 支持 HyDE（假设文档生成）+ Query Rewriting（多查询变体），提升召回 |
+| **分块存储** | 长对话自动分块（重叠50 tokens），避免截断丢失信息 |
+| **自动降级** | Ollama/Rerank/MiniMax 任意一个不可用时，自动降级到可用模式，不中断服务 |
+| **数据与代码分离** | 记忆文件独立存储在 `~/.openclaw/memory-workflow-data/`，更新 skill 不丢数据 |
+| **后台自动存储** | Daemon 线程每10分钟自动检查并存储，无需外部 cron |
+
+### 局限性
+
+| 限制 | 说明 | 规避方式 |
+|------|------|---------|
+| **向量检索依赖 Ollama** | 轻量模式（BM25-only）精度低于向量检索 | 建议部署 Ollama + bge-m3 |
+| **单节点文件存储** | 不支持多实例共享记忆 | 适合单用户本地部署 |
+| **无增量更新** | 新对话全量追加，不支持对已有记忆的修改 | 可手动删除 `memories/` 下 JSON 文件 |
+| **无访问控制** | 任何能读文件的人都能看记忆 | 依赖系统文件权限 |
+| **RAG 评估脚本开发中** | `ragas_eval.py` 仍在开发中，暂不可用 | 预计后续版本提供 |
+
+### RAG 评估（RAGAs）
+
+> ⚠️ `ragas_eval.py` 评估脚本仍在开发中，暂不可用。
+
+RAGAs（RAG Assessment）是记忆工作流的评估模块，计划用于量化检索质量和生成质量。功能上线后会支持：
+- Context Precision / Context Recall
+- Answer Faithfulness
+- Answer Relevancy
 
 ---
 
-## 🔧 技术架构
+## 架构概览
 
 ```
-用户查询
+用户对话
     ↓
-┌─────────────────────────────────────┐
-│  Agent 主动调用 memory_search 工具  │
-└─────────────────────────────────────┘
+自动存储（Daemon 线程，每10分钟）
     ↓
-┌─────────────────────────────────────┐
-│  混合搜索 (Hybrid Search)           │
-│  - 向量相似度搜索 (bge-m3)          │
-│  - BM25 关键词搜索                  │
-│  - RRF 融合                        │
-└─────────────────────────────────────┘
+记忆写入：memories/*.json  +  向量（可选 Milvus）
     ↓
-┌─────────────────────────────────────┐
-│  多信号重排 (Multi-Signal Rerank)   │
-│  - fused_score × 0.4              │
-│  - keyword_overlap × 0.3           │
-│  - BM25 × 0.3                     │
-└─────────────────────────────────────┘
-    ↓
-  Top-K 结果 → 注入 Agent 上下文
+搜索请求 → BM25 + 向量混合检索
+         → HyDE/Rewriting 扩展（如有）
+         → 两阶段 RRF + Rerank 精排
+         → 返回结果
 ```
 
 ---
 
-**版本**: 2.1.0
+## 安装步骤
 
-**更新**: 2026-03-20
-- 新增：`memory_search` 工具注册，Agent 可主动调用搜索记忆
-- 新增：Agent 工具调用使用说明（替代 hook 方式）
-- 新增：自动定时存库（每5分钟闲置后存 session）
-- 优化：营销描述中英双语
+### 1. 轻量模式（无外部依赖）
+
+```bash
+# 只需 Python
+pip install scikit-learn
+
+# 安装 skill
+claw use memory-workflow
+```
+
+### 2. 完整模式（推荐）
+
+```bash
+# Ollama + bge-m3（必须）
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull bge-m3:latest
+ollama pull qwen3.5:latest
+
+# Rerank 服务（推荐）
+docker run -d -p 18778:8000 \
+  --gpus all \
+  -e MODEL_NAME=BAAI/bge-reranker-v2-m3 \
+  ghcr.io/chgaowei/rerank_openai:latest
+
+# 安装 skill
+claw use memory-workflow
+```
+
+### 3. 配置环境变量
+
+```bash
+export OLLAMA_URL=http://localhost:11434
+export RERANK_SERVICE_URL=http://localhost:18778   # 推荐
+export MEMORY_WORKFLOW_DATA=~/.openclaw/memory-workflow-data
+# MiniMax API（可选，也可只用 Ollama qwen3.5）
+export MINIMAX_API_KEY=your_key
+```
+
+---
+
+## 数据目录
+
+```
+~/.openclaw/memory-workflow-data/
+├── memories/               # 记忆文件（JSON，一记忆一文件）
+├── memory_state.json       # 状态（上次存储时间等）
+└── hot_sessions.json      # 热 session 追踪
+```
+
+> 更新或重新安装 skill 时，此目录**不会被覆盖**，用户数据完全保留。
+
+---
+
+## CLI 用法
+
+```bash
+# 检查状态
+python3 memory_ops.py check
+
+# 存储记忆
+python3 memory_ops.py store --content "对话内容" --topic "话题"
+
+# 搜索
+python3 memory_ops.py search --query "关键词" --limit 5
+
+# 热 session
+python3 memory_ops.py get_hot
+```
+
+---
+
+## 与 OpenClaw Agent 集成
+
+```markdown
+## 每次消息时
+
+1. 检查记忆状态
+   Exec: python3 ~/.openclaw/skills/memory-workflow/memory_ops.py check
+
+2. idle >= 10 分钟则存储
+   Exec: python3 ~/.openclaw/skills/memory-workflow/memory_ops.py store \
+     --content "【对话摘要】" --topic "conversation"
+
+3. 搜索相关记忆
+   Exec: python3 ~/.openclaw/skills/memory-workflow/memory_ops.py search \
+     --query "【问题关键词】" --limit 3
+```
+
+---
+
+## 搜索模式与降级
+
+| Ollama | Rerank | 搜索模式 | 说明 |
+|--------|--------|---------|------|
+| ✅ | ✅ | two_stage_rerank | 最高精度 |
+| ✅ | ❌ | two_stage_rerank | RRF 融合（无精排）|
+| ❌ | - | bm25_only | BM25 纯关键词 |
+
+---
+
+## 环境变量
+
+| 变量 | 默认值 | 必需 |
+|------|--------|------|
+| `OLLAMA_URL` | http://localhost:11434 | 完整功能必需 |
+| `OLLAMA_MODEL` | bge-m3:latest | 向量模型 |
+| `RERANK_SERVICE_URL` | http://localhost:18778 | 推荐 |
+| `MINIMAX_API_KEY` | （空） | 可选 |
+| `MILVUS_URI` | （空） | 可选 |
+| `MEMORY_WORKFLOW_DATA` | ~/.openclaw/memory-workflow-data | 可选 |
+
+---
+
+## 故障排除
+
+### Ollama 不可用
+```
+⚠️ Ollama 不可用，记忆搜索降级为轻量模式（BM25）
+```
+→ 不影响存储，检索降级为 BM25。安装 Ollama 后自动恢复。
+
+### Rerank 服务未启动
+→ 精度下降，不报错。安装 rerank 服务后自动启用。
+
+### 记忆没有自动存储
+→ 手动 `check` 查看 idle 时间；确认后台线程未中断。

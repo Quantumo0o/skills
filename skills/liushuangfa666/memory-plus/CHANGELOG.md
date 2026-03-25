@@ -1,79 +1,59 @@
-# Changelog
-
-## v2.1.0 (2026-03-20)
-
-### English
-
-**Highlights:**
-
-- **New: `memory_search` Tool** — Agent can now proactively call the `memory_search` tool to search the memory database on demand, without relying on `before_prompt_build` hook. No extra latency on normal conversations.
-- **New: Auto Session Archive via Cron** — Every 5 minutes of idle time triggers automatic session backup to Milvus vector store. Session context survives disconnections.
-- **New: Agent Tool Usage Guide** — SKILL.md now includes usage instructions for Agent-initiated memory search.
-
-**Plugin Changes:**
-
-- Plugin now registers `memory_search` as a proper OpenClaw tool via `api.registerTool()`, following the same pattern as `feishu_*` tools.
-- Plugin reads real session JSONL files (not the incorrect `.memory_plus_session.json`).
-- Auto-store initialization logic prevents skipping on first run.
-- Note: `before_prompt_build` hook remains unstable in some Gateway configurations; the cron-based auto-store is more reliable.
-
-**Files Updated:**
-
-- `SKILL.md` — English description for website + Agent tool usage guide
-- `README.md` — Updated Chinese tagline
-- `README_EN.md` — Updated English tagline
-- `CHANGELOG.md` — This changelog
-
-**Bug Fixes:**
-
-- Plugin JS version now properly loads as CommonJS module.
-- Initialization logic prevents auto-store from skipping on first run.
-- Session JSONL reading fixed (was reading wrong file before).
+# 更新日志 / Changelog
 
 ---
 
-### 中文
+## v2.1.1 (2026-03-24)
 
-**亮点更新：**
+### 🐛 Bug Fixes
 
-- **新功能：`memory_search` 工具** — Agent 可主动调用 `memory_search` 工具按需搜索记忆库，不依赖 `before_prompt_build` hook。正常对话无额外延迟。
-- **新功能：Cron 自动存库** — 每 5 分钟闲置后自动将 session 备份到 Milvus 向量库。断线重连不丢失上下文。
-- **新功能：Agent 工具使用指南** — SKILL.md 新增 Agent 主动搜索记忆的使用说明。
+- 修复：`can_upgrade` 返回值逻辑错误（已是开发者却返回 True）
+  - 修复后端 `check_upgrade` 逻辑：已是开发者时正确返回 `can_upgrade: False`
+  - 避免前端收到 True 后继续调用升级接口，触发 400 报错
 
-**Plugin 更新：**
+### ✨ New Features
 
-- Plugin 通过 `api.registerTool()` 注册 `memory_search` 工具，遵循与 `feishu_*` 工具相同的模式。
-- Plugin 读取真实 session JSONL 文件（之前错误地读取了 `.memory_plus_session.json`）。
-- 自动存储初始化逻辑修复，避免首次运行时误判跳过。
+- **轻量降级模式**：Ollama 不可用时自动降级为 BM25-only 检索
+  - `_detect_ollama()` 启动时探测 Ollama 可用性
+  - `bm25_only_search()` 无向量依赖的纯关键词搜索
+  - 搜索结果标记 `search_type: "bm25_only"`
 
-**文件更新：**
+### 🔧 Improvements
 
-- `SKILL.md` — 网站展示用英文 + Agent 工具使用指南
-- `README.md` — 更新中文 tagline
-- `README_EN.md` — 更新英文 tagline
-- `CHANGELOG.md` — 本更新日志
+- **数据目录与代码完全分离**：
+  - 数据迁移到 `~/.openclaw/memory-workflow-data/`
+  - `hot_sessions.json`、`memory_state.json`、`memories/` 全部移出 skill 目录
+  - 打包分发更安全，更新 skill 不覆盖用户数据
 
-**问题修复：**
+- **错误处理增强**：
+  - Rerank 服务不可用时静默降级，不中断搜索流程
+  - MiniMax API 超限（429）时打印警告但不阻断
+  - Ollama 连接失败时明确提示降级信息
 
-- Plugin JS 版本现已正确加载为 CommonJS 模块。
-- 初始化逻辑修复，避免首次运行时自动存储条件误判。
-- Session JSONL 读取修复（之前读取了错误的文件）。
+- **文档完善**：
+  - SKILL.md 重写，新增局限性说明
+  - RAGAs 评估脚本标注"开发中"
+  - 新增中英双语 README
 
 ---
 
-## v2.0.1 (2026-03-19)
+## v2.1.0 (2026-03-23)
 
-- 修复中文分词问题
-- 多信号重排权重优化
-- 延迟从 1200ms 降至 ~100ms
+### ✨ New Features
 
-## v2.0.0 (2026-03-19)
+- 数据目录独立：`MEMORY_WORKFLOW_DATA` 环境变量支持自定义数据路径
+- 两阶段搜索精排：Stage 1 RRF + Rerank → 取前1/3 → Stage 2 二次 RRF 融合
+- Query Expansion：HyDE + Query Rewriting 多查询变体扩展
 
-- 多信号重排（fusion + overlap + BM25）
-- 混合搜索增强
-- 自动摘要生成
-- 仅需 3 个环境变量配置
+### 🔧 Improvements
 
-## v1.0.0 (2026-03-17)
+- Milvus 降级为可选依赖，不配置则默认文件系统存储
+- SKILL.md 外部依赖明确标注必须/推荐/可选
 
-- 初始版本
+---
+
+## v2.0.0 (2026-03-22)
+
+- 完全重构，移除强制 Milvus 依赖
+- 文件系统存储 + 后台自动存储线程
+- 移除 `rag_integration.py` 依赖
+- 简化安装，开箱即用
