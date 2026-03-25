@@ -3,9 +3,15 @@
   "slug": "serverless-runner",
   "displayName": "Serverless Runner",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773937094132,
-    "commit": "https://github.com/openclaw/skills/commit/8abf39159c183b6bbdac5a76c6297c4ca779436e"
+    "version": "2.0.1",
+    "publishedAt": 1774316753910,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773937094132,
+      "commit": "https://github.com/openclaw/skills/commit/8abf39159c183b6bbdac5a76c6297c4ca779436e"
+    }
+  ]
 }
