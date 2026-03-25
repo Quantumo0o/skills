@@ -1,0 +1,11 @@
+{
+  "owner": "xybstone",
+  "slug": "zstack-mcp",
+  "displayName": "Zstack Mcp",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774148166589,
+    "commit": null
+  },
+  "history": []
+}
