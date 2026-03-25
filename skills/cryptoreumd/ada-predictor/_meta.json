@@ -1,0 +1,11 @@
+{
+  "owner": "cryptoreumd",
+  "slug": "ada-predictor",
+  "displayName": "ADA-Predictor: Anti-Drug Antibody Risk Stratification",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774190706093,
+    "commit": null
+  },
+  "history": []
+}
