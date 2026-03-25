@@ -3,6 +3,7 @@ import { formatApiError, formatNetworkError, isApiSuccess } from './errors.js';
 import { buildBody, fetchModelRegistry, lookupModel, validateWithModel } from './model-registry.js';
 import { DEFAULT_MODEL, FALLBACK_DEFAULTS } from './models.js';
 import { detectImageMode, normalizeImageInput } from '../vendor/weryai-image/normalize-input.js';
+import { collectLocalUploadPreview, resolveImageUploadSources, validateLocalImageSources } from '../vendor/weryai-image/upload.js';
 import { validateSubmitImage, validateSubmitText } from './validators.js';
 import { pollSubmittedTasks } from '../vendor/weryai-core/wait.js';
 
@@ -11,8 +12,10 @@ export async function execute(input, ctx) {
   const mode = detectImageMode(normalizedInput);
   const isImageToImage = mode === 'image_to_image';
   const structErrors = isImageToImage ? validateSubmitImage(normalizedInput) : validateSubmitText(normalizedInput);
-  if (structErrors.length > 0) {
-    return { ok: false, phase: 'failed', errorCode: 'VALIDATION', errorMessage: structErrors.join(' ') };
+  const localErrors = isImageToImage ? await validateLocalImageSources(normalizedInput.images) : [];
+  const allErrors = [...structErrors, ...localErrors];
+  if (allErrors.length > 0) {
+    return { ok: false, phase: 'failed', errorCode: 'VALIDATION', errorMessage: allErrors.join(' ') };
   }
 
   const registry = await fetchModelRegistry(ctx);
@@ -31,6 +34,7 @@ export async function execute(input, ctx) {
 
   const body = meta ? buildBody(meta, normalizedInput, mode) : buildFallbackBody(normalizedInput, model, isImageToImage);
   const apiPath = isImageToImage ? '/v1/generation/image-to-image' : '/v1/generation/text-to-image';
+  const uploadPreview = isImageToImage ? collectLocalUploadPreview(body) : [];
 
   if (ctx.dryRun) {
     return {
@@ -39,13 +43,31 @@ export async function execute(input, ctx) {
       dryRun: true,
       requestBody: body,
       requestUrl: `${ctx.baseUrl}${apiPath}`,
+      uploadPreview,
+      notes: isImageToImage
+        ? 'dry-run does not upload local files. Local sources in uploadPreview will be uploaded in a real run via /v1/generation/upload-file.'
+        : null,
     };
+  }
+
+  let resolvedBody = body;
+  if (isImageToImage) {
+    try {
+      resolvedBody = await resolveImageUploadSources(ctx, body);
+    } catch (err) {
+      return {
+        ok: false,
+        phase: 'failed',
+        errorCode: 'UPLOAD_FAILED',
+        errorMessage: err?.message ?? String(err),
+      };
+    }
   }
 
   const client = createClient(ctx);
   let submitRes;
   try {
-    submitRes = await client.post(apiPath, body);
+    submitRes = await client.post(apiPath, resolvedBody);
   } catch (err) {
     return formatNetworkError(err);
   }
@@ -62,14 +84,19 @@ export async function execute(input, ctx) {
     return { ok: false, phase: 'failed', errorCode: 'PROTOCOL', errorMessage: 'API returned success but no task_ids.' };
   }
 
-  return pollSubmittedTasks(client, {
+  const polled = await pollSubmittedTasks(client, {
     batchId,
     taskIds,
     ctx,
+    pollProfile: 'fast',
     outputKey: 'images',
     outputLabel: 'image',
     allowBatch: true,
   });
+  return {
+    ...polled,
+    requestSummary: buildRequestSummary(resolvedBody),
+  };
 }
 
 function buildFallbackBody(input, model, isImageToImage) {
@@ -85,6 +112,15 @@ function buildFallbackBody(input, model, isImageToImage) {
   }
   if (input.resolution) body.resolution = input.resolution;
   return body;
+}
+
+function buildRequestSummary(body) {
+  return {
+    model: body?.model ?? null,
+    aspectRatio: body?.aspect_ratio ?? null,
+    imageNumber: body?.image_number ?? null,
+    resolution: body?.resolution ?? null,
+  };
 }
 
 export default execute;

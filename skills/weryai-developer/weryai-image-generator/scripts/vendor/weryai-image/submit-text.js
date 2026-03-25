@@ -61,8 +61,18 @@ export async function execute(input, ctx) {
     taskStatus: null,
     images: null,
     balance: null,
+    requestSummary: buildRequestSummary(body),
     errorCode: null,
     errorMessage: null,
+  };
+}
+
+function buildRequestSummary(body) {
+  return {
+    model: body?.model ?? null,
+    aspectRatio: body?.aspect_ratio ?? null,
+    imageNumber: body?.image_number ?? null,
+    resolution: body?.resolution ?? null,
   };
 }
 
