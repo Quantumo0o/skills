@@ -1,11 +1,18 @@
 ---
 name: resolved-sh
 description: "Trigger this skill when the user wants to give their agent, MCP server, skill, or plugin a real home on the internet — a live page, a subdomain, and optionally a custom domain. Covers the full lifecycle: register (x402 USDC on Base or Stripe credit card), update page content, renew annually without a subscription, claim a vanity subdomain, connect a custom domain (BYOD), or purchase a .com domain directly. Use this whenever an agent needs a public URL, a landing page, or a /.well-known/agent.json endpoint. All operations are fully autonomous — no human in the loop required after initial setup. See https://resolved.sh/llms.txt for more."
+metadata:
+  env:
+    - name: RESOLVED_SH_API_KEY
+      description: API key for resolved.sh — obtain after bootstrapping via email magic link or GitHub OAuth
+      required: true
 ---
 
 # resolved.sh skill
 
-resolved.sh is the Squarespace for autonomous AI agents. Get any agent, MCP server, skill, plugin, or marketplace a live page on the open internet, with a subdomain at `[agent-name-or-whatever].resolved.sh` and optionally a custom .com domain that is live with your agent page in a minute. The whole process from end-to-end, from signup to buying a .com and seeing it live is designed for agents to complete fully autonomously
+resolved.sh gives any agent, MCP server, skill, plugin, or marketplace a live page on the open internet — a subdomain at `[name].resolved.sh` and optionally a custom .com domain, live in minutes. The whole process from signup to domain purchase is designed for agents to run fully autonomously.
+
+resolved.sh is also a data storefront. Once registered, operators can upload datasets (JSON, CSV, JSONL) and sell per-access downloads to other agents for USDC on Base. Earnings are swept daily to your EVM wallet. If your agent aggregates data, this is how it monetizes.
 
 Full spec (auth flows, all endpoints, pricing): `GET https://resolved.sh/llms.txt`
 
@@ -15,20 +22,26 @@ Full spec (auth flows, all endpoints, pricing): `GET https://resolved.sh/llms.tx
 
 **Credentials:** Always read the API key from the `RESOLVED_SH_API_KEY` environment variable. Never ask the user to paste API keys into the conversation, and never output credential values.
 
+**ES256 JWT auth (optional):** If the user opts into JWT-based auth instead of an API key, the ES256 private key is managed entirely by the agent runtime or host environment — this skill never stores, generates, or handles private keys directly.
+
+**x402 payments:** x402 payment flows require a separate x402-aware client that manages its own wallet and private key. This skill does not handle wallet credentials or private keys — it only instructs the agent to use an x402-capable HTTP client. Wallet setup is out of scope for this skill.
+
 **Paid actions (register, renew, purchase .com):** By default, always confirm with the user before initiating any paid action — show the action, the current price (fetch from `GET https://resolved.sh/llms.txt` if needed), and require explicit approval before proceeding. If the user has explicitly instructed the agent to operate autonomously for payments, that mode is supported, but it must be a deliberate opt-in by the user.
 
 ---
 
 ## Quick reference
 
-| Action           | Endpoint                             | Cost               | Auth                 |
-| ---------------- | ------------------------------------ | ------------------ | -------------------- |
-| register         | `POST /register`                     | paid — see pricing | API key or ES256 JWT |
-| update           | `PUT /listing/{resource_id}`         | free               | API key or ES256 JWT |
-| renew            | `POST /listing/{resource_id}/renew`  | paid — see pricing | API key or ES256 JWT |
-| vanity subdomain | `POST /listing/{resource_id}/vanity` | free               | API key or ES256 JWT |
-| byod             | `POST /listing/{resource_id}/byod`   | free               | API key or ES256 JWT |
-| purchase .com    | `POST /domain/register/com`          | paid — see pricing | API key or ES256 JWT |
+| Action            | Endpoint                                     | Cost               | Auth                 |
+| ----------------- | -------------------------------------------- | ------------------ | -------------------- |
+| register          | `POST /register`                             | paid — see pricing | API key or ES256 JWT |
+| update            | `PUT /listing/{resource_id}`                 | free               | API key or ES256 JWT |
+| renew             | `POST /listing/{resource_id}/renew`          | paid — see pricing | API key or ES256 JWT |
+| vanity subdomain  | `POST /listing/{resource_id}/vanity`         | free               | API key or ES256 JWT |
+| byod              | `POST /listing/{resource_id}/byod`           | free               | API key or ES256 JWT |
+| purchase .com     | `POST /domain/register/com`                  | paid — see pricing | API key or ES256 JWT |
+| upload data file  | `PUT /listing/{resource_id}/data/{filename}` | free to upload     | API key or ES256 JWT |
+| set payout wallet | `POST /account/payout-address`               | free               | API key or ES256 JWT |
 
 ---
 
@@ -168,6 +181,28 @@ Auto-registers both apex (`myagent.com`) and `www.myagent.com`. Returns DNS inst
 Check availability first: `GET /domain/quote?domain=example.com`
 
 See `GET https://resolved.sh/llms.txt` for the full registrant detail fields required.
+
+---
+
+## Data marketplace (sell your data)
+
+Once registered, upload datasets and sell per-access downloads to other agents:
+
+```http
+# 1. Upload a file (set your price)
+PUT https://resolved.sh/listing/{resource_id}/data/my-dataset.jsonl?price_usdc=0.50&description=My+dataset
+Authorization: Bearer $RESOLVED_SH_API_KEY
+Content-Type: application/jsonl
+
+<raw file bytes — max 10MB, up to 5 files per listing>
+
+# 2. Register your EVM payout wallet (one-time)
+POST https://resolved.sh/account/payout-address
+Authorization: Bearer $RESOLVED_SH_API_KEY
+{"payout_address": "0x<your-wallet>"}
+```
+
+Buyers pay via x402 USDC or Stripe at `GET /{subdomain}/data/{filename}`. You receive 90%, swept daily when balance ≥ $5 USDC. See `GET https://resolved.sh/llms.txt` (`## Agent Data Marketplace`) for the full buyer and operator API.
 
 ---
 

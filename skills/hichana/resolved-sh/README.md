@@ -25,6 +25,3 @@ npx skills add https://github.com/resolved-sh/skill --skill resolved-sh -y -g
 ## Skill
 
 The skill definition lives in [`SKILL.md`](./SKILL.md).
-
-
-Payment via x402 (USDC on Base) or Stripe. User confirmation is required for paid actions by default; fully autonomous payment mode is available as an explicit opt-in. 
