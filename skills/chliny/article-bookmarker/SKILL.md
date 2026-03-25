@@ -1,11 +1,8 @@
 ---
 name: article-bookmarker
 description: Save and organize web articles as bookmarks with AI summaries and auto-tagging. Use when the user wants to bookmark or collect articles.
-metadata:
-  version: v0.1.0
-  author: chliny11@gmail.com
-  requires:
-    env: ["ARTICLE_BOOKMARK_DIR"]
+homepage: https://github.com/chliny/article-bookmarker-skill
+metadata: {"openclaw": {"emoji":"🔖","requires":{"env":["ARTICLE_BOOKMARK_DIR"]}}}
 ---
 
 # Article Bookmarker Skill
