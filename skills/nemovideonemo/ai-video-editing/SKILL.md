@@ -1,13 +1,17 @@
 ---
+license: MIT-0
 name: ai-video-editing
-version: "1.0.1"
-displayName: "AI Video Editing - Chat Based Editor for Timeline Free Video Production"
+version: "1.0.10"
+displayName: "AI Video Editor — Edit Videos by Chat with No Timeline, Add Music and Subtitles"
 description: >
-  Chat-based video editing with no timeline, no GUI, no learning curve. Describe your edit
-  in plain language and the AI executes it. Trim, cut, merge, add music, adjust colors, insert
-  titles, apply transitions — all through conversation. Built for creators who think in ideas,
-  not in keyframes. Supports conversational editing, text-based editing, and natural language
-  video editing for timeline-free production. Supports mp4, mov, avi, webm, mkv.
+  AI Video Editor — Edit Videos by Chat with No Timeline, Add Music and Subtitles.
+  Chat video editor — describe your edit and the AI executes it: trim, cut, merge, add music,
+  color grade, subtitle overlay, and export. Simple video editor with no timeline, no GUI,
+  no learning curve. An easy video editor built for creators who think in ideas, not in
+  keyframes. Supports conversational editing, text-based editing, and natural language
+  video editing for no-timeline video production. Supports mp4, mov, avi, webm, mkv.
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
@@ -49,7 +53,7 @@ Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Clie
 
 ## 2. What Users Can Say
 
-Every edit request goes through the SSE pipeline. No special syntax needed — natural language works:
+Every edit request goes through the SSE workflow. No special syntax needed — natural language works:
 
 | User says (examples) | What happens |
 |----------------------|-------------|
