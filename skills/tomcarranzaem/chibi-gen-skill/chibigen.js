@@ -92,7 +92,7 @@ if (refUuid) {
 
 // --- Submit job ---
 async function main() {
-  const makeRes = await fetch(`${process.env.NETA_API_URL || 'https://api.talesofai.cn'}/v3/make_image`, {
+  const makeRes = await fetch(`${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v3/make_image`, {
     method: "POST",
     headers,
     body: JSON.stringify(body),
@@ -119,7 +119,7 @@ async function main() {
     await new Promise((r) => setTimeout(r, 2000));
 
     const pollRes = await fetch(
-      `${process.env.NETA_API_URL || 'https://api.talesofai.cn'}/v1/artifact/task/${taskUuid}`,
+      `${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v1/artifact/task/${taskUuid}`,
       { headers }
     );
 

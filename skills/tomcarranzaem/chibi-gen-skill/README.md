@@ -100,8 +100,8 @@ Or pass it inline:
 node chibigen.js "your prompt" --token your_token_here
 ```
 
-> **API endpoint:** defaults to `api.talesofai.cn` (works with all token types).  
-> Override with `NETA_API_URL=https://api.talesofai.cn` if using a global Open Platform token.
+> **API endpoint:** defaults to `api.talesofai.com` (Open Platform tokens).  
+> China users: set `NETA_API_BASE_URL=https://api.talesofai.com` to use the China endpoint.
 
 
 ---
