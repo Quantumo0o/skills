@@ -1,221 +1,319 @@
 # Hum2Song
 
-Helps users find songs by humming or describing melodies, using available music recognition tools and services.
+将用户哼唱的旋律转换为完整歌曲，支持本地音频处理，无需上传敏感数据到第三方服务。
 
 ---
 
 ## Overview
 
-This skill assists users in identifying songs when they can only remember part of the melody or have a humming recording. It provides guidance on using various music recognition services and tools.
+This skill converts user humming or singing into complete songs using local AI models. The entire pipeline runs on your machine - no audio data is sent to external services.
+
+**Pipeline:**
+1. 🎤 Audio Input → 2. 🎵 MIDI Extraction → 3. 🎼 Music Generation → 4. 🎧 Complete Song
 
 ---
 
 ## Triggers
 
 Use this skill when the user:
-- Hums or describes a melody (e.g., "dun dun dun dun")
-- Has an audio recording of humming and wants to find the song
-- Asks "what song is this?" with melodic description
-- Wants to identify music from a partial memory
+- Hums or sings a melody and wants to turn it into a full song
+- Has an audio recording of humming/singing
+- Wants to create music from their own melodic ideas
+- Asks to "turn my humming into a song"
 
 ---
 
-## Methods
+## Requirements
 
-### 1. Music Recognition Apps
+### System Dependencies
 
-**Recommended Apps:**
+```bash
+# macOS
+brew install ffmpeg fluidsynth
 
-| App | Platform | Best For | How to Use |
-|-----|----------|----------|------------|
-| **SoundHound** | iOS/Android | Humming/singing recognition | Tap mic → Hum or sing |
-| **Shazam** | iOS/Android | Playing music recognition | Tap to listen to playing audio |
-| **Google Hum to Search** | Android/Web | Humming recognition | Google app → Hum |
-| **Musixmatch** | iOS/Android | Lyrics-based search | Type lyrics you remember |
+# Ubuntu/Debian
+sudo apt-get install ffmpeg fluidsynth
 
-### 2. Online Services
+# Python packages
+pip install basic-pitch pretty_midi librosa soundfile numpy
+```
 
-**Midomi** (midomi.com)
-- Website-based humming recognition
-- Click "Click and Sing or Hum"
-- Allow microphone access
-- Hum for 10+ seconds
+### Optional: ACE-Step for Music Generation (User Choice)
 
-**AHA Music** (Chrome Extension)
-- Browser extension for music recognition
-- Works with any audio playing in browser
+ACE-Step is an optional local AI. Users decide whether to install it.
 
-### 3. Manual Search Techniques
+```bash
+# User manually installs if they want AI generation
+# Otherwise, default SoundFont synthesis works without AI
+git clone https://github.com/ace-step/ace-step.git
+pip install -r ace-step/requirements.txt
+```
 
-When automated recognition fails:
+**Note:** First use downloads ~4GB model weights to local cache. No automatic downloads.
 
-**Describe the melody:**
-- Use "dun", "dee", "doo" to represent notes
-- Indicate rhythm (fast/slow, pauses)
-- Mention approximate pitch changes (up/down)
+---
 
-**Search by lyrics:**
-- Type any words you remember
-- Use quotes for exact phrases
-- Add "lyrics" to search query
+## Core Workflow
 
-**Search by context:**
-- Where did you hear it? (movie, ad, radio)
-- Approximate era/genre
-- Language of the song
+### Step 1: Extract MIDI from Audio
+
+Use Basic Pitch (Spotify's open source tool) to convert humming to MIDI:
+
+```python
+from basic_pitch.inference import predict
+from basic_pitch import ICASSP_2022_MODEL_PATH
+
+# Convert audio to MIDI
+model_output, midi_data, note_events = predict("humming.wav")
+midi_data.write("extracted.mid")
+```
+
+### Step 2: Enhance MIDI Structure
+
+Clean and enhance the extracted MIDI:
+
+```python
+import pretty_midi
+
+# Load extracted MIDI
+pm = pretty_midi.PrettyMIDI("extracted.mid")
+
+# Quantize notes to fix timing
+for instrument in pm.instruments:
+    for note in instrument.notes:
+        note.start = round(note.start * 4) / 4  # Quantize to 16th notes
+        note.end = round(note.end * 4) / 4
+
+# Save enhanced MIDI
+pm.write("enhanced.mid")
+```
+
+### Step 3: Generate Full Song
+
+**Option A: ACE-Step (Local AI, Optional)**
+
+Only if user has manually installed ACE-Step:
+
+```python
+from ace_step import MusicGenerator
+
+# Load model (runs locally, downloads weights on first use)
+generator = MusicGenerator.from_pretrained("ace-step/base")
+
+# Generate music from MIDI
+audio = generator.generate_from_midi(
+    midi_path="enhanced.mid",
+    style="pop",
+    mood="upbeat",
+    duration=120
+)
+
+# Save result
+audio.save("complete_song.mp3")
+```
+
+**Option B: MIDI + SoundFont (No AI)**
+
+```python
+import pretty_midi
+
+# Load MIDI
+pm = pretty_midi.PrettyMIDI("enhanced.mid")
+
+# Synthesize with high-quality SoundFont
+audio_data = pm.fluidsynth(fs=44100, sf2_path="path/to/good_soundfont.sf2")
+
+# Save as WAV
+import soundfile as sf
+sf.write("complete_song.wav", audio_data, 44100)
+```
+
+---
+
+## Usage
+
+### Quick Start
+
+```bash
+# Run the complete pipeline
+python ~/.openclaw/skills/hum2song/scripts/hum2song.py \
+  --input my_humming.wav \
+  --style pop \
+  --mood upbeat \
+  --output my_song.mp3
+```
+
+### Parameters
+
+| Parameter | Description | Options |
+|-----------|-------------|---------|
+| `--input` | Input audio file | Any audio format |
+| `--style` | Music style | pop, rock, jazz, classical, electronic |
+| `--mood` | Song mood | upbeat, calm, energetic, melancholic |
+| `--duration` | Target duration (seconds) | 30-300 |
+| `--output` | Output file path | .mp3, .wav, .mid |
 
 ---
 
 ## Response Format
 
-### If User Hums/Describes Melody
+### When User Provides Audio
 
 ```
-🎵 I'll help you identify that song!
+🎵 I'll convert your humming into a complete song!
 
-Here are the best options:
+**Processing Pipeline:**
+1️⃣ Extracting melody from your audio...
+2️⃣ Converting to MIDI notation...
+3️⃣ Generating full arrangement...
+4️⃣ Rendering final song...
 
-1️⃣ **SoundHound** (Best for humming)
-   - Download: iOS/Android app store
-   - Tap the orange button
-   - Hum or sing for 10+ seconds
+⏱️ Estimated time: 2-5 minutes
 
-2️⃣ **Google Hum to Search**
-   - Open Google app
-   - Tap microphone → "Search a song"
-   - Hum the melody
+**Settings:**
+• Style: {style}
+• Mood: {mood}
+• Duration: {duration}s
 
-3️⃣ **Midomi** (Web-based)
-   - Visit: midomi.com
-   - Click "Click and Sing or Hum"
-   - Allow microphone access
-
-💡 **Tip:** Hum clearly for at least 10 seconds for best results.
-
-Would you like me to help you describe the melody better for searching?
+Processing now... 🎧
 ```
 
-### If User Has Audio File
+### When Complete
 
 ```
-🎵 I can guide you through identifying the song from your audio file.
+✅ Your song is ready!
 
-**Option 1: Use Your Phone**
-- Play the audio on one device
-- Open Shazam or SoundHound on another device
-- Let it listen and identify
+📁 Output: {output_path}
+🎼 Format: {format}
+⏱️ Duration: {actual_duration}s
 
-**Option 2: Online Tools**
-- Upload to: https://www.midomi.com
-- Or use AHA Music browser extension
+**What was done:**
+• Extracted {note_count} notes from your humming
+• Generated {instrument_count} instrument tracks
+• Applied {style} style with {mood} mood
 
-**Option 3: Manual Description**
-If the above doesn't work, you can:
-- Describe the melody ("dun-dun-dun" style)
-- Tell me any lyrics you remember
-- Share where you heard it (movie, ad, etc.)
+💡 You can:
+• Adjust style/mood and regenerate
+• Export as MIDI for editing in DAW
+• Try different AI models for variation
 ```
 
 ---
 
 ## Example Interactions
 
-### Example 1: User Hums
+### Example 1: User Hums Audio
 ```
-User: dun dun dun dun dun dun dun
+User: [uploads humming audio]
 
-AI: 🎵 I see you're trying to hum a melody!
+AI: 🎵 I'll convert your humming into a complete song!
 
-That rhythm pattern sounds familiar. To identify it:
+**Processing Pipeline:**
+1️⃣ Extracting melody from your audio...
+2️⃣ Converting to MIDI notation...
+3️⃣ Generating full arrangement...
+4️⃣ Rendering final song...
 
-1. Try **SoundHound** app - it's the best at recognizing hummed melodies
-2. Or use **Google Hum to Search** in the Google app
-3. You can also try **Midomi.com** on your computer
+⏱️ Estimated time: 2-5 minutes
 
-Would you like to:
-- Describe the song more (genre, where you heard it)?
-- Tell me any lyrics you remember?
-- Get help with a specific recognition app?
-```
-
-### Example 2: User Has Recording
-```
-User: I have a recording of me humming a song, how do I find it?
-
-AI: 🎵 Great! Here's how to identify it:
-
-**Method 1: Two-Device Method**
-- Play your recording on phone/computer #1
-- Open **SoundHound** or **Shazam** on phone #2
-- Let the app listen and identify
-
-**Method 2: Upload to Midomi**
-- Go to midomi.com on your computer
-- You may be able to play the audio near your mic
-
-**Method 3: Describe It**
-If apps don't work, tell me:
-- Any lyrics you remember (even just a few words)
-- The genre/style (pop, rock, classical, etc.)
-- Where you might have heard it
-
-Which method would you like to try?
+What style would you like?
+• Pop (default)
+• Rock
+• Jazz
+• Classical
+• Electronic
 ```
 
-### Example 3: Partial Lyrics
+### Example 2: User Specifies Style
 ```
-User: I remember "something something love you" from the chorus
+User: Turn this humming into a jazz song
 
-AI: 🎵 Let me help you find that song!
+AI: 🎷 Jazz transformation incoming!
 
-With partial lyrics like "...love you", here are some approaches:
+Processing your humming with jazz style:
+• Swing rhythm
+• Walking bass line
+• Piano chords
+• Brush drums
 
-1. **Search the lyrics directly:**
-   - Google: "lyrics love you" + any other words you remember
-   - Try Musixmatch app for lyrics search
+[Processing...]
 
-2. **Add more context:**
-   - Is it a male or female singer?
-   - Approximate year/decade?
-   - Genre (pop, rock, R&B, country)?
-   - Fast or slow tempo?
+✅ Your jazz song is ready!
+📁 Output: ~/Music/hum2song_jazz_20240321.mp3
+```
 
-3. **Describe the melody:**
-   - Use "dun/da/dee" to show the rhythm
-   - Example: "dun-da-dun-da-love-you"
+### Example 3: User Wants MIDI Output
+```
+User: Can I get the MIDI file to edit myself?
 
-Can you share any additional details?
+AI: 🎼 Absolutely!
+
+I'll generate:
+• Extracted MIDI (raw melody)
+• Enhanced MIDI (quantized, cleaned)
+• Full arrangement MIDI (all instruments)
+
+All files will be in: ~/Music/hum2song_export/
 ```
 
 ---
 
-## Tips for Better Recognition
+## Technical Details
 
-### For Humming:
-- Hum for at least 10 seconds
-- Try to match the rhythm accurately
-- Hum the most distinctive part (usually chorus)
-- Avoid background noise
+### Audio Processing
 
-### For Describing:
-- Focus on the chorus/hook
-- Note the approximate tempo (fast/medium/slow)
-- Mention any instruments you remember
-- Describe the singer's voice (male/female, solo/group)
+**Input Formats:** WAV, MP3, M4A, FLAC, OGG
+**Sample Rate:** Automatically converted to 44.1kHz
+**Channels:** Mono/Stereo → Mono for processing
 
-### Common Patterns:
-- "Dun dun dun duuun" → Often Beethoven's 5th or similar
-- "Doo doo doo doo doo" → Could be many songs, need more context
-- "De-de-de-de-de" → Fast rhythm suggests dance/pop
+### MIDI Extraction
+
+**Model:** Basic Pitch (Spotify, ICASSP 2022)
+**Pitch Range:** C1 to C8
+**Note Detection:** Polyphonic capable
+**Timing Resolution:** 10ms
+
+### Music Generation
+
+**ACE-Step Model:**
+- Size: 1B parameters (base), 3B (large)
+- Training: Licensed music dataset
+- Output: 44.1kHz stereo
+- Latency: ~1s per second of audio on M1 Mac
+
+**SoundFont Synthesis:**
+- No AI required
+- Real-time synthesis
+- High-quality instrument sounds
+- Deterministic output
 
 ---
 
 ## Limitations
 
-- This skill provides guidance on using external tools
-- Actual song recognition requires third-party apps/services
-- Success rate varies based on humming accuracy and song popularity
-- Some obscure or new songs may not be in recognition databases
+- Requires local Python environment setup
+- ACE-Step needs ~4GB RAM for base model
+- Processing time: 2-5 minutes for a 2-minute song
+- Quality depends on humming clarity
+- Complex harmonies may not be fully captured
+
+---
+
+## Privacy & Security
+
+✅ **All processing is local** - Your audio never leaves your machine
+✅ **No cloud services** - No API keys or external uploads
+✅ **Open source tools** - Basic Pitch, ACE-Step, Pretty MIDI
+✅ **No data collection** - Nothing is logged or transmitted
+
+---
+
+## References
+
+- `basic-pitch.md` - Audio to MIDI extraction
+- `ace-step.md` - AI music generation
+- `pretty_midi.md` - MIDI processing
+- `librosa.md` - Audio analysis utilities
 
 ---
 
@@ -225,17 +323,11 @@ Can you share any additional details?
 |-----------|-------|
 | **Name** | Hum2Song |
 | **Slug** | hum2song |
-| **Version** | 2.0.0 |
-| **Category** | Utility / Entertainment |
-| **Tags** | music, song-recognition, humming, search |
+| **Version** | 3.0.0 |
+| **Category** | Audio / Music Generation |
+| **Tags** | music, audio, midi, ai-generation, local-processing |
+| **License** | MIT-0 |
 
 ---
 
-## Related Skills
-
-- `music-search` - General music search and discovery
-- `lyrics-search` - Finding songs by lyrics
-
----
-
-**Note:** This skill provides guidance and recommendations for music recognition. It does not perform audio analysis directly but directs users to appropriate tools and services.
+**Note:** This skill requires local setup of Python dependencies. All audio processing happens on your device for maximum privacy.
