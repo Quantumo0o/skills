@@ -3,9 +3,15 @@
   "slug": "bitnow",
   "displayName": "BitNow",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774002902764,
-    "commit": "https://github.com/openclaw/skills/commit/37f051c65a63b9e581859fe0d4d89b7fd6f3ebc6"
+    "version": "1.1.1",
+    "publishedAt": 1774317857897,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774002902764,
+      "commit": "https://github.com/openclaw/skills/commit/37f051c65a63b9e581859fe0d4d89b7fd6f3ebc6"
+    }
+  ]
 }

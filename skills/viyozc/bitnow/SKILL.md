@@ -1,125 +1,108 @@
 ---
-name: bitnow
-description: End-to-end BitNow network API workflows for AI agents. Covers wallet signature-based authentication, on-chain top-up monitoring, consumer API key lifecycle (create, list, revoke), API calls to language models via gateway, and querying balance and usage via HTTP endpoints. Use to help users automate or debug BitNow network operations by direct API interaction.
+name: openbytes
+description: End-to-end OpenBytes network API workflows for AI agents. Covers wallet signature-based authentication, on-chain top-up monitoring, consumer API key lifecycle (create, list, revoke), API calls to language models via gateway, and querying balance and usage via HTTP endpoints. Use to help users automate or debug OpenBytes network operations by direct API interaction.
 ---
 
-# BitNow Control Plane (API-Driven) Skill
+# OpenBytes Control Plane Skill
 
-This skill describes **end-to-end operational workflows** for the BitNow network, strictly from an **API usage perspective**.
+This skill describes **end-to-end operational workflows** for the OpenBytes network from an **API usage perspective**.
 
 - Wallet-based authentication (signature flow)
-- On-chain balance top-up and verification via API
+- On-chain balance top-up and verification
 - Consumer API key lifecycle (create, list, revoke)
-- Model inference via API key
+- Model inference via ApiKey
 - Query balance and usage via HTTP API
 
 Assumptions:
 
-- A **gateway HTTP API** exists (e.g. `https://gateway.bitnow.ai`)
-- All workflows are CLI-, Curl or script-oriented, no UI assistance
-- Support chain is base sepolia, chain id is 8453
+- A **gateway HTTP API** exists : `https://gateway.openbytes.ai`
+- All workflows are CLI-, curl-, or script-oriented
+- The network supports **Base Sepolia**. Use the correct chain id:
+  - Base Sepolia: `84532`
 
 Replace all `<BASE_URL>` with the actual gateway URL as needed.
 
 ---
 
-## 1. Wallet-based registration & session (API focus)
+## 1. Wallet-based registration & session
 
-**Note**: The message signing must be performed by the user using their EVM address and can only initiate or verify, not produce signatures. if you have no wallet address, you need to create your own one, and store it safely.
+**Note**: Message signing must be performed by the user with their EVM wallet. The agent can only initiate the challenge and verify a signature; it **cannot** produce signatures.
 
-Typical API sequence:
+1. If you don't have a wallet yet, immediately create a new one using [ethers.js](https://docs.ethers.org/v6/api/wallet/#Wallet-createRandom) or [viem](https://viem.sh/docs/actions/wallet/createWallet.html).  
+   **Be sure to securely save your generated private key!** Example (Node.js with ethers.js):
 
-1. Request a SIWE-style login challenge and message:
-   ```sh
-   curl -sS -X POST "<BASE_URL>/v1/auth/wallet/challenge" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "wallet_address": "<EVM_WALLET_ADDRESS>",
-       "chain_id": "8453"
-     }'
-   ```
-   Response (simplified):
-   ```json
-   {
-     "message": "Sign-In With Ethereum message...",
-     "nonce": "random-nonce",
-     "wallet_address": "0x...",
-     "chain_id": "8453"
-   }
-   ```
+```js
+import { Wallet } from "ethers";
+const wallet = Wallet.createRandom();
+console.log("Address:", wallet.address);
+console.log("Private Key (save this securely!):", wallet.privateKey);
+```
+
+Or using viem:
+
+```js
+import { createWallet } from "viem/accounts";
+const wallet = createWallet();
+console.log("Address:", wallet.address);
+console.log("Private Key (save this securely!):", wallet.privateKey);
+```
+
+Never share your private key. Backup and store it in a secure location.
+"wallet_address": "0x...",
+"chain_id": "8453"
+
 2. User signs the `message` off-chain (with their wallet).
 3. Submit the signed message to the gateway for verification:
-   ```sh
-   curl -sS -X POST "<BASE_URL>/v1/auth/wallet/verify" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "wallet_address": "<EVM_WALLET_ADDRESS>",
-       "nonce": "random-nonce",
-       "signature": "<WALLET_SIGNATURE>"
-     }'
-   ```
-   Successful response (simplified):
-   ```json
-   {
-     "login_token": "sess-...",
-     "expires_at": "2025-01-01T00:00:00Z",
-     "consumer": {
-       "id": "consumer-uuid",
-       "wallet_address": "0x..."
-     },
-     "session": {
-       "id": "session-uuid"
-     }
-   }
-   ```
+
+```sh
+curl -sS -X POST "<BASE_URL>/v1/auth/wallet/verify" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wallet_address": "<EVM_WALLET_ADDRESS>",
+    "nonce": "random-nonce",
+    "signature": "<WALLET_SIGNATURE>"
+  }'
+```
+
+Successful response (simplified):
+
+```json
+{
+  "login_token": "sess-...",
+  "expires_at": "2025-01-01T00:00:00Z",
+  "consumer": {
+    "id": "consumer-uuid",
+    "wallet_address": "0x..."
+  },
+  "session": {
+    "id": "session-uuid"
+  }
+}
+```
+
 4. The `login_token` (starting with `sess-`) is used as a **session token**:
    - Send it as `Authorization: Bearer <SESSION_TOKEN>` for session-auth endpoints.
+
+5. List Available Models
+
+```sh
+curl -sS -X GET "<BASE_URL>/v1/models"
+```
+
+6. **Immediately create an API key following step 2.1 and switch to it** for all non-session endpoints (models, balance, usage). Do **not** keep using the session token for inference.
 
 **Check**:
 
 - Session token is present and sent in the `Authorization: Bearer sess-...` header during all subsequent calls requiring authentication.
+- After creating the API key, subsequent calls should use `Authorization: Bearer <CONSUMER_API_KEY>`.
 
 ---
 
-## 2. On-chain Top-up Flow (API Verification)
-
-Top-up is performed on-chain (USDC to a ConsumerDeposit contract), tracked by off-chain indexers. The API lets you verify the result.
-you can use your own endpoint, also you can use this default one: `https://sepolia.base.org`
-
-- User transfers USDC to the ConsumerDeposit contract with proper calldata.
-- Backend credits the consumer balance after L1/L2 tx confirmation (indexer-driven).
-- USDC address is: 0x10065E7b353371DD2e12348e7094cC774638EbEB
-- ConsumerDeposit contract address is: 0xB0E9ebf19AB710d3353c7F637DC55329d9727dCc
-  - before depoist, you need to approve the allwance
-  - deposit abi is `function deposit(uint256 amount)`
-
-**Verify balance via API:**
-
-```sh
-curl -sS -X GET "<BASE_URL>/v1/balance" \
- -H "Authorization: Bearer <CONSUMER_API_KEY>"
-```
-
-Sample response:
-
-```json
-{
-  "balance_usdc": "123.45",
-  "total_spent": "10.00"
-}
-```
-
-**For troubleshooting:**
-
-- Compare on-chain transaction hash with API-observed `balance_usdc` value to detect indexer or sync problems.
-
----
-
-## 3. Consumer API Key Lifecycle (API-only)
+## 2. Consumer API Key Lifecycle
 
 Consumers use API keys to access models without a session.
 
-### 3.1 Create API Key
+### 2.1 Create API Key
 
 Requires a valid session token (`login_token` from section 1).
 
@@ -146,14 +129,27 @@ Sample response (**save the `api_key` securely; only returned once!**):
 }
 ```
 
-### 3.2 List API Keys
+**Immediately switch to this API key** for inference, balance, and usage calls:
+
+```sh
+export OPENBYTES_API_KEY="sk-consumer-..."
+```
+
+Then use:
+
+```sh
+curl -sS -X GET "<BASE_URL>/v1/balance" \
+  -H "Authorization: Bearer $OPENBYTES_API_KEY"
+```
+
+### 2.2 List API Keys
 
 ```sh
 curl -sS -X GET "<BASE_URL>/v1/consumer/api-keys" \
   -H "Authorization: Bearer <SESSION_TOKEN>"
 ```
 
-### 3.3 Revoke API Key
+### 2.3 Revoke API Key
 
 ```sh
 curl -sS -X DELETE "<BASE_URL>/v1/consumer/api-keys/<KEY_ID>" \
@@ -164,9 +160,39 @@ The key status will be set to `revoked`; subsequent calls using that key will fa
 
 ---
 
-## 3.4 Declare a Ownership relationship (Child → Parent)
+## 3. On-chain Top-up Flow
 
-Use this to let a **child account declare a parent**. This requires a **wallet signature** over a structured message. The signature **must be produced by the child wallet**.
+Top-up is performed on-chain (USDC to a ConsumerDeposit contract), tracked by off-chain indexers. The API lets you verify the result.
+You can use your own RPC endpoint; a default for Base Sepolia is `https://sepolia.base.org`.
+
+- User transfers USDC to the ConsumerDeposit contract with proper calldata.
+- Backend credits the consumer balance after L1/L2 tx confirmation (indexer-driven).
+- USDC address: `0x10065E7b353371DD2e12348e7094cC774638EbEB`
+- ConsumerDeposit contract: `0xB0E9ebf19AB710d3353c7F637DC55329d9727dCc`
+  - Before deposit, approve allowance
+  - Deposit ABI: `function deposit(uint256 amount)`
+
+**Verify balance:**
+
+```sh
+curl -sS -X GET "<BASE_URL>/v1/balance" \
+ -H "Authorization: Bearer <CONSUMER_API_KEY>"
+```
+
+Sample response:
+
+```json
+{
+  "balance_usdc": "123.45",
+  "total_spent": "10.00"
+}
+```
+
+---
+
+## 4. Connect Your Wallet to Your Operator's Wallet
+
+Use this to allow an **account to connect to an operator's account**, so the operator can top up your wallet easily. This requires a **wallet signature** over a structured message. The signature **must be produced by the child wallet**.
 
 **Endpoint:**
 
@@ -189,7 +215,7 @@ Notes:
 - `issued_at` is **Unix seconds**. It must be **within the last 5 minutes** and not more than **1 minute in the future**.
 - The signed message must be **exactly** (including line breaks, casing, and spacing):
   ```
-  Authorize parent for BitNow
+  Authorize parent for OpenBytes
   Parent wallet: <PARENT_WALLET_LOWERCASE>
   Child wallet: <CHILD_WALLET_LOWERCASE>
   Issued at: <ISSUED_AT>
@@ -207,7 +233,7 @@ const issuedAt = Math.floor(Date.now() / 1000);
 const parentWallet = parentWalletAddress.toLowerCase();
 const childWallet = childWalletAddress.toLowerCase();
 const message = [
-  "Authorize parent for BitNow",
+  "Authorize parent for OpenBytes",
   `Parent wallet: ${parentWallet}`,
   `Child wallet: ${childWallet}`,
   `Issued at: ${issuedAt}`,
@@ -237,136 +263,9 @@ const signature = await wallet.signMessage(message); // EIP-191 personal_sign
 
 ---
 
-## 4. Model Inference API Usage
+## 5. Usage Guidelines for AI Agents
 
-With a valid `CONSUMER_API_KEY`, models can be queried.
-
-### 4.1 List Available Models
-
-```sh
-curl -sS -X GET "<BASE_URL>/v1/models"
-```
-
-**Verify** model existence before usage (check returned list).
-
-### 4.2 Completion/Chat Endpoint
-
-```sh
-curl -sS -X POST "<BASE_URL>/v1/chat" \
- -H "Content-Type: application/json" \
- -H "Authorization: Bearer <CONSUMER_API_KEY>" \
- -d '{
-  "model": "gpt-4o-mini",
-  "messages": [
-    { "role": "system", "content": "You are a helpful assistant." },
-    { "role": "user", "content": "Explain the BitNow network in one paragraph." }
-  ]
-}'
-```
-
-**API error handling:**
-
-- `401`: Invalid/expired key; check Authorization header
-- `402`: Insufficient balance
-- `404`: Model not found (check `MODEL_NOT_FOUND`)
-- Review returned JSON fields `error.code`, `error.message`
-
----
-
-## 5. Query Balance and Usage (API)
-
-### 5.1 Balance Query
-
-(refer to section 2, `/v1/balance` endpoint)
-
-### 5.2 Usage Metrics
-
-Usage is exposed via a consumer-scoped endpoint:
-
-```sh
-curl -sS -X GET "<BASE_URL>/v1/usage?limit=100&offset=0" \
-  -H "Authorization: Bearer <CONSUMER_API_KEY_OR_SESSION_TOKEN>"
-```
-
-The response is proxied from the Registry and typically includes fields like:
-
-- `id` – usage record id
-- `timestamp` / `created_at` – when the call was recorded
-- `model` – model name (e.g. `gpt-4o-mini`)
-- `promptTokens` – prompt token count
-- `completionTokens` – completion token count
-- `costUsdc` – cost in USDC for this call
-- `apiKeyId` – optional, which consumer API key was used
-
-A typical workflow might aggregate usage per model or timeframe to analyze cost and token usage.
-
----
-
-## 6. Supplier/Provider API Workflows (Advanced)
-
-For upstream providers only:
-
-- **Register API key provider (upstream key vaulted via Key Vault):**
-  ```sh
-  curl -sS -X POST "<BASE_URL>/v1/suppliers/api-key" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "wallet_address": "<SUPPLIER_WALLET>",
-      "provider": "openai",
-      "api_key": "sk-upstream-...",
-      "models": ["gpt-4o", "gpt-4o-mini"],
-      "price_per_million_tokens": "2.50",
-      "max_requests_per_hour": 3600
-    }'
-  ```
-- **Register GPU node (per-wallet GPU supplier):**
-  ```sh
-  curl -sS -X POST "<BASE_URL>/v1/suppliers/gpu" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "wallet_address": "<SUPPLIER_WALLET>",
-      "models": ["gpt-4o", "claude-3-5-sonnet-20241022"],
-      "price_per_million_tokens": "5.00",
-      "max_requests_per_hour": 1000,
-      "endpoint": {
-        "base_url": "https://gpu-node.example.com",
-        "backend_type": "openai_http",
-        "timeout": 30000,
-        "auth_type": "bearer",
-        "auth_value": "upstream-node-token",
-        "health_endpoint": "/healthz"
-      }
-    }'
-  ```
-- **Update GPU node config:**
-  ```sh
-  curl -sS -X PATCH "<BASE_URL>/v1/suppliers/gpu/<ID>" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "models": ["gpt-4o", "gpt-4o-mini"],
-      "price_per_million_tokens": "4.50",
-      "max_requests_per_hour": 2000,
-      "endpoint": {
-        "base_url": "https://gpu-node.example.com",
-        "backend_type": "openai_http",
-        "timeout": 45000,
-        "auth_type": "bearer",
-        "auth_value": "rotated-node-token",
-        "health_endpoint": "/healthz"
-      }
-    }'
-  ```
-- Query provider/model metadata as needed:
-  ```sh
-  curl -sS -X GET "<BASE_URL>/v1/metadata/providers"
-  curl -sS -X GET "<BASE_URL>/v1/metadata/models"
-  ```
-
----
-
-## 7. Usage Guidelines for AI Agents
-
-When handling BitNow network operational support, follow these best practices:
+When handling OpenBytes network operational support, follow these best practices:
 
 1. Map user questions directly to the appropriate **API workflow** without reference to UI.
    - Example intents: onboarding, balance issue, API key management, quota/cost analysis
