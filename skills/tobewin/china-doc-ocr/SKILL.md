@@ -3,16 +3,7 @@ name: china-doc-ocr
 description: 智能文档OCR识别与结构化提取。Use when the user has a complex document, PDF, scanned image, photo, invoice, receipt, ID card, table, or chart that needs to be recognized and converted to text or Markdown. Handles complex layouts, multi-column text, tables, and mixed image-text that OpenClaw cannot process natively. Uses SiliconFlow DeepSeek-OCR and PaddleOCR-VL models — domestic access, no VPN, same API key as china-image-gen and china-tts.
 version: 1.0.0
 license: MIT-0
-metadata:
-  openclaw:
-    emoji: "📄"
-    requires:
-      bins:
-        - curl
-        - python3
-    requires_env:
-      - name: SILICONFLOW_API_KEY
-        description: 硅基流动 API Key，与 china-image-gen、china-tts 共用同一个 Key
+metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["curl", "python3"], "env": ["SILICONFLOW_API_KEY"]}, "primaryEnv": "SILICONFLOW_API_KEY"}}
 ---
 
 # 智能文档 OCR China Doc OCR
