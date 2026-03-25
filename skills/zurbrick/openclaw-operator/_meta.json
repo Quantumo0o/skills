@@ -1,0 +1,11 @@
+{
+  "owner": "zurbrick",
+  "slug": "openclaw-operator",
+  "displayName": "OpenClaw Operator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774216395417,
+    "commit": null
+  },
+  "history": []
+}
