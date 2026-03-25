@@ -1,6 +1,6 @@
 ---
 name: klingai
-version: "1.0.4"
+version: "1.0.3"
 description: Official Kling AI Skill. Call Kling AI for video generation, image generation, and subject management. Use subcommand video / image / element by user intent. Use when the user mentions "Kling", "可灵", "文生视频", "图生视频", "文生图", "图生图", "AI 画图", "视频生成", "图片生成", "主体", "角色", "多镜头", "4K", "组图", "text-to-video", "image-to-video", "text-to-image", "subject", "character", "element".
 metadata: {"openclaw":{"emoji":"🎬","requires":{"bins":["node"]},"primaryEnv":"KLING_TOKEN","homepage":"https://app.klingai.com/cn/dev/document-api"}}
 ---
@@ -44,21 +44,8 @@ In examples below, `{baseDir}` means the skill directory (e.g. `skills/klingai`)
 ## Prerequisites
 
 - Node.js 18+; no other dependencies.
-- **Authentication** (one of): `KLING_TOKEN` (Bearer, recommended) or `KLING_API_KEY` (`accessKey|secretKey`, JWT auto). The script auto-loads these from **`kling.env`** / **`.env`** in cwd or `~/.config/kling/`, or from **`KLING_ENV_FILE`** (single path). **Before asking the user for keys**, check env vars and those files (including `~/.config/kling/kling.env`); ask only if still missing. 
+- **Authentication** (one of): `KLING_TOKEN` (Bearer, recommended) or `KLING_API_KEY` (`accessKey|secretKey`, JWT auto).
 - **Region**: Unset `KLING_API_BASE` → script probes China/Global and caches in `~/.config/kling/state.json`. To force region, set `KLING_API_BASE`. After account/region change: `rm ~/.config/kling/state.json`.
-
-## Corporate proxy and TLS failures
-
-Prefix `node` with both variables below when `HTTP_PROXY`, `HTTPS_PROXY`, or `ALL_PROXY` is already set, or after a network or TLS error—then retry.
-
-- `NODE_USE_ENV_PROXY=1` — Node uses `HTTP_PROXY` / `HTTPS_PROXY` from the environment.
-- `NODE_TLS_REJECT_UNAUTHORIZED=0` — use when the corporate proxy re-signs TLS.
-
-```bash
-NODE_USE_ENV_PROXY=1 NODE_TLS_REJECT_UNAUTHORIZED=0 node skills/klingai/scripts/kling.mjs video --prompt "..." --output_dir ./output
-```
-
-PowerShell: `$env:NODE_USE_ENV_PROXY=1; $env:NODE_TLS_REJECT_UNAUTHORIZED=0; node ...`
 
 ## Quick start
 
