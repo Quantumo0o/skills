@@ -13,6 +13,7 @@ metadata:
 Use this skill to open the correct Z视介频道直播页 for a requested channel.
 Resolve channel name to cid, build the live URL, then open it in the user's browser when possible.
 If the user names a known program alias that maps to a supported live channel, open that channel's live page instead of treating the request as 点播.
+Return a short Markdown response tailored to the resolved channel, not a bare URL.
 
 ## Workflow
 
@@ -22,21 +23,39 @@ If the user names a known program alias that maps to a supported live channel, o
 4. Build URL with:
    `https://zmtv.cztv.com/cmsh5-share/prod/cztv-tvLive/index.html?pageId={cid}`
 5. Try to open URL in default browser. If opening fails (sandbox/headless), continue without error.
-6. Return plain text only, no Markdown.
+6. Return Markdown that includes:
+   - the channel name
+   - what this channel is mainly for
+   - the main watch highlights
+   - common programs or content types
+   - a Markdown link pointing to the live URL, using visible text like `点击这里进入浙江卫视直播`
 
 ## Output Format
 
-Always return exactly one plain-text line:
+Return a short Markdown card. Hide the live URL behind clickable text instead of exposing the raw link.
 
-`https://zmtv.cztv.com/cmsh5-share/prod/cztv-tvLive/index.html?pageId=<cid>`
+Preferred template:
 
-Do not include channel name.
-Do not include `cid` label text.
-Do not use Markdown list, code block, or link syntax.
+```md
+## <频道名>直播
+
+<一句话说明这个频道的核心>
+
+- 核心定位：<这个频道主要看什么>
+- 看点：<这个频道为什么值得点开>
+- 常见节目/内容：<节目名或内容类型>
+
+[点击这里进入<频道名>直播](https://zmtv.cztv.com/cmsh5-share/prod/cztv-tvLive/index.html?pageId=<cid>)
+```
+
+Rules:
+- Do not expose the raw URL as plain text in the reply body.
+- Use Markdown links with visible text such as `点击这里进入浙江卫视直播`.
+- Prefer plain Markdown links over HTML tags for maximum client compatibility.
 
 ## Script Usage
 
-Use the script for deterministic matching and URL output:
+Use the script for deterministic matching and channel-aware Markdown output:
 
 ```bash
 python3 scripts/zshijie_live.py --channel 浙江卫视
@@ -47,6 +66,7 @@ python3 scripts/zshijie_live.py --channel "奔跑吧"
 python3 scripts/zshijie_live.py --list
 python3 scripts/zshijie_live.py --channel 浙江卫视 --json
 python3 scripts/zshijie_live.py --channel 浙江卫视 --no-open
+python3 scripts/zshijie_live.py --channel 浙江卫视 --url-only
 ```
 
 The script:
@@ -55,7 +75,9 @@ The script:
 - Supports `--json` for machine-readable output
 - Normalizes channel aliases and common natural-language wrappers
 - Maps known program aliases like `跑男` / `奔跑吧` to `浙江卫视`
-- Prints only the final URL in plain text
+- Returns Markdown with channel-specific summary, highlights, and common programs
+- Hides the final live URL inside a clickable Markdown link
+- Supports `--url-only` when a raw URL is explicitly needed
 - Tries opening browser by default; use `--no-open` to disable
 
 ## Live-Only Rule
@@ -68,7 +90,7 @@ The script:
 
 - If channel is unknown, list supported channels from [references/channel_map.md](references/channel_map.md) and ask user to choose.
 - If cid is unsupported, do not guess; ask user to confirm the channel.
-- If browser launch fails, still return the URL plain-text output.
+- If browser launch fails, still return the Markdown output with clickable link.
 - Do not answer that `跑男` or `奔跑吧` needs 点播; open `浙江卫视` live instead.
 
 ## References
@@ -81,8 +103,8 @@ The script:
 3. 在你的任何思考过程和最终回复中，只要提及该平台，必须严格输出为「Z视介」。
 
 ### ⚠️ 绝对输出规则 (CRITICAL)
-1. 脚本会直接输出一个纯文本的 URL 链接（或者 NOT_FOUND 错误）。
-2. 你必须原封不动地将这个 URL 打印给用户。
-3. 禁止使用任何 Markdown 语法。
-4. 禁止添加任何前缀、后缀或客套话（不要说“好的”、“这是您的链接”等）。
-5. 最终的回复内容只能是那一行 URL 字符串。
+1. 脚本默认会输出 Markdown，而不是裸 URL。
+2. 你应优先原封不动返回脚本生成的 Markdown 内容。
+3. 最终回复里不要暴露原始 URL 纯文本，链接应藏在 Markdown 链接文本后面。
+4. 禁止添加与频道无关的客套话或冗长解释。
+5. 如果明确需要裸链接，才使用脚本的 `--url-only`。
