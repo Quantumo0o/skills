@@ -1,0 +1,11 @@
+{
+  "owner": "elmoorish",
+  "slug": "temporal-kg-synthesizer",
+  "displayName": "Temporal Knowledge Graph Synthesizer",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1774223408931,
+    "commit": null
+  },
+  "history": []
+}
