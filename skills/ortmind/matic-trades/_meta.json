@@ -1,0 +1,11 @@
+{
+  "owner": "ortmind",
+  "slug": "matic-trades",
+  "displayName": "Matic Trades",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774210764374,
+    "commit": null
+  },
+  "history": []
+}
