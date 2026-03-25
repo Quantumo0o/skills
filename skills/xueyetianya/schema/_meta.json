@@ -3,9 +3,15 @@
   "slug": "schema",
   "displayName": "Schema",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773883079080,
-    "commit": "https://github.com/openclaw/skills/commit/5c4ecf50665a61c11c7b831b2d96639281656d7c"
+    "version": "2.0.1",
+    "publishedAt": 1774316680057,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773883079080,
+      "commit": "https://github.com/openclaw/skills/commit/5c4ecf50665a61c11c7b831b2d96639281656d7c"
+    }
+  ]
 }
