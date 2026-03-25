@@ -6,7 +6,7 @@ description: |
 
 # DeFi Scout
 
-On-chain financial intelligence across Optimism and Base. Uses free public APIs — no API keys required.
+On-chain financial intelligence across Optimism and Base. Most scripts require no API keys. Exception: `cmc-sentiment.js` requires `CMC_API_KEY` (free tier at coinmarketcap.com).
 
 ## Data Sources
 
@@ -31,6 +31,7 @@ All scripts output JSON. Run with `node scripts/<name>.js`.
 | `bridge-quote.js` | Across Protocol bridge fee quote (no deps, 10s timeout) |
 | `aave-position.js` | Aave V3 health factor + collateral/debt on OP + Base |
 | `swap-quote.js` | Price-based swap estimate via CoinGecko (price math only — not a protocol-routed quote) |
+| `cmc-sentiment.js` | BTC dominance, ETH dominance, Fear & Greed index (CoinMarketCap) |
 
 ## Script Details
 
@@ -60,6 +61,24 @@ Fetches live prices from CoinGecko and computes estimated output = `(priceIn / p
 **Aave health check:** Run `aave-position.js <address>` → health factor on both chains. Act immediately if < 1.2.
 
 **Swap estimate:** Run `swap-quote.js <tokenIn> <tokenOut> <amount>` → rough output estimate for planning. Never use for execution.
+
+**Market sentiment:** Run `cmc-sentiment.js` → BTC dom, ETH dom, Fear & Greed. Requires `CMC_API_KEY` env var. Caches results for 6h.
+
+**yields.js flags:**
+```bash
+node scripts/yields.js                                 # OP + Base, TVL >$1M, top 20
+node scripts/yields.js --chain optimism                # OP only
+node scripts/yields.js --chain base                    # Base only
+node scripts/yields.js --chain all --min-tvl 5000000   # both chains, TVL >$5M
+node scripts/yields.js --top 5                         # top 5 results only
+```
+
+## Error Handling
+
+- **Bad address** (`wallet-balances.js`, `aave-position.js`): returns `{ error: "invalid address" }` — always validate 0x format before passing
+- **Unknown token** (`swap-quote.js`): returns `{ error: "Unsupported token: XYZ" }` — supported list is in script header
+- **RPC timeout**: 8s timeout per call; on failure returns `{ error: "RPC timeout" }` — retry once before surfacing to user
+- **DeFiLlama offline**: `yields.js` returns empty array `[]` — surface as "yield data temporarily unavailable"
 
 ## Key Addresses (verified)
 
