@@ -1,6 +1,6 @@
 {
   "data_validation": {
-    "max_evidence_length": 20,
+    "max_evidence_length": 500,
     "max_evidence_per_topic": 2,
     "max_total_evidence": 20,
     "max_topics_per_conversation": 5,
