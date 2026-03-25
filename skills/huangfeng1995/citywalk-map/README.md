@@ -10,9 +10,13 @@
 
 - 🌏 **真实地图** - 基于 OpenStreetMap 数据，不穿墙不穿海
 - 🚶 **真实路线** - 使用 OSRM 步行导航，获取实际道路几何
+- 🇨🇳 **国内适配** - OSM 加载失败自动切换高德地图（国内秒开）
 - 🖥️ **横向全屏** - 横向全屏布局，电脑和手机都完美展示
 - 🎨 **自定义主题** - 一行命令切换任意主题色（支持国家/城市主题色）
-- ⚡ **零依赖** - 纯 Python + HTML + curl，无需构建工具
+- 🌦️ **天气查询** - 自动查终点城市当前天气（wttr.in 免费，无需 API Key）
+- 🌐 **双语界面** - 支持中文 / English 切换
+- 🖼️ **离线渲染** - `render.py` 纯 Python 生成路线图图片（无需浏览器）
+- ⚡ **零依赖** - generate.py 仅需 Python 标准库 + curl，无需 pip install
 
 ---
 
@@ -94,6 +98,24 @@ python3 -m http.server 18767 --directory /tmp &
 pkill -f "http.server 18767"
 ```
 
+### 🖼️ 离线渲染（无需浏览器）
+
+直接生成 PNG 图片，使用高德地图底图（国内可访问）：
+
+```bash
+# 需要 Pillow: pip install Pillow requests
+python3 scripts/render.py \
+  --accent "#228B22" \
+  --zoom 13 \
+  output.png \
+  /tmp/citywalk_map.html
+```
+
+常用参数：
+- `--accent #hex` 主题色
+- `--zoom 13` 缩放级别（数字越大越清晰，但 tile 越多）
+- `--help` 查看完整帮助
+
 ---
 
 ## 🗺️ 效果预览
@@ -119,10 +141,12 @@ pkill -f "http.server 18767"
 
 ---
 
-## 🌍 巴黎示例
+## 🌍 巴黎示例（含天气查询）
 
 ```bash
-COLOR=#0055A4 python3 scripts/generate.py \
+python3 scripts/generate.py \
+  --color "#0055A4" \
+  --weather \
   "巴黎卢浮宫Citywalk" \
   "48.8606,2.3376,卢浮宫玻璃金字塔,世界最大博物馆之一|48.8641,2.3276,杜乐丽花园,法式皇家园林|48.8656,2.3211,协和广场,法国大革命时期著名广场|48.8637,2.3130,亚历山大三世桥,塞纳河上最华丽金桥|48.8738,2.2950,凯旋门,香榭丽舍尽头地标|48.8595,2.3122,荣军院,拿破仑陵墓所在|48.8584,2.2945,埃菲尔铁塔,巴黎最高点，日落最佳观景点"
 ```

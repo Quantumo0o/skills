@@ -1,7 +1,7 @@
 {
   "name": "citywalk-map",
-  "version": "2.0.4",
-  "description": "无需API！零成本生成真实OSM地图+OSRM步行路线的精美Citywalk路线图，一行命令搞定自定义主题色、全屏布局、详细步行数据",
+  "version": "3.1.0",
+  "description": "Zero-cost walking route maps with OSM+OSRM routing, 高德 tile fallback for China, pure Python renderer",
   "description_en": "Zero-cost walking route maps with real OSM tiles + OSRM routing, one-command setup, custom colors, full-width layout, detailed walk stats",
   "keywords": [
     "citywalk",
@@ -38,7 +38,16 @@
     "name": "citywalk-map",
     "description": "无需API！零成本生成真实OSM地图+OSRM步行路线的精美Citywalk路线图，一行命令搞定自定义主题色、全屏布局、详细步行数据",
     "description_en": "Zero-cost walking route maps with real OSM tiles + OSRM routing, one-command setup, custom colors, full-width layout, detailed walk stats",
-    "tags": ["map", "walking", "travel", "route", "osrm", "openstreetmap"],
-    "platforms": ["openclaw"]
+    "tags": [
+      "map",
+      "walking",
+      "travel",
+      "route",
+      "osrm",
+      "openstreetmap"
+    ],
+    "platforms": [
+      "openclaw"
+    ]
   }
 }

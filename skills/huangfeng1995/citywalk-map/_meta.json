@@ -1,11 +1,17 @@
 {
   "owner": "huangfeng1995",
   "slug": "citywalk-map",
-  "displayName": "citywalk-map",
+  "displayName": "Citywalk Map",
   "latest": {
-    "version": "2.0.6",
-    "publishedAt": 1774016653364,
-    "commit": "https://github.com/openclaw/skills/commit/cb3c5bcbfe87c4330a514d983b71278c11ba5a41"
+    "version": "2.0.7",
+    "publishedAt": 1774231944916,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.6",
+      "publishedAt": 1774016653364,
+      "commit": "https://github.com/openclaw/skills/commit/cb3c5bcbfe87c4330a514d983b71278c11ba5a41"
+    }
+  ]
 }
