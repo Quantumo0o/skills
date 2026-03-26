@@ -1,0 +1,11 @@
+{
+  "owner": "tanis90",
+  "slug": "pdftomd",
+  "displayName": "PDF to Markdown - Extract Text, Tables, Formulas from PDF",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1774360875624,
+    "commit": null
+  },
+  "history": []
+}
