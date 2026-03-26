@@ -451,6 +451,27 @@ def daemon():
     pass
 
 
+def _load_daemon_config() -> dict:
+    """Load daemon configuration from config file.
+    
+    Returns:
+        Dict with daemon settings or empty dict if no config file
+    """
+    import json
+    from pathlib import Path
+    
+    config_path = Path.home() / ".email-bridge" / "config.json"
+    if not config_path.exists():
+        return {}
+    
+    try:
+        with open(config_path) as f:
+            config = json.load(f)
+            return config.get("daemon", {})
+    except Exception:
+        return {}
+
+
 @daemon.command("start")
 @click.option("-d", "--detach", is_flag=True, help="Run in background (daemon mode)")
 @click.option("-i", "--interval", default=300, type=int, help="Polling interval in seconds (default: 300)")
@@ -465,6 +486,20 @@ def daemon_start(detach: bool, interval: int, no_notify: bool):
     - Sync them to local database
     - Send a notification to OpenClaw main session (unless --no-notify)
 
+    Configuration is read from ~/.email-bridge/config.json:
+    {
+      "daemon": {
+        "poll_interval": 300,
+        "notify_openclaw": true,
+        "notification": {
+          "include_body": false,
+          "body_max_length": 500,
+          "include_verification_codes": true,
+          "include_links": false
+        }
+      }
+    }
+
     Examples:
         email-bridge daemon start           # Run in foreground
         email-bridge daemon start -d        # Run in background
@@ -472,8 +507,26 @@ def daemon_start(detach: bool, interval: int, no_notify: bool):
         email-bridge daemon start -d --no-notify  # No OpenClaw notifications
     """
     from .daemon import EmailDaemon
+    
+    # Load config from file
+    config = _load_daemon_config()
+    
+    # CLI options override config file
+    poll_interval = interval
+    notify = not no_notify
+    notification_config = config.get("notification", {})
+    
+    # Use config file values if CLI options are defaults
+    if config.get("poll_interval") and interval == 300:  # Default value
+        poll_interval = config["poll_interval"]
+    if config.get("notify_openclaw") is not None and not no_notify:
+        notify = config["notify_openclaw"]
 
-    d = EmailDaemon(poll_interval=interval, notify_openclaw=not no_notify)
+    d = EmailDaemon(
+        poll_interval=poll_interval,
+        notify_openclaw=notify,
+        notification_config=notification_config
+    )
     d.start(background=detach)
 
 

@@ -1,7 +1,7 @@
 [project]
 name = "email-bridge"
-version = "0.5.1"
-description = "Personal email middleware with real-time notifications, verification code extraction, and multi-provider support (Gmail, QQ Mail, NetEase)"
+version = "0.6.3"
+description = "Personal email middleware for AI assistants with real-time notifications, smart categorization, and verification code extraction (Gmail, QQ Mail, NetEase)"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"

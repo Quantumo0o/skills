@@ -103,6 +103,10 @@ LINK_PATTERNS = {
 def extract_verification_codes(text: str) -> list[VerificationCode]:
     """Extract verification codes from email text.
 
+    IMPORTANT: This function ONLY extracts codes that appear near verification
+    keywords. Standalone numbers are NOT extracted to avoid false positives
+    (addresses, order numbers, tracking numbers, etc.).
+
     Args:
         text: Email body text to search
 
@@ -115,7 +119,8 @@ def extract_verification_codes(text: str) -> list[VerificationCode]:
     codes = []
     seen = set()
 
-    # First check for context-based codes (codes near verification keywords)
+    # Only extract codes that are near verification keywords
+    # This is the ONLY extraction method to avoid false positives
     text_lower = text.lower()
 
     for context_pattern in VERIFICATION_CONTEXTS:
@@ -135,17 +140,6 @@ def extract_verification_codes(text: str) -> list[VerificationCode]:
                         # Extract context (service name if available)
                         ctx = _extract_service_context(text, match.start())
                         codes.append(VerificationCode(code=code, context=ctx))
-
-    # If no context-based codes found, look for standalone codes
-    # Be very conservative - only extract if it's a typical OTP length (5-8 digits)
-    # and doesn't look like an address/price/etc.
-    if not codes:
-        for code_pattern, _ in VERIFICATION_PATTERNS[:3]:  # Only common patterns
-            for match in re.finditer(code_pattern, text):
-                code = match.group(1)
-                if code not in seen and _is_standalone_verification_code(code, text):
-                    seen.add(code)
-                    codes.append(VerificationCode(code=code))
 
     return codes
 
@@ -196,6 +190,9 @@ def _is_likely_code_in_context(code: str, context: str) -> bool:
         'order #', 'order no', 'order:', 'invoice', 'tracking',
         'reference #', 'ref #', 'account #', 'transaction',
         'zip', 'postal', 'phone', 'tel:', 'fax:',
+        # Address patterns
+        'ste', 'st', 'ave', 'avenue', 'blvd', 'rd', 'road',
+        'drive', 'dr', 'lane', 'ln', 'court', 'ct',
     ]
 
     # Look for these markers within 30 chars before the code
@@ -207,33 +204,6 @@ def _is_likely_code_in_context(code: str, context: str) -> bool:
                 return False
 
     return True
-
-
-def _is_standalone_verification_code(code: str, context: str) -> bool:
-    """Check if a code without explicit verification context is likely a verification code.
-
-    This is more conservative than context-based matching.
-    Only accepts codes that are typical OTP lengths (5-8 characters).
-    """
-    if not _is_likely_code_in_context(code, context):
-        return False
-
-    # Be strict about standalone codes - only accept typical OTP lengths
-    # 4-digit codes are too ambiguous (could be years, addresses, etc.)
-    # 5-8 digits are more likely to be actual verification codes
-    if code.isdigit():
-        if len(code) < 5 or len(code) > 8:
-            return False
-        # Additional check: don't extract if it looks like a date
-        if len(code) == 8 and code.startswith('20'):
-            return False
-        return True
-
-    # Alphanumeric codes are more distinctive
-    if any(c.isdigit() for c in code) and any(c.isalpha() for c in code):
-        return True
-
-    return False
 
 
 def _extract_service_context(text: str, position: int) -> Optional[str]:
