@@ -1,16 +1,65 @@
 ---
 name: kay-xhs
-description: 小红书全自动内容创作工作流 - 从爆款研究到草稿发布的完整 pipeline。使用场景：(1) 研究小红书爆款笔记风格和趋势，(2) 生成 AI 图片/漫画/封面，(3) 自动发布到小红书草稿箱。整合浏览器自动化、AI 生图、爆款分析等工具，实现一站式内容创作。
+version: 1.0.3
+description: |
+  小红书全自动内容创作工作流 - 从爆款研究到草稿发布的完整 pipeline。
+  使用场景：(1) 研究小红书爆款笔记风格和趋势，(2) 生成 AI 图片/漫画/封面，(3) 自动发布到小红书草稿箱。
+
+  **依赖**: 需要安装 kay-image skill 并配置 KIE_API_KEY
+metadata:
+  openclaw:
+    requires:
+      skills:
+        - kay-image
+      env:
+        - KIE_API_KEY
 ---
 
 # Kay XHS - 小红书全自动创作工作流
 
 一站式小红书内容创作解决方案，从爆款研究到草稿发布。
 
+## ⚠️ 必需依赖
+
+### 1. 安装 kay-image Skill（AI 生图必备）
+
+**必须先安装，否则无法生成图片！**
+
+```bash
+# 安装 kay-image skill
+clawhub install kay-image
+
+# 配置 API Key
+cp skills/kay-image/.env.example skills/kay-image/.env
+
+# 编辑 .env 文件，填入从 https://kie.ai/ 获取的 API Key
+nano skills/kay-image/.env
+```
+
+**获取 KIE API Key:**
+1. 访问 https://kie.ai/
+2. 注册并登录账号
+3. 进入控制台 → API 管理
+4. 创建 API Key 并复制
+
+**验证安装:**
+```bash
+# 测试生图功能
+kay-image -p "测试图片，一只可爱的猫咪" -o test.png --ar 1:1
+```
+
+### 2. 浏览器准备（自动发布用）
+
+确保 OpenClaw 浏览器已配置，用于小红书网页操作。
+
+---
+
+**确认以上步骤完成后，再开始创作工作流！**
+
 ## 核心能力
 
 1. **爆款研究** - 分析热门笔记风格、构图、文案套路
-2. **AI 生图** - 生成封面、漫画、配图
+2. **AI 生图** - 生成封面、漫画、配图（支持 KIE 和 Gemini 双引擎）
 3. **自动发布** - 保存到小红书草稿箱
 
 ## 完整工作流
@@ -329,11 +378,26 @@ const cycleThroughImages = async (totalImages) => {
 
 ### Phase 4: AI 生图
 
-**工具:** `kie-image`
+**工具:** `kay-image` (KIE API)
+
+#### 生图引擎
+
+| 引擎 | 工具 | 配置要求 | 适用场景 |
+|------|------|----------|----------|
+| **KIE** | `kay-image` | `KIE_API_KEY` | 高质量 4K 输出，角色一致性 |
+
+**配置检查:**
+```bash
+# 确保已设置 KIE_API_KEY
+export KIE_API_KEY="your-api-key"
+
+# 测试生图
+kay-image -p "一只可爱的橘猫在草地上玩耍" -o test.png --ar 1:1
+```
 
 #### 4.1 封面生成
 ```bash
-kie-image \
+kay-image \
   --prompt "描述..." \
   --output cover.jpg \
   --ar 3:4 \
@@ -344,7 +408,7 @@ kie-image \
 **必须一次生成，不要分格生成！**
 
 ```bash
-kie-image \
+kay-image \
   --prompt "四格漫画，2x2 网格布局：
 第一格（左上）：...，画面下方文字'...'
 第二格（右上）：...，画面下方文字'...'
@@ -357,8 +421,9 @@ kie-image \
 ```
 
 #### 4.3 图生图（风格迁移）
+
 ```bash
-kie-image \
+kay-image \
   --prompt "转换成...风格" \
   --input /path/to/reference.jpg \
   --output result.jpg
@@ -408,7 +473,7 @@ cat > comic-tasks.json << 'EOF'
 EOF
 
 # 2. 执行批量生成
-kie-image-batch -b comic-tasks.json -o ./xhs-images/2026-03-20-治愈漫画
+kay-image-batch -b comic-tasks.json -o ./xhs-images/2026-03-20-治愈漫画
 ```
 
 **批量模式参数**:
@@ -442,6 +507,25 @@ kie-image-batch -b comic-tasks.json -o ./xhs-images/2026-03-20-治愈漫画
 - ✅ 色调随情绪变化
 - ❌ 不要分开生成单格再拼接
 - ✅ **多张图时优先使用批量模式**
+
+---
+
+### 生图引擎
+
+| 特性 | KIE (`kay-image`) |
+|------|-------------------|
+| **配置难度** | ⭐ 需 API Key |
+| **图片质量** | ⭐⭐⭐ 4K 高清 |
+| **生成速度** | ⭐⭐ 中等 |
+| **角色一致性** | ⭐⭐⭐ 优秀 |
+| **批量生成** | ✅ 支持 (`kay-image-batch`) |
+| **图生图** | ✅ 支持 |
+
+**配置检查清单:**
+```markdown
+- [ ] 已设置 `KIE_API_KEY`
+- [ ] 已安装 `kay-image` skill
+```
 
 ---
 
@@ -644,8 +728,8 @@ echo "✅ 已保存到草稿箱"
 | 账号准备 | browser | - |
 | 爆款研究 | browser, xiaohongshu-deep-research | web_search |
 | 内容策划 | - | memory_search |
-| AI 生图 | **kie-image-batch** (批量) | image (分析) |
-| AI 生图 | kie-image (单张) | - |
+| AI 生图 | **kay-image-batch** (批量) | image (分析) |
+| AI 生图 | kay-image (单张，高质量) | - |
 | 文案创作 | - | memory_get |
 | 自动发布 | browser | - |
 
@@ -656,7 +740,7 @@ echo "✅ 已保存到草稿箱"
 ### AI 漫画创作
 1. **角色一致性** - 每个prompt有一致的详细人物特征描述
 2. **图上文字** - 每格配简短文案
-3. **批量生成** - 多张图时使用 `kie-image-batch`（轮询 20s/次，最多 10 次）
+3. **批量生成** - 多张图时使用 `kay-image-batch`（轮询 20s/次，最多 10 次）
 
 ### 封面设计
 1. **3 秒法则** - 一眼抓住注意力
@@ -681,9 +765,10 @@ echo "✅ 已保存到草稿箱"
 | 标签太少 | 曝光不足 | 5-8 个精准标签 |
 | **打开 modal 直接提取** | **只能采集 1-3 张** | **优先用 Performance API 或 DOM 全量提取** |
 | **不用批量方法** | **效率低** | **优先批量方法，不行再循环点击** |
-| **串行生成多张图** | **耗时 8 分钟+** | **使用 kie-image-batch 批量模式（3 分钟）** |
+| **串行生成多张图** | **耗时 8 分钟+** | **使用 kay-image-batch 批量模式（3 分钟）** |
 | **误解漫画结构** | **把1组多图当多组单图** | **先查看图片，理解故事线再规划** |
 | **发布流程混乱** | **用户要草稿却问是否发布** | **听清指令，直接执行** |
+| **未配置生图引擎** | **无法生成图片** | **提前配置 KIE_API_KEY** |
 
 ---
 
@@ -764,7 +849,7 @@ echo "✅ 已保存到草稿箱"
 
 ---
 
-你的记忆目录/prompts_warehouse -- 优秀prompt仓库
+.openclaw/workspace-xhs-manager/memory/prompts_warehouse --优秀prompt仓库
 
 ---
 
