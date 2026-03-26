@@ -53,9 +53,8 @@ metadata:
 ### Research companies similar to a known company
 
 1. If the user gives a domain, call `GET /api/v1/entities/organizations/by-domain/{domain}`.
-2. If the user gives a name, call `GET /api/v1/entities/organizations/search-by-name/{organization_name}` and choose the best match.
-3. Use the resolved `organization_id` with `GET /api/v1/search/organizations/{organization_id}/similar`.
-4. Use detail endpoints only for shortlisted results.
+2. Use the resolved `organization_id` with `GET /api/v1/search/organizations/{organization_id}/similar`.
+3. Use detail endpoints only for shortlisted results.
 
 ### Research products from a prompt
 

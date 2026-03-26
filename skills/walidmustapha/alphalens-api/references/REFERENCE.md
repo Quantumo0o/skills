@@ -29,8 +29,6 @@ Bearer auth exists in the API, but API key auth is the preferred default for age
 
 ## Which Endpoint Does What
 
-- `GET /api/v1/entities/organizations/search-by-name/{organization_name}`
-  resolves a company name into candidate organizations
 - `GET /api/v1/entities/organizations/by-domain/{domain}`
   resolves a known company domain into a specific organization
 - `GET /api/v1/entities/organizations/{organization_id}`
@@ -95,11 +93,10 @@ If the end goal is still a company list, you can search products first and then 
 
 Useful endpoints:
 
-- `GET /api/v1/entities/organizations/search-by-name/{organization_name}`
 - `GET /api/v1/entities/organizations/by-domain/{domain}`
 - `GET /api/v1/entities/organizations/{organization_id}`
 
-Use these when a user gives you a company name or domain and you need an `organization_id`.
+Use these when a user gives you a domain and you need an `organization_id`.
 
 ### 2. Resolve products or fetch product detail
 
