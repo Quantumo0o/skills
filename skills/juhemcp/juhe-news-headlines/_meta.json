@@ -1,0 +1,11 @@
+{
+  "owner": "juhemcp",
+  "slug": "juhe-news-headlines",
+  "displayName": "新闻头条 - 聚合数据",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774426308569,
+    "commit": null
+  },
+  "history": []
+}
