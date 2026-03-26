@@ -1,0 +1,16 @@
+{
+  "id": "memory-dream",
+  "name": "Memory Dream",
+  "description": "Auto-consolidates agent memory files after sessions — like REM sleep for AI agents",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "minSessions": { "type": "number", "default": 5 },
+      "minHours": { "type": "number", "default": 24 },
+      "memoryFiles": { "type": "array", "items": { "type": "string" }, "default": ["MEMORY.md"] },
+      "model": { "type": "string", "description": "Model override (defaults to agent default)" },
+      "enabled": { "type": "boolean", "default": true }
+    }
+  }
+}
