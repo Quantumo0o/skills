@@ -2,7 +2,7 @@
 name: baidu-disk-manager
 description: |
   管理百度网盘文件，支持登录、列出文件、上传/下载/复制/移动/删除/重命名/创建文件夹、查看配额等操作。
-metadata: { "openclaw": { "emoji": "💾", "requires": { "bins": ["./scripts/go-bdisk"], "env": [] }, "primaryEnv": "" } }
+metadata: {"clawdbot":{"emoji":"💾","requires":{"bins":["./scripts/go-bdisk"]}}}
 ---
 
 ## 百度网盘文件管理 Skill（Baidu Netdisk Manager）
