@@ -1,0 +1,11 @@
+{
+  "owner": "zhibuyu",
+  "slug": "pigxserver-skill",
+  "displayName": "PigX Server 后端开发",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774370355748,
+    "commit": null
+  },
+  "history": []
+}
