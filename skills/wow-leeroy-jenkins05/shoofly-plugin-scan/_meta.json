@@ -1,0 +1,11 @@
+{
+  "owner": "wow-leeroy-jenkins05",
+  "slug": "shoofly-plugin-scan",
+  "displayName": "Shoofly Plugin Scan",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1774309254160,
+    "commit": null
+  },
+  "history": []
+}
