@@ -1,0 +1,11 @@
+{
+  "owner": "kedoupi",
+  "slug": "news-source-manager",
+  "displayName": "News Source Manager (信息源管理器)",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774407292681,
+    "commit": null
+  },
+  "history": []
+}
