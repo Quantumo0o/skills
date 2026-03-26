@@ -1,0 +1,11 @@
+{
+  "owner": "macmerg",
+  "slug": "stripe-blazor-setup",
+  "displayName": "Stripe Setup for Blazor Server",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1774362372140,
+    "commit": null
+  },
+  "history": []
+}
