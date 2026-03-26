@@ -1,0 +1,14 @@
+interface:
+  display_name: "海关报关助手"
+  short_description: "上传单据 → 智能分类 → 确认分片 → 提取报关数据 → 下载Excel"
+  brand_color: "#1E40AF"
+  default_prompt: "我需要处理报关文件，帮我上传并生成报关单"
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  python:
+    - name: httpx
+      install: "pip install httpx"
+      version: ">=0.23.0"
