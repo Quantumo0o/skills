@@ -1,0 +1,11 @@
+{
+  "owner": "cyresearch",
+  "slug": "chatgpt-memory-extraction",
+  "displayName": "Chatgpt Memory Extraction",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774422177050,
+    "commit": null
+  },
+  "history": []
+}
