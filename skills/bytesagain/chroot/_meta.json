@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain",
+  "slug": "chroot",
+  "displayName": "Chroot",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774304310801,
+    "commit": null
+  },
+  "history": []
+}
