@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "stripe-tax",
+  "displayName": "Stripe Tax",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774598650026,
+    "commit": null
+  },
+  "history": []
+}
