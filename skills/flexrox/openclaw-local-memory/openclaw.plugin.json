@@ -1,0 +1,70 @@
+{
+  "id": "openclaw-local-memory",
+  "kind": "memory",
+  "uiHints": {
+    "containerTag": {
+      "label": "Memory Name",
+      "placeholder": "openclaw_local_memory",
+      "help": "Namespace for this memory store"
+    },
+    "autoRecall": {
+      "label": "Auto-Recall",
+      "help": "Inject relevant memories before every AI turn"
+    },
+    "autoCapture": {
+      "label": "Auto-Capture",
+      "help": "Automatically store conversation exchanges in memory"
+    },
+    "maxRecallResults": {
+      "label": "Max Recall Results",
+      "placeholder": "10",
+      "help": "Maximum memories injected per turn",
+      "advanced": true
+    },
+    "similarityThreshold": {
+      "label": "Similarity Threshold",
+      "placeholder": "0.1",
+      "help": "Minimum similarity score (0-1) to inject a memory",
+      "advanced": true
+    },
+    "debug": {
+      "label": "Debug Logging",
+      "help": "Enable verbose debug logs",
+      "advanced": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "containerTag": {
+        "type": "string",
+        "default": "openclaw_local_memory"
+      },
+      "autoRecall": {
+        "type": "boolean",
+        "default": true
+      },
+      "autoCapture": {
+        "type": "boolean",
+        "default": true
+      },
+      "maxRecallResults": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 10
+      },
+      "similarityThreshold": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 0.1
+      },
+      "debug": {
+        "type": "boolean",
+        "default": false
+      }
+    }
+  }
+}
