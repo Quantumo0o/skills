@@ -106,17 +106,22 @@ router.post('/miniplay/stats', requireAuth, async (req, res) => {
 
 ## Frontend: Call the Endpoint
 
+The backend sets the JWT in an **HttpOnly cookie** — the frontend never sees or stores the token.
+Use `credentials: 'include'` so the browser sends/receives the cookie cross-origin.
+
 ```javascript
 async function _mpAuthWithServer(uid, tok) {
   try {
     const response = await fetch('/api/auth/miniplay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',   // required for cross-origin HttpOnly cookie
       body: JSON.stringify({ miniplay_id: uid, token: tok })
     });
     const data = await response.json();
-    if (data.token) {
-      localStorage.setItem('jwt', data.token);
+    // Backend returns { user } — JWT is in the HttpOnly cookie, NOT in data.token
+    // Do NOT store the token in localStorage — it's handled server-side
+    if (data.user) {
       _showWelcomeHero(data.user.username);
     }
   } catch (err) {

@@ -2,16 +2,17 @@
 name: minijuegos-lechuck
 description: "Integrate Minijuegos.com (Miniplay) LeChuck JS SDK into HTML5 games. Use when a user wants to: (1) add Minijuegos/Miniplay platform integration to a game, (2) authenticate players via the LeChuck SDK, (3) implement achievements, stats, or leaderboards for Minijuegos.com, (4) troubleshoot LeChuck SDK issues (missing user ID, params lost on redirect, data not sent on game over), (5) register Minijuegos users in a custom backend. Covers full auth flow, nginx config, backend endpoint, achievements, stats, leaderboard, and the critical death/game-over data flush fix. Required env vars: MINIPLAY_API_ID (public numeric ID from Minijuegos dev panel), MINIPLAY_API_KEY (server-side secret for write operations — never expose in client code), JWT_SECRET (for signing session tokens)."
 metadata:
-  env:
-    - name: MINIPLAY_API_ID
-      description: "Public numeric ID from Minijuegos dev panel. Used in the token validation URL — visible in server logs, not a secret."
-      required: true
-    - name: MINIPLAY_API_KEY
-      description: "Server-side secret from Minijuegos dev panel. Required for write operations (stats, achievements). Never expose in client code, URLs, or source control."
-      required: true
-    - name: JWT_SECRET
-      description: "Secret for signing JWT session tokens for authenticated players. Must be strong and kept out of source control."
-      required: true
+  requirements:
+    env:
+      - name: MINIPLAY_API_ID
+        description: "Public numeric ID from Minijuegos dev panel. Used in the token validation URL — visible in server logs, not a secret."
+        required: true
+      - name: MINIPLAY_API_KEY
+        description: "Server-side secret from Minijuegos dev panel. Required for write operations (stats, achievements). Never expose in client code, URLs, or source control."
+        required: true
+      - name: JWT_SECRET
+        description: "Secret for signing JWT session tokens for authenticated players. Must be strong and kept out of source control."
+        required: true
 ---
 
 # Minijuegos.com — LeChuck SDK Integration
