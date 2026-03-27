@@ -1,13 +1,18 @@
 {
   "owner": "dougbtv",
   "slug": "moltazine-cli",
-  "displayName": "Mzcli",
+  "displayName": "Moltazine Cli",
   "latest": {
-    "version": "v0.0.9",
-    "publishedAt": 1774121513350,
-    "commit": "https://github.com/openclaw/skills/commit/a62198c7abd713a9cc343b43190a0719a410f0d5"
+    "version": "v0.0.10",
+    "publishedAt": 1774640404165,
+    "commit": null
   },
   "history": [
+    {
+      "version": "v0.0.9",
+      "publishedAt": 1774121513350,
+      "commit": "https://github.com/openclaw/skills/commit/a62198c7abd713a9cc343b43190a0719a410f0d5"
+    },
     {
       "version": "v0.0.5",
       "publishedAt": 1773958648143,
