@@ -15,26 +15,33 @@ sys.path.insert(0, Path(__file__).parent.parent)
 
 from skill_audit import SkillScanner
 
-def get_openclaw_skills_dir():
-    """Find the OpenClaw skills directory with installed skills."""
-    npm_base = Path.home() / ".local/share/pnpm/global/5"
-    if npm_base.exists():
-        for openclaw_dir in npm_base.glob(".pnpm/openclaw@*/node_modules/openclaw"):
+def get_openclaw_skills_dirs():
+    """Find all OpenClaw skills directories."""
+    dirs = []
+    
+    # Try pnpm global first (most common)
+    pnpm_base = Path.home() / ".local/share/pnpm/global/5"
+    if pnpm_base.exists():
+        for openclaw_dir in pnpm_base.glob(".pnpm/openclaw@*/node_modules/openclaw"):
             skills_dir = openclaw_dir / "skills"
             if skills_dir.exists() and any(skills_dir.iterdir()):
-                return skills_dir
+                dirs.append(skills_dir)
+            extensions_dir = openclaw_dir / "extensions"
+            if extensions_dir.exists():
+                for ext_dir in extensions_dir.iterdir():
+                    ext_skills = ext_dir / "skills"
+                    if ext_skills.exists() and any(ext_skills.iterdir()):
+                        dirs.append(ext_skills)
     
-    possible_paths = [
+    # Check workspace skills directories
+    for workspace_path in [
         Path.home() / ".openclaw" / "workspace" / "skills",
         Path.home() / ".openclaw" / "skills",
-        Path("/root/.openclaw/skills"),
-    ]
+    ]:
+        if workspace_path.exists() and workspace_path not in dirs:
+            dirs.append(workspace_path)
     
-    for p in possible_paths:
-        if p.exists() and any(p.iterdir()):
-            return p
-    
-    return possible_paths[0]
+    return dirs
 
 def get_active_channels():
     """Discover all active channels from session configurations."""
@@ -66,7 +73,7 @@ def setup_cron_jobs():
     try:
         result = subprocess.run(['openclaw', 'cron', 'list'], 
                              capture_output=True, text=True, timeout=10)
-        if 'auto-skill-scanner' in result.stdout.lower() or 'skill audit' in result.stdout.lower():
+        if 'auto skill scanner' in result.stdout.lower() or 'skill audit' in result.stdout.lower():
             print("Cron jobs already exist, skipping setup.")
             return False
     except Exception:
@@ -92,7 +99,7 @@ def setup_cron_jobs():
                 '--name', job_name,
                 '--every', '24h',
                 '--session', 'isolated',
-                '--message', f'Run skill-audit scan. Execute: python3 {script_path}',
+                '--message', f'Run Auto Skill Scanner. Execute: python3 {script_path}',
                 '--channel', channel_name,
                 '--to', to_addr,
                 '--announce',
@@ -110,41 +117,36 @@ def setup_cron_jobs():
     
     return True
 
-def format_report(scanner_path=None):
+def format_report():
     """Scan skills and format a report."""
     
-    if scanner_path is None:
-        scanner_path = get_openclaw_skills_dir()
-    
-    scanner_path = Path(scanner_path)
+    skills_dirs = get_openclaw_skills_dirs()
     
     skills = []
-    exclude = {'skill-audit'}
+    seen = set()  # Deduplicate by path
+    exclude = {'skill-audit', 'auto-skill-scanner'}
     
-    if scanner_path.is_file() and scanner_path.suffix == '.skill':
-        if scanner_path.stem not in exclude:
-            skills.append(scanner_path)
-    else:
-        for item in scanner_path.iterdir():
-            if item.is_dir() and (item / "SKILL.md").exists():
-                if item.name not in exclude:
-                    skills.append(item)
-            elif item.suffix == '.skill':
-                if item.stem not in exclude:
-                    skills.append(item)
-    
-    # Also scan extensions
-    npm_base = Path.home() / ".local/share/pnpm/global/5"
-    for openclaw_dir in npm_base.glob(".pnpm/openclaw@*/node_modules/openclaw"):
-        extensions_dir = openclaw_dir / "extensions"
-        if extensions_dir.exists():
-            for ext_dir in extensions_dir.iterdir():
-                ext_skills_dir = ext_dir / "skills"
-                if ext_skills_dir.exists():
-                    for item in ext_skills_dir.iterdir():
-                        if item.is_dir() and (item / "SKILL.md").exists():
-                            if item.name not in exclude:
-                                skills.append(item)
+    for scanner_path in skills_dirs:
+        scanner_path = Path(scanner_path)
+        
+        if scanner_path.is_file() and scanner_path.suffix == '.skill':
+            key = scanner_path.resolve()
+            if key not in seen and scanner_path.stem not in exclude:
+                seen.add(key)
+                skills.append(scanner_path)
+        elif scanner_path.is_dir():
+            for item in scanner_path.iterdir():
+                key = item.resolve()
+                if key in seen:
+                    continue
+                if item.is_dir() and (item / "SKILL.md").exists():
+                    if item.name not in exclude:
+                        seen.add(key)
+                        skills.append(item)
+                elif item.suffix == '.skill':
+                    if item.stem not in exclude:
+                        seen.add(key)
+                        skills.append(item)
     
     skill_results = []
     
