@@ -23,6 +23,25 @@ security:
 # Workshub MCP 官方技能
 
 基于官方 WorksHub MCP 服务构建，提供 AI Agent 雇佣真人完成现实任务的能力。
+支持：浏览和搜索工作者、发布悬赏任务、与工作者对话沟通、支付并完成任务。 已实现 16 个工具，覆盖认证管理、技能查询、工作者管理、悬赏任务、对话管理 5 大功能模块。 首次使用可通过手机号验证码获取 API Key，无需预先配置。
+
+---
+
+## 安装
+
+```bash
+# 1. 进入技能目录
+cd ~/.openclaw/skills/workshub
+
+# 2. 安装依赖（axios）
+npm install
+
+# 3. 配置环境变量
+export WORKSHUB_API_KEY="your_api_key_here"
+```
+
+**依赖说明**：
+- `axios ^1.7.7` - HTTP 请求库
 
 ---
 
