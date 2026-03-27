@@ -1,0 +1,43 @@
+{
+  "skill": {
+    "name": "markdown-ai-rewriter",
+    "version": "0.1.0",
+    "enabled": true,
+    "autoInvoke": true
+  },
+  "commands": {
+    "rewrite": {
+      "script": "./scripts/rewrite.sh",
+      "args": ["rewrite"],
+      "description": "重写 Markdown 文件"
+    },
+    "check-quota": {
+      "script": "./scripts/rewrite.sh",
+      "args": ["check-quota"],
+      "description": "检查剩余配额"
+    }
+  },
+  "environment": {
+    "required": [
+      "NODE_VERSION>=18.0.0"
+    ],
+    "optional": [
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY"
+    ]
+  },
+  "dependencies": {
+    "npm": [
+      "markdown-ai-rewriter@^0.1.0"
+    ]
+  },
+  "permissions": {
+    "filesystem": {
+      "read": ["*.md"],
+      "write": ["~/.markdown-ai-rewriter/"]
+    },
+    "network": {
+      "domains": ["api.openai.com", "api.anthropic.com"]
+    }
+  }
+}
