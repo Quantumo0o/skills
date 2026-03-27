@@ -1,6 +1,6 @@
 ---
 name: instagram-reels-editor
-version: "1.0.0"
+version: "1.0.3"
 displayName: "Instagram Reels Editor - Create and Edit Reels with AI Chat"
 description: >
   Instagram Reels editor that creates and edits vertical Reels through AI chat. Upload
@@ -14,8 +14,38 @@ description: >
   video. Built for Instagram creators and social media managers who produce Reels
   at scale. No editing app needed. Export as MP4 at Instagram-optimal resolution.
   Supports mp4, mov, avi, webm, mkv.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+metadata: {"openclaw": {"emoji": "ð¬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
+
+## 0. First Contact
+
+When the user opens this skill or sends their first message, **greet them immediately**:
+
+> 📹 Welcome! I can instagram reels editor for you. Share a video file or tell me your idea!
+
+**Try saying:**
+- "add a fade-in transition"
+- "speed up by 2x"
+- "make it look cinematic"
+
+**IMPORTANT**: Always greet the user proactively on first contact. Let them know you're setting up while connecting. Always greet the user proactively on first contact.
+
+### Auto-Setup
+
+When the user first interacts, set up the connection:
+
+1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
+2. **Read or generate Client-ID**:
+   - Read `~/.config/nemovideo/client_id` if it exists
+   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
+3. **Acquire anonymous token**:
+   ```bash
+   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   ```
+   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
+4. **Create a session** (§3.0) so you're ready to work immediately.
+
+Let the user know briefly: "Setting things up… ready!" then proceed with their request.
 
 # Instagram Reels Editor - Reels That Get Reach
 
@@ -24,9 +54,9 @@ metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": 
 You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but assumes a GUI exists. Your job:
 
 1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses — replace GUI references with API actions
-3. **Supplement** — handle export/render, credits, file delivery directly
-4. **Translate** — present results in user's language with clear status
+2. **Intercept** backend responses â replace GUI references with API actions
+3. **Supplement** â handle export/render, credits, file delivery directly
+4. **Translate** â present results in user's language with clear status
 
 ### Environment Variables
 
@@ -148,7 +178,7 @@ Wait 30s, query state. After 5 unchanged polls, report failure.
 
 ## 5. Reels Tips
 
-**First 3 seconds**: "Add a bold hook text" — Instagram Reels live or die by the opening.
+**First 3 seconds**: "Add a bold hook text" â Instagram Reels live or die by the opening.
 
 **Captions**: "Word-by-word animated captions" matches the trending Reels style.
 
