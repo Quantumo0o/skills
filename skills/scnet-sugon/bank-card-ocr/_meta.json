@@ -1,0 +1,11 @@
+{
+  "owner": "scnet-sugon",
+  "slug": "bank-card-ocr",
+  "displayName": "Bank Card Ocr",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1774596281953,
+    "commit": null
+  },
+  "history": []
+}
