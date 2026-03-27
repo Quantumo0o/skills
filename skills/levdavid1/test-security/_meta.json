@@ -1,0 +1,11 @@
+{
+  "owner": "levdavid1",
+  "slug": "test-security",
+  "displayName": "Don't download",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774515966426,
+    "commit": null
+  },
+  "history": []
+}
