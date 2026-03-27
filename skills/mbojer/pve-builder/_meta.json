@@ -1,0 +1,11 @@
+{
+  "owner": "mbojer",
+  "slug": "pve-builder",
+  "displayName": "PVE Builder",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774631781381,
+    "commit": null
+  },
+  "history": []
+}
