@@ -1,0 +1,11 @@
+{
+  "owner": "lastarla",
+  "slug": "bookkeeping-agent",
+  "displayName": "Bookkeeping",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774515292617,
+    "commit": null
+  },
+  "history": []
+}
