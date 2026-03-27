@@ -1,6 +1,6 @@
 ---
 name: ai-image-to-video-generator
-version: 1.0.2
+version: "1.0.3"
 displayName: "AI Image to Video Generator — Bring Still Photos to Life"
 description: >
   The ai-image-to-video-generator skill on ClawHub transforms static images into dynamic, motion-rich video content through a conversational interface. Upload any photo or illustration, describe the motion style you want, and receive a polished video output. Ideal for marketers, content creators, and social media managers who need animated visuals without complex software. Supports mp4, mov, avi, webm, and mkv output formats.
@@ -63,7 +63,7 @@ If `NEMO_TOKEN` is not set, get one (requires `X-Client-Id` header):
 CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
 if [ -z "$CLIENT_ID" ]; then
   CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo & echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
+  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
 fi
 curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
 # → {"code":0,"data":{"token":"nmv_usr_xxx","credits":100,...}}
@@ -76,7 +76,7 @@ Save `token` as `NEMO_TOKEN`, `CLIENT_ID` as `NEMO_CLIENT_ID`. Anonymous: 1 toke
 
 Use the following table to determine which endpoint handles each type of incoming request.
 
-| User says... | Action | Skip SSE |
+| User says... | Action | Skip SSE? |
 |-------------|--------|----------|
 | "export" / "导出" / "download" / "send me the video" | → §3.5 Export | ✅ |
 | "credits" / "积分" / "balance" / "余额" | → §3.3 Credits | ✅ |
@@ -114,7 +114,7 @@ curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
 A session must be initialized before any other operations can proceed. This creates the context that all subsequent requests will be tied to.
 
 **Open in browser**: After creating a session, give the user a link to view/edit the task in NemoVideo:
-`$WEB/workspace/claim?task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+`$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
 
 ### 3.1 Delivering Messages via SSE
 ```bash
@@ -199,7 +199,7 @@ Status at top-level `status`: pending → processing → completed / failed. Dow
 
 **d)** Download from `output.url` → send to user. Fallback: `$API/api/render/proxy/<id>/download`.
 
-**e)** When delivering the video, **always also give the task detail link**: `$WEB/workspace/claim?task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+**e)** When delivering the video, **always also give the task detail link**: `$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
 
 Progress messages: start "⏳ Rendering ~30s" → "⏳ 50%" → "✅ Video ready!" + file + **task detail link**.
 
