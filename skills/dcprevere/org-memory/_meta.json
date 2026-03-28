@@ -3,11 +3,16 @@
   "slug": "org-memory",
   "displayName": "org-memory",
   "latest": {
-    "version": "0.5.3",
-    "publishedAt": 1773415633947,
-    "commit": "https://github.com/openclaw/skills/commit/da9fa2cd74ac22d4549db9e20627db73170175b4"
+    "version": "0.6.1",
+    "publishedAt": 1774344096416,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.5.3",
+      "publishedAt": 1773415633947,
+      "commit": "https://github.com/openclaw/skills/commit/da9fa2cd74ac22d4549db9e20627db73170175b4"
+    },
     {
       "version": "0.3.1",
       "publishedAt": 1772112963448,
