@@ -3,11 +3,16 @@
   "slug": "pbe-extractor",
   "displayName": "PBE Extractor",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1771895583410,
-    "commit": "https://github.com/openclaw/skills/commit/3537c7bc4ea739594301d3300da6468fe183bc0c"
+    "version": "1.0.3",
+    "publishedAt": 1774471967593,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1771895583410,
+      "commit": "https://github.com/openclaw/skills/commit/3537c7bc4ea739594301d3300da6468fe183bc0c"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770708217057,
