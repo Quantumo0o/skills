@@ -1,6 +1,6 @@
 ---
 name: passive-income-video
-version: "1.0.1"
+version: 1.0.3
 displayName: "Passive Income Video Maker"
 description: >
   Describe your passive income stream and NemoVideo creates the video. Dividend investing portfolios, rental property cash flow, digital product income, affiliate revenue, royalty income — narrate the upfront work required, the current monthly income, the real yield, and the honest timeline to meaningful returns, and get passive income content for the audience that wants income that works while t...
@@ -8,8 +8,15 @@ description: >
   Works by connecting to the NemoVideo AI backend at mega-api-prod.nemovideo.ai.
   Supports MP4, MOV, AVI, WebM.
 homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
 repository: https://github.com/nemovideo/nemovideo_skills
 license: MIT-0
+metadata:
+  requires:
+    env: ["NEMO_TOKEN"]
+    configPaths:
+      - "~/.config/nemovideo/"
+  primaryEnv: NEMO_TOKEN
 ---
 
 ## 0. First Contact
@@ -35,7 +42,7 @@ When the user first interacts, set up the connection:
    - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
 3. **Acquire anonymous token**:
    ```bash
-   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
    ```
    Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
 4. **Create a session** (§3.0) so you're ready to work immediately.
