@@ -106,7 +106,7 @@ result = requests.get(f"{BASE}/token/{token}/score").json()
 print(f"{result['symbol']} buy score: {result['score']}")
 
 # Scan a wallet
-wallet = "0x47ffc880cfF2e8F18fD9567faB5a1fBD217B5552"
+wallet = "0xf9547FE0A27CBADDFcEF282C0b37F410cbaD11BE"
 holdings = requests.get(f"{BASE}/wallet/{wallet}/scan").json()
 for t in holdings["tokens"]:
     print(f"{t['symbol']}: ${t['value_usd']:.2f}")
