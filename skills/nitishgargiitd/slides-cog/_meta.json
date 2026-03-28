@@ -1,13 +1,18 @@
 {
   "owner": "nitishgargiitd",
   "slug": "slides-cog",
-  "displayName": "slides-cog",
+  "displayName": "Slides Cog",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1774033721985,
-    "commit": "https://github.com/openclaw/skills/commit/fb7e846dab16878a45ffbc91e997e3d54bc25c0b"
+    "version": "1.0.7",
+    "publishedAt": 1774585089479,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1774033721985,
+      "commit": "https://github.com/openclaw/skills/commit/fb7e846dab16878a45ffbc91e997e3d54bc25c0b"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1770774463859,
