@@ -78,8 +78,6 @@ function getUserSession(userId) {
   }
   const newSession = { state: UserState.NONE, data: {} };
   userSessions.set(userId, newSession);
-  // Persist immediately so session survives process restarts
-  saveSessionsToFile([{ userId, session: newSession }]);
   return newSession;
 }
 
@@ -99,88 +97,29 @@ async function handleMessage(userId, message, channel = 'webchat') {
   }
   
   try {
-    // ==================== GLOBAL COMMANDS (any state) ====================
-    if (message === '我的档案' || message === '查看档案') {
-      const phoneOrId = session.data.phone || userId;
-      const profile = await cloudData.getProfile(phoneOrId);
-      if (!profile) return { text: '你还没有报名，请先发送「开启匹配」' };
-      return formatProfile(profile);
-    }
-    if (message === '今日匹配' || message === '查看匹配') {
-      const phoneOrId = session.data.phone || userId;
-      const profile = await cloudData.getProfile(phoneOrId);
-      if (!profile) return { text: '你还没有报名，请先发送「开启匹配」\n\n💡 如果你已经报名，可能是因为换了新对话导致找不到记录。请直接输入你报名时的手机号，即可查到你的匹配情况。' };
-      const today = new Date(Date.now() + 8 * 3600 * 1000).toISOString().split('T')[0];
-      if (profile.matchedWith && profile.todayMatchDate === today) {
-        // 已匹配，查询对方信息
-        let partnerName = profile.matchedWith;
-        let partnerCity = '';
-        let partnerPhotoUrl = '';
-        try {
-          const partner = await cloudData.getProfile(profile.matchedWith);
-          if (partner) {
-            if (partner.name) partnerName = partner.name;
-            if (partner.city) partnerCity = partner.city;
-            if (partner.photoOssUrl) partnerPhotoUrl = partner.photoOssUrl;
-          }
-        } catch (_) {}
-        const cityStr = partnerCity ? `📍 城市：${partnerCity}\n` : '';
-        const photoStr = partnerPhotoUrl ? `\n\n${partnerPhotoUrl}` : '';
-        return {
-          text: `🌟 今日缘分已到！\n\n💕 你的有缘人：${partnerName}\n${cityStr}☎️ 联系方式：${profile.matchedWith}\n\n快去联系你的有缘人吧！${photoStr}`
-        };
-      }
-      return { text: '🌙 今日缘分还未到...\n\n系统每天 19:50 自动匹配，20:00 出结果。匹配后你会收到通知，也可以 20:00 后再回复「今日匹配」查看结果 🔮' };
-    }
-    if (message === '取消报名') {
-      const phoneOrId = session.data.phone || userId;
-      const profile = await cloudData.getProfile(phoneOrId);
-      if (!profile) return { text: '你还没有报名，无需取消' };
-      await cloudData.deleteProfile(phoneOrId);
-      resetUserSession(userId);
-      resetUserSession(phoneOrId);
-      return { text: '已取消报名，你的所有信息已删除。如需重新报名，请发送「开启匹配」。' };
-    }
-    if (message === '开启匹配') {
-      // If first time (no _greeted), show welcome + start registration in one shot
-      if (!session.data._greeted) {
-        session.data._greeted = true;
-        session.state = UserState.PHONE;
-        saveSessionsToFile([{ userId, session }]);
-        return {
-          text: `💕 欢迎使用 LoveClaw 八字缘分匹配！\n\n我会根据你的八字，在同城寻找五行相配的有缘人，每天晚上8点通知你匹配结果。\n\n让我们开始吧 🔮\n\n请输入你的手机号（用于登录和匹配通知）`
-        };
-      }
-      // Already greeted or returning user — reset and restart registration
-      session.state = UserState.PHONE;
-      session.data = { channel: session.data.channel, _greeted: true };
-      saveSessionsToFile([{ userId, session }]);
-      return { text: '请输入你的手机号（用于登录和匹配通知）' };
-    }
-
-    // ==================== PHONE LOOKUP (NONE state, not in registration) ====================
-    if (/^1\d{10}$/.test(message) && session.state === UserState.NONE) {
-      const profile = await cloudData.getProfile(message);
-      if (profile) {
-        // 绑定手机号到当前 session，后续命令可直接查到档案
-        session.data.phone = message;
-        saveSessionsToFile([{ userId, session }]);
-        return { text: `✅ 已找到你的档案！\n\n发送「今日匹配」查看今天的匹配结果，或「我的档案」查看个人信息。` };
-      }
-      return { text: '未找到该手机号的报名记录。请发送「开启匹配」开始报名。' };
-    }
-
     // ==================== STATE: NONE (start) ====================
     if (session.state === UserState.NONE) {
-      // 首次使用：先显示欢迎语，不论用户发了什么消息
-      if (!session.data._greeted) {
-        session.data._greeted = true;
-        saveSessionsToFile([{ userId, session }]);
-        return {
-          text: `💕 欢迎使用 LoveClaw 八字缘分匹配！\n\n我会根据你的八字，在同城寻找五行相配的有缘人，每天晚上8点通知你匹配结果。\n\n📌 使用方法：\n• 发送「开启匹配」→ 填写信息报名\n• 发送「我的档案」→ 查看个人信息和匹配历史\n• 发送「取消报名」→ 删除全部数据\n\n准备好了吗？发送「开启匹配」开始吧 🔮`
-        };
+      if (['启动爱情龙虾技能','爱情龙虾','loveclaw','LoveClaw'].includes(message)) {
+        session.state = UserState.PHONE;
+        return { text: '请输入你的手机号（用于登录和匹配通知）' };
       }
-      return { text: '发送「开启匹配」开始缘分匹配，或「查看档案」查看你的信息' };
+      if (message === '我的档案' || message === '查看档案') {
+        // 优先用 session 中存储的 phone 查询，其次用 userId
+        const phoneOrId = session.data.phone || userId;
+        const profile = await cloudData.getProfile(phoneOrId);
+        if (!profile) return { text: '你还没有报名，请先发送「启动爱情龙虾技能」' };
+        return formatProfile(profile);
+      }
+      if (message === '取消报名') {
+        const phoneOrId = session.data.phone || userId;
+        const profile = await cloudData.getProfile(phoneOrId);
+        if (!profile) return { text: '你还没有报名，无需取消' };
+        await cloudData.deleteProfile(phoneOrId);
+        resetUserSession(userId);
+        resetUserSession(phoneOrId);
+        return { text: '已取消报名，你的所有信息已删除。如需重新报名，请发送「启动爱情龙虾技能」。' };
+      }
+      return { text: '发送「启动爱情龙虾技能」开始缘分匹配，或「查看档案」查看你的信息' };
     }
 
     // ==================== PHONE ====================
@@ -199,7 +138,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
         // Do NOT delete old key - keep both mappings active
       }
       session.state = UserState.NAME;
-      saveSessionsToFile([{ userId, session }]);
       return { text: `手机号 ${message} 已绑定\n请输入你的姓名（或昵称）` };
     }
 
@@ -207,7 +145,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
     if (session.state === UserState.NAME) {
       session.data.name = message;
       session.state = UserState.GENDER;
-      saveSessionsToFile([{ userId, session }]);
       return { text: '请选择你的性别：男 / 女' };
     }
 
@@ -218,7 +155,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
       }
       session.data.gender = message;
       session.state = UserState.PREFERRED_GENDER;
-      saveSessionsToFile([{ userId, session }]);
       return { text: `你的性别是${message}，喜欢什么性别？` };
     }
 
@@ -229,7 +165,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
       }
       session.data.preferredGender = message;
       session.state = UserState.BIRTH_DATE;
-      saveSessionsToFile([{ userId, session }]);
       return { text: '请输入你的出生日期\n格式：YYYY-MM-DD\n例如：1995-05-20' };
     }
 
@@ -246,7 +181,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
       session.data.birthDate = message;
       session.data.birthDateObj = date;
       session.state = UserState.BIRTH_HOUR;
-      saveSessionsToFile([{ userId, session }]);
       return { text: '请输入出生时辰（小时 0-23）\n例如：14 代表下午2点\n或输入地支：子、丑、寅、卯、辰、巳、午、未、申、酉、戌、亥' };
     }
 
@@ -264,7 +198,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
       }
       session.data.birthHour = hour;
       session.state = UserState.CITY;
-      saveSessionsToFile([{ userId, session }]);
       return { text: '请输入你所在城市' };
     }
 
@@ -272,7 +205,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
     if (session.state === UserState.CITY) {
       session.data.city = message;
       session.state = UserState.PHOTO;
-      saveSessionsToFile([{ userId, session }]);
       return { text: '请发送一张照片用于匹配展示\n（可上传图片，或回复「跳过」不展示照片）' };
     }
 
@@ -282,7 +214,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
         session.data.photo = message; // store photo URL or path
       }
       session.state = UserState.CONFIRM;
-      saveSessionsToFile([{ userId, session }]);
       return formatSummary(session.data);
     }
 
@@ -297,7 +228,6 @@ async function handleMessage(userId, message, channel = 'webchat') {
           ...session.data,
           userId: session.data.phone, // phone as primary ID
           channel: notifyChannel, // USE THE CHANNEL FROM SESSION (set during registration flow)
-          notificationTarget: userId, // original channel user ID (open_id for feishu, etc.)
           bazi: baziResult,
           createdAt: new Date().toISOString(),
           todayMatchDone: false,
@@ -312,11 +242,8 @@ async function handleMessage(userId, message, channel = 'webchat') {
         delete idMap[phone];
         userSessions.delete(userId);
         userSessions.delete(phone);
-        const webchatTip = notifyChannel === 'webchat'
-          ? '\n• 📱 你通过对话框报名，每晚 20:00 后请手动回复「今日匹配」查看结果（对话框暂不支持自动推送）'
-          : '';
         return {
-          text: `报名成功！🎉\n\n你的八字已纳入缘分匹配池。系统每天 19:50 自动匹配，20:00 推送结果——今天 19:50 前报名，今晚就有机会收到你的第一个匹配！\n\n📌 温馨提示：\n• 无需重复报名，每日自动匹配，有缘人会准时送达 🔮\n• 回复「我的档案」可查看个人信息和匹配历史\n• 如需退出匹配，回复「取消报名」删除全部数据${webchatTip}`
+          text: `报名成功！🎉\n\n已将你的信息纳入匹配队列，明日19:50自动匹配。\n匹配结果将于明晚8点前通知你，请保持手机畅通。\n\n回复「我的档案」可查看个人信息`
         };
       } catch (e) {
         return { text: '保存失败: ' + e.message };
@@ -329,7 +256,7 @@ async function handleMessage(userId, message, channel = 'webchat') {
     }
 
     // Fallback
-    return { text: '请完成当前步骤，或发送「开启匹配」重新开始' };
+    return { text: '请完成当前步骤，或发送「启动爱情龙虾技能」重新开始' };
 
   } catch (e) {
     return { text: '处理出错: ' + e.message };
@@ -365,10 +292,10 @@ function formatProfile(profile) {
   }
   const matched = profile.matchedWithHistory || [];
   const matchedList = matched.length > 0
-    ? matched.map(m => `  • ${m.name || m.userId}（${m.city || ''}）${m.date ? ' · ' + m.date : ''}`).join('\n')
+    ? matched.map(m => `  • ${m.userId} (${m.compatibility || ''})`).join('\n')
     : '暂无';
   return {
-    text: `📋 你的档案\n\n姓名：${profile.name}\n性别：${profile.gender}，喜欢：${profile.preferredGender}\n生日：${profile.birthDate} ${profile.birthHour}时\n城市：${profile.city}\n八字：${baziStr}\n\n匹配历史：\n${matchedList}\n\n发送「开启匹配」可重新报名`
+    text: `📋 你的档案\n\n姓名：${profile.name}\n性别：${profile.gender}，喜欢：${profile.preferredGender}\n生日：${profile.birthDate} ${profile.birthHour}时\n城市：${profile.city}\n八字：${baziStr}\n\n匹配历史：\n${matchedList}\n\n发送「启动爱情龙虾技能」可重新报名`
   };
 }
 
@@ -376,55 +303,15 @@ function resetUserSession(userId) {
   userSessions.delete(userId);
 }
 
-// ==================== CRON AUTO-REGISTER ====================
-// Run once on skill load to ensure cron jobs exist.
-// Uses `openclaw cron list --json` to check before adding (idempotent).
-(function ensureLoveClawCronJobs() {
-  try {
-    const { execSync } = require('child_process');
-    const openclawBin = process.env.OPENCLAW_BIN || 'openclaw';
-
-    let existingJobs = {};
-    try {
-      const out = execSync(`${openclawBin} cron list --json 2>/dev/null`, { encoding: 'utf-8', timeout: 12000 });
-      // Output may contain [plugins] warning lines before the JSON — extract only the JSON object
-      const jsonMatch = out.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        (parsed.jobs || []).forEach(j => { if (j.name) existingJobs[j.name] = j.id; });
-      }
-    } catch (_) {}
-
-    // 先删再建，确保幂等（避免重复创建）
-    if (existingJobs['LoveClaw-每日匹配']) {
-      try { execSync(`${openclawBin} cron rm ${existingJobs['LoveClaw-每日匹配']}`, { timeout: 10000, stdio: 'ignore' }); } catch (_) {}
-    }
-    execSync(
-      `${openclawBin} cron add` +
-      ` --name "LoveClaw-每日匹配"` +
-      ` --cron "50 19 * * *"` +
-      ` --tz "Asia/Shanghai"` +
-      ` --session isolated` +
-      ` --no-deliver` +
-      ` --message "执行每日八字匹配任务。请运行: cd ~/.openclaw/workspace/skills/loveclaw/scripts && node cloud-cron.js match。匹配结果已存入云端。"`,
-      { timeout: 15000, stdio: 'ignore' }
-    );
-
-    if (existingJobs['LoveClaw-晚间报告']) {
-      try { execSync(`${openclawBin} cron rm ${existingJobs['LoveClaw-晚间报告']}`, { timeout: 10000, stdio: 'ignore' }); } catch (_) {}
-    }
-    execSync(
-      `${openclawBin} cron add` +
-      ` --name "LoveClaw-晚间报告"` +
-      ` --cron "0 20 * * *"` +
-      ` --tz "Asia/Shanghai"` +
-      ` --session isolated` +
-      ` --no-deliver` +
-      ` --message "执行每日八字匹配晚间报告，步骤如下：\n\n1. 运行命令：cd ~/.openclaw/workspace/skills/loveclaw/scripts && node cloud-cron.js report\n2. 从命令输出中找到 【REPORTS_JSON】 和 【REPORTS_JSON_END】 之间的内容，解析为 JSON 数组\n3. 对数组中的每一条记录，使用 message 工具发送通知：\n   - channel：使用 item.channel 字段（如 webchat、feishu）\n   - target：使用 item.target 字段（用户手机号或渠道 ID）\n   - 内容：直接使用 item.message 字段，不要修改\n4. 若该条记录的 item.partnerPhotoUrl 不为空字符串，则在发送文字消息之后，额外再发一条图片消息到同一个 channel 和 target，内容为该图片 URL\n5. 若 JSON 数组为空，则不发送任何消息，静默退出"`,
-      { timeout: 15000, stdio: 'ignore' }
-    );
-  } catch (_) {}
-})();
+// Auto-check and register cron jobs on first load
+try {
+  const { spawn } = require('child_process');
+  const cronJs = __dirname + '/cron.js';
+  spawn('node', [cronJs, 'ensure'], {
+    detached: true,
+    stdio: 'ignore'
+  }).unref();
+} catch (e) {}
 
 module.exports = {
   handleMessage,

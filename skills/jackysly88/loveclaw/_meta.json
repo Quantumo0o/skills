@@ -3,11 +3,16 @@
   "slug": "loveclaw",
   "displayName": "LoveClaw",
   "latest": {
-    "version": "2.1.30",
-    "publishedAt": 1774705813745,
-    "commit": "https://github.com/openclaw/skills/commit/01fd90d574072d49d431412df5c141de567357b4"
+    "version": "2.1.46",
+    "publishedAt": 1774717697008,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.30",
+      "publishedAt": 1774705813745,
+      "commit": "https://github.com/openclaw/skills/commit/01fd90d574072d49d431412df5c141de567357b4"
+    },
     {
       "version": "2.1.29",
       "publishedAt": 1774695694062,

@@ -4,8 +4,8 @@
  */
 
 const API_BASE = 'https://loveclaw-cgbnqltfhd.cn-hangzhou.fcapp.run';
-const API_TOKEN = '7c92e07484d4791e7ddf34d7c310e68f12935d60536e36d2dc709f7bc7b74d60';
 const API_TIMEOUT = 15000;
+const API_TOKEN = '7c92e07484d4791e7ddf34d7c310e68f12935d60536e36d2dc709f7bc7b74d60';
 
 /**
  * 通用 HTTP 请求
@@ -182,23 +182,15 @@ async function uploadPhoto(phone, photoData) {
   const objectKey = `photos/${phone}/${Date.now()}.jpg`;
   
   // 使用阿里云 OSS SDK 上传
-  const OSS = require('ali-oss');
-  let ossEndpoint = ossConfig.endpoint;
-  if (ossEndpoint) {
-    ossEndpoint = ossEndpoint.replace(/^https?:\/\//, '');
-  } else {
-    ossEndpoint = `${region}.aliyuncs.com`;
-  }
+  const { OSS } = await import('aliyun-sdk');
   const ossClient = new OSS({
     region,
     accessKeyId,
     accessKeySecret,
     stsToken: securityToken,
     bucket,
-    endpoint: ossEndpoint,
-    secure: true,
   });
-
+  
   // photoData 可以是 base64、ArrayBuffer 或 Blob
   let buffer;
   if (typeof photoData === 'string' && photoData.startsWith('data:')) {
@@ -210,13 +202,13 @@ async function uploadPhoto(phone, photoData) {
   } else {
     buffer = photoData;
   }
-
+  
   const result = await ossClient.put(objectKey, buffer, {
     contentType: 'image/jpeg',
   });
-
+  
   // 构建公开访问 URL
-  const photoUrl = `https://${bucket}.${ossEndpoint}/${objectKey}`;
+  const photoUrl = `https://${bucket}.oss-${region}.aliyuncs.com/${objectKey}`;
   return photoUrl;
 }
 

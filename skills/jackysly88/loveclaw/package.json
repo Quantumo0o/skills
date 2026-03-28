@@ -1,6 +1,6 @@
 {
   "name": "loveclaw",
-  "version": "2.1.30",
+  "version": "2.1.42",
   "description": "LoveClaw 八字缘分匹配",
   "main": "scripts/handler.js",
   "scripts": {

@@ -78,9 +78,9 @@ async function runDailyMatching() {
 
     // 构建历史记录
     const uHist = Array.isArray(profile.matchedWithHistory) ? profile.matchedWithHistory : [];
-    uHist.push({ userId: best.candidate.userId, name: best.candidate.name, city: best.candidate.city, date: today });
+    uHist.push({ userId: best.candidate.userId, date: today });
     const pHist = Array.isArray(best.candidate.matchedWithHistory) ? best.candidate.matchedWithHistory : [];
-    pHist.push({ userId: profile.userId, name: profile.name, city: profile.city, date: today });
+    pHist.push({ userId: profile.userId, date: today });
 
     // 保存双方匹配结果
     const [uSave, pSave] = await Promise.all([
@@ -104,95 +104,60 @@ async function runDailyMatching() {
 }
 
 /**
- * 生成晚8点报告，输出结构化 JSON 供 OpenClaw agent 发送通知
- *
- * 输出格式：
- *   【REPORTS_JSON】[...report items...]【REPORTS_JSON_END】
- *
- * 每条 report item 字段：
- *   channel   - 通知渠道（webchat / feishu 等）
- *   target    - 接收者（手机号 or 飞书 openId）
- *   message   - 发送内容
- *   hasMatch  - 是否匹配成功
+ * 发送通知
+ */
+async function notifyUser(channel, target, text) {
+  try {
+    const { message } = require('openclaw');
+    if (channel && target) {
+      await message({ action: 'send', channel, target, message: text });
+    }
+  } catch(e) {
+    console.error('[通知失败]', e.message);
+  }
+}
+
+/**
+ * 生成晚8点报告
  */
 async function runEveningReports() {
   console.log('[报告任务] 开始生成...');
 
-  const reports = [];
-
   try {
-    // 1. 获取今日匹配成功的用户
     const data = await cloudData.apiRequest('/api/report');
-    const matchedToday = data.matches || [];
-    const matchedPhoneSet = new Set(matchedToday.map(m => m.userId));
+    const matchedUsers = (data.matches || []).filter(m => !m.reported);
 
-    for (const m of matchedToday) {
-      // 查询匹配对象的姓名和照片
-      let partnerName = m.matchedWith;
-      let partnerPhotoUrl = '';
-      try {
-        const partner = await cloudData.getProfile(m.matchedWith);
-        if (partner) {
-          if (partner.name) partnerName = partner.name;
-          if (partner.photoOssUrl) partnerPhotoUrl = partner.photoOssUrl;
-        }
-      } catch (_) {}
-
-      reports.push({
-        channel: m.channel || 'webchat',
-        target: m.notificationTarget || m.userId,
-        hasMatch: true,
-        partnerPhotoUrl,
-        message: `🌟 今日缘分已到！\n\n💕 你的有缘人：${partnerName}\n📍 城市：${m.city || '未知'}\n☎️ 联系方式：${m.matchedWith}\n\n快去联系你的有缘人吧！`,
-      });
+    for (const m of matchedUsers) {
+      const report = `🌟 今日匹配报告\n\n📍 ${m.city || '未知'}\n💕 匹配对象：${m.matchedWith}\n\n祝你们有美好的一天！`;
+      await notifyUser(m.channel, m.target, report);
     }
 
-    // 2. 找出今日未匹配的已报名用户，发送安慰通知
-    const allProfiles = await cloudData.getAllProfiles();
-    for (const p of allProfiles) {
-      if (matchedPhoneSet.has(p.userId)) continue;
-      // 过滤掉资料不完整的（未完成报名）
-      if (!p.name || !p.city || !p.gender || !p.preferredGender) continue;
-
-      reports.push({
-        channel: p.channel || 'webchat',
-        target: p.notificationTarget || p.userId,
-        hasMatch: false,
-        message: `🌙 今日缘分未到...\n\n命运的齿轮继续转动，请期待月老明日的光临 ✨\n（无需重新报名，明晚继续自动匹配）`,
-      });
+    if (matchedUsers.length === 0) {
+      console.log('[报告任务] 今日无匹配用户');
+    } else {
+      console.log(`[报告任务] 已发送 ${matchedUsers.length} 份报告`);
     }
-
-    // 输出给 agent 解析的结构化 JSON（单独一行，方便提取）
-    console.log('【REPORTS_JSON】' + JSON.stringify(reports) + '【REPORTS_JSON_END】');
-    console.log(`[报告任务] 完成：${reports.filter(r => r.hasMatch).length} 份匹配报告，${reports.filter(r => !r.hasMatch).length} 份无匹配通知`);
-
-  } catch (e) {
+  } catch(e) {
     console.error('[报告任务] 失败:', e.message);
   }
-
-  return reports;
 }
 
 // ========================
 // CLI 入口
 // ========================
-if (require.main === module) {
-  const [, , command] = process.argv;
+const [, , command] = process.argv;
 
-  if (command === 'match') {
-    runDailyMatching().then(() => process.exit(0)).catch(e => {
-      console.error('[匹配任务异常]', e);
-      process.exit(1);
-    });
-  } else if (command === 'report') {
-    runEveningReports().then(() => process.exit(0)).catch(e => {
-      console.error('[报告任务异常]', e);
-      process.exit(1);
-    });
-  } else {
-    console.log('用法: node cloud-cron.js [match|report]');
+if (command === 'match') {
+  runDailyMatching().then(() => process.exit(0)).catch(e => {
+    console.error('[匹配任务异常]', e);
     process.exit(1);
-  }
+  });
+} else if (command === 'report') {
+  runEveningReports().then(() => process.exit(0)).catch(e => {
+    console.error('[报告任务异常]', e);
+    process.exit(1);
+  });
+} else {
+  console.log('用法: node cloud-cron.js [match|report]');
+  process.exit(1);
 }
-
-module.exports = { runDailyMatching, runEveningReports };
