@@ -1,6 +1,6 @@
 {
   "name": "kindle-clip-cli",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "Parse, print, search, filter and export Kindle highlights and notes from the command line",
   "author": "Emerson Ding",
   "repository": "https://github.com/emersonding/kindle-clip-processor",
@@ -31,7 +31,7 @@
   ],
   "requires_installation": true,
   "installation_url": "https://github.com/emersonding/kindle-clip-processor#cli-kindle-clip",
-  "installation_note": "Download from GitHub Releases or build from source. See INSTALL.md for secure installation methods.",
+  "quick_install": "curl -fsSL https://raw.githubusercontent.com/emersonding/kindle-clip-processor/master/scripts/install-kindle-clip.sh | KINDLE_CLIP_REPO=emersonding/kindle-clip-processor sh",
   "commands": [
     "kindle-clip set",
     "kindle-clip list",
