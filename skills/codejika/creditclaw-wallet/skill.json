@@ -1,7 +1,7 @@
 {
-  "name": "creditclaw",
+  "name": "creditclaw-wallet",
   "version": "2.9.0",
-  "description": "Give your agent spending power. Financial management for Agents and OpenClaw bots.",
+  "description": "Give your agent spending power.",
   "author": "creditclaw",
   "homepage": "https://creditclaw.com",
   "repository": "https://github.com/jononovo/claw-skill",

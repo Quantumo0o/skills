@@ -1,13 +1,18 @@
 {
   "owner": "codejika",
   "slug": "creditclaw-wallet",
-  "displayName": "CreditClaw | Give your agent a wallet or credit card",
+  "displayName": "CreditClaw Wallet",
   "latest": {
-    "version": "2.9.0",
-    "publishedAt": 1773808659637,
-    "commit": "https://github.com/openclaw/skills/commit/0e359603d91f26870ffc5127c4cf38df73b6ecb2"
+    "version": "2.9.5",
+    "publishedAt": 1774552214717,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.9.0",
+      "publishedAt": 1773808659637,
+      "commit": "https://github.com/openclaw/skills/commit/0e359603d91f26870ffc5127c4cf38df73b6ecb2"
+    },
     {
       "version": "2.1.4",
       "publishedAt": 1773467326074,
