@@ -3,11 +3,16 @@
   "slug": "polymarket-signal-sniper",
   "displayName": "Polymarket Signal Sniper",
   "latest": {
-    "version": "1.4.2",
-    "publishedAt": 1773740469417,
-    "commit": "https://github.com/openclaw/skills/commit/f5424b8a2446ba1692efa278cddbfedf057206e8"
+    "version": "1.4.3",
+    "publishedAt": 1774428533167,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.2",
+      "publishedAt": 1773740469417,
+      "commit": "https://github.com/openclaw/skills/commit/f5424b8a2446ba1692efa278cddbfedf057206e8"
+    },
     {
       "version": "1.3.12",
       "publishedAt": 1772506391578,

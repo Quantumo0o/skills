@@ -1,0 +1,5 @@
+{
+  "feeds": "https://feeds.bloomberg.com/markets/news.rss,https://www.reuters.com/finance/,https://feeds.bbc.co.uk/news/business/rss.xml,https://apnews.com/hub/technology/feed",
+  "confidence_threshold": 0.15,
+  "min_signal_count": "1"
+}
