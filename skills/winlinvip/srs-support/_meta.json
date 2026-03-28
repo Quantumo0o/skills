@@ -3,11 +3,16 @@
   "slug": "srs-support",
   "displayName": "SRS Support",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773624263473,
-    "commit": "https://github.com/openclaw/skills/commit/fbff8b6d969763a64eaa9ec0bb6b31ed61a92a89"
+    "version": "1.0.6",
+    "publishedAt": 1774526568709,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773624263473,
+      "commit": "https://github.com/openclaw/skills/commit/fbff8b6d969763a64eaa9ec0bb6b31ed61a92a89"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772712483954,
