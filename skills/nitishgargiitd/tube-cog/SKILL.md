@@ -1,10 +1,12 @@
 ---
 name: tube-cog
-description: YouTube content creation powered by CellCog. Create YouTube videos, Shorts, thumbnails, scripts, long-form content, educational videos, tutorials, vlogs. AI-powered YouTube creator tools.
+description: "AI YouTube video creator powered by CellCog. Create YouTube videos, YouTube Shorts, thumbnails, video scripts, tutorials, vlogs, educational videos, product reviews, video essays. From script to finished video with voiceover and music. AI-powered YouTube content production."
 metadata:
   openclaw:
     emoji: "📺"
+    os: [darwin, linux, windows]
 author: CellCog
+homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
 
@@ -64,20 +66,20 @@ Vertical, snackable content for discovery:
 
 In-depth content that builds audience:
 
-- **Tutorials**: "Create a 15-minute tutorial on building a REST API with Python"
-- **Explainers**: "Make a 10-minute video explaining how blockchain works"
+- **Tutorials**: "Create a 4-minute tutorial on building a REST API with Python"
+- **Explainers**: "Make a 3-minute video explaining how blockchain works"
 - **Reviews**: "Create a comprehensive review of the new MacBook Pro"
 - **Documentaries**: "Make a mini-documentary about the history of video games"
 - **Essays**: "Create a video essay on why minimalism is becoming popular"
 
 **Example prompt:**
-> "Create a 12-minute YouTube video: 'Build Your First AI App in 2026'
+> "Create a 4-minute YouTube video: 'Build Your First AI App in 2026'
 > 
 > Structure:
-> - Hook (30 sec): Show the finished app
-> - Intro (1 min): What we're building and why
-> - Setup (2 min): Environment and dependencies
-> - Core tutorial (7 min): Step-by-step coding
+> - Hook (15 sec): Show the finished app
+> - Intro (30 sec): What we're building and why
+> - Setup (45 sec): Environment and dependencies
+> - Core tutorial (2 min): Step-by-step coding
 > - Testing (1 min): Run and demo
 > - Outro (30 sec): Next steps and subscribe CTA
 > 
@@ -109,7 +111,7 @@ Click-worthy images that drive views:
 
 Content planning before production:
 
-- **Full Scripts**: "Write a complete script for a 10-minute video on productivity"
+- **Full Scripts**: "Write a complete script for a 4-minute video on productivity"
 - **Video Outlines**: "Create a detailed outline for a product review"
 - **Hook Variations**: "Give me 5 different hooks for my video about investing"
 - **CTA Scripts**: "Write compelling end-screen call-to-action scripts"
@@ -120,7 +122,7 @@ Content planning before production:
 
 | Format | Dimensions | Duration |
 |--------|------------|----------|
-| Standard Video | 1920×1080 (16:9) | Any length |
+| Standard Video | 1920×1080 (16:9) | Up to 4 minutes |
 | Shorts | 1080×1920 (9:16) | Up to 60 seconds |
 | Thumbnail | 1280×720 | - |
 
@@ -188,6 +190,14 @@ Content planning before production:
 > Style: Cinematic, slightly desaturated, text pops
 > 
 > Must be readable at small sizes."
+
+---
+
+## ⚠️ Important — Video Generation Expectations
+
+AI video production for YouTube is still at the frontier of what's possible. While some users generate high-quality videos that are ready to publish, others may spend significant credits and still not achieve a usable result. Even spending thousands of credits does not guarantee a satisfactory outcome — this is the nature of where AI video technology stands today.
+
+There is a real learning curve to generating videos with CellCog. It takes time, money, and patience. Your prompting skill, the complexity of what you're trying to create, and how well the foundation models perform on your specific request all play a role. Results improve as you develop intuition for what works, but we want to be upfront: video generation is inherently unpredictable, and there is always a risk that the output may not meet your expectations.
 
 ---
 

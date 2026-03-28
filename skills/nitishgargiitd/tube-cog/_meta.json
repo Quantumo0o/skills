@@ -1,13 +1,18 @@
 {
   "owner": "nitishgargiitd",
   "slug": "tube-cog",
-  "displayName": "tube-cog",
+  "displayName": "Tube Cog",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770774602891,
-    "commit": "https://github.com/openclaw/skills/commit/578ee748eee1a8b1b409da0d7c2abd9cf613a715"
+    "version": "1.0.4",
+    "publishedAt": 1774585104340,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770774602891,
+      "commit": "https://github.com/openclaw/skills/commit/578ee748eee1a8b1b409da0d7c2abd9cf613a715"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770511464304,
