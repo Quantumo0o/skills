@@ -1,13 +1,18 @@
 {
   "owner": "xucheng",
   "slug": "openclaw-onebot",
-  "displayName": "Openclaw Onebot",
+  "displayName": "OpenClaw OneBot",
   "latest": {
-    "version": "1.2.6",
-    "publishedAt": 1773979380246,
-    "commit": "https://github.com/openclaw/skills/commit/73d858a839f66aa328f84ac355b40875693e2044"
+    "version": "1.2.8",
+    "publishedAt": 1774412502940,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.6",
+      "publishedAt": 1773979380246,
+      "commit": "https://github.com/openclaw/skills/commit/73d858a839f66aa328f84ac355b40875693e2044"
+    },
     {
       "version": "1.2.5",
       "publishedAt": 1773547844597,
