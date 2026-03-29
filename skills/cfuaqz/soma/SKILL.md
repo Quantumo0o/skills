@@ -2,16 +2,18 @@
 name: soma
 description: Expert guide for participating in the SOMA network — a decentralized system that trains a foundation model through competition. Provides data submission workflows, model training pipelines, reward claiming, SDK code generation, CLI command guidance, and competitive strategy optimization. Use when user mentions "SOMA", "soma-sdk", "soma-models", "submit data to SOMA", "train a SOMA model", "SOMA targets", "SOMA rewards", "next-byte prediction network", "decentralized model training", or asks about earning SOMA tokens through data or model contributions. Do NOT use for general machine learning, PyTorch, or JAX questions unrelated to the SOMA network.
 license: Apache-2.0
-compatibility: Requires Python 3.10+ for soma-sdk, Python 3.13+ for quickstart. soma CLI installed via sup. GPU recommended for model training (H100) and scoring (24GB VRAM). Network access to SOMA testnet or localnet.
+compatibility: Requires Python 3.10+ for soma-sdk, Python 3.13+ for quickstart. soma CLI installed via sup. GPU recommended for model training (H100) and scoring (24GB VRAM). Network access to SOMA testnet or localnet. Requires env vars SOMA_SECRET_KEY (sensitive — Ed25519 signing key), HF_TOKEN (sensitive — HuggingFace access), S3_BUCKET, S3_ACCESS_KEY_ID (sensitive), S3_SECRET_ACCESS_KEY (sensitive), S3_ENDPOINT_URL, S3_PUBLIC_URL. All credentials stored in .env (gitignored) and pushed to Modal encrypted secret store. Use testnet keys only.
 metadata:
   author: soma-org
-  version: 1.0.0
+  version: 1.1.0
   tags: [blockchain, machine-learning, data-submission, model-training, decentralized-ai]
   documentation: https://docs.soma.org
   repository: https://github.com/soma-org/soma
 ---
 
 # SOMA Network
+
+> **Security & credentials**: This skill requires sensitive environment variables (`SOMA_SECRET_KEY`, `HF_TOKEN`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`) for on-chain signing, dataset access, and artifact storage. Credentials are stored in a local `.env` file (gitignored) and pushed to Modal's encrypted secret store — never committed to git. Submission data and encrypted model weights are uploaded with public-read ACLs as required by the SOMA protocol for validator audits. **Always use testnet keys** for development and automated pipelines. Scope S3 API tokens to a single bucket with minimal permissions.
 
 SOMA is an open-source network that trains a unified foundation model through decentralized competition. Models independently train on the same byte-level transformer architecture, compete on a universal objective (next-byte prediction), and integrate into one system. The best weights are rewarded with SOMA tokens.
 
@@ -100,9 +102,9 @@ uv run modal run src/quickstart/submitter.py       # test run
 
 **You're now scoring data against open targets and earning SOMA.** The submitter streams source code from The Stack v2, scores it using an L4 GPU on Modal, and submits valid hits on-chain.
 
-Deploy as a cron job to run continuously:
+Deploy and start immediately (also sets up a 24h cron schedule):
 ```bash
-uv run modal deploy src/quickstart/submitter.py
+uv run modal deploy src/quickstart/submitter.py && uv run submit
 ```
 
 ### What's Next?
@@ -357,6 +359,20 @@ soma target claim --target-id <ID>
 **Reward split**: 50% to data submitter, 50% to winning model owner.
 **Finder's fee**: Anyone can claim unclaimed rewards for 0.5% — claim yours promptly.
 **Auto-staking**: Model commission rewards are automatically re-staked.
+
+### Merge coins after claiming
+
+Each claim creates a separate coin in the wallet. Many small coins cause `InsufficientBond` or gas payment errors because the network needs a single coin large enough for the bond/gas. Merge periodically:
+
+```python
+await client.merge_coins(signer=kp)  # merges up to 256 coins per call
+```
+
+```bash
+soma merge-coins
+```
+
+Run multiple times if the wallet has more than 256 coins. The quickstart submitter calls `merge_coins` before each submission to prevent bond errors.
 
 ## Key Concepts
 
