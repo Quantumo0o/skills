@@ -3,11 +3,16 @@
   "slug": "recipe-generate-report-from-sheet",
   "displayName": "Recipe Generate Report From Sheet",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774300617408,
-    "commit": "https://github.com/openclaw/skills/commit/4bee7690c9461ba8759a766ce57462b8f022770a"
+    "version": "1.0.11",
+    "publishedAt": 1774551158137,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774300617408,
+      "commit": "https://github.com/openclaw/skills/commit/4bee7690c9461ba8759a766ce57462b8f022770a"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773432606256,
