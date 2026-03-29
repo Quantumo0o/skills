@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { getDefaultBaseUrl, normalizeBaseUrl } from './base-url.mjs';
 
 const DEFAULT_BASE_URL = getDefaultBaseUrl();
-const PUBLIC_ENTRY_HOSTS = new Set(['openclaw', 'codex', 'claude']);
+const PUBLIC_HOST_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const ENTRY_HOST_ENV_KEYS = ['PUBLIC_BRIDGE_ENTRY_HOST', 'AI_TASK_HUB_ENTRY_HOST'];
+const ENTRY_HOST_PATH_MARKERS = [
+  ['/.mobileclaw/', 'mobileclaw'],
+  ['/.codex/', 'codex'],
+  ['/.claude/', 'claude'],
+  ['/.openclaw/', 'openclaw']
+];
 
 export const AGENT_TASK_DEFAULT_BASE_URL = DEFAULT_BASE_URL;
 
@@ -36,11 +43,52 @@ function readText(value) {
 }
 
 function resolveEntryHost(value) {
-  const candidate = readText(value) || 'openclaw';
-  if (!PUBLIC_ENTRY_HOSTS.has(candidate)) {
-    throw createAuthError(400, 'VALIDATION_BAD_REQUEST', `entry_host must be one of ${Array.from(PUBLIC_ENTRY_HOSTS).join(', ')}`);
+  const explicit = readText(value);
+  if (explicit) {
+    return assertSupportedEntryHost(explicit);
   }
-  return candidate;
+
+  const envEntryHost = resolveEntryHostFromEnv(process.env);
+  if (envEntryHost) {
+    return envEntryHost;
+  }
+
+  return resolveEntryHostFromRuntime();
+}
+
+function resolveEntryHostFromEnv(env) {
+  for (const key of ENTRY_HOST_ENV_KEYS) {
+    const value = readText(env?.[key]);
+    if (value) {
+      return assertSupportedEntryHost(value);
+    }
+  }
+  return '';
+}
+
+function resolveEntryHostFromRuntime() {
+  const candidates = [fileURLToPath(import.meta.url), process.cwd()];
+  for (const candidate of candidates) {
+    const normalized = String(candidate).replace(/\\/g, '/').toLowerCase();
+    for (const [marker, entryHost] of ENTRY_HOST_PATH_MARKERS) {
+      if (normalized.includes(marker)) {
+        return entryHost;
+      }
+    }
+  }
+  return 'openclaw';
+}
+
+function assertSupportedEntryHost(candidate) {
+  const normalized = readText(candidate).toLowerCase();
+  if (!PUBLIC_HOST_SLUG_PATTERN.test(normalized)) {
+    throw createAuthError(
+      400,
+      'VALIDATION_BAD_REQUEST',
+      'entry_host must be a lowercase host slug containing letters, digits, and internal hyphens'
+    );
+  }
+  return normalized;
 }
 
 function createConversationId() {

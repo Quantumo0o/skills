@@ -116,6 +116,8 @@ export async function uploadCandidateThroughPublicBridge(candidate, auth, fetchI
   form.set('content_type', contentType);
   form.set('file', new Blob([fileBuffer], { type: contentType }), candidate.fileName);
 
+  // Off-host transfer is limited to explicit current-request attachment bytes
+  // and the gateway-controlled public bridge upload endpoint.
   const response = await fetchImpl(`${auth.baseUrl}/agent/public-bridge/upload-file`, {
     method: 'POST',
     body: form
@@ -152,7 +154,7 @@ export function applyUploadedAttachment(payloadRaw, candidate, uploaded) {
     ...payload,
     input: sanitizeUploadSources({
       ...toObject(payload.input),
-      [candidate.targetField]: uploaded.url
+      [candidate.targetField]: candidate.targetField === 'reference_image_urls' ? [uploaded.url] : uploaded.url
     })
   };
 
@@ -160,7 +162,9 @@ export function applyUploadedAttachment(payloadRaw, candidate, uploaded) {
 }
 
 function hasDirectMediaUrl(payload, input, attachment) {
-  return readText(input.image_url) !== null ||
+  return hasReferenceImageUrls(input.reference_image_urls) ||
+    hasReferenceImageUrls(payload.reference_image_urls) ||
+    readText(input.image_url) !== null ||
     readText(payload.image_url) !== null ||
     readText(input.audio_url) !== null ||
     readText(payload.audio_url) !== null ||
@@ -203,7 +207,7 @@ function resolveContentType(attachment, filePath, fileName, capability) {
   if (capability === 'markdown_convert' || /document|file|markdown/i.test(capability)) {
     return 'text/markdown';
   }
-  if (capability === 'tencent-video-face-fusion' || /video/i.test(capability)) {
+  if (isVideoFaceGenerationCapability(capability) || /video/i.test(capability)) {
     return 'video/mp4';
   }
   if (IMAGE_CAPABILITY_HINTS.has(capability) || /image|detect|tag|pose|segment|matting|recognition|classification|quality/i.test(capability)) {
@@ -214,6 +218,10 @@ function resolveContentType(attachment, filePath, fileName, capability) {
 }
 
 function inferTargetField(capability, contentType, fileName) {
+  if (capability === 'image-generation') {
+    return 'reference_image_urls';
+  }
+
   const mediaKind = inferMediaKind(contentType, fileName);
   if (mediaKind === 'image') {
     return 'image_url';
@@ -234,10 +242,18 @@ function inferTargetField(capability, contentType, fileName) {
   if (capability === 'markdown_convert' || /document|file|markdown/i.test(capability)) {
     return 'file_url';
   }
-  if (capability === 'tencent-video-face-fusion' || /video/i.test(capability)) {
+  if (isVideoFaceGenerationCapability(capability) || /video/i.test(capability)) {
     return 'video_url';
   }
   return 'image_url';
+}
+
+function hasReferenceImageUrls(value) {
+  return Array.isArray(value) && value.some((item) => readText(item) !== null);
+}
+
+function isVideoFaceGenerationCapability(capability) {
+  return capability === 'video-face-generation' || capability === 'tencent-video-face-fusion';
 }
 
 function inferMediaKind(contentType, fileName) {

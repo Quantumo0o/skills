@@ -72,10 +72,10 @@ export async function normalizeExecutePayload(payloadRaw, _options = {}) {
       throw createNormalizeError(
         400,
         'VALIDATION_FILE_PATH_NOT_SUPPORTED',
-        'local file_path is disabled in the published ai-task-hub skill; for third-party agent entry upload the chat attachment through /agent/public-bridge/upload-file, then pass attachment.url or image_url/audio_url/file_url/video_url',
+        'local file_path is disabled in the published ai-task-hub skill; for third-party agent entry upload the chat attachment through /agent/public-bridge/upload-file, then pass attachment.url or image_url/audio_url/file_url/video_url/reference_image_urls',
         {
           file_path: localAttachment.filePath,
-          supported_inputs: ['attachment.url', 'image_url', 'audio_url', 'file_url', 'video_url'],
+          supported_inputs: ['attachment.url', 'image_url', 'audio_url', 'file_url', 'video_url', 'reference_image_urls'],
           recommended_upload_api: `${DEFAULT_SITE_BASE_URL}${DIRECT_UPLOAD_PATH}`
         }
       );
@@ -114,7 +114,36 @@ function normalizeExplicitUrlFields(input, payload) {
   return found;
 }
 function normalizeCapabilitySpecificFields(capability, input, payload) {
-  if (capability !== 'tencent-video-face-fusion') {
+  if (capability === 'image-generation') {
+    const inputReferenceUrls = normalizeReferenceImageUrls(input.reference_image_urls);
+    if (inputReferenceUrls) {
+      input.reference_image_urls = inputReferenceUrls;
+      return true;
+    }
+
+    const payloadReferenceUrls = normalizeReferenceImageUrls(payload.reference_image_urls);
+    if (payloadReferenceUrls) {
+      input.reference_image_urls = payloadReferenceUrls;
+      return true;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(input, 'reference_image_urls') ||
+      Object.prototype.hasOwnProperty.call(payload, 'reference_image_urls')
+    ) {
+      return true;
+    }
+
+    const attachmentUrl = resolveAttachmentUrl(input, payload);
+    if (attachmentUrl) {
+      input.reference_image_urls = [attachmentUrl];
+      return true;
+    }
+
+    return false;
+  }
+
+  if (!isVideoFaceGenerationCapability(capability)) {
     return false;
   }
 
@@ -130,6 +159,10 @@ function normalizeCapabilitySpecificFields(capability, input, payload) {
 
   validateTencentVideoFaceFusionInput(input);
   return true;
+}
+
+function isVideoFaceGenerationCapability(capability) {
+  return capability === 'video-face-generation' || capability === 'tencent-video-face-fusion';
 }
 
 
@@ -195,9 +228,24 @@ function resolveTargetField(capability) {
 }
 
 function hasAnyMediaUrl(input) {
+  if (normalizeReferenceImageUrls(input.reference_image_urls)) {
+    return true;
+  }
+
   return ['image_url', 'audio_url', 'file_url', 'video_url'].some(
     (field) => typeof input[field] === 'string' && input[field].trim().length > 0
   );
+}
+
+function normalizeReferenceImageUrls(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  const normalized = value
+    .map((item) => (typeof item === 'string' ? item.trim() : ''))
+    .filter((item) => item.length > 0);
+  return normalized.length > 0 ? normalized : null;
 }
 
 function normalizeTencentMergeInfos(value) {
@@ -229,7 +277,7 @@ function validateTencentVideoFaceFusionInput(input) {
   throw createNormalizeError(
     400,
     'VALIDATION_BAD_REQUEST',
-    'tencent-video-face-fusion requires two uploaded files: input.video_url (source video) and input.merge_infos[0].merge_face_image.url (merge face image); ask the user to upload both files and prefer a short source video for testing',
+    'Video Face Generation requires two uploaded files: input.video_url (source video) and input.merge_infos[0].merge_face_image.url (merge face image); ask the user to upload both files and prefer a short source video for testing',
     {
       required_inputs: ['input.video_url', 'input.merge_infos[0].merge_face_image.url'],
       recommended_upload_api: DEFAULT_SITE_BASE_URL + DIRECT_UPLOAD_PATH,

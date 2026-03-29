@@ -18,7 +18,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -39,7 +39,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -63,8 +63,7 @@
         }
       },
       "example_input": {
-        "text": "hello from ai task hub",
-        "speaker": "alloy"
+        "text": "你好，我是中国人"
       }
     },
     {
@@ -165,34 +164,9 @@
         }
       },
       "example_input": {
-        "audio_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/audio/example.wav",
+        "audio_url": "https://storage.googleapis.com/cloud-samples-data/speech/brooklyn_bridge.wav",
         "language": "en",
         "diarize": false
-      }
-    },
-    {
-      "id": "tts_low_cost",
-      "service_id": "svc_cf_tts_low_cost",
-      "summary": "Synthesize low-cost speech from text.",
-      "input_schema": {
-        "type": "object",
-        "required": [
-          "text"
-        ],
-        "properties": {
-          "text": {
-            "type": "string",
-            "maxLength": 4096
-          },
-          "speaker": {
-            "type": "string",
-            "maxLength": 64
-          }
-        }
-      },
-      "example_input": {
-        "text": "hello from skill hub",
-        "speaker": "alloy"
       }
     },
     {
@@ -216,10 +190,47 @@
         }
       },
       "example_input": {
-        "file_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/documents/example.pdf",
+        "file_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
         "conversion_options": {
           "preserve_tables": true
         }
+      }
+    },
+    {
+      "id": "image-generation",
+      "service_id": "svc_image_generation",
+      "summary": "Generate an image from prompt.",
+      "input_schema": {
+        "type": "object",
+        "required": [
+          "prompt"
+        ],
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "reference_image_urls": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "format": "uri",
+              "description": "Upload an image file/attachment through the host product flow. Use controlled media storage URLs. Do not require manual URL or raw JSON input in user-facing forms."
+            }
+          },
+          "image_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1
+          }
+        }
+      },
+      "example_input": {
+        "prompt": "a small robot made of bamboo, cinematic lighting",
+        "image_count": 1
       }
     },
     {
@@ -240,7 +251,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -261,7 +272,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -282,7 +293,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -303,7 +314,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -324,7 +335,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -345,7 +356,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -366,7 +377,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -387,7 +398,7 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
@@ -408,13 +419,13 @@
         }
       },
       "example_input": {
-        "image_url": "https://demo.public.blob.vercel-storage.com/skill-inputs/images/example.jpg"
+        "image_url": "https://media.roboflow.com/inference/soccer.jpg"
       }
     },
     {
-      "id": "tencent-video-face-fusion",
+      "id": "video-face-generation",
       "service_id": "svc_tencent_video_face_fusion",
-      "summary": "Fuse an uploaded face image into an uploaded source video with Tencent Cloud legacy facefusion.",
+      "summary": "Generate a video face result from an uploaded source video and face image.",
       "input_schema": {
         "type": "object",
         "required": [
@@ -425,7 +436,7 @@
           "video_url": {
             "type": "string",
             "format": "uri",
-            "description": "Upload a short source video through the host product flow. Tencent facefusion requires both this video and merge_infos[0].merge_face_image.url before execution. Use controlled media storage URLs. Do not require manual URL or raw JSON input in user-facing forms."
+            "description": "Upload a short source video through the host product flow. Video face generation requires both this video and merge_infos[0].merge_face_image.url before execution. Use controlled media storage URLs. Do not require manual URL or raw JSON input in user-facing forms."
           },
           "merge_infos": {
             "type": "array",
@@ -446,7 +457,7 @@
                     "url": {
                       "type": "string",
                       "format": "uri",
-                      "description": "Upload a merge-face image through the host product flow. Tencent facefusion requires both this image and video_url before execution. Use controlled media storage URLs. Do not require manual URL or raw JSON input in user-facing forms."
+                      "description": "Upload a merge-face image through the host product flow. Video face generation requires both this image and video_url before execution. Use controlled media storage URLs. Do not require manual URL or raw JSON input in user-facing forms."
                     }
                   }
                 }
@@ -468,6 +479,14 @@
         }
       },
       "example_input": {
+        "video_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+        "merge_infos": [
+          {
+            "merge_face_image": {
+              "url": "https://raw.githubusercontent.com/ultralytics/yolov5/master/data/images/zidane.jpg"
+            }
+          }
+        ],
         "b_long_video": false
       }
     }

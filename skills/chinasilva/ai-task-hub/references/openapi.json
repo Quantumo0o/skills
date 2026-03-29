@@ -2,13 +2,19 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Task Hub Skill API",
-    "version": "3.2.32",
+    "version": "3.3.14",
     "description": "Public skill contract for execute/poll/presentation/account connect/account balance/account ledger via gateway-managed public bridge."
   },
   "servers": [
     {
       "url": "https://gateway-api.binaryworks.app"
     }
+  ],
+  "x-built-in-host-examples": [
+    "mobileclaw",
+    "openclaw",
+    "codex",
+    "claude"
   ],
   "x-portal-actions": {
     "portal.skill.execute": {
@@ -113,6 +119,116 @@
     },
     "agent_uid_format": "^agent_[a-z0-9][a-z0-9_-]{5,63}$",
     "conversation_id_format": "^[A-Za-z0-9._:-]{8,128}$"
+  },
+  "x-agent-read-this-first": [
+    "Do not mix connector lifecycle commands with published skill actions.",
+    "Connector lifecycle commands are host/runtime controls; published skill actions are the stable AI and account operations.",
+    "Public capability inventory below lists only enabled capabilities intentionally advertised to agents."
+  ],
+  "x-data-handling-boundary": {
+    "attachment_scope": "explicit_current_request_only",
+    "allowed_upload_host": "https://gateway-api.binaryworks.app",
+    "allowed_upload_endpoint": "/agent/public-bridge/upload-file",
+    "local_file_access": "disabled",
+    "local_persistence": "disabled",
+    "consent_requirement": "host_should_obtain_user_consent_before_forwarding_media"
+  },
+  "x-interaction-layers": {
+    "connector_lifecycle": {
+      "purpose": "host/runtime installation and continuity controls",
+      "commands": [
+        "connect",
+        "status",
+        "invoke",
+        "logout"
+      ],
+      "when_to_use": "Use only when the host is managing connector installation state or browser authorization continuity."
+    },
+    "published_skill_actions": {
+      "purpose": "user-facing AI execution and account queries through the public bridge",
+      "actions": [
+        "portal.account.connect",
+        "portal.skill.execute",
+        "portal.skill.poll",
+        "portal.skill.presentation",
+        "portal.account.balance",
+        "portal.account.ledger"
+      ],
+      "when_to_use": "Use for explicit account binding, AI task execution, async polling, presentation fetch, and points queries."
+    }
+  },
+  "x-public-capability-categories": {
+    "scope": "enabled_and_available_public_capabilities_only",
+    "categories": [
+      {
+        "id": "image_analysis",
+        "title": "Image Analysis",
+        "summary": "Detection, tagging, landmarks, and face/body understanding tasks on uploaded images.",
+        "capability_names": [
+          "Human Detect",
+          "Image Tagging",
+          "Face Detect",
+          "Body Keypoints 2D",
+          "Face Emotion Recognition"
+        ]
+      },
+      {
+        "id": "background_removal",
+        "title": "Background Removal",
+        "summary": "Segmentation, mask, cutout, and matting outputs for people or products.",
+        "capability_names": [
+          "Person Instance Segmentation",
+          "Person Semantic Segmentation",
+          "Concert Cutout",
+          "Full Body Matting",
+          "Head Matting",
+          "Product Cutout"
+        ]
+      },
+      {
+        "id": "audio",
+        "title": "Audio",
+        "summary": "Speech-to-text and text-to-speech actions.",
+        "capability_names": [
+          "ASR",
+          "TTS Report",
+          "TTS Low Cost"
+        ]
+      },
+      {
+        "id": "document",
+        "title": "Document",
+        "summary": "Document-to-markdown extraction for uploaded files such as PDFs.",
+        "capability_names": [
+          "Markdown Convert"
+        ]
+      },
+      {
+        "id": "retrieval",
+        "title": "Retrieval",
+        "summary": "Embedding and reranking utilities for search or RAG workflows.",
+        "capability_names": [
+          "Embeddings",
+          "Reranker"
+        ]
+      },
+      {
+        "id": "generation",
+        "title": "Generation",
+        "summary": "Prompt-based image generation.",
+        "capability_names": [
+          "Image Generation"
+        ]
+      },
+      {
+        "id": "video",
+        "title": "Video",
+        "summary": "Video-oriented media transformation flows that require structured file inputs.",
+        "capability_names": [
+          "Video Face Generation"
+        ]
+      }
+    ]
   },
   "x-agent-invocation-guide": {
     "preferred_entrypoint": "public_bridge",
@@ -235,7 +351,7 @@
       "method": "POST",
       "requires_caller_managed_task_token": false,
       "request_body": {
-        "entry_host": "openclaw",
+        "entry_host": "<host_runtime>",
         "action": "portal.account.balance",
         "agent_uid": "support_assistant",
         "conversation_id": "host_session_20260316_opaque_001",
@@ -243,6 +359,8 @@
       },
       "notes": [
         "Preferred production entrypoint for third-party agent-friendly integration.",
+        "entry_host must match the active host runtime. Current built-in examples are mobileclaw, openclaw, codex, and claude; future lowercase host slugs can follow the same contract. If omitted, export PUBLIC_BRIDGE_ENTRY_HOST or AI_TASK_HUB_ENTRY_HOST so the packaged runtime does not fall back to the wrong host.",
+        "Example mappings: MobileClaw -> mobileclaw, OpenClaw -> openclaw, Codex -> codex, Claude -> claude. For a future host, reuse the same lowercase host slug for host and entry_host unless you intentionally need a different mapping.",
         "For end-user conversations, prefer direct execution and result delivery instead of explaining attachment upload or URL normalization internals.",
         "When the host exposes attachment bytes, the published skill forwards only that explicit attachment material through the public bridge before execute and injects the returned URL into the target media field.",
         "published skill persistence = disabled; continuity owner = host_or_private_wrapper.",
@@ -325,11 +443,8 @@
                 "properties": {
                   "entry_host": {
                     "type": "string",
-                    "enum": [
-                      "openclaw",
-                      "codex",
-                      "claude"
-                    ]
+                    "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$",
+                    "description": "Host runtime slug. Current built-in examples include openclaw, mobileclaw, codex, and claude; future lowercase host slugs can use the same contract."
                   },
                   "entry_user_key": {
                     "type": "string"

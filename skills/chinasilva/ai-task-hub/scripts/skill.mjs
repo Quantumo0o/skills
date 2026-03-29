@@ -21,6 +21,7 @@ const ACTIONS = {
 };
 
 const IMAGE_CAPABILITIES = new Set([
+  'image-generation',
   'human_detect',
   'image_tagging',
   'face-detect',
@@ -54,8 +55,10 @@ const NON_VISUAL_SERVICE_IDS = new Set([
   'svc_cf_tts_low_cost',
   'svc_cf_markdown_convert'
 ]);
-const GUIDANCE_ASSET_PRIORITY = ['overlay', 'cutout', 'mask'];
+const AUDIO_SERVICE_IDS = new Set(['svc_cf_tts_report', 'svc_cf_tts_low_cost']);
+const GUIDANCE_ASSET_PRIORITY = ['overlay', 'cutout', 'mask', 'audio', 'source'];
 const CAPABILITY_SERVICE_MAP = {
+  'image-generation': 'svc_image_generation',
   human_detect: 'svc_cf_human_detect',
   image_tagging: 'svc_cf_image_tagging',
   tts_report: 'svc_cf_tts_report',
@@ -91,6 +94,18 @@ const SERVICE_CAPABILITY_HINTS = Object.fromEntries(
   Object.entries(CAPABILITY_SERVICE_MAP).map(([capability, serviceId]) => [serviceId, capability])
 );
 const VISUAL_PLAYBOOK_PRESETS = {
+  generation: {
+    display_mode: 'generated_image',
+    preferred_assets: ['source'],
+    summary_fields: [],
+    chat_template: 'image_generation_delivery_summary'
+  },
+  audio: {
+    display_mode: 'audio_file',
+    preferred_assets: ['audio'],
+    summary_fields: [],
+    chat_template: 'audio_delivery_summary'
+  },
   detection: {
     display_mode: 'bbox_overlay',
     preferred_assets: ['overlay', 'source'],
@@ -124,6 +139,9 @@ const VISUAL_PLAYBOOK_PRESETS = {
   }
 };
 const VISUAL_PLAYBOOK_PRESET_BY_CAPABILITY = {
+  'image-generation': 'generation',
+  tts_report: 'audio',
+  tts_low_cost: 'audio',
   human_detect: 'detection',
   'face-detect': 'detection',
   'person-detect': 'detection',
@@ -651,16 +669,20 @@ function buildGuidedResponseBody({ action, request, ok, parsed, body, auth, useP
 
   if (ok && Object.keys(data).length > 0) {
     const guidance = buildAgentGuidance(action, request, data);
+    const sanitizedData = sanitizeUserVisibleData(action, data);
     if (guidance || bridgeAuth) {
-      const currentGuidance = toObject(data.agent_guidance);
+      const currentGuidance = toObject(sanitizedData.agent_guidance);
       nextParsed.data = {
-        ...data,
+        ...sanitizedData,
         agent_guidance: {
           ...currentGuidance,
           ...(bridgeAuth ? { bridge_auth: bridgeAuth } : {}),
           ...(guidance ?? {})
         }
       };
+      mutated = true;
+    } else if (sanitizedData !== data) {
+      nextParsed.data = sanitizedData;
       mutated = true;
     }
   }
@@ -683,6 +705,84 @@ function buildGuidedResponseBody({ action, request, ok, parsed, body, auth, useP
   }
 
   return mutated ? JSON.stringify(nextParsed) : body;
+}
+
+function sanitizeUserVisibleData(action, data) {
+  if (action !== 'portal.skill.poll' && action !== 'portal.skill.presentation') {
+    return data;
+  }
+
+  const serviceId = readText(data.service_id);
+  if (action === 'portal.skill.poll' && AUDIO_SERVICE_IDS.has(serviceId)) {
+    const output = toObject(data.output);
+    const assets = summarizeOutputAssets(output);
+    return {
+      ...data,
+      ...(assets.available
+        ? {
+            output: {
+              media_files: {
+                available: true,
+                assets: flattenRenderedAssets(assets.byKind)
+              }
+            }
+          }
+        : { output: {} })
+    };
+  }
+
+  if (serviceId !== 'svc_image_generation') {
+    return data;
+  }
+
+  if (action === 'portal.skill.poll') {
+    const output = toObject(data.output);
+    const assets = summarizeOutputAssets(output);
+    return {
+      ...data,
+      ...(assets.available
+        ? {
+            output: {
+              media_files: {
+                available: true,
+                assets: flattenRenderedAssets(assets.byKind)
+              }
+            }
+          }
+        : { output: {} })
+    };
+  }
+
+  const visual = toObject(data.visual);
+  const files = toObject(visual.files);
+  const spec = toObject(visual.spec);
+  const canvas = toObject(spec.canvas);
+  const mediaUrl = readText(canvas.media_url);
+
+  return {
+    ...data,
+    raw: null,
+    visual: {
+      ...visual,
+      ...(mediaUrl
+        ? {
+            spec: {
+              canvas: {
+                media_url: mediaUrl
+              }
+            }
+          }
+        : { spec: null }),
+      ...(files && Array.isArray(files.assets)
+        ? {
+            files: {
+              ...files,
+              assets: files.assets
+            }
+          }
+        : {})
+    }
+  };
 }
 
 function buildAgentGuidance(action, request, data) {
@@ -719,8 +819,9 @@ function buildPollGuidance(data) {
   const serviceId = readText(data.service_id);
   const output = data.output;
   const geometry = summarizeGeometry(output);
+  const assets = summarizeOutputAssets(output);
 
-  if (!isLikelyVisualService(serviceId) && !hasAnyGeometry(geometry)) {
+  if (!isLikelyVisualService(serviceId) && !hasAnyGeometry(geometry) && !assets.available) {
     return null;
   }
 
@@ -729,6 +830,7 @@ function buildPollGuidance(data) {
       runId,
       serviceId,
       geometry,
+      assets,
       source: 'poll'
     })
   };
@@ -771,6 +873,12 @@ function buildBridgeAuthGuidance(action, data, errorDetails, auth) {
     return null;
   }
 
+  const connectorInstall =
+    resolveConnectorInstallGuidance(data, errorDetails) ??
+    (shouldSuggestConnectorInstallGuidance(action, data, errorDetails)
+      ? buildConnectorInstallGuidance(entryHost)
+      : null);
+
   return {
     continuity_owner: 'host_or_private_wrapper',
     published_skill_persistence: 'disabled',
@@ -788,11 +896,61 @@ function buildBridgeAuthGuidance(action, data, errorDetails, auth) {
       'portal.skill.poll',
       'portal.skill.presentation'
     ],
+    ...(connectorInstall ? { connector_install: connectorInstall } : {}),
     host_action:
       action === 'portal.account.connect'
         ? 'persist this bridge_context outside the published skill and reuse the same entry_user_key on follow-up connect, invoke, and upload calls'
         : 'persist this bridge_context outside the published skill and reuse the same entry_user_key on every follow-up public bridge call'
   };
+}
+
+function resolveConnectorInstallGuidance(data, errorDetails) {
+  const successGuidance = toObject(data.connector_install);
+  if (Object.keys(successGuidance).length > 0) {
+    return successGuidance;
+  }
+
+  const errorGuidance = toObject(errorDetails.connector_install);
+  if (Object.keys(errorGuidance).length > 0) {
+    return errorGuidance;
+  }
+
+  return null;
+}
+
+function shouldSuggestConnectorInstallGuidance(action, data, errorDetails) {
+  if (action === 'portal.account.connect') {
+    const connectionState = readText(data.connection_state).toLowerCase();
+    return connectionState === 'authorization_required' || connectionState === 'pending';
+  }
+
+  return Boolean(readText(errorDetails.authorization_url));
+}
+
+function buildConnectorInstallGuidance(entryHost) {
+  const normalizedHost = normalizeConnectorGuidanceHost(entryHost);
+  const packageName = '@binaryworks1024/ai-task-hub-connector';
+  const binaryName = 'ai-task-hub-connector';
+
+  return {
+    required: true,
+    strategy: 'local_command_connector',
+    reason: 'trial_exhausted_or_account_binding_required',
+    host: normalizedHost,
+    package_name: packageName,
+    binary_name: binaryName,
+    guide_url: 'https://gateway.binaryworks.app/connectors/local-bootstrap',
+    next_step:
+      'Install and bootstrap the connector, then continue the existing authorization_url browser flow with the same entry_user_key.'
+  };
+}
+
+function normalizeConnectorGuidanceHost(value) {
+  const candidate = readText(value).toLowerCase();
+  if (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(candidate)) {
+    return candidate;
+  }
+  return 'openclaw';
 }
 
 function createVisualizationGuidance({ runId, capability = null, serviceId = null, geometry = null, assets = null, source }) {
@@ -812,7 +970,11 @@ function createVisualizationGuidance({ runId, capability = null, serviceId = nul
     ...(runId ? { run_id: runId } : {}),
     ...(capability ? { capability } : {}),
     ...(serviceId ? { service_id: serviceId } : {}),
-    flow: buildVisualizationFlow({ runId, allowManualDraw }),
+    flow: buildVisualizationFlow({
+      runId,
+      allowManualDraw,
+      usePollOutputAssets: source === 'poll' && AUDIO_SERVICE_IDS.has(serviceId) && assets?.available === true
+    }),
     detected_geometry: {
       boxes: geometrySummary.boxes,
       points: geometrySummary.points,
@@ -833,21 +995,30 @@ function createVisualizationGuidance({ runId, capability = null, serviceId = nul
   };
 }
 
-function buildVisualizationFlow({ runId, allowManualDraw }) {
-  const flow = [
-    {
+function buildVisualizationFlow({ runId, allowManualDraw, usePollOutputAssets = false }) {
+  const flow = [];
+
+  if (usePollOutputAssets) {
+    flow.push({
+      step: 'use_poll_output_assets',
+      source: 'data.output.media_files.assets',
+      preferred_kinds: ['audio']
+    });
+  } else {
+    flow.push({
       step: 'fetch_rendered_assets',
       action: 'portal.skill.presentation',
       payload: {
         ...(runId ? { run_id: runId } : {}),
         include_files: true
       }
-    },
-    {
-      step: 'asset_priority',
-      kinds: GUIDANCE_ASSET_PRIORITY
-    }
-  ];
+    });
+  }
+
+  flow.push({
+    step: 'asset_priority',
+    kinds: GUIDANCE_ASSET_PRIORITY
+  });
 
   if (allowManualDraw) {
     flow.push({
@@ -893,6 +1064,63 @@ function summarizePresentationAssets(visual) {
     available: Object.keys(byKind).length > 0,
     byKind
   };
+}
+
+function summarizeOutputAssets(output) {
+  const data = toObject(output);
+  const byKind = {};
+
+  const appendAsset = (kindInput, urlInput) => {
+    const url = readText(urlInput);
+    if (!url) {
+      return;
+    }
+    const kind = readText(kindInput) ?? 'source';
+    if (!Array.isArray(byKind[kind])) {
+      byKind[kind] = [];
+    }
+    if (!byKind[kind].includes(url)) {
+      byKind[kind].push(url);
+    }
+  };
+
+  const mediaFiles = toObject(data.media_files);
+  const assetRows = Array.isArray(mediaFiles.assets) ? mediaFiles.assets : [];
+  for (const row of assetRows) {
+    const asset = toObject(row);
+    appendAsset(asset.kind, asset.url);
+  }
+
+  appendAsset('audio', data.audio_url);
+  appendAsset('source', data.image_url);
+
+  const images = Array.isArray(data.images) ? data.images : [];
+  for (const row of images) {
+    const image = toObject(row);
+    appendAsset('source', image.image_url);
+  }
+
+  return {
+    available: Object.keys(byKind).length > 0,
+    byKind
+  };
+}
+
+function flattenRenderedAssets(byKind) {
+  const assets = [];
+  for (const [kind, urls] of Object.entries(byKind)) {
+    const rows = Array.isArray(urls) ? urls : [];
+    for (const url of rows) {
+      if (typeof url !== 'string' || !url.trim()) {
+        continue;
+      }
+      assets.push({
+        kind,
+        url
+      });
+    }
+  }
+  return assets;
 }
 
 function summarizeGeometry(input) {
@@ -1026,6 +1254,18 @@ function resolveVisualizationPlaybook({ capability, serviceId, geometry, assets 
       has_rendered_assets: hasRenderedAssets,
       has_geometry: hasGeometry
     },
+    ...(resolvedCapability === 'image-generation'
+      ? {
+          user_delivery_mode: 'image_only',
+          omit_structured_fields_in_user_reply: true
+        }
+      : {}),
+    ...((resolvedCapability === 'tts_report' || resolvedCapability === 'tts_low_cost')
+      ? {
+          user_delivery_mode: 'audio_only',
+          omit_structured_fields_in_user_reply: true
+        }
+      : {}),
     ...(resolvedCapability === 'body-contour-63pt' && !hasRenderedAssets && !hasGeometry
       ? {
           status: 'degraded',

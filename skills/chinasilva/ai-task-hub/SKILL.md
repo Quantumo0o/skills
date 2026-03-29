@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
-description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, points balance/ledger lookup, and async execute/poll/presentation orchestration. Use when users need hosted AI outcomes while host runtime manages identity, credits, payment, and risk control.
-version: 3.2.32
+description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, and points queries. Default host path is connector-first and result-first; async poll/presentation remain compatibility or asset-delivery follow-up surfaces.
+version: 3.3.14
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -24,18 +24,115 @@ Public package boundary:
 - Only orchestrates `portal.skill.execute`, `portal.skill.poll`, `portal.skill.presentation`, `portal.account.connect`, `portal.account.balance`, and `portal.account.ledger`.
 - Does not exchange `api_key` or `userToken` inside this package.
 - Does not handle recharge or payment flows inside this package.
+- Optional env hints `PUBLIC_BRIDGE_ENTRY_HOST` and `AI_TASK_HUB_ENTRY_HOST` are only host-side `entry_host` fallbacks, not API secrets, auth tokens, or billing credentials.
 - Prefers attachment URLs, and when host runtime explicitly exposes attachment bytes for the current request, forwards only that explicit attachment material through the public bridge before execution.
 - When the published skill is invoked directly by a third-party agent runtime, it uses `POST /agent/public-bridge/invoke`.
 - published skill persistence = disabled.
 - continuity owner = `host_or_private_wrapper`.
 
-## Connector-First Host Selection
+## Data Handling Boundary
 
-- For remote URL / OAuth / connection-record style hosts, prefer the hosted connector runtime: `POST /agent/hosted-connector/install`, `POST /agent/hosted-connector/connect`, `POST /agent/hosted-connector/invoke`, `POST /agent/hosted-connector/status`, `POST /agent/hosted-connector/logout`.
-- For local command-only hosts, prefer the shared connector/runtime bootstrap outside this published package.
-- Use `POST /agent/public-bridge/invoke` when the published skill itself is the active entry surface and host/runtime cannot own a separate connector installation.
+- Only forwards attachment bytes that the host runtime explicitly provides for the current request.
+- Off-host media transfer is limited to the gateway-controlled host `https://gateway-api.binaryworks.app`.
+- Public upload handoff is limited to `POST /agent/public-bridge/upload-file` for the same request flow.
+- Does not read local paths, scan the local filesystem, or guess files outside explicit host-provided attachment material.
+- Does not persist uploaded bytes or credentials to local disk, and does not write skill/config state.
+- Host/runtime should obtain user consent before forwarding media and should avoid sending sensitive or regulated data unless the user explicitly approved that transfer.
+
+## Read This First
+
+- Do not mix connector lifecycle commands with published skill actions.
+- `connect` / `status` / `invoke` / `logout` are connector lifecycle commands for host/runtime installation state.
+- `portal.account.connect` / `portal.skill.execute` / `portal.skill.poll` / `portal.skill.presentation` / `portal.account.balance` / `portal.account.ledger` are the published skill actions.
+- Do not treat `portal.skill.execute -> portal.skill.poll -> portal.skill.presentation` as the default path for every capability. Default behavior must follow the capability `delivery mode`.
+- Public capability inventory below lists only enabled capabilities intentionally advertised to agents. Disabled or internal-only routes may still exist in backend code but are not part of the advertised package surface.
+
+## Two Operational Surfaces
+
+- Connector lifecycle commands:
+  - `connect`: start or resume browser authorization for one connector installation
+  - `status`: read whether the connector installation already has continuity
+  - `invoke`: call one published skill action through the connector runtime
+  - `logout`: clear continuity for that connector installation
+- Published skill actions:
+  - `portal.account.connect`: explicit account bind or connection-status check
+  - `portal.skill.execute`: submit a capability run
+  - `portal.skill.poll`: poll a submitted run
+  - `portal.skill.presentation`: fetch rendered outputs for a run
+  - `portal.account.balance`: read current points balance
+  - `portal.account.ledger`: read points ledger rows
+
+## Public Capability Inventory (Enabled And Available)
+
+- Image analysis:
+  - `human_detect`
+  - `image_tagging`
+  - `face-detect`
+  - `body-keypoints-2d`
+  - `face-emotion-recognition`
+- Background removal / cutout / mask:
+  - `person-instance-segmentation`
+  - `person-semantic-segmentation`
+  - `concert-cutout`
+  - `full-body-matting`
+  - `head-matting`
+  - `product-cutout`
+- Audio:
+  - `asr`
+  - `tts_report`
+- Document:
+  - `markdown_convert`
+- Retrieval:
+  - `embeddings`
+  - `reranker`
+- Generation:
+  - `image-generation`
+- Video:
+  - `Video Face Generation`
+
+## Delivery Mode Guidance
+
+- `instant_result`
+  - Default host behavior: prefer a result-first entrypoint and return the final result in the same interaction.
+  - Typical capabilities: `tts_report`, image analysis, retrieval.
+  - Default product path: use result-first host flow; `portal.skill.execute` is usually enough.
+- `aggregated_short_wait`
+  - Default host behavior: prefer a result-first entrypoint with short internal waiting, then fall back to poll only if the short wait does not complete.
+  - Typical capabilities: `image-generation`.
+  - Default product path: start with result-first host flow; only use `portal.skill.poll` when the short wait does not complete.
+- `asset_delivery`
+  - Default host behavior: keep `presentation` or rendered files as part of the formal result surface.
+  - Typical capabilities: segmentation, matting, cutout.
+  - Default product path: `portal.skill.execute` -> `portal.skill.poll`, then `portal.skill.presentation` when files or rendered outputs are needed.
+- `long_running`
+  - Default host behavior: treat the capability as an explicit async job and do not promise single-turn completion.
+  - Typical capabilities: `asr`, `markdown_convert`, `video-face-generation`.
+  - Default product path: `portal.skill.execute` with later `portal.skill.poll`; use `portal.skill.presentation` only when that capability later exposes a rendered result surface.
+
+## Minimal Architecture Rules
+
+- Default path stays connector-first. Do not invent a host-specific continuity or identity model beside connector/runtime.
+- Default path stays result-first. Do not teach every capability as `execute -> poll -> presentation`.
+- `portal.skill.poll` and `portal.skill.presentation` are follow-up surfaces, not universal default steps.
+- Published skill keeps compatibility and asset-delivery surfaces, but it does not own long-lived continuity.
+- Do not ask end users for manual URLs, JSON field names, local paths, or internal bridge details unless they explicitly ask for debugging.
+
+## Non-Recommended Patterns
+
+- Do not bypass connector/runtime as the default host product path when hosted connector or local bootstrap is available.
+- Do not describe raw published skill actions as if they were the primary UX for every capability.
+- Do not add host-specific auth, continuity, or capability-routing rules outside the existing connector/runtime and gateway contracts.
+- Do not expose debugging payload structure, bridge layering, or upload choreography to end users unless troubleshooting is explicitly requested.
+
+## Official Host Integration
+
+- Current built-in host integrations for `mobileclaw`, `openclaw`, `codex`, and `claude` require the AI Task Hub connector/runtime to own continuity from the first call.
+- Future public hosts should follow the same connector/runtime continuity contract instead of inventing a host-specific identity model.
+- For remote URL / OAuth / connection-record style hosts, use the hosted connector runtime: `POST /agent/hosted-connector/install`, `POST /agent/hosted-connector/connect`, `POST /agent/hosted-connector/invoke`, `POST /agent/hosted-connector/status`, `POST /agent/hosted-connector/logout`.
+- For local command-only hosts, use the shared connector/runtime bootstrap outside this published package.
+- `POST /agent/public-bridge/invoke` is the underlying transport used by that connector/runtime, and also the compatibility fallback when a host bypasses the connector during debugging or manual integration.
 - Trusted host runtime that can safely hold bridge assertion secret may still use `POST /agent/skill/bridge/invoke`.
-- published skill persistence remains disabled even when hosted connector/runtime is present; long-lived continuity belongs in host or connector state, not in this package.
+- published skill persistence remains disabled even when connector/runtime is present; long-lived continuity belongs in host or connector state, not in this package.
 
 ## User-Facing Response Policy
 
@@ -119,16 +216,22 @@ Action to endpoint mapping:
 
 ## Auth Contract
 
-Third-party agent entry mode (recommended for direct published-skill invocation):
+Third-party agent entry mode (official host integrations should route through connector/runtime):
 
-- If the host can install a remote connector URL or own a connection record, prefer the hosted connector runtime instead of calling the published skill directly.
-- Use `POST /agent/public-bridge/invoke` as the first entrypoint for OpenClaw / Codex / Claude style runtimes when this published skill is the active entry surface.
+- Officially supported host integrations should install or provision the connector/runtime and let it manage `entry_user_key`; do not ask end users to manage continuity manually.
+- If a host bypasses connector/runtime and invokes the published skill directly, use `POST /agent/public-bridge/invoke` and persist the same `entry_user_key` outside this published skill package.
 - Do not require end users to provide any credential.
 - Use `portal.account.connect` when host/runtime wants an explicit browser-connect preflight instead of waiting for a protected action to fail.
+- Connector/runtime remains required for the official host integration path even when browser authorization is not yet required.
 - With `TRIAL_ENABLED` and available trial points, first-time calls may proceed without browser authorization.
 - On first use without an existing binding, gateway can proceed without browser authorization when TRIAL_ENABLED and trial points are available; `AUTHORIZATION_REQUIRED` is returned only for conditional upgrade paths (for example trial exhausted or trial-disabled rollback).
 - The returned `authorization_url` may include `gateway_api_base_url`; preserve it when completing browser authorization so `/agent-auth/complete` is posted back to the same API environment that created the auth session.
 - Host/runtime should show `authorization_url` to the user, persist `entry_user_key`, then retry the same action with that same `entry_user_key`.
+- Connector/runtime must preserve that same `entry_user_key` before and after browser authorization.
+- When `AUTHORIZATION_REQUIRED` or `portal.account.connect` returns `connector_install`, treat it as the official npm connector/runtime guidance for hosts that have not yet provisioned the supported continuity layer.
+- `connector_install` refers to the official connector package outside this published skill package.
+- That connector is the required continuity owner for officially supported host integrations, even though account authorization may still be deferred until trial exhaustion or policy upgrade.
+- For OpenClaw/MobileClaw-style local hosts, follow the connector guide referenced by `connector_install.guide_url`, then continue the same browser `authorization_url` flow with the same `entry_user_key`.
 - If gateway later returns `AUTHORIZATION_REQUIRED` with `details.likely_cause=ENTRY_USER_KEY_NOT_REUSED`, `details.recovery_action=REUSE_ENTRY_USER_KEY`, and `details.reauthorization_required=false`, host should restore the previously persisted `entry_user_key` and retry without sending the user through browser authorization again.
 
 Identifier format constraints used by gateway auth:
@@ -140,7 +243,7 @@ Identifier format constraints used by gateway auth:
 Host-side token bridge (outside published package):
 
 - To keep this package compliant and low-privilege, this published runtime does not issue or accept caller-managed task tokens.
-- Preferred deployed bridge endpoint for third-party agent entry: `POST /agent/public-bridge/invoke`.
+- Preferred deployed bridge endpoint for third-party agent entry: connector/runtime should call `POST /agent/public-bridge/invoke`.
 - Trusted host runtime that can safely hold bridge assertion secret may continue to use `POST /agent/skill/bridge/invoke`.
 - These bridge endpoints are served by gateway runtime, not bundled into this published package, and do not require caller-managed credentials.
 - published skill persistence = disabled; continuity must stay in `host_or_private_wrapper`, not inside this published package.
@@ -155,21 +258,29 @@ Host-side token bridge (outside published package):
 
 Host integration modes:
 
-- `interactive` (recommended): host calls `POST /agent/public-bridge/invoke`, surfaces the returned host-owned authorization URL to the user when needed, persists returned `entry_user_key`, and retries after authorization completes.
+- `connector-managed interactive` (recommended): connector/runtime calls `POST /agent/public-bridge/invoke`, surfaces the returned host-owned authorization URL to the user when needed, persists returned `entry_user_key`, and retries after authorization completes.
 - `trusted host bridge` (secondary): a trusted backend you control may call `POST /agent/skill/bridge/invoke` with its own bridge assertion secret.
 - Published skill package itself does not open browser, persist credentials, or perform OAuth/token exchange flows.
 - The authorization URL above is owned by deployed gateway/admin-web pages, not by this skill package runtime.
 - Successful public bridge responses add `data.agent_guidance.bridge_auth` with `continuity_owner=host_or_private_wrapper`, `published_skill_persistence=disabled`, and the returned `bridge_context`.
 - Public bridge failures that include entry context add `error.details.bridge_auth` so host/runtime can recover continuity outside the published skill package.
 
-## Agent Invocation Quickstart
+## Compatibility and Debug Transport Reference
 
-Preferred invocation mode for third-party agent entry (recommended when invoking this published skill directly):
+Default product path for official hosts remains connector-first and result-first.
+
+Use the raw transport reference below only when:
+
+- a host is in compatibility mode and can preserve the same `entry_user_key` itself
+- a trusted backend is integrating directly
+- debugging requires checking the raw bridge contract
+
+Preferred raw transport for third-party agent entry (normally owned by connector/runtime, and also usable as a compatibility fallback when a host can preserve continuity itself):
 
 - Deployed bridge API:
 ```json
 {
-  "entry_host": "openclaw",
+  "entry_host": "<host_runtime>",
   "action": "portal.account.balance",
   "agent_uid": "support_assistant",
   "conversation_id": "host_session_20260316_opaque_001",
@@ -178,7 +289,10 @@ Preferred invocation mode for third-party agent entry (recommended when invoking
 ```
 
 - Send that body to `POST /agent/public-bridge/invoke`.
-- This is the recommended production entrypoint for third-party agent-friendly integration.
+- `entry_host` must match the active host runtime. Current built-in examples are `mobileclaw`, `openclaw`, `codex`, `claude`; future lowercase host slugs can follow the same contract when connector/runtime is configured for them.
+- Example mappings: MobileClaw -> `mobileclaw`, OpenClaw -> `openclaw`, Codex -> `codex`, Claude -> `claude`.
+- If the host cannot pass `entry_host` explicitly, export `PUBLIC_BRIDGE_ENTRY_HOST` or `AI_TASK_HUB_ENTRY_HOST`, or install the package under the host-specific runtime path so host inference stays correct.
+- This is the underlying production transport for connector-managed third-party integration.
 - With `TRIAL_ENABLED` and available trial points, first-time onboarding can complete without browser authorization.
 - On first use, gateway may return `AUTHORIZATION_REQUIRED` with `authorization_url` and `entry_user_key` only when conditional authorization upgrade is required (for example trial exhausted).
 - Persist `entry_user_key` and retry with the same value after user authorization completes.
@@ -190,7 +304,7 @@ Preferred invocation mode for third-party agent entry (recommended when invoking
 Trusted host runtime secondary mode:
 
 - If you control the upstream backend and it can safely hold bridge assertion secret, use `POST /agent/skill/bridge/invoke`.
-- This path is for trusted host runtime only, not OpenClaw / Codex / Claude style third-party entry.
+- This path is for trusted host runtime only, not OpenClaw / MobileClaw / Codex / Claude style third-party entry.
 
 Action payload templates (same for public bridge and trusted host bridge mode):
 
@@ -225,9 +339,13 @@ Action payload templates (same for public bridge and trusted host bridge mode):
 
 Agent-side decision flow:
 
-- If host/runtime can own a separate connector installation, prefer hosted connector install/connect/invoke/status/logout over direct published-skill invocation.
-- Otherwise prefer `POST /agent/public-bridge/invoke` for third-party agent entry so first-time authorization can return `authorization_url` plus `entry_user_key`.
-- New task: call `portal.skill.execute`, then poll with `portal.skill.poll` until `data.terminal=true`, then fetch `portal.skill.presentation`.
+- For official host integration, prefer connector install/connect/invoke/status/logout or the hosted connector lifecycle over direct published-skill invocation.
+- Only bypass connector/runtime and call `POST /agent/public-bridge/invoke` directly when you are in a compatibility or debugging path and can preserve the same `entry_user_key` yourself.
+- Default capability path must follow `delivery mode`, not a universal three-step recipe:
+  - `instant_result`: prefer result-first flow; use `portal.skill.execute` only when dropping to published skill actions.
+  - `aggregated_short_wait`: prefer result-first flow; fall back to `portal.skill.poll` only if the short wait does not complete.
+  - `asset_delivery`: use `portal.skill.presentation` only when the capability needs formal rendered assets.
+  - `long_running`: keep explicit async expectations and use `portal.skill.poll` as the normal follow-up.
 - Explicit account linking: call `portal.account.connect`, surface the returned `authorization_url` when present, and keep reusing the same `entry_user_key`.
 - Account query: call `portal.account.balance` or `portal.account.ledger` directly.
 - Keep `conversation_id` as session context only; do not use it as the account key.
@@ -247,6 +365,7 @@ Output parsing contract:
 
 - For successful visual actions (`portal.skill.execute`, `portal.skill.poll`, `portal.skill.presentation`), the script enriches responses with `data.agent_guidance.visualization.playbook`.
 - Playbook mapping covers the visual capabilities currently exposed by this published skill (detection/classification/keypoints/segmentation/matting families).
+- For `image-generation`, user delivery should be image-first: present the generated image itself and omit structured fields unless the user explicitly asks for source data or debugging details.
 - Global rendering guardrail for all visual capabilities:
 - Must use skill-native rendered assets first (`overlay`/`mask`/`cutout`/`view_url`) when available.
 - Manual local drawing fallback is disabled by default (`allow_manual_draw=false`) to avoid inconsistent agent-side rendering.
@@ -275,12 +394,12 @@ Attachment normalization:
 - The runtime does not scan the local filesystem, guess file locations, expand directories/globs, or read local paths from `payload.file_path`, `input.file_path`, `attachment.path`, or `attachment.file_path`.
 - Arbitrary unmanaged local filesystem access remains unsupported; hosts should provide bytes or a bridge-managed URL instead.
 - Example host upload endpoint: `/agent/public-bridge/upload-file`.
-- `tencent-video-face-fusion` requires 2 uploaded files from the user before execution:
+- `Video Face Generation` requires 2 uploaded files from the user before execution:
   - source video -> `input.video_url`
   - merge face image -> `input.merge_infos[0].merge_face_image.url`
-- If either Tencent face fusion file is missing, agent should ask the user to upload both files first.
-- Prefer a short source video for testing or smoke runs because Tencent legacy facefusion jobs are asynchronous and slower than image-only tasks.
-- Do not rely on a single `attachment.url` auto-mapping for `tencent-video-face-fusion`; host must pass both structured URL fields explicitly.
+- If either required file is missing, agent should ask the user to upload both files first.
+- Prefer a short source video for testing or smoke runs because these video-generation jobs are asynchronous and slower than image-only tasks.
+- Do not rely on a single `attachment.url` auto-mapping for `Video Face Generation`; host must pass both structured URL fields explicitly.
 
 ## Error Contract
 
