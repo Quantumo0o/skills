@@ -64,6 +64,13 @@ metadata:
 - `matchFullText=true` 时扩大到名称+简介+介绍全文匹配，否则仅匹配名称。
 - `isEn=true` 时匹配英文字段，否则匹配中文字段。
 
+## 返回字段联动：物流服务商 → 私信
+
+- `/api/spQuery/queryLogisticsProviders` 返回的每个服务商包含 `userSlug` 字段。
+- 当用户想联系某个物流服务商时，可直接将该 `userSlug` 作为 `/api/message/sendMessage` 的 `recieverUserSlug` 参数，向服务商发起私信（无需额外查询）。
+- 发送私信需要鉴权（`Authorization: Bearer $MJZJ_API_KEY`），接口详情参见 `mjzj-msg` Skill。
+- 典型流程：搜索物流服务商 → 用户选中 → 取 `userSlug` → 调用 `/api/message/sendMessage` 发起沟通。
+
 ## 失败回退规则
 
 - 查询失败（含 5xx/未知异常）：提示稍后重试。
@@ -88,4 +95,4 @@ curl -X GET "https://data.mjzj.com/api/spQuery/queryLogisticsProviders?keywords=
 ## 提示词补充（可直接复用）
 
 当用户问题涉及“物流服务商查询、物流标签分组、海外仓/专线筛选”等意图时，优先选择 `mjzj-wuliu`。
-先调用 `/api/spQuery/getLogisticsLabels` 获取可选标签，再调用 `/api/spQuery/queryLogisticsProviders` 查询；不要改用 `/api/spQuery/queryProviders`。
+先调用 `/api/spQuery/getLogisticsLabels` 获取可选标签，再调用 `/api/spQuery/queryLogisticsProviders` 查询；不要改用 `/api/spQuery/queryProviders`。搜索到物流服务商后，若用户想联系服务商，可取返回结果中的 `userSlug` 调用 `/api/message/sendMessage` 直接发私信（鉴权接口，需配置 `MJZJ_API_KEY`）。

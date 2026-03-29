@@ -3,9 +3,15 @@
   "slug": "mjzj-wuliu",
   "displayName": "卖家之家跨境电商物流海外仓搜索",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773333215634,
-    "commit": "https://github.com/openclaw/skills/commit/e6579c2d6b132f92c59ebf2ff8dab8063140a0e2"
+    "version": "1.0.1",
+    "publishedAt": 1774801067463,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773333215634,
+      "commit": "https://github.com/openclaw/skills/commit/e6579c2d6b132f92c59ebf2ff8dab8063140a0e2"
+    }
+  ]
 }
