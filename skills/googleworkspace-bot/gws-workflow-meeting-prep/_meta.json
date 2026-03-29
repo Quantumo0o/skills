@@ -3,11 +3,16 @@
   "slug": "gws-workflow-meeting-prep",
   "displayName": "Gws Workflow Meeting Prep",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774385890160,
-    "commit": "https://github.com/openclaw/skills/commit/4ae3569a3a37141e81ef259aa185c5bbcf38909e"
+    "version": "1.0.10",
+    "publishedAt": 1774551063540,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774385890160,
+      "commit": "https://github.com/openclaw/skills/commit/4ae3569a3a37141e81ef259aa185c5bbcf38909e"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300521107,
