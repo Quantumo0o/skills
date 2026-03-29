@@ -3,11 +3,16 @@
   "slug": "smart-search",
   "displayName": "Smart Search",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774312175399,
-    "commit": "https://github.com/openclaw/skills/commit/ff18abc6a55915adef18b7ffa2428200a69bdc79"
+    "version": "3.0.4",
+    "publishedAt": 1774510125094,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774312175399,
+      "commit": "https://github.com/openclaw/skills/commit/ff18abc6a55915adef18b7ffa2428200a69bdc79"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773290693032,
