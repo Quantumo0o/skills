@@ -125,6 +125,142 @@ BRANCH_BASE_BRANCH="main"
 TEST_AGENT_SCRIPT="${SCRIPT_DIR}/test-agent.sh"
 TEST_AGENT_ENABLED="false"
 TEST_AGENT_TRIGGER_REVIEW_CLEAN="true"
+TEST_AGENT_TRIGGER_ON_COMMIT_EVALUATE="true"
+
+# Gemini 前端路由（过渡方案，ACP 稳定后切换）
+# 格式: "项目名:tmux窗口名" — 指定该项目的 frontend 任务发到哪个 Gemini 窗口
+# 如果项目没有对应的 Gemini 窗口，frontend 任务仍走 Codex
+GEMINI_WINDOWS=()
+GEMINI_DEFAULT_WINDOW=""  # 没有项目特定映射时的默认 Gemini 窗口
+
+load_gemini_config() {
+    local yaml_file="$1"
+    [ -f "$yaml_file" ] || return 0
+
+    GEMINI_DEFAULT_WINDOW=$(grep -A5 '^gemini:' "$yaml_file" 2>/dev/null | grep 'default_window:' | sed 's/#.*//' | sed 's/.*default_window: *"\{0,1\}\([^"]*\)"\{0,1\}/\1/' | tr -d ' ' || true)
+
+    # 读取 approval_mode（yolo/auto_edit/default）
+    local mode
+    mode=$(grep -A5 '^gemini:' "$yaml_file" 2>/dev/null | grep 'approval_mode:' | sed 's/.*approval_mode: *"\{0,1\}\([^"]*\)"\{0,1\}/\1/' | tr -d ' ' || true)
+    [ -n "$mode" ] && GEMINI_APPROVAL_MODE="$mode"
+
+    local mapping_lines
+    mapping_lines=$(awk '
+        /^gemini:/ { in_gemini = 1; next }
+        in_gemini && /^[^ ]/ { in_gemini = 0 }
+        in_gemini && /project_windows:/ { in_pw = 1; next }
+        in_pw && /^[^ ]/ { in_pw = 0 }
+        in_pw && /^    [a-zA-Z]/ { print }
+    ' "$yaml_file" 2>/dev/null || true)
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        local proj win
+        proj=$(echo "$line" | sed 's/#.*//' | cut -d: -f1 | tr -d ' ')
+        win=$(echo "$line" | sed 's/#.*//' | cut -d: -f2- | tr -d ' "')
+        [ -n "$proj" ] && [ -n "$win" ] && GEMINI_WINDOWS+=("${proj}:${win}")
+    done <<< "$mapping_lines"
+}
+
+get_gemini_window() {
+    local project="$1"
+    local safe
+    safe=$(echo "$project" | tr -cd 'a-zA-Z0-9_-' | tr '[:upper:]' '[:lower:]')
+
+    for entry in "${GEMINI_WINDOWS[@]}"; do
+        local p="${entry%%:*}"
+        local w="${entry#*:}"
+        if [ "$p" = "$safe" ] || [ "$p" = "$project" ]; then
+            echo "$w"
+            return 0
+        fi
+    done
+
+    # fallback to default
+    if [ -n "$GEMINI_DEFAULT_WINDOW" ]; then
+        echo "$GEMINI_DEFAULT_WINDOW"
+        return 0
+    fi
+
+    return 1
+}
+
+is_frontend_task() {
+    local task_type="$1"
+    task_type=$(printf '%s\n' "$task_type" | tr '[:upper:]' '[:lower:]')
+    case "$task_type" in
+        frontend|ui|h5) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+GEMINI="${GEMINI_BIN:-$(command -v gemini || echo /opt/homebrew/bin/gemini)}"
+
+# Gemini approval mode: yolo (auto-approve all), auto_edit, default
+GEMINI_APPROVAL_MODE="${GEMINI_APPROVAL_MODE:-yolo}"
+
+ensure_gemini_session() {
+    local gemini_window="$1"
+    local session_name="${gemini_window%%:*}"
+    local window_name="${gemini_window#*:}"
+    local project_dir="$2"  # optional workdir
+
+    # 检查窗口是否已存在且 Gemini 正在运行
+    if tmux has-session -t "$session_name" 2>/dev/null; then
+        local pane_content
+        pane_content=$(tmux capture-pane -t "$gemini_window" -p 2>/dev/null | tail -5)
+        if echo "$pane_content" | grep -q "Type your message\|esc to cancel"; then
+            return 0  # Gemini 已在运行
+        fi
+        # 窗口存在但 Gemini 没运行 — 检查是否有 shell prompt
+        if echo "$pane_content" | grep -q '^\$\|^%\|^❯'; then
+            log "🔄 Gemini not running in ${gemini_window}, starting with --${GEMINI_APPROVAL_MODE}..."
+            local cd_cmd=""
+            [ -n "$project_dir" ] && cd_cmd="cd ${project_dir} && "
+            tmux send-keys -t "$gemini_window" "${cd_cmd}${GEMINI} --approval-mode ${GEMINI_APPROVAL_MODE}" Enter
+            sleep 8  # Gemini 启动需要几秒
+            return 0
+        fi
+    fi
+
+    # 窗口不存在 — 创建
+    if ! tmux has-session -t "$session_name" 2>/dev/null; then
+        log "⚠️ tmux session ${session_name} not found"
+        return 1
+    fi
+
+    local start_dir="${project_dir:-.}"
+    tmux new-window -t "$session_name" -n "$window_name" -c "$start_dir" 2>/dev/null
+    sleep 1
+    tmux send-keys -t "$gemini_window" "${GEMINI} --approval-mode ${GEMINI_APPROVAL_MODE}" Enter
+    sleep 8  # 等待 Gemini 启动
+    log "🚀 Gemini started in ${gemini_window} (--${GEMINI_APPROVAL_MODE})"
+    return 0
+}
+
+send_gemini_message() {
+    local gemini_window="$1" message="$2"
+    local output rc
+
+    # 自动确保 Gemini 窗口存在且运行
+    if ! ensure_gemini_session "$gemini_window"; then
+        log "⚠️ Gemini window ${gemini_window} not found, falling back to Codex"
+        return 1
+    fi
+
+    # 发送到 Gemini（和 Codex 一样用 tmux send-keys）
+    tmux send-keys -t "$gemini_window" -l "$message" 2>/dev/null
+    sleep 2
+    tmux send-keys -t "$gemini_window" Enter 2>/dev/null
+    rc=$?
+
+    if [ "$rc" -ne 0 ]; then
+        log "❌ Gemini send to ${gemini_window} failed (rc=${rc})"
+        return "$rc"
+    fi
+
+    log "🎨 Gemini: sent frontend task to ${gemini_window}"
+    return 0
+}
 
 # ---- 工具函数 ----
 log() {
@@ -178,20 +314,17 @@ load_projects() {
 
     if [ "${#PROJECTS[@]}" -eq 0 ]; then
         PROJECTS=("${DEFAULT_PROJECTS[@]}")
-        AUTOPILOT_PROJECT_SOURCE="defaults"
+        log "⚠️ project config missing/empty, fallback to defaults (${#PROJECTS[@]} projects)"
+    else
+        # AUTOPILOT_PROJECT_SOURCE is set in subshell and lost; infer source
+        log "📁 loaded ${#PROJECTS[@]} projects from config"
     fi
 
-    case "${AUTOPILOT_PROJECT_SOURCE:-defaults}" in
-        "config.yaml")
-            log "📁 loaded ${#PROJECTS[@]} projects from config.yaml"
-            ;;
-        "watchdog-projects.conf")
-            log "⚠️ config.yaml projects missing/invalid, fallback to watchdog-projects.conf (${#PROJECTS[@]} projects)"
-            ;;
-        *)
-            log "⚠️ project config missing/empty, fallback to defaults (${#PROJECTS[@]} projects)"
-            ;;
-    esac
+    # 加载 Gemini 前端路由配置
+    load_gemini_config "$CONFIG_YAML_FILE"
+    if [ -n "$GEMINI_DEFAULT_WINDOW" ] || [ "${#GEMINI_WINDOWS[@]}" -gt 0 ]; then
+        log "🎨 Gemini routing: default=${GEMINI_DEFAULT_WINDOW:-none}, project mappings=${#GEMINI_WINDOWS[@]}"
+    fi
 }
 
 load_branch_isolation_config() {
@@ -258,7 +391,7 @@ load_test_agent_config() {
     local config_file="$CONFIG_YAML_FILE"
     [ -f "$config_file" ] || return 0
 
-    local enabled_val on_review_clean_val
+    local enabled_val on_review_clean_val on_commit_val
     enabled_val=$(awk '
         /^[[:space:]]*test_agent:[[:space:]]*$/ {in_test=1; next}
         in_test && /^[^[:space:]]/ {in_test=0}
@@ -275,9 +408,19 @@ load_test_agent_config() {
             sub(/^[[:space:]]*on_review_clean:[[:space:]]*/, "", $0); print; exit
         }
     ' "$config_file" 2>/dev/null || true)
+    on_commit_val=$(awk '
+        /^[[:space:]]*test_agent:[[:space:]]*$/ {in_test=1; next}
+        in_test && /^[^[:space:]]/ {in_test=0}
+        in_test && /^[[:space:]]*trigger:[[:space:]]*$/ {in_trigger=1; next}
+        in_trigger && in_test && /^[[:space:]]*[a-zA-Z_][a-zA-Z0-9_]*:[[:space:]]*$/ && $0 !~ /^[[:space:]]*on_commit_evaluate:[[:space:]]*/ {next}
+        in_trigger && /^[[:space:]]*on_commit_evaluate:[[:space:]]*/ {
+            sub(/^[[:space:]]*on_commit_evaluate:[[:space:]]*/, "", $0); print; exit
+        }
+    ' "$config_file" 2>/dev/null || true)
 
     enabled_val=$(echo "${enabled_val:-}" | tr '[:upper:]' '[:lower:]' | tr -d ' "'\''')
     on_review_clean_val=$(echo "${on_review_clean_val:-}" | tr '[:upper:]' '[:lower:]' | tr -d ' "'\''')
+    on_commit_val=$(echo "${on_commit_val:-}" | tr '[:upper:]' '[:lower:]' | tr -d ' "'\''')
 
     case "$enabled_val" in
         true|1|yes|on) TEST_AGENT_ENABLED="true" ;;
@@ -286,6 +429,10 @@ load_test_agent_config() {
     case "$on_review_clean_val" in
         true|1|yes|on) TEST_AGENT_TRIGGER_REVIEW_CLEAN="true" ;;
         false|0|no|off) TEST_AGENT_TRIGGER_REVIEW_CLEAN="false" ;;
+    esac
+    case "$on_commit_val" in
+        true|1|yes|on) TEST_AGENT_TRIGGER_ON_COMMIT_EVALUATE="true" ;;
+        false|0|no|off) TEST_AGENT_TRIGGER_ON_COMMIT_EVALUATE="false" ;;
     esac
 }
 
@@ -368,6 +515,38 @@ extract_queue_meta_from_line() {
         | sed -n "s/^.* | ${key}: \\([^|]*\\).*$/\\1/p" \
         | sed 's/[[:space:]]*$//' \
         | head -n1
+}
+
+# 根据任务类型拼接队列任务前缀；兼容旧数据（空/type=task 均按 general 处理）。
+build_task_prompt_by_type() {
+    local task_type_raw="${1:-}"
+    local task_desc="${2:-}"
+    local task_type
+    task_type=$(printf '%s\n' "$task_type_raw" | tr '[:upper:]' '[:lower:]')
+
+    case "$task_type" in
+        ""|general|task)
+            printf '%s' "$task_desc"
+            ;;
+        bugfix|bug|fix)
+            printf '任务类型: bugfix\n要求: 先复现并定位根因，再做最小修复；补充回归测试并自测通过。\n任务: %s' "$task_desc"
+            ;;
+        feature|feat)
+            printf '任务类型: feature\n要求: 先给出最小可行实现方案（接口/数据/边界），再分步实现并补充测试。\n任务: %s' "$task_desc"
+            ;;
+        refactor)
+            printf '任务类型: refactor\n要求: 不改变外部行为；重构后必须通过现有测试，并补充必要回归测试。\n任务: %s' "$task_desc"
+            ;;
+        review|review_fix)
+            printf '任务类型: review\n要求: 优先修复高优先级问题（P1/P2），修改后说明验证方式并提交。\n任务: %s' "$task_desc"
+            ;;
+        frontend|ui|h5)
+            printf '任务类型: frontend\n要求: 实现前端页面/组件/样式，确保响应式和交互状态覆盖（loading/empty/error/success），自查 Anti-AI-Slop 清单，design system 一致性。完成后自查：布局是否模板化？有没有通用渐变/3列grid？空状态有温度吗？间距有节奏感吗？\n任务: %s' "$task_desc"
+            ;;
+        *)
+            printf '任务类型: %s\n任务: %s' "$task_type" "$task_desc"
+            ;;
+    esac
 }
 
 send_telegram_alert() {
@@ -617,6 +796,43 @@ maybe_trigger_test_agent_on_review_clean() {
             log "🧪 ${window}: test-agent enqueue triggered after review CLEAN (enqueued=${enqueued})"
         else
             log "⚠️ ${window}: test-agent enqueue failed after review CLEAN"
+        fi
+    ) &
+}
+
+maybe_trigger_test_agent_on_commit() {
+    local window="$1" safe="$2" project_dir="$3" current_head="$4"
+    [ "$TEST_AGENT_ENABLED" = "true" ] || return 0
+    [ "$TEST_AGENT_TRIGGER_ON_COMMIT_EVALUATE" = "true" ] || return 0
+    [ -x "$TEST_AGENT_SCRIPT" ] || return 0
+    [ -n "$current_head" ] || return 0
+
+    local stamp_file last_head trigger_lock
+    stamp_file="${STATE_DIR}/test-agent-commit-${safe}.head"
+    last_head=$(cat "$stamp_file" 2>/dev/null || echo "")
+    [ "$current_head" != "$last_head" ] || return 0
+
+    trigger_lock="${LOCK_DIR}/test-agent-commit-${safe}.lock.d"
+    if [ -d "$trigger_lock" ]; then
+        local lock_age
+        lock_age=$(( $(now_ts) - $(file_mtime "$trigger_lock") ))
+        if [ "$lock_age" -gt 900 ]; then
+            rm -rf "$trigger_lock" 2>/dev/null || true
+        fi
+    fi
+    mkdir "$trigger_lock" 2>/dev/null || return 0
+
+    (
+        trap 'rm -rf "'"$trigger_lock"'"' EXIT
+        local out_file out_json
+        out_file="${HOME}/.autopilot/logs/test-agent-${safe}.log"
+        out_json=$("$TEST_AGENT_SCRIPT" evaluate "$project_dir" "$window" 2>>"$out_file" || true)
+
+        if [ -n "$out_json" ] && echo "$out_json" | jq -e . >/dev/null 2>&1; then
+            echo "$current_head" > "${stamp_file}.tmp" && mv -f "${stamp_file}.tmp" "$stamp_file"
+            log "🧪 ${window}: test-agent evaluate triggered after commit (${current_head:0:7})"
+        else
+            log "⚠️ ${window}: test-agent evaluate failed after commit (${current_head:0:7})"
         fi
     ) &
 }
@@ -1115,12 +1331,12 @@ handle_idle() {
         queue_task=$("${SCRIPT_DIR}/task-queue.sh" next "$safe" 2>/dev/null || true)
         if [ -n "$queue_task" ]; then
             local queue_task_type queue_pending_line queue_file
-            queue_task_type="task"
+            queue_task_type="general"
             queue_file="${HOME}/.autopilot/task-queue/${safe}.md"
             queue_pending_line=$(grep -m1 '^\- \[ \]' "$queue_file" 2>/dev/null || true)
             if [ -n "$queue_pending_line" ]; then
-                queue_task_type=$(extract_queue_meta_from_line "$queue_pending_line" "type" 2>/dev/null || echo "task")
-                [ -n "$queue_task_type" ] || queue_task_type="task"
+                queue_task_type=$(extract_queue_meta_from_line "$queue_pending_line" "type" 2>/dev/null || echo "general")
+                [ -n "$queue_task_type" ] || queue_task_type="general"
             fi
 
             if [ "$weekly_limit_exhausted" = "true" ]; then
@@ -1132,9 +1348,34 @@ handle_idle() {
                 set_cooldown "$key"
                 echo 0 > "$nudge_count_file"
                 sync_project_status "$project_dir" "claude_fallback" "window=${window}" "state=idle"
+            elif is_frontend_task "$queue_task_type"; then
+                # 前端任务 → 路由到 Gemini tmux 窗口
+                local gemini_win
+                gemini_win=$(get_gemini_window "$safe" 2>/dev/null || true)
+                nudge_msg=$(build_task_prompt_by_type "$queue_task_type" "${queue_task:0:280}")
+                if [ -n "$gemini_win" ] && send_gemini_message "$gemini_win" "$nudge_msg"; then
+                    "${SCRIPT_DIR}/task-queue.sh" start "$safe" 2>/dev/null || true
+                    set_cooldown "$key"
+                    echo 0 > "$nudge_count_file"
+                    log "🎨 ${window}: frontend task routed to Gemini(${gemini_win}) — ${nudge_msg:0:80}"
+                    sync_project_status "$project_dir" "gemini_task_sent" "window=${gemini_win}" "state=idle"
+                    send_telegram "🎨 ${window}: 前端任务已发送到 Gemini(${gemini_win}) — ${nudge_msg:0:100}"
+                else
+                    # Gemini 不可用，降级到 Codex
+                    log "⚠️ ${window}: Gemini unavailable, falling back to Codex for frontend task"
+                    if send_tmux_message "$window" "$nudge_msg" "queue task (frontend→codex fallback)" "$queue_task_type" "auto"; then
+                        "${SCRIPT_DIR}/task-queue.sh" start "$safe" 2>/dev/null || true
+                        set_cooldown "$key"
+                        echo 0 > "$nudge_count_file"
+                        log "📋 ${window}: frontend task sent to Codex (Gemini fallback) — ${nudge_msg:0:80}"
+                        start_nudge_ack_check "$window" "$safe" "$project_dir" "$before_head" "$before_ctx" "queue task"
+                        sync_project_status "$project_dir" "queue_task_sent" "window=${window}" "state=idle"
+                        send_telegram "📋 ${window}: 前端任务降级到 Codex — ${nudge_msg:0:100}"
+                    fi
+                fi
             else
                 # 正常 Codex 派发
-                nudge_msg="${queue_task:0:280}"
+                nudge_msg=$(build_task_prompt_by_type "$queue_task_type" "${queue_task:0:280}")
                 if send_tmux_message "$window" "$nudge_msg" "queue task" "$queue_task_type" "auto"; then
                     "${SCRIPT_DIR}/task-queue.sh" start "$safe" 2>/dev/null || true
                     set_cooldown "$key"
@@ -1529,6 +1770,7 @@ check_new_commits() {
 
     # Layer 1 自动检查
     run_auto_checks "$window" "$safe" "$project_dir"
+    maybe_trigger_test_agent_on_commit "$window" "$safe" "$project_dir" "$current_head"
     # PRD 引擎：按本次 commit 变更文件自动匹配并执行 checker
     run_prd_checks_for_commit "$window" "$safe" "$project_dir" "$last_head" "$current_head"
 
@@ -1851,7 +2093,7 @@ load_projects
 load_branch_isolation_config
 load_test_agent_config
 log "🌿 branch isolation: enabled=${BRANCH_ISOLATION_ENABLED}, auto_merge=${BRANCH_AUTO_MERGE_ENABLED}, require_auto_check=${BRANCH_REQUIRE_AUTO_CHECK}, require_tests=${BRANCH_REQUIRE_TESTS}, base=${BRANCH_BASE_BRANCH}"
-log "🧪 test-agent: enabled=${TEST_AGENT_ENABLED}, trigger_review_clean=${TEST_AGENT_TRIGGER_REVIEW_CLEAN}"
+log "🧪 test-agent: enabled=${TEST_AGENT_ENABLED}, trigger_review_clean=${TEST_AGENT_TRIGGER_REVIEW_CLEAN}, trigger_on_commit=${TEST_AGENT_TRIGGER_ON_COMMIT_EVALUATE}"
 log "🚀 Watchdog v4 started (tick=${TICK}s, idle_threshold=${IDLE_THRESHOLD}s, idle_confirm=${IDLE_CONFIRM_PROBES}, inertia=${WORKING_INERTIA_SECONDS}s, projects=${#PROJECTS[@]}, pid=$$)"
 
 cycle=0

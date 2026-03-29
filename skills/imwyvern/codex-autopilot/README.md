@@ -1,328 +1,290 @@
-# AIWorkFlow — AI 开发全流程自动化系统
+<div align="center">
 
-> 一套面向 AI 创业团队的完整开发工具链：**6 个开发流程 Skill** + **Codex Autopilot 多项目自动化引擎** + **OpenClaw 智能调度层**
+# AIWorkFlow
 
----
+**Full-cycle AI development automation.**
+**6 Skills. Autopilot Engine. Intelligent Orchestration.**
 
-## 🏗 系统组成
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Shell](https://img.shields.io/badge/Shell-Bash-blue.svg)](scripts/)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![Codex](https://img.shields.io/badge/Codex-Autopilot-orange.svg)](scripts/watchdog.sh)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-Orchestration-red.svg)](https://github.com/openclaw/openclaw)
 
-本项目包含三大模块：
+English · [中文](README_zh.md)
 
-### 1. 开发流程 Skill 体系 (v1.5.0)
-
-覆盖从需求调研到上线的完整开发周期，可集成到 Gemini / Codex / Claude 等 AI 编码助手中。
-
-### 2. Codex Autopilot 引擎
-
-多项目并行的 Codex CLI 自动化监控与任务编排系统，通过 tmux + launchd 实现 7×24 无人值守开发。
-
-### 3. OpenClaw 智能调度层
-
-通过 [OpenClaw](https://github.com/openclaw/openclaw) 提供上层智能调度能力，包括 cron 定时任务、Claude sub-agent 代码审查、Telegram 消息通道、以及跨 AI 引擎的协同编排。
+</div>
 
 ---
 
-## 📋 开发流程 Skill
+A complete development toolchain for AI startup teams: **6 Development Workflow Skills** + **Codex Autopilot Multi-Project Engine** + **OpenClaw Intelligent Orchestration Layer**.
+
+## 🏗 System Overview
+
+| Module | What It Does |
+|--------|-------------|
+| **Workflow Skills** (v1.5.0) | 6 skills covering the full dev cycle — requirement research → doc writing → review → development → testing → code review |
+| **Codex Autopilot** | Multi-project 24/7 Codex CLI automation via tmux + launchd — status detection, smart nudge, task queue, auto-recovery |
+| **OpenClaw Layer** | Cron scheduling, Claude sub-agent reviews, Telegram/Discord channels, cross-engine orchestration |
+
+## 📋 Development Workflow Skills
 
 ```
-需求调研 → 文档撰写 → 文档评审 → 开发实现 ←→ 测试设计 → 代码评审 → 发布
-   │          │          │          │              │          │
-   ▼          ▼          ▼          ▼              ▼          ▼
-requirement  doc-       doc-     development    testing    code-
--discovery   writing    review   + Bug修复                 review
+Requirement → Doc Writing → Doc Review → Development ←→ Testing → Code Review → Release
 ```
 
-| Skill | 用途 | 触发示例 |
-|-------|------|---------|
-| **requirement-discovery** | 需求调研、RICE 评分、AI 可行性评估 | "帮我调研这个需求" |
-| **doc-writing** | 撰写 PRD、技术方案、API 设计、任务清单 | "帮我写需求文档" |
-| **doc-review** | 评审需求文档，发现遗漏和风险 | "评审这个 PRD" |
-| **development** | 开发实现、Bug 修复（5 Whys 根因分析）、进度追踪 | "帮我实现这个功能" |
-| **testing** | 测试策略、用例设计、覆盖率分析 | "帮我设计测试用例" |
-| **code-review** | 三层防御代码评审（自动检查 → 增量审查 → 全量审计） | "review 这个代码" |
+| Skill | Purpose | Trigger |
+|-------|---------|---------|
+| **requirement-discovery** | RICE scoring, AI feasibility | "Research this requirement" |
+| **doc-writing** | PRDs, tech specs, API design | "Write a requirements doc" |
+| **doc-review** | Gap & risk identification | "Review this PRD" |
+| **development** | Implementation, 5 Whys bug fix | "Implement this feature" |
+| **testing** | Test strategy & case design | "Design test cases" |
+| **code-review** | 3-layer defense review | "Review this code" |
 
-### 使用方式
+**Core Principles:** Startup-friendly (MoSCoW MVP) · AI-native (token cost controls) · SOLID-driven · Doc-closed-loop
 
-将 Skill 目录链接到你的 AI 助手：
+<details>
+<summary>📌 Installation</summary>
 
 ```bash
 # Gemini
 ln -sf /path/to/AIWorkFlowSkill/development ~/.gemini/skills/development
 
-# Codex (AGENTS.md 中引用)
-# Claude (Skills 目录)
+# Codex — reference in AGENTS.md
+# Claude — add to Skills directory
 ```
 
-### 核心理念
-
-- **创业友好** — MoSCoW 快速确定 MVP，允许合理技术债（必须记录）
-- **AI 原生** — 每个 Skill 包含 AI 专项检查、Prompt 规范、Token 成本控制
-- **SOLID 驱动** — 开发和 Review 严格遵循 SOLID 原则
-- **文档闭环** — Bug 修复追溯文档，发现问题及时反馈
+</details>
 
 ---
 
-## 🤖 Codex Autopilot 引擎
-
-### 架构
+## 🤖 Codex Autopilot Engine
 
 ```
-                    ┌─────────────────────────────────────┐
-                    │         Codex Autopilot 引擎         │
-                    └─────────────────────────────────────┘
-
-  触发层              检测层              决策层              执行层
-┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ launchd  │───→│codex-status  │───→│ watchdog.sh  │───→│ tmux-send.sh │
-│  (10s)   │    │   .sh        │    │  (1200行)    │    │ (三层发送)    │
-└──────────┘    │ JSON状态检测  │    │ 状态机决策    │    └──────────────┘
-┌──────────┐    │working/idle/ │    │指数退避/锁/  │    ┌──────────────┐
-│  cron    │───→│permission/   │    │compact恢复   │───→│ task-queue.sh│
-│ (10min)  │    │shell/absent  │    └──────────────┘    │ (任务队列)    │
-└──────────┘    └──────────────┘           │            └──────────────┘
-                                           │
-                 监控层                     ▼             审查层
-            ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-            │monitor-all.sh│    │  Telegram     │    │consume-review│
-            │ + token统计   │───→│  通知/报告    │    │-trigger.sh   │
-            └──────────────┘    └──────────────┘    └──────────────┘
+  Trigger          Detection         Decision          Execution
+┌──────────┐    ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│ launchd  │───→│codex-status │──→│ watchdog.sh │──→│ tmux-send.sh│
+│  (10s)   │    │    .sh      │   │ (~1700 LOC) │   │ (3-layer)   │
+└──────────┘    │ JSON output │   │ State machine│   └─────────────┘
+│  cron    │───→│working/idle/│   │ Exp backoff  │──→│ task-queue  │
+│ (10min)  │    │perm/shell   │   │ Lock/compact │   │    .sh      │
+└──────────┘    └─────────────┘   └─────────────┘   └─────────────┘
 ```
 
-### OpenClaw 调度层
-
-Autopilot 引擎与 [OpenClaw](https://github.com/openclaw/openclaw) 深度集成，形成三层协同：
+### Typical Flow
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    OpenClaw Gateway                      │
-│  ┌──────────┐  ┌──────────┐  ┌───────────┐  ┌────────┐ │
-│  │  Cron    │  │  Claude   │  │ Telegram  │  │ Task   │ │
-│  │  定时任务 │  │ Sub-agent │  │  通知通道  │  │ Queue  │ │
-│  └────┬─────┘  └────┬─────┘  └─────┬─────┘  └───┬────┘ │
-└───────┼──────────────┼──────────────┼────────────┼──────┘
-        │              │              │            │
-        ▼              ▼              ▼            ▼
-   monitor-all.sh  Code Review   告警/报告    用户提交任务
-   (10min 报告)    (双路审查)    (状态推送)   (Codex 空闲时派发)
+User (Telegram) → "Fix white-screen bug"
+  → Claude (OpenClaw) writes to task-queue
+  → Watchdog detects Codex idle → dispatches task
+  → Codex fixes → commit → triggers Claude code review
+  → Review clean → Discord notification "✅ Bug fixed"
 ```
 
-**OpenClaw 提供的关键能力：**
-
-| 能力 | 说明 |
-|------|------|
-| **Cron 定时任务** | 10 分钟监控报告、每日工作总结、PRD 自动验收、竞品监控 |
-| **Claude Sub-agent** | 独立 Claude 实例执行代码审查，与 Codex 形成**双路交叉审查** |
-| **Telegram 通道** | 实时状态推送、告警通知、任务接收（用户发 Telegram → Claude 写入队列 → Codex 执行） |
-| **跨引擎协同** | Claude（审查/分析）+ Codex（编码/修复）各司其职，通过触发文件协调 |
-| **对话式管理** | 通过 Telegram 与 Claude 对话，即时查询项目状态、派发任务、触发审查 |
-
-**典型协同流程：**
+### Multi-Model Task Routing
 
 ```
-用户 (Telegram) → "ReplyHer 有个白屏 bug"
-       ↓
-Claude (OpenClaw) → 写入 task-queue → 等待 Codex idle
-       ↓
-Watchdog 检测 idle → 从队列取出任务 → tmux send-keys 发给 Codex
-       ↓
-Codex 修复 → commit → watchdog 检测 commit 数达标
-       ↓
-触发 Claude sub-agent 代码审查 → 发现问题 → 再派给 Codex 修
-       ↓
-Review CLEAN → Telegram 通知用户 "✅ 白屏 bug 已修复"
+Task Queue
+├─ type: frontend/ui/h5  → 🎨 Gemini tmux window (design-optimized)
+├─ type: bugfix/feature   → 🔧 Codex tmux window (code-optimized)
+├─ Codex limit exhausted  → 🤖 Claude AgentTeam fallback
+└─ Gemini unavailable     → 🔧 Codex fallback (graceful degradation)
 ```
 
-### 核心脚本
+| Role | Model | Method | Best At |
+|------|-------|--------|---------|
+| **Orchestrator** | Claude (OpenClaw) | Direct | Planning, reviews, communication |
+| **Backend Dev** | Codex (GPT-5.4) | tmux persistent | APIs, databases, deployment |
+| **Frontend Dev** | Gemini CLI (`gemini-3.1-pro-preview`) | tmux persistent session | UI, components, 1M context, visual design |
 
-| 脚本 | 行数 | 功能 |
-|------|------|------|
-| `scripts/watchdog.sh` | ~1700 | 主守护进程 — 状态检测、智能 nudge、权限处理、compact 恢复、任务队列调度、任务追踪通知 |
-| `scripts/codex-status.sh` | ~200 | Codex TUI 状态检测（BFS 进程树），输出 JSON (working/idle/permission/shell/absent) |
-| `scripts/tmux-send.sh` | ~480 | 三层消息发送 + 任务追踪（`--track` 自动记录任务来源，watchdog 检测完成后通知） |
-| `scripts/monitor-all.sh` | ~450 | 10 分钟全局监控 + Telegram 报告（commit、context、lifecycle） |
-| `scripts/task-queue.sh` | ~350 | 任务队列 CRUD — 支持优先级、并发锁、超时回收、来源追踪 |
-| `scripts/consume-review-trigger.sh` | ~450 | Layer 2 代码审查消费者（触发文件驱动，输出完整性检查） |
-| `scripts/discord-notify.sh` | ~180 | Discord 通知 — 按项目频道映射推送（config.yaml 驱动） |
-| `scripts/autopilot-lib.sh` | ~350 | 共享函数库 — 项目加载、Discord 映射、文件工具 |
-| `scripts/autopilot-constants.sh` | ~50 | 状态常量定义（版本、状态字符串） |
-| `scripts/prd_verify_engine.py` | ~500 | PRD 验证引擎 — checker 插件系统，"proof of done" |
-| `scripts/codex-token-daily.py` | ~380 | Token 用量统计（从 Codex JSONL 会话提取） |
+Frontend tasks do **not** go through ACP for now. Direct tmux persistent sessions are more stable in current production runs.
 
-### 智能 Nudge 决策树（v0.5.0）
-
-```
-Codex idle
-│
-├─ PRD 完成 + 无 pending issues？
-│   ├─ review 有问题？→ nudge #N/5（5 次退避上限，无 commit 则暂停）
-│   ├─ 队列有任务？→ 绕过冷却，消费队列
-│   └─ 真的没事 → 🛑 完全停止 nudge（不浪费 token）
-│
-├─ 优先级 1: compact 刚完成？→ 恢复 nudge（含上下文快照）
-├─ 优先级 2: 队列有任务？→ 消费队列，发任务给 Codex
-├─ 优先级 3: autocheck/PRD 有问题？→ nudge 修复
-├─ 兜底: 无任何待办 → 💤 跳过（不再用 smart nudge "找事做"）
-└─ dirty tree？→ 催提交（覆盖以上 nudge 内容）
-```
-
-**核心原则：有任务才 nudge，没任务就安静。**
-
-### 任务追踪与完成通知
-
-解决"说了'完成后通知你'但实际做不到"的问题：
-
-```
-用户安排任务 → tmux-send.sh（自动 --track）→ tracked-task.json 写入
-→ watchdog 每 10s 检查
-→ 新 commit + Codex idle = ✅ Discord 通知到来源频道
-→ 1 小时无进展 = ⚠️ "任务可能卡住" 通知
-```
-
-- 外部调用 tmux-send.sh 默认启用追踪
-- watchdog 内部调用自动关闭追踪（`--no-track`）
-- 任务来源（Discord 频道）自动从 config.yaml 映射
-
-### Discord ↔ Autopilot 路由
+**Configuration:**
 
 ```yaml
 # config.yaml
-discord_channels:
-  shike:
-    channel_id: "1473294169203150941"
-    tmux_window: "Shike"
-    project_dir: "/Users/wes/Shike"
+gemini:
+  default_window: "gemini-h5"    # Default Gemini tmux window
+  project_windows:               # Per-project mapping
+    youxin: "gemini-youxin"
 ```
 
-- 项目完成 commit → 自动推送到对应 Discord 频道
-- 手动任务完成 → 通知回到来源频道
-- 支持 `--by-window` 反查频道
-
-### 防护机制
-
-| 机制 | 说明 |
-|------|------|
-| **智能 nudge** | 无任务不 nudge，review issues 5 次退避，避免空转浪费 token |
-| **指数退避** | nudge 间隔 300→600→1200→2400→4800→9600s，6 次后停止 + 告警 |
-| **3 次 idle 确认** | 避免 API 延迟导致误判 |
-| **90s 工作惯性** | 刚检测到 working 的 90s 内不 nudge |
-| **手动任务保护** | 人工发送的任务 300s 内不被 watchdog 覆盖 |
-| **任务追踪** | 手动任务自动追踪，完成/超时均通知用户 |
-| **队列并发锁** | mkdir 原子锁，防止并发读写损坏队列文件 |
-| **队列超时回收** | in-progress >3600s 自动 fail 重新入队 |
-| **Compact 上下文快照** | compact 前保存任务状态，compact 后精准恢复 |
-| **原子锁 (mkdir)** | macOS 无 flock，用 mkdir 实现带过期回收的原子锁 |
-| **运行时文件隔离** | status.json 等运行时文件 gitignore，避免 dirty repo 阻塞 Codex |
-
-### 快速开始
+**Usage:**
 
 ```bash
-# 1. 配置项目
+# Frontend tasks route to Gemini automatically
+task-queue.sh add myproject "Build login page" normal --type frontend
+
+# Backend tasks still go to Codex
+task-queue.sh add myproject "Fix auth API" high --type bugfix
+```
+
+Frontend tasks include Anti-AI-Slop prompt injection: layout checks, design system consistency, interaction state coverage (loading/empty/error/success).
+
+### CI/CD: Test Agent
+
+Trigger points:
+- `on_commit_evaluate`: evaluate test/coverage right after commit detection
+- `on_review_clean`: run coverage-gap analysis and enqueue test tasks after review is clean
+- `nightly`: scheduled coverage evaluation window
+
+Flow:
+
+```
+commit
+  → watchdog (detect new commit)
+  → test-agent evaluate (run tests + collect coverage)
+  → pass: continue workflow, then on review clean run coverage-gap enqueue
+  → fail: auto-parse test logs
+          → extract failed test files + error summary
+          → task-queue add "fix tests" bugfix tasks (high priority)
+```
+
+Coverage ratchet policy:
+- Weekly ratchet: `+1%`
+- Cap: `90%`
+
+Auto-enqueue on failure (introduced in `386a682`):
+- Parse `$HOME/.autopilot/logs/test-agent-run-*.log` and package run logs
+- Extract failed test file and key error line
+- Enqueue bugfix task via `task-queue.sh add <project> ... high --type bugfix`
+- 1-hour cooldown dedupe per failed target to avoid retry loops
+
+Config example:
+
+```yaml
+test_agent:
+  enabled: true
+  trigger:
+    on_commit_evaluate: true
+    on_review_clean: true
+    nightly: "02:30"
+  queue:
+    max_tasks_per_round: 3
+  coverage:
+    changed_files_min: 80
+    ratchet_weekly: 1
+    ratchet_cap: 90
+```
+
+### Smart Nudge Decision Tree
+
+```
+Codex idle
+├─ Queue has tasks? → consume queue (bypass cooldown)
+│   ├─ type=frontend? → route to Gemini window
+│   └─ type=other?    → route to Codex window
+├─ Review has issues? → nudge #N/5 (5-attempt cap, backoff)
+├─ Compact just finished? → resume with context snapshot
+├─ PRD has issues? → nudge fix
+├─ Nothing pending → 💤 stay quiet (zero token waste)
+└─ Dirty tree? → prompt commit
+```
+
+### Core Scripts
+
+| Script | LOC | Function |
+|--------|:---:|----------|
+| `watchdog.sh` | ~1700 | Main daemon — detection, nudge, recovery, queue, tracking |
+| `codex-status.sh` | ~200 | BFS process tree → JSON status |
+| `tmux-send.sh` | ~480 | 3-layer send + task tracking |
+| `monitor-all.sh` | ~450 | 10-min global report → Telegram |
+| `task-queue.sh` | ~350 | Queue CRUD — priority, locks, timeout recovery |
+| `test-agent.sh` | ~790 | Test/coverage orchestration, coverage-gap enqueue, and auto-enqueue bugfix tasks on test failures |
+| `consume-review-trigger.sh` | ~450 | Trigger-file code review consumer |
+| `discord-notify.sh` | ~180 | Project→channel notification mapping |
+| `prd_verify_engine.py` | ~500 | PRD checker plugin system |
+| `codex-token-daily.py` | ~380 | Token usage from JSONL sessions |
+
+<details>
+<summary>🛡 Safety Mechanisms</summary>
+
+| Mechanism | Description |
+|-----------|-------------|
+| Smart Nudge | No nudge without tasks; review issues capped at 5 |
+| Exponential Backoff | 300→600→…→9600s; stops after 6 + alert |
+| 3× Idle Confirmation | Prevents API latency false positives |
+| 90s Work Inertia | No nudge within 90s of "working" |
+| Manual Task Protection | Human tasks protected for 300s |
+| Task Tracking | Auto-notify on completion or timeout |
+| Queue Concurrency Lock | Atomic mkdir; prevents corruption |
+| Queue Timeout Recovery | >3600s auto-fail and re-queue |
+| Compact Context Snapshot | Precise state recovery after compact |
+| Runtime File Isolation | gitignored to prevent dirty repo |
+
+</details>
+
+### Quick Start
+
+```bash
+# 1. Configure projects
 cat > watchdog-projects.conf << EOF
-ProjectA:/path/to/project-a:默认 nudge 消息
-ProjectB:/path/to/project-b:默认 nudge 消息
+ProjectA:/path/to/project-a:Default nudge message
 EOF
 
-# 2. 配置 Telegram (config.yaml)
-telegram:
-  bot_token: "your-bot-token"
-  chat_id: "your-chat-id"
-
-# 3. 创建 tmux session
+# 2. Configure Telegram (config.yaml)
+# 3. Create tmux session + start Codex
 tmux new-session -s autopilot -n ProjectA
-# 在窗口中启动: codex --full-auto
+codex --full-auto
 
-# 4. 启动 watchdog
+# 4. Start watchdog
 nohup bash scripts/watchdog.sh &
 
-# 5. (可选) 设置 cron 监控
-# 每 10 分钟运行 monitor-all.sh
-*/10 * * * * bash ~/.autopilot/scripts/monitor-all.sh
+# 5. Submit tasks
+bash scripts/task-queue.sh add myproject "Fix bug" high
 ```
-
-### 任务队列
-
-支持在 Codex 忙碌时提交任务，空闲时自动派发：
-
-```bash
-# 添加任务
-bash scripts/task-queue.sh add myproject "修复登录页白屏bug" high
-
-# 查看队列
-bash scripts/task-queue.sh list myproject
-
-# 全局概览
-bash scripts/task-queue.sh summary
-```
-
-Watchdog 在 Codex idle 时自动从队列中取出任务并发送。
 
 ---
 
-## 📁 项目结构
+## 📁 Project Structure
+
+<details>
+<summary>Click to expand</summary>
 
 ```
 AIWorkFlowSkill/
-├── README.md                    # 本文件
-├── CONVENTIONS.md               # 项目约定（Codex 必读）
-├── CONTRIBUTING.md              # 贡献指南
-├── LICENSE                      # MIT
-│
-├── requirement-discovery/       # Skill: 需求调研
-│   ├── SKILL.md
-│   └── references/
-├── doc-writing/                 # Skill: 文档撰写
-│   ├── SKILL.md
-│   └── references/
-├── doc-review/                  # Skill: 文档评审
-│   ├── SKILL.md
-│   └── references/
-├── development/                 # Skill: 开发实现
-│   ├── SKILL.md
-│   ├── references/
-│   └── scripts/                 # 会话管理脚本
-├── testing/                     # Skill: 测试设计
-│   ├── SKILL.md
-│   └── references/
-├── code-review/                 # Skill: 代码评审
-│   ├── SKILL.md
-│   └── references/
-│
-├── scripts/                     # Autopilot 引擎
-│   ├── watchdog.sh              # 主守护进程
-│   ├── codex-status.sh          # 状态检测
-│   ├── tmux-send.sh             # 消息发送
-│   ├── monitor-all.sh           # 监控报告
-│   ├── task-queue.sh            # 任务队列
-│   ├── consume-review-trigger.sh
-│   ├── prd_verify_engine.py     # PRD 验证
+├── README.md
+├── CONVENTIONS.md
+├── CONTRIBUTING.md
+├── LICENSE
+├── requirement-discovery/    # Skill: Requirement Research
+├── doc-writing/              # Skill: Doc Writing
+├── doc-review/               # Skill: Doc Review
+├── development/              # Skill: Development
+├── testing/                  # Skill: Test Design
+├── code-review/              # Skill: Code Review
+├── scripts/                  # Autopilot Engine
+│   ├── watchdog.sh
+│   ├── codex-status.sh
+│   ├── tmux-send.sh
+│   ├── monitor-all.sh
+│   ├── task-queue.sh
 │   └── ...
-│
-├── watchdog-projects.conf       # 项目配置
-├── config.yaml                  # Telegram 等配置
-├── prd-items.yaml               # PRD 验证定义
-│
-├── lib/                         # Phase 1-3 Python (legacy)
-└── tests/                       # Phase 1-3 测试 (200 tests)
+├── watchdog-projects.conf
+├── config.yaml
+└── prd-items.yaml
 ```
 
----
+</details>
 
-## 版本历史
+## 📦 Version History
 
-| 版本 | 日期 | 更新 |
-|------|------|------|
-| **0.5.0** | 2026-03-03 | 智能 nudge（无任务不 nudge）、任务追踪通知、Discord 路由、队列并发锁/超时回收、review 退避、BFS 进程树检测 |
-| **0.4.0** | 2026-03-01 | ClawHub 发布、Discord→Autopilot 路由、安全修复 |
-| **2.0.0** | 2026-02-12 | Autopilot 引擎: watchdog v6、三层 tmux 发送、任务队列、compact 上下文快照、PRD 验证引擎 |
-| 1.5.0 | 2026-01-19 | 集成 guo-yu/skills 工具；新增危险命令阻止列表 |
-| 1.4.1 | 2026-01-18 | 新增 testing skill；会话持久化与恢复 |
-| 1.3.0 | 2026-01-17 | 文档管理规范；渐进式讨论快速确认 |
-| 1.2.0 | 2026-01-17 | development skill Bug 修复章节 |
-| 1.1.0 | 2025-01-17 | 新增 requirement-discovery skill |
-| 1.0.0 | 2025-01-17 | 初始版本: 4 个核心 Skill |
+| Version | Date | Highlights |
+|---------|------|------------|
+| **0.7.0** | 2026-03-24 | Test-agent auto-enqueue bugfix on failure, discord-notify retry, Gemini tmux as primary (not ACP transition) |
+| **0.6.0** | 2026-03-22 | Multi-model routing (Gemini frontend + Codex backend), Anti-AI-Slop prompt, test agent, branch isolation |
+| **0.5.0** | 2026-03-03 | Smart nudge, task tracking, Discord routing, queue locks |
+| **0.4.0** | 2026-03-01 | ClawHub release, Discord→Autopilot routing |
+| **2.0.0** | 2026-02-12 | Autopilot engine v6, task queue, compact snapshot, PRD verification |
+| 1.5.0 | 2026-01-19 | Integrated guo-yu/skills; dangerous command blocklist |
+| 1.4.1 | 2026-01-18 | Testing skill; session persistence |
+| 1.0.0 | 2025-01-17 | Initial release: 4 core skills |
 
----
+## 📜 License
 
-## License
+[MIT](LICENSE)
 
-MIT
+## 🙏 Acknowledgments
+
+Built on [OpenClaw](https://github.com/openclaw/openclaw) and [Codex CLI](https://github.com/openai/codex).
