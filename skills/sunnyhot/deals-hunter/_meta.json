@@ -3,11 +3,16 @@
   "slug": "deals-hunter",
   "displayName": "Deals Hunter",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1773281434791,
-    "commit": "https://github.com/openclaw/skills/commit/b3d5697f3ed0cba1df53dd9915a6bc4b34626b16"
+    "version": "4.1.0",
+    "publishedAt": 1774723842599,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1773281434791,
+      "commit": "https://github.com/openclaw/skills/commit/b3d5697f3ed0cba1df53dd9915a6bc4b34626b16"
+    },
     {
       "version": "2.1.0",
       "publishedAt": 1773228567793,

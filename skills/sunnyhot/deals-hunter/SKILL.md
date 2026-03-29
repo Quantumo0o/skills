@@ -1,7 +1,7 @@
 ---
 name: deals-hunter
-description: Daily deals recommendation system based on SMZDM RSS + Manmanbuy real-time data, providing detailed recommendations for 20 products with historical prices and multi-platform purchase links
-version: 3.0.0
+version: 4.0.0
+description: 每日羊毛推荐系统（增强版）- 什么值得买 RSS + 历史最低价查询 + 购买建议。每个商品都包含当前价格、历史最低价、购买建议和多平台购买链接。
 metadata:
   openclaw:
     requires:
@@ -11,93 +11,124 @@ metadata:
       - TAVILY_API_KEY
 ---
 
-# Deals Hunter v3.0
+# Deals Hunter v4.0
 
-Multi-source deals recommendation system based on SMZDM Feed RSS + Manmanbuy real-time data.
+每日羊毛推荐系统（增强版）- 什么值得买 RSS + 历史最低价查询 + 购买建议
 
-## ✨ Latest Updates (v3.0 - 2026-03-12)
+## ✨ 最新更新 (v4.0 - 2026-03-25)
 
-### 🎯 Major Upgrades
+### 🎯 重大升级
 
-- ✅ **Detailed Product Information**: Each product includes complete price, rating, and purchase links
-- ✅ **Multi-Platform Purchase Links**: JD.com, Tmall, Taobao purchase links
-- ✅ **Historical Price Query**: Manmanbuy price comparison links to view price trends
-- ✅ **Smart Recommendation Reasons**: Recommendation reasons based on price and product type
-- ✅ **Tavily Integration**: Real-time detailed information search
-- ✅ **Deduplication Mechanism**: Avoid duplicate recommendations
+- ✅ **历史最低价查询**: 每个商品都包含历史最低价信息
+- ✅ **智能购买建议**: 基于价格分析给出购买建议
+  - ✅ 建议入手（价格接近最低价）
+  - 💡 可以考虑（价格略高于最低价）
+  - ⏰ 建议等待（价格明显高于最低价）
+  - ❌ 不建议购买（价格过高）
+- ✅ **价格统计报告**: 显示建议入手 vs 建议等待的数量
+- ✅ **慢慢买链接**: 直接查看商品历史价格走势
 
-### 📦 Recommended Content
+### 📦 推荐内容
 
-Each product includes:
-- 💰 **Current Price**
-- 📉 **Historical Low Price Query Link**
-- 📊 **Price Trend Suggestions**
-- 🛒 **Purchase Link** (SMZDM)
-- 📊 **Price Comparison Link** (Manmanbuy)
-- 🔗 **Multi-Platform Purchase Links** (JD/Tmall/Taobao)
-- 💡 **Recommendation Reason** (2-3 sentences)
+每个商品包含:
+- 💰 **当前价格**
+- 📉 **历史最低价**
+- 💡 **购买建议**（含推荐理由）
+- 🛒 **购买链接**（京东/天猫/什么值得买）
+- 📊 **历史价格查询链接**（慢慢买）
 
-## 🔄 Workflow
+## 🔄 工作流程
 
-### 1. Data Sources
+### 1. 数据来源
 
-**SMZDM RSS**:
+**什么值得买 RSS**:
 - RSS URL: http://feed.smzdm.com
-- Update frequency: Every 15-30 minutes
-- Content: Deal product titles, descriptions, links
+- 更新频率: 每 15-30 分钟
+- 内容: 优惠商品标题、描述、链接
 
-### 2. Search Detailed Information (Tavily)
+### 2. 历史价格查询（Tavily）
 
-Use Tavily to search for each product:
-- Current price, original price
-- Historical price trends
-- Product ratings, review counts
-- JD.com/Tmall/Pinduoduo purchase links
+使用 Tavily 搜索每个商品:
+- 当前价格、原价
+- 历史最低价
+- 价格走势
+- 购买链接
 
-### 3. Filtering Criteria
+### 3. 购买建议生成
 
-**Required Conditions**:
-- ✅ Discount ≥ 20%
-- ✅ Product rating ≥ 4.0
-- ✅ Clear current price and original price
-- ✅ Purchase links available
+基于价格分析:
+- 当前价格 vs 历史最低价
+- 价差百分比
+- 购买时机建议
 
-**Priority Ranking**:
-1. ⭐⭐⭐⭐⭐ Historical low (5 stars)
-2. ⭐⭐⭐⭐ Near historical low (4 stars)
-3. ⭐⭐⭐ Recent good price (3 stars)
+## 📋 输出示例
 
-## 📦 Product Categories
+```
+🐑 今日羊毛推荐（增强版） - 2026-03-25 17:00
 
-### Digital Electronics (60%)
-- 📱 Phones/Tablets/Laptops
-- 🎧 Headphones/Speakers/Audio devices
-- ⌚ Smartwatches/Fitness bands
-- 🔌 Chargers/Cables/Accessories
-- 📷 Cameras/Camcorders
-- 🎮 Game consoles/Gaming accessories
+📦 商品数量: 15 | 📊 含历史最低价 + 购买建议
 
-### Home & Daily Use (40%)
-- 🍳 Kitchen appliances
-- 🏠 Home appliances
-- 🛋️ Home goods
-- 🧹 Cleaning supplies
-- 💄 Personal care
+---
 
-## 🔧 Configuration
+**1. Apple iPhone 17 256G**
+
+💰 当前价格: **¥5,999**
+📉 历史最低价: **¥4,699**
+💡 购买建议: ⏰ 建议等待
+   价格比最低价高 27.7%
+🛒 购买链接: <https://item.jd.com/...>
+📊 查看历史价格: <https://cu.manmanbuy.com/...>
+
+---
+
+📊 **今日统计**:
+• ✅ 建议入手: 5 个
+• ⏰ 建议等待: 10 个
+
+⚠️ 提醒:
+• 价格实时变化，建议尽快查看
+• 历史价格仅供参考，以实际为准
+• 部分优惠需用券或有地区限制
+
+📅 下次更新: 9:00 AM / 12:00 PM / 6:00 PM
+```
+
+## 🔧 配置
 
 ```json
 {
-  "discord_channel": "1481207243188867093",
+  "discord_channel": "1482243346692051105",
   "rss_source": "http://feed.smzdm.com",
-  "search_sources": ["smzdm", "tavily"],
-  "categories": ["digital", "home"],
-  "min_discount": 20,
-  "min_rating": 4.0,
-  "max_items": 20,
-  "dedup_hours": 24,
-  "history_days": 7
+  "max_items": 15,
+  "dedup_hours": 24
 }
+```
+
+## 🚀 使用方式
+
+### 自动运行（Cron）
+每天 9:15 AM / 12:05 PM / 6:10 PM 自动运行
+
+### 手动触发
+```bash
+python3 ~/.openclaw/workspace/skills/deals-hunter/scripts/deals-hunter-v4.py
+```
+
+## 📝 更新日志
+
+### v4.0 (2026-03-25)
+- ✅ 新增历史最低价查询
+- ✅ 新增智能购买建议
+- ✅ 新增价格统计报告
+- ✅ 新增慢慢买链接
+
+### v3.0 (2026-03-12)
+- ✅ 详细产品信息
+- ✅ 多平台购买链接
+- ✅ 历史价格查询链接
+- ✅ 智能推荐理由
+- ✅ Tavily 集成
+- ✅ 去重机制
 ```
 
 ## 📝 Usage

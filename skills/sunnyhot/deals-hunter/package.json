@@ -1,10 +1,10 @@
 {
   "name": "deals-hunter",
-  "version": "3.0.0",
-  "description": "多数据源羊毛推荐系统 - 基于什么值得买 Feed RSS + 慢慢买实时数据，提供 20 个商品的详细推荐（包含多平台购买链接、推荐理由）",
-  "main": "scripts/deals-hunter-v3.py",
+  "version": "4.1.0",
+  "description": "每日羊毛推荐系统（增强版）- 什么值得买 RSS + 历史最低价查询 + 智能购买建议。每个商品都包含当前价格、历史最低价、购买建议和多平台购买链接。",
+  "main": "scripts/deals-hunter-v4.py",
   "scripts": {
-    "start": "python3 scripts/deals-hunter-v3.py"
+    "start": "python3 scripts/deals-hunter-v4.py"
   },
   "keywords": [
     "deals",

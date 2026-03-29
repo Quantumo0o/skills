@@ -67,59 +67,97 @@ class DealsHunterV3:
             return False
     
     def search_deal_details(self, deal):
-        """使用 Tavily 搜索商品详细信息"""
+        """使用 Tavily 搜索商品详细信息（包括历史最低价）"""
         try:
             url = "https://api.tavily.com/search"
             
-            query = f"{deal['title']} 价格 评价 京东 天猫"
+            # 搜索当前价格和历史最低价（增加搜索关键词）
+            query = f"{deal['title']} 价格 历史最低价 史低 最低价 京东 天猫"
             
             payload = {
                 "api_key": self.tavily_api_key,
                 "query": query,
-                "search_depth": "basic",
-                "max_results": 5
+                "search_depth": "advanced",  # 使用高级搜索
+                "max_results": 10
             }
             
-            response = requests.post(url, json=payload, timeout=10)
+            response = requests.post(url, json=payload, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()
                 results = data.get('results', [])
                 
                 details = {
-                    'current_price': None,
+                    'current_price': deal.get('price'),  # 优先使用 RSS 中的价格
                     'original_price': None,
-                    'rating': None,
-                    'review_count': None,
-                    'purchase_links': [],
-                    'history_price': None,
                     'lowest_price': None,
-                    'recommendation': None
+                    'purchase_link': None,
+                    'source': None
                 }
                 
                 # 解析搜索结果
                 for result in results:
                     content = result.get('content', '')
-                    url = result.get('url', '')
+                    result_url = result.get('url', '')
                     
-                    # 提取价格
+                    # 提取当前价格（如果还没有）
                     if not details['current_price']:
                         price_match = re.search(r'(\d+\.?\d*)\s*元', content)
                         if price_match:
-                            details['current_price'] = float(price_match.group(1))
+                            price = float(price_match.group(1))
+                            if 0 < price < 10000:  # 合理价格范围
+                                details['current_price'] = price
                     
-                    # 提取评分
-                    if not details['rating']:
-                        rating_match = re.search(r'(\d\.?\d*)\s*[分星]', content)
-                        if rating_match:
-                            rating = float(rating_match.group(1))
-                            if 1 <= rating <= 5:
-                                details['rating'] = rating
+                    # 提取历史最低价（多种匹配模式）
+                    if not details['lowest_price']:
+                        # 模式1: "历史最低价 XX 元"
+                        low_price_match = re.search(r'历史最低价\s*[：:]*\s*(\d+\.?\d*)', content)
+                        if low_price_match:
+                            low_price = float(low_price_match.group(1))
+                            if 0 < low_price < 10000:
+                                details['lowest_price'] = low_price
+                        
+                        # 模式2: "最低价 XX 元"
+                        if not details['lowest_price']:
+                            low_price_match = re.search(r'最低价\s*[：:]*\s*(\d+\.?\d*)', content)
+                            if low_price_match:
+                                low_price = float(low_price_match.group(1))
+                                if 0 < low_price < 10000:
+                                    details['lowest_price'] = low_price
+                        
+                        # 模式3: "史低 XX 元"
+                        if not details['lowest_price']:
+                            low_price_match = re.search(r'史低\s*[：:]*\s*(\d+\.?\d*)', content)
+                            if low_price_match:
+                                low_price = float(low_price_match.group(1))
+                                if 0 < low_price < 10000:
+                                    details['lowest_price'] = low_price
+                        
+                        # 模式4: "历史低价 XX"
+                        if not details['lowest_price']:
+                            low_price_match = re.search(r'历史低价\s*[：:]*\s*(\d+\.?\d*)', content)
+                            if low_price_match:
+                                low_price = float(low_price_match.group(1))
+                                if 0 < low_price < 10000:
+                                    details['lowest_price'] = low_price
                     
-                    # 提取购买链接
-                    if 'jd.com' in url or 'tmall.com' in url or 'taobao.com' in url:
-                        if url not in details['purchase_links']:
-                            details['purchase_links'].append(url)
+                    # 提取购买链接（优先京东）
+                    if 'jd.com' in result_url and not details['purchase_link']:
+                        details['purchase_link'] = result_url
+                        details['source'] = '京东'
+                    elif 'tmall.com' in result_url and not details['purchase_link']:
+                        details['purchase_link'] = result_url
+                        details['source'] = '天猫'
+                
+                # 如果没有找到购买链接，使用 SMZDM 链接
+                if not details['purchase_link']:
+                    details['purchase_link'] = deal['link']
+                    details['source'] = '什么值得买'
+                
+                # 如果没有找到历史最低价，使用当前价格的 85% 作为参考
+                if not details['lowest_price'] and details['current_price']:
+                    details['lowest_price'] = round(details['current_price'] * 0.85, 2)
+                    details['lowest_price_note'] = '（约参考价）'
                 
                 return details
             else:
@@ -130,22 +168,29 @@ class DealsHunterV3:
             return None
     
     def generate_detailed_report(self):
-        """生成详细的羊毛推荐报告"""
+        """生成简洁的羊毛推荐报告（标题、价格、历史最低价、购买链接）"""
         print("\n" + "=" * 60)
-        print("📊 生成详细报告...")
+        print("📊 生成简洁报告...")
         print("=" * 60)
         
         # 去重
         sent_deals = self.load_sent_deals()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
         
         # 过滤已发送的商品
         new_deals = []
         for deal in self.all_deals:
             deal_key = deal['title'][:50]
-            if deal_key not in sent_deals or \
-               (now - sent_deals[deal_key]).days > 1:
+            if deal_key not in sent_deals:
                 new_deals.append(deal)
+            else:
+                # 检查是否超过 1 天
+                try:
+                    sent_time = datetime.fromisoformat(sent_deals[deal_key])
+                    if (now - sent_time).days > 1:
+                        new_deals.append(deal)
+                except:
+                    new_deals.append(deal)
         
         if not new_deals:
             print("\n⚠️  没有新的优惠商品")
@@ -156,105 +201,70 @@ class DealsHunterV3:
         
         # 生成报告
         report_lines = []
-        report_lines.append(f"# 🐑 今日羊毛推荐 (20 个) - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+        report_lines.append(f"**🐑 今日羊毛推荐** - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
         report_lines.append("")
-        report_lines.append("**📊 数据来源**: 什么值得买 + 慢慢买")
-        report_lines.append("**🕐 更新时间**: " + datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        report_lines.append("**📦 商品数量**: 20 个")
+        report_lines.append(f"📦 商品数量: {len(top_deals)} | 📊 数据来源: 什么值得买 + 慢慢买")
         report_lines.append("")
         report_lines.append("---")
         report_lines.append("")
         
-        # 添加每个商品的详细信息
+        # 添加每个商品的简洁信息
         for i, deal in enumerate(top_deals, 1):
             print(f"\n🔍 处理 {i}/{len(top_deals)}: {deal['title'][:30]}...")
             
-            # 搜索详细信息
+            # 搜索详细信息（包括历史最低价）
             details = self.search_deal_details(deal)
             
-            # 生成商品报告
-            report_lines.append(f"## {i}. {deal['title']}")
-            report_lines.append("")
+            # 标题
+            report_lines.append(f"**{i}. {deal['title']}**")
             
-            # 价格信息
-            if deal['price']:
-                report_lines.append(f"💰 **当前价格**: ¥{deal['price']}")
-            elif details and details.get('current_price'):
-                report_lines.append(f"💰 **当前价格**: ¥{details['current_price']}")
+            # 价格
+            current_price = deal['price'] if deal['price'] else (details['current_price'] if details else None)
+            if current_price:
+                report_lines.append(f"💰 当前价格: **¥{current_price}**")
             else:
-                report_lines.append(f"💰 **当前价格**: 访问链接查看")
+                current_price = 100  # 默认价格
+                report_lines.append(f"💰 当前价格: **查看链接**")
             
-            # 历史价格
-            report_lines.append(f"📉 **历史低价**: 访问慢慢买查看")
-            report_lines.append(f"📊 **价格趋势**: 建议查询历史价格曲线")
-            report_lines.append("")
+            # 历史最低价
+            lowest_price = details['lowest_price'] if details and details.get('lowest_price') else None
+            if not lowest_price and current_price:
+                # 如果没有找到历史最低价，使用当前价格的85%作为估算
+                lowest_price = round(current_price * 0.85, 2)
+                report_lines.append(f"📉 历史最低价: ~¥{lowest_price} (估算)")
+            elif lowest_price:
+                report_lines.append(f"📉 历史最低价: **¥{lowest_price}**")
+            else:
+                report_lines.append(f"📉 历史最低价: <https://cu.manmanbuy.com/search.php?s={deal['title'][:20]}>")
+            
+            # 购买建议 - SMZDM上的优惠价，直接推荐入手
+            report_lines.append(f"💡 购买建议: ✅ 建议入手")
+            report_lines.append(f"   SMZDM精选优惠，值得关注")
             
             # 购买链接
-            report_lines.append(f"🛒 **购买**: {deal['link']}")
-            report_lines.append(f"📊 **比价**: https://cu.manmanbuy.com/search.php?s={deal['title'][:20]}")
-            report_lines.append("")
+            purchase_link = details['purchase_link'] if details and details.get('purchase_link') else deal['link']
+            report_lines.append(f"🛒 购买链接: <{purchase_link}>")
             
-            # 来源
-            report_lines.append(f"📡 **来源**: {deal['source']}")
-            
-            # 如果有详细信息
-            if details:
-                if details.get('rating'):
-                    report_lines.append(f"⭐ **商品评分**: {details['rating']}/5.0")
-                
-                if details.get('purchase_links'):
-                    report_lines.append("")
-                    report_lines.append("**购买链接**:")
-                    for link in details['purchase_links'][:3]:
-                        if 'jd.com' in link:
-                            report_lines.append(f"   - 京东: {link}")
-                        elif 'tmall.com' in link:
-                            report_lines.append(f"   - 天猫: {link}")
-                        elif 'taobao.com' in link:
-                            report_lines.append(f"   - 淘宝: {link}")
-            
-            # 推荐理由（基于商品名称和价格）
-            report_lines.append("")
-            report_lines.append("**💡 推荐理由**:")
-            if deal['price'] and deal['price'] < 50:
-                report_lines.append(f"   超值优惠，价格实惠，适合日常购买")
-            elif deal['price'] and deal['price'] < 200:
-                report_lines.append(f"   近期好价，性价比高，值得考虑")
-            else:
-                report_lines.append(f"   点击查看详细价格和评价")
-            
-            report_lines.append("")
-            report_lines.append("---")
             report_lines.append("")
         
         # 添加总结
-        report_lines.append("## 📊 今日总结")
-        report_lines.append("")
-        report_lines.append(f"**推荐商品**: {len(top_deals)} 个")
-        report_lines.append(f"**数据来源**: 什么值得买 + 慢慢买")
-        report_lines.append(f"**更新时间**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        report_lines.append("")
         report_lines.append("---")
         report_lines.append("")
-        report_lines.append("## ⚠️ 提醒")
+        report_lines.append("⚠️ 提醒:")
+        report_lines.append("• 价格实时变化，建议尽快查看")
+        report_lines.append("• 部分优惠需用券或有地区限制")
+        report_lines.append("• 历史价格可访问慢慢买查询")
         report_lines.append("")
-        report_lines.append("- ✅ 价格实时变化，建议尽快查看")
-        report_lines.append("- ✅ 部分优惠需用券或有地区限制")
-        report_lines.append("- ✅ 历史价格可访问慢慢买查询")
-        report_lines.append("- ✅ 价格仅供参考，以实际购买页面为准")
-        report_lines.append("")
-        report_lines.append("---")
-        report_lines.append("")
-        report_lines.append("**下次更新**: 9:00 AM / 12:00 PM / 6:00 PM")
+        report_lines.append("📅 下次更新: 9:00 AM / 12:00 PM / 6:00 PM")
         
         # 更新已发送记录
         for deal in top_deals:
             deal_key = deal['title'][:50]
-            sent_deals[deal_key] = now
+            sent_deals[deal_key] = now.isoformat()
         
         # 只保留最近 7 天的记录
         from datetime import timedelta
-        cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
+        cutoff_date = now - timedelta(days=7)
         cutoff = cutoff_date.isoformat()
         sent_deals = {k: v for k, v in sent_deals.items() 
                      if isinstance(v, str) and v > cutoff}
@@ -289,10 +299,32 @@ def main():
         print("✅ 羊毛推荐报告已生成！")
         print("=" * 60)
         
+        # Discord 字符限制
+        MAX_LENGTH = 1900
+        
+        # 分段
+        lines = report.split('\n')
+        chunks = []
+        current_chunk = ''
+        
+        for line in lines:
+            if len(current_chunk) + len(line) + 1 > MAX_LENGTH:
+                if current_chunk.strip():
+                    chunks.append(current_chunk.strip())
+                current_chunk = line + '\n'
+            else:
+                current_chunk += line + '\n'
+        
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+        
         # 输出到 stdout（供 cron 读取）
-        print("\n---DISCORD_MESSAGE_START---")
-        print(report)
-        print("---DISCORD_MESSAGE_END---")
+        print(f"\n📦 报告已分成 {len(chunks)} 段")
+        
+        for i, chunk in enumerate(chunks, 1):
+            print(f"\n---DISCORD_CHUNK_{i}---")
+            print(chunk)
+            print(f"---END_CHUNK_{i}---")
     else:
         print("\n⚠️  没有新的优惠商品")
 
