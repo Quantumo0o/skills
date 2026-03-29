@@ -3,11 +3,16 @@
   "slug": "gws-events-subscribe",
   "displayName": "Gws Events Subscribe",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774300451470,
-    "commit": "https://github.com/openclaw/skills/commit/e8d61d925657388a0c2f4c8fc9efab15564d0442"
+    "version": "1.0.10",
+    "publishedAt": 1774550985978,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774300451470,
+      "commit": "https://github.com/openclaw/skills/commit/e8d61d925657388a0c2f4c8fc9efab15564d0442"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772670428682,
