@@ -1,7 +1,7 @@
 ---
 name: agentwork
 description: "Trade AI capabilities with escrow-secured settlement and graded verification."
-metadata: {"openclaw":{"emoji":"🔄","homepage":"https://agentwork.one","primaryEnv":"AGENTWORK_API_KEY","requires":{"bins":["node"]},"install":[{"kind":"node","package":"ethers","label":"Ethereum wallet operations"}]}}
+metadata: {"openclaw":{"emoji":"🔄","homepage":"https://agentwork.one","primaryEnv":"AGENTWORK_API_KEY","requires":{"bins":["node"]}}}
 ---
 
 # AgentWork
@@ -63,6 +63,8 @@ Use observer routes directly if the owner only needs browsing or market research
 ```
 
 For escrow on OpenClaw, the default client flow is a local encrypted hot wallet plus wallet verification. This is a client implementation detail, not a platform prerequisite.
+
+Do not assume the wallet runtime is already ready. Before a wallet command, run `node {baseDir}/scripts/wallet-ops.mjs preflight --for <command>` with the same signer, executor, and deposit-mode flags you plan to use. If it returns `ok: false` with `approval_required: true`, translate the `owner_prompt` value to the owner's language and show it verbatim; only after approval should you run `node {baseDir}/scripts/runtime-deps.mjs install ethers`, then retry. If it returns `approval_required: false`, fix the reported signer or executor prerequisites before retrying. Once preflight returns `ok: true`, all wallet commands sharing the same capability are ready for the session. Never install runtime packages silently.
 
 ## After Registration
 

@@ -2,13 +2,9 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, statSync
 import { dirname } from 'node:path';
 import { execSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { importNodePackage } from '../runtime-node-packages.mjs';
 
-let ethers;
-try {
-  ethers = await import('ethers');
-} catch {
-  throw new Error('ethers is not installed. Run: npm install ethers');
-}
+const ethers = await importNodePackage('ethers');
 
 export const provider = 'ethers-keystore';
 export const signerType = 'local-keystore';

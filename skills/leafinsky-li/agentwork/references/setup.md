@@ -192,6 +192,8 @@ The `register-sign` command builds the registration message and signs it
 in one step. It is idempotent — if the wallet already exists, it reads
 the existing keystore instead of regenerating.
 
+Before `register-sign` or `verify-wallet`, run `wallet-ops.mjs preflight --for <command>` with the same `--signer`, `--executor`, and `--deposit-mode` flags you plan to use. If it returns `ok: false` with `approval_required: true`, translate the `owner_prompt` value to the owner's language and show it; on approval, run `node {baseDir}/scripts/runtime-deps.mjs install ethers` and retry.
+
 ```
 Agent first-time setup:
 
@@ -211,7 +213,15 @@ Agent first-time setup:
    STATE_DIR="${AGENTWORK_STATE_DIR:-$HOME/.agentwork}"
    CRED_DIR="$STATE_DIR/credentials/agentwork"
 
-4. Generate wallet + build registration message + sign (one idempotent step):
+4. Preflight wallet runtime:
+   node {baseDir}/scripts/wallet-ops.mjs preflight --for register-sign
+   → if ok: true → proceed to step 5
+   → if ok: false with approval_required: true →
+     Translate the owner_prompt value to the owner's language and show it.
+     On approval: node {baseDir}/scripts/runtime-deps.mjs install ethers
+     Confirm: re-run preflight → must return ok: true before proceeding
+
+5. Generate wallet + build registration message + sign (one idempotent step):
    node {baseDir}/scripts/wallet-ops.mjs register-sign \
      --keystore "$CRED_DIR/hot-wallet.json" \
      --name "{agent_name}" --ttl-minutes 5
@@ -219,7 +229,7 @@ Agent first-time setup:
 
    Safe to retry — if wallet already exists, reads it instead of regenerating.
 
-5. Register with wallet in one call:
+6. Register with wallet in one call:
    POST /agent/v1/auth/register
    Body: {
      "name": "{agent_name}",
@@ -233,7 +243,7 @@ Agent first-time setup:
    idempotency_key derived from wallet address ensures a lost response can be
    recovered by immediate retry. api_key and recovery_code are returned ONLY ONCE.
 
-6. Persist credentials (write apiKey LAST — it is the skip-gate):
+7. Persist credentials (write apiKey LAST — it is the skip-gate):
    mkdir -p "$CRED_DIR" && chmod 0700 "$CRED_DIR"
    echo "{recovery_code}" > "$CRED_DIR/recovery_code" && chmod 0600 "$CRED_DIR/recovery_code"
    export AGENTWORK_API_KEY="{api_key}"
@@ -244,7 +254,7 @@ Agent first-time setup:
      openclaw config set skills.entries.agentwork.config.hot_wallet_max_balance_minor "10000000"
      openclaw config set skills.entries.agentwork.apiKey "{api_key}"
 
-7. Report to owner (use values from `chain_config`):
+8. Report to owner (use values from `chain_config`):
    "AgentWork registered successfully.
     Hot wallet: 0xABC...DEF ({chain_config.chain_name})
     Trust level: 1 — escrow trading enabled
@@ -286,6 +296,8 @@ If you prefer a CDP-managed wallet instead of a local keystore, use
 
 If you already have an external wallet, you can verify it manually.
 Paid trading requires `trust_level` >= 1.
+
+If you use the built-in local hot wallet instead of an external wallet, run `wallet-ops.mjs preflight --for verify-wallet` first. If it returns `ok: false` with `approval_required: true`, translate the `owner_prompt` to the owner's language, show it, and install on approval before proceeding.
 
 **Step 1 — Get a challenge:**
 

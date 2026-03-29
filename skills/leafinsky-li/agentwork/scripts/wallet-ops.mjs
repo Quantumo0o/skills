@@ -3,6 +3,12 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import { checkCapability } from './runtime-capabilities.mjs';
+import { importNodePackage } from './runtime-node-packages.mjs';
+
+const RUNTIME_DEPS_SCRIPT = fileURLToPath(new URL('./runtime-deps.mjs', import.meta.url));
+const WALLET_OPS_SCRIPT = fileURLToPath(import.meta.url);
 
 const SIGNER_MODULES = {
   'ethers-keystore': './signers/ethers-keystore.mjs',
@@ -111,7 +117,10 @@ function resolveDepositMode(args) {
 }
 
 function defaultX402ExecutorName(args) {
-  return readOptionalString(args['facilitator-id']) === 'okx_payments' ? 'x402-okx' : 'x402-cdp';
+  const facilitatorId = readOptionalString(args['facilitator-id']);
+  if (facilitatorId === 'okx_payments') return 'x402-okx';
+  if (facilitatorId) return 'x402-cdp';
+  return readOptionalString(args['chain-id'] ?? process.env.CHAIN_ID) === '196' ? 'x402-okx' : 'x402-cdp';
 }
 
 function resolveExecutorName(args) {
@@ -128,7 +137,14 @@ async function loadSignerModule(args) {
   if (!modulePath) {
     error('UNKNOWN_SIGNER', `Unknown signer: ${signerName}`, { valid: Object.keys(SIGNER_MODULES) });
   }
-  return await import(modulePath);
+  try {
+    return await import(modulePath);
+  } catch (e) {
+    if (e?.code === 'NODE_PACKAGE_MISSING') {
+      error('CAPABILITY_MISSING', e.message, e.details ?? {});
+    }
+    error('SIGNER_LOAD_FAILED', e?.message ?? `Failed to load signer: ${signerName}`);
+  }
 }
 
 async function loadExecutorModule(args) {
@@ -137,7 +153,14 @@ async function loadExecutorModule(args) {
   if (!modulePath) {
     error('UNKNOWN_EXECUTOR', `Unknown executor: ${executorName}`, { valid: Object.keys(EXECUTOR_MODULES) });
   }
-  return await import(modulePath);
+  try {
+    return await import(modulePath);
+  } catch (e) {
+    if (e?.code === 'NODE_PACKAGE_MISSING') {
+      error('CAPABILITY_MISSING', e.message, e.details ?? {});
+    }
+    error('EXECUTOR_LOAD_FAILED', e?.message ?? `Failed to load executor: ${executorName}`);
+  }
 }
 
 function assertDepositExecutorConsistency(depositMode, executorName) {
@@ -225,6 +248,194 @@ function buildRegistrationMessage(name, address, ttlMinutes) {
     `address:${address}`,
     `Expiration Time:${expiresAt.toISOString()}`,
   ].join('\n');
+}
+
+function commandUsesSignerRuntime(command) {
+  switch (command) {
+    case 'generate':
+    case 'register-sign':
+    case 'sign':
+    case 'verify-wallet':
+    case 'address':
+    case 'balance':
+    case 'transfer':
+    case 'deposit':
+    case 'settlement-sign':
+    case 'audit':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function commandUsesExecutorRuntime(command) {
+  switch (command) {
+    case 'balance':
+    case 'transfer':
+    case 'deposit':
+      return true;
+    default:
+      return false;
+  }
+}
+
+function assertKnownSigner(args) {
+  const signerName = resolveSignerName(args);
+  if (!SIGNER_MODULES[signerName]) {
+    error('UNKNOWN_SIGNER', `Unknown signer: ${signerName}`, { valid: Object.keys(SIGNER_MODULES) });
+  }
+}
+
+function assertKnownExecutor(args) {
+  const executorName = resolveExecutorName(args);
+  if (!EXECUTOR_MODULES[executorName]) {
+    error('UNKNOWN_EXECUTOR', `Unknown executor: ${executorName}`, { valid: Object.keys(EXECUTOR_MODULES) });
+  }
+}
+
+function validateCommandConfiguration(command, args) {
+  if (commandUsesSignerRuntime(command)) {
+    assertKnownSigner(args);
+  }
+  if (commandUsesExecutorRuntime(command)) {
+    assertKnownExecutor(args);
+  }
+  if (command === 'deposit') {
+    assertDepositExecutorConsistency(resolveDepositMode(args), resolveExecutorName(args));
+  }
+}
+
+function signerRequiresEvmCore(args) {
+  return resolveSignerName(args) === 'ethers-keystore';
+}
+
+function commandRequiresEvmCore(command, args) {
+  switch (command) {
+    case 'generate':
+    case 'register-sign':
+    case 'sign':
+    case 'verify-wallet':
+    case 'address':
+    case 'audit':
+      return signerRequiresEvmCore(args);
+    case 'balance':
+    case 'transfer':
+    case 'settlement-sign':
+      return true;
+    case 'deposit':
+      return resolveDepositMode(args) !== 'x402' || signerRequiresEvmCore(args);
+    default:
+      return false;
+  }
+}
+
+function requiredCapabilitiesForCommand(command, args) {
+  const required = [];
+  if (commandRequiresEvmCore(command, args)) {
+    required.push('evm.core');
+  }
+  if (commandUsesSignerRuntime(command) && resolveSignerName(args) === 'agentkit') {
+    required.push('signer.agentkit');
+  }
+  if (
+    (command === 'transfer' || command === 'deposit')
+    && resolveExecutorName(args) === 'onchainos-gateway'
+  ) {
+    required.push('executor.onchainos-gateway');
+  }
+  return required;
+}
+
+function buildOwnerPrompt(capabilityStatus) {
+  const items = (capabilityStatus.missing ?? [])
+    .filter((m) => m.approval_required)
+    .map((m) => m.label ?? m.specifier);
+  if (items.length === 0) return null;
+  const prefix = capabilityStatus.runtime_node_prefix ?? '$AGENTWORK_STATE_DIR/runtime/node/agentwork';
+  return [
+    `AgentWork needs to install ${items.join(', ')} (local EVM library) to perform wallet operations.`,
+    '',
+    `Install location: ${prefix}/`,
+    'This is an isolated directory — not a global Node install.',
+    'Post-install scripts are disabled (npm --ignore-scripts).',
+    'No private keys or credentials leave this machine during install.',
+    '',
+    'Approve? (yes/no)',
+    '',
+    '(Translate this message to the owner\'s language before showing it.)',
+  ].join('\n');
+}
+
+function buildRemediationSteps(command) {
+  return [
+    `Run: node ${WALLET_OPS_SCRIPT} preflight --for ${command}`,
+    'Show the owner_prompt value to the owner (translated to their language) and wait for approval',
+    `On approval, run: node ${RUNTIME_DEPS_SCRIPT} install ethers`,
+    'Retry the original command',
+  ];
+}
+
+async function ensureCommandCapabilities(command, args) {
+  validateCommandConfiguration(command, args);
+  const requiredCapabilities = requiredCapabilitiesForCommand(command, args);
+  for (const capability of requiredCapabilities) {
+    const status = await checkCapability(capability, { args });
+    if (!status.ok) {
+      error(
+        'CAPABILITY_MISSING',
+        `Command "${command}" requires ${capability}. Ask the owner for approval, then run the suggested install command and retry.`,
+        {
+          command,
+          required_capabilities: requiredCapabilities,
+          ...status,
+          owner_prompt: buildOwnerPrompt(status),
+          remediation_steps: buildRemediationSteps(command),
+        },
+      );
+    }
+  }
+}
+
+async function cmdPreflight(args) {
+  const targetCommand = readOptionalString(args.for);
+  if (!targetCommand) {
+    error('MISSING_ARG', '--for is required for preflight');
+  }
+  if (targetCommand === 'preflight') {
+    error('INVALID_ARG', '--for cannot be preflight');
+  }
+  if (!COMMANDS[targetCommand]) {
+    error(
+      'UNKNOWN_COMMAND',
+      `Unknown preflight target "${targetCommand}". Valid commands: ${Object.keys(COMMANDS).join(', ')}`,
+    );
+  }
+
+  validateCommandConfiguration(targetCommand, args);
+  const requiredCapabilities = requiredCapabilitiesForCommand(targetCommand, args);
+  const checks = [];
+  for (const capability of requiredCapabilities) {
+    checks.push(await checkCapability(capability, { args }));
+  }
+  const missing = checks.find((entry) => !entry.ok);
+  if (missing) {
+    output({
+      ok: false,
+      command: targetCommand,
+      required_capabilities: requiredCapabilities,
+      ...missing,
+      owner_prompt: buildOwnerPrompt(missing),
+      remediation_steps: buildRemediationSteps(targetCommand),
+    });
+    return;
+  }
+
+  output({
+    ok: true,
+    command: targetCommand,
+    required_capabilities: requiredCapabilities,
+    runtime_node_prefix: checks[0]?.runtime_node_prefix ?? null,
+  });
 }
 
 function readApiKey(args) {
@@ -341,7 +552,12 @@ async function cmdBalance(args) {
   const executor = await loadExecutorModule(args);
   const balanceExecutor = typeof executor.getBalances === 'function'
     ? executor
-    : await import('./executors/local-rpc.mjs');
+    : await import('./executors/local-rpc.mjs').catch((e) => {
+      if (e?.code === 'NODE_PACKAGE_MISSING') {
+        error('CAPABILITY_MISSING', e.message, e.details ?? {});
+      }
+      error('EXECUTOR_LOAD_FAILED', e?.message ?? 'Failed to load balance executor');
+    });
   const { address } = await signer.getAddress(resolveSignerInputs(args, signer, {
     requireKeystore: signerNeedsKeystore(signer),
     requireExisting: signerNeedsKeystore(signer),
@@ -372,6 +588,7 @@ async function cmdTransfer(args) {
   const transferred = await executor.transferToken({
     wallet,
     rpc: requireArg(args, 'rpc'),
+    baseUrl: args['base-url'],
     token: requireArg(args, 'token'),
     to: requireArg(args, 'to'),
     amount: requireAmountMinorArg(args),
@@ -501,6 +718,69 @@ async function cmdDeposit(args) {
   output(deposited);
 }
 
+async function cmdSettlementSign(args) {
+  const ethers = await importNodePackage('ethers');
+  const { createHash } = await import('node:crypto');
+  const signer = await loadSignerModule(args);
+
+  const orderId = requireArg(args, 'order-id');
+  const action = requireArg(args, 'action');
+  if (action !== 'release' && action !== 'refund') {
+    error('INVALID_ARG', '--action must be "release" or "refund"');
+  }
+  const chainId = requireArg(args, 'chain-id');
+  const escrow = requireArg(args, 'escrow');
+
+  // Accept either --value-hash (pre-computed) or --reason (auto-compute SHA256)
+  let valueHash = readOptionalString(args['value-hash']);
+  const reason = readOptionalString(args.reason);
+  if (!valueHash && !reason) {
+    error('MISSING_ARG', '--value-hash or --reason is required');
+  }
+  if (!valueHash && reason) {
+    // Canonical JSON: sorted keys, no extra whitespace
+    const canonical = JSON.stringify({ reason });
+    valueHash = '0x' + createHash('sha256').update(canonical).digest('hex');
+  }
+
+  function normalizeBytes32(value) {
+    if (!value || value.trim() === '') return ethers.keccak256(ethers.toUtf8Bytes(''));
+    const trimmed = value.trim().toLowerCase();
+    if (/^0x[0-9a-f]+$/.test(trimmed)) {
+      if (trimmed.length === 66) return trimmed;
+      return ethers.keccak256(trimmed);
+    }
+    return ethers.keccak256(ethers.toUtf8Bytes(trimmed));
+  }
+
+  const hash = ethers.keccak256(
+    ethers.solidityPacked(
+      ['bytes32', 'string', 'bytes32', 'uint256', 'address'],
+      [
+        normalizeBytes32(orderId),
+        action,
+        normalizeBytes32(valueHash),
+        BigInt(chainId),
+        escrow.toLowerCase(),
+      ],
+    ),
+  );
+
+  // Convert hex hash to bytes so signer uses raw-bytes EIP-191 signing.
+  const hashBytes = ethers.getBytes(hash);
+
+  const signed = await signer.signMessage({
+    ...resolveSignerInputs(args, signer, {
+      requireKeystore: signerNeedsKeystore(signer),
+      requireExisting: signerNeedsKeystore(signer),
+    }),
+    message: hashBytes,
+  }).catch((e) => {
+    error('SIGN_FAILED', e.message);
+  });
+  output({ signature: signed.signature, hash });
+}
+
 async function cmdAudit(args) {
   const signer = await loadSignerModule(args);
   if (typeof signer.auditKeystore === 'function') {
@@ -608,6 +888,7 @@ const command = process.argv[2];
 const args = parseArgs(process.argv.slice(3));
 
 const COMMANDS = {
+  preflight: cmdPreflight,
   generate: cmdGenerate,
   'register-sign': cmdRegisterSign,
   'register-message': cmdRegisterMessage,
@@ -617,6 +898,7 @@ const COMMANDS = {
   balance: cmdBalance,
   transfer: cmdTransfer,
   deposit: cmdDeposit,
+  'settlement-sign': cmdSettlementSign,
   audit: cmdAudit,
 };
 
@@ -625,6 +907,10 @@ if (!command || !COMMANDS[command]) {
     'UNKNOWN_COMMAND',
     `Unknown command "${command}". Valid commands: ${Object.keys(COMMANDS).join(', ')}`,
   );
+}
+
+if (command !== 'preflight') {
+  await ensureCommandCapabilities(command, args);
 }
 
 await COMMANDS[command](args);

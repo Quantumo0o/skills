@@ -1,9 +1,6 @@
-let ethers;
-try {
-  ethers = await import('ethers');
-} catch {
-  throw new Error('ethers is not installed. Run: npm install ethers');
-}
+import { importNodePackage } from '../runtime-node-packages.mjs';
+
+const ethers = await importNodePackage('ethers');
 
 const erc20Interface = new ethers.Interface([
   'function transfer(address to, uint256 amount) returns (bool)',

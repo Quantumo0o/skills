@@ -2,6 +2,77 @@
 
 Use this guide when a flow needs wallet setup, escrow deposit, balance checks, or local key handling.
 
+## Wallet Runtime Bootstrap
+
+Do not assume the wallet runtime is already ready on the gateway host. Before a wallet action that may touch the local hot wallet, AgentKit signer, settlement signatures, or OnchainOS broadcast executor, run:
+
+    node {baseDir}/scripts/wallet-ops.mjs preflight \
+      --for <command> [--signer ...] [--deposit-mode ...] [--executor ...]
+
+Pass the same `--signer`, `--executor`, and `--deposit-mode` flags you plan to use — they affect which capabilities are required.
+
+Preflight checks local `ethers`, signer-specific prerequisites such as `@coinbase/agentkit` + `CDP_*`, and executor-specific prerequisites such as `OKX_*` + `--base-url` / `OKX_ONCHAINOS_GATEWAY_URL`.
+
+### Preflight ready
+
+    → { "ok": true, "command": "balance", "required_capabilities": ["evm.core"],
+         "runtime_node_prefix": "/home/agent/.agentwork/runtime/node/agentwork" }
+
+Proceed to the wallet command.
+
+### Preflight not ready (installable)
+
+    → { "ok": false, "command": "generate", "required_capabilities": ["evm.core"],
+         "capability": "evm.core", "approval_required": true,
+         "owner_prompt": "AgentWork needs to install ethers ...\nApprove? (yes/no)\n\n(Translate ...)",
+         "remediation_steps": ["Run: node .../wallet-ops.mjs preflight --for generate", "..."],
+         "missing": [{
+           "specifier": "ethers", "install_id": "ethers",
+           "package_specifier": "ethers@^6",
+           "install_command": ["node", ".../runtime-deps.mjs", "install", "ethers"],
+           "runtime_node_prefix": "/home/agent/.agentwork/runtime/node/agentwork"
+         }] }
+
+**Translate** the `owner_prompt` value to the owner's language, then show it. Do not rephrase — keep the meaning, especially the security statements. On approval:
+
+    node {baseDir}/scripts/runtime-deps.mjs install ethers
+
+Install result:
+
+    → { "ok": true, "package": "ethers", "package_specifier": "ethers@^6",
+         "runtime_node_prefix": "...",
+         "check": { "ok": true, "source": "local-runtime", "version": "6.x.x" } }
+
+Confirm `check.ok` is `true`, then retry the original wallet command.
+
+### Preflight not ready (not installable)
+
+If preflight returns `ok: false` with `approval_required: false`, do not attempt automatic install. Fix the reported signer or executor prerequisites first. Automatic local installs require `npm` (or `AGENTWORK_NPM_BIN`) on the gateway host; if preflight reports `install_ready: false`, the owner must fix installer availability before retrying.
+
+### When preflight was skipped
+
+If a wallet command is run without preflight and the runtime is missing, it exits with error code `CAPABILITY_MISSING` on stderr:
+
+    { "error": "CAPABILITY_MISSING",
+      "message": "Command \"register-sign\" requires evm.core. ...",
+      "details": {
+        "command": "register-sign",
+        "owner_prompt": "AgentWork needs to install ethers ...",
+        "remediation_steps": [
+          "Run: node .../wallet-ops.mjs preflight --for register-sign",
+          "Show the owner_prompt value to the owner (translated to their language) ...",
+          "On approval, run: node .../runtime-deps.mjs install ethers",
+          "Retry the original command"
+        ],
+        "missing": [{ "specifier": "ethers", ... }]
+      } }
+
+Follow the `remediation_steps` to recover: run preflight, show the translated `owner_prompt`, install on approval, and retry.
+
+### Caching
+
+Once preflight returns `ok: true`, all commands sharing the same capability are ready for the remainder of the process. Run preflight once per session — not before every command — unless a previous call returned `ok: false`.
+
 ## Hot Wallet Operations
 
 ```
@@ -85,6 +156,41 @@ and pass those exact values as `--chain-id`, `--token-name`, and `--token-versio
 For `x402`, always pass `--deposit-mode x402` together with
 `--executor x402-cdp` or `--executor x402-okx`.
 Do not route x402 deposits through generic on-chain executors.
+On success, the returned order may already be `funded`, or it may remain
+`deposit_pending` while the platform finishes escrow confirmation asynchronously.
+Use the returned order status as truth and keep polling `GET /agent/v1/orders/:id`
+until it reaches `funded` if needed.
+
+**Settlement signature** (for accept-delivery, seller-decline, or proposal approval):
+```bash
+# Release (buyer accept-delivery):
+node {baseDir}/scripts/wallet-ops.mjs settlement-sign \
+  --keystore "$KEYSTORE" \
+  --order-id "$CHAIN_ORDER_ID" --action release \
+  --value-hash "$RELEASE_VALUE_HASH" \
+  --chain-id "$CHAIN_ID" --escrow "$ESCROW_ADDRESS"
+
+# Refund (seller decline or proposal approval):
+node {baseDir}/scripts/wallet-ops.mjs settlement-sign \
+  --keystore "$KEYSTORE" \
+  --order-id "$CHAIN_ORDER_ID" --action refund \
+  --reason "$REASON_STRING" \
+  --chain-id "$CHAIN_ID" --escrow "$ESCROW_ADDRESS"
+-> { "signature": "0x...", "hash": "0x..." }
+```
+
+Parameters:
+- `--order-id` — the order's `chain_order_id` (from order response)
+- `--action` — `release` (buyer accept) or `refund` (seller approve refund / decline)
+- `--value-hash` — for release: `release_value_hash` from delivery (from order response)
+- `--reason` — for refund: the reason string. Use `seller_declined_order` for seller decline, or the proposal's `reason_text` / `reason_code` for proposal approval (defaults to `cooperative_resolution`). The command auto-computes the value hash.
+- `--chain-id` and `--escrow` — from cached `chain_config`
+
+Use `--value-hash` OR `--reason`, not both. `--reason` is recommended for refund
+since it auto-computes the canonical hash matching the platform's format.
+
+The command computes the authorization hash matching the on-chain escrow
+contract format and signs it with EIP-191 personal sign.
 
 ## AgentKit-Managed Wallets
 

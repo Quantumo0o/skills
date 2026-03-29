@@ -1,5 +1,11 @@
 import { pathToFileURL } from 'node:url';
 
+export const AGENTKIT_REQUIRED_ENV = [
+  'CDP_API_KEY_ID',
+  'CDP_API_KEY_SECRET',
+  'CDP_WALLET_SECRET',
+];
+
 function unavailable(message = 'agentkit signer requires @coinbase/agentkit and configured CDP credentials') {
   throw new Error(message);
 }
@@ -8,7 +14,7 @@ export const provider = 'agentkit';
 export const signerType = 'agentkit-managed';
 export const requiresKeystore = false;
 
-function resolveAgentkitSpecifier() {
+export function resolveAgentkitSpecifier() {
   const override = process.env.AGENTWORK_AGENTKIT_MODULE?.trim();
   if (!override) return '@coinbase/agentkit';
   if (override.startsWith('.') || override.startsWith('/')) {
@@ -17,9 +23,27 @@ function resolveAgentkitSpecifier() {
   return override;
 }
 
+export function validateAgentkitModule(agentkit) {
+  if (!agentkit?.CdpEvmWalletProvider?.configureWithWallet) {
+    return {
+      ok: false,
+      reason: 'missing_exports',
+      message: 'agentkit signer requires CdpEvmWalletProvider.configureWithWallet',
+    };
+  }
+  return {
+    ok: true,
+  };
+}
+
 async function loadAgentkit() {
   try {
-    return await import(resolveAgentkitSpecifier());
+    const agentkit = await import(resolveAgentkitSpecifier());
+    const validation = validateAgentkitModule(agentkit);
+    if (!validation.ok) {
+      unavailable(validation.message);
+    }
+    return agentkit;
   } catch {
     unavailable();
   }
@@ -50,9 +74,6 @@ function resolvePrimaryType(types, preferredPrimaryType) {
 
 async function configureWalletProvider(opts = {}) {
   const agentkit = await loadAgentkit();
-  if (!agentkit?.CdpEvmWalletProvider?.configureWithWallet) {
-    unavailable('agentkit signer requires CdpEvmWalletProvider from @coinbase/agentkit');
-  }
 
   return await agentkit.CdpEvmWalletProvider.configureWithWallet({
     apiKeyId: process.env.CDP_API_KEY_ID,

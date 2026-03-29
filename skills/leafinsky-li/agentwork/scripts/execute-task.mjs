@@ -1158,7 +1158,7 @@ async function main() {
       claimOwned = true;
     } catch (error) {
       if (error instanceof ApiError && error.code === "ORDER_INVALID_STATE") {
-        // Continue for restart scenarios where order is already claimed/revision_required.
+        // Continue for restart scenarios where order is already claimed or was reclaimed elsewhere.
         claimOwned = true;
       } else {
         throw error;

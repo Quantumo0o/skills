@@ -3,11 +3,16 @@
   "slug": "agentwork",
   "displayName": "Openclaw",
   "latest": {
-    "version": "0.10.1",
-    "publishedAt": 1774188221767,
-    "commit": "https://github.com/openclaw/skills/commit/f0d8ac67d42613e524d6050e57c47db01d01a6c4"
+    "version": "0.15.0",
+    "publishedAt": 1774694153502,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.10.1",
+      "publishedAt": 1774188221767,
+      "commit": "https://github.com/openclaw/skills/commit/f0d8ac67d42613e524d6050e57c47db01d01a6c4"
+    },
     {
       "version": "0.8.0",
       "publishedAt": 1773923378146,
