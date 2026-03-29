@@ -5,19 +5,17 @@ description: Anything related to coroutines, State Threads (ST), or SRS's concur
 
 # ST Development
 
-State Threads (ST) is a C coroutine library. Source lives in `trunk/3rdparty/st-srs/` inside the SRS repo.
+State Threads (ST) is a C coroutine library. 
 
-Default SRS repo path is `~/git/srs`, but do **not** hardcode this path.
-Always resolve `SRS_ROOT` dynamically:
+## Setup
 
-1. If `SRS_ROOT` env is set and contains `trunk/3rdparty/st-srs`, use it.
-2. Else, if current workspace (or its git root) contains `trunk/3rdparty/st-srs`, use that.
-3. Else, if `~/git/srs/trunk/3rdparty/st-srs` exists, use `~/git/srs`.
-4. Else, ask the user for the SRS repo root.
+All files are in the current working directory. Find everything from here — no discovery logic needed.
 
-All ST source paths below are relative to `$SRS_ROOT`.
+Available directories: `trunk/`, `cmd/`, `internal/`, `cmake/`, `docs/`, `memory/`
 
-## Setup: Load Knowledge Base (MANDATORY)
+All AI tools — OpenClaw, Codex, Claude Code, Kiro CLI — see the same relative paths.
+
+## Load Knowledge Base (MANDATORY)
 
 Before any ST work, use the `read` tool to load the knowledge base. Do NOT use memory_search — read the full file directly.
 
@@ -27,7 +25,7 @@ Before any ST work, use the `read` tool to load the knowledge base. Do NOT use m
 
 When the user asks to load the ST codebase (or needs you to work directly with the source), load **ALL** ST source files — no partial loads.
 
-All under `$SRS_ROOT/trunk/3rdparty/st-srs/`:
+All under `trunk/3rdparty/st-srs/`:
 
 Headers: `public.h`, `common.h`, `md.h`
 
@@ -41,7 +39,7 @@ Build: `Makefile`
 
 ## Unit Tests (utest)
 
-ST has a Google Test-based unit test suite in `$SRS_ROOT/trunk/3rdparty/st-srs/utest/`:
+ST has a Google Test-based unit test suite in `trunk/3rdparty/st-srs/utest/`:
 
 - `st_utest.cpp` / `st_utest.hpp` — Test main and shared helpers
 - `st_utest_coroutines.cpp` — Coroutine tests (start, params, multiple coroutines, addition across yields)
@@ -63,5 +61,5 @@ After any ST change (including utest-only changes), run the verifier script in t
 
 - `scripts/verify.sh`
 
-This script must resolve `SRS_ROOT` dynamically and run unit tests in `$SRS_ROOT/trunk/3rdparty/st-srs`.
+This script runs unit tests in `trunk/3rdparty/st-srs`.
 Always run verification before considering a change complete.
