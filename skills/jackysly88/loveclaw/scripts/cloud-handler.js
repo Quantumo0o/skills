@@ -53,6 +53,69 @@ const UserState = {
  * @param {string} channel - 当前用户的 channel，用于绑定 cron 的 announce
  * @param {string} target - 目标用户的 chat ID，如 "ou_xxx"
  */
+/**
+ * 为单个用户创建晚间报告 cron
+ */
+function setupCronJobForUser(channel, userId, jobName) {
+  try {
+    let cronList = { jobs: [] };
+    try {
+      const output = execSync('openclaw cron list --json', { encoding: 'utf-8' });
+      cronList = JSON.parse(output);
+    } catch (e) {
+      console.log('[CronSetup] 检查现有任务失败:', e.message);
+    }
+    
+    // 检查是否已存在同名任务
+    const exists = cronList.jobs.some(j => j.name === jobName);
+    if (exists) {
+      console.log(`[CronSetup] 任务 ${jobName} 已存在，跳过`);
+      return;
+    }
+    
+    // 构建 target 参数
+    let toParam = '';
+    if (channel === 'feishu') {
+      toParam = `--to "chat:${userId}"`;
+    } else {
+      toParam = `--to "${userId}"`;
+    }
+    
+    // 创建晚间报告 cron（直接 announce 给用户）
+    execSync(
+      `openclaw cron add --name "${jobName}" --cron "0 20 * * *" --tz "Asia/Shanghai" --message "执行晚间匹配报告任务。使用 exec 工具运行：node ~/.openclaw/workspace/skills/loveclaw/scripts/cloud-cron.js report 获取今日匹配数据。" --announce --channel ${channel} ${toParam}`,
+      { stdio: 'pipe' }
+    );
+    console.log(`[CronSetup] 已为用户创建 cron: ${jobName}`);
+  } catch (e) {
+    console.error('[CronSetup] 创建用户 cron 失败:', e.message);
+  }
+}
+
+/**
+ * 删除指定用户的晚间报告 cron
+ */
+function removeCronJobForUser(userId) {
+  try {
+    const jobName = `LoveClaw-晚间报告-${userId}`;
+    let cronList = { jobs: [] };
+    try {
+      const output = execSync('openclaw cron list --json', { encoding: 'utf-8' });
+      cronList = JSON.parse(output);
+    } catch (e) {
+      console.log('[CronSetup] 检查现有任务失败:', e.message);
+    }
+    
+    const job = cronList.jobs.find(j => j.name === jobName);
+    if (job) {
+      execSync(`openclaw cron remove ${job.id}`, { stdio: 'pipe' });
+      console.log(`[CronSetup] 已删除用户 cron: ${jobName}`);
+    }
+  } catch (e) {
+    console.error('[CronSetup] 删除用户 cron 失败:', e.message);
+  }
+}
+
 function setupCronJobs(channel = 'feishu', target = '') {
   try {
     // 检查现有 cron 任务
@@ -65,18 +128,7 @@ function setupCronJobs(channel = 'feishu', target = '') {
       console.log('[CronSetup] 检查现有任务失败，继续注册:', e.message);
     }
 
-    // 构建平台特定的 target 格式
-    let toParam = '';
-    if (target) {
-      if (channel === 'feishu') {
-        toParam = `--to "chat:${target}"`;
-      } else {
-        // Telegram/WhatsApp 等只需要 target ID，不需要平台前缀
-        toParam = `--to "${target}"`;
-      }
-    }
-
-    // 检查每日匹配任务是否存在（晚间报告需要 target，每日匹配不需要）
+    // 检查每日匹配任务是否存在
     const hasDailyMatch = cronList.jobs.some(j => j.name === 'LoveClaw-每日匹配');
     if (!hasDailyMatch) {
       try {
@@ -90,20 +142,7 @@ function setupCronJobs(channel = 'feishu', target = '') {
       }
     }
 
-    // 检查晚间报告任务是否存在（需要 target）
-    const hasEveningReport = cronList.jobs.some(j => j.name === 'LoveClaw-晚间报告');
-    if (!hasEveningReport && toParam) {
-      try {
-        execSync(
-          `openclaw cron add --name "LoveClaw-晚间报告" --cron "0 20 * * *" --tz "Asia/Shanghai" --message "执行晚间匹配报告任务。使用 exec 工具运行：node ~/.openclaw/workspace/skills/loveclaw/scripts/cloud-cron.js report 获取今日匹配数据。然后对于每个匹配的用户，使用 message 工具发送消息。" --announce --channel ${channel} ${toParam}`,
-          { stdio: 'pipe' }
-        );
-        console.log(`[CronSetup] 晚间报告任务已注册 (channel: ${channel}, target: ${target})`);
-      } catch (e) {
-        console.log('[CronSetup] 注册晚间报告任务失败:', e.message);
-      }
-    }
-    
+    // 晚间报告任务改为 per-user，在用户开启推送时单独创建
   } catch (e) {
     // 静默失败，不影响正常流程
     console.log('[CronSetup] 定时任务自动注册失败:', e.message);
@@ -207,7 +246,18 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
       
       const enable = message === '开启推送';
       await cloudData.updateProfile(phoneOrId, { notifyEnabled: enable ? '1' : '0' });
-      return { text: enable ? '✅ 已开启每日推送，每晚 20:00 将推送匹配结果' : '❌ 已关闭每日推送，可随时输入「今日匹配」查询' };
+      
+      if (enable) {
+        // 创建 per-user cron
+        const userChannel = profile.channel || 'feishu';
+        const cronJobName = `LoveClaw-晚间报告-${userId}`;
+        setupCronJobForUser(userChannel, userId, cronJobName);
+        return { text: '✅ 已开启每日推送，每晚 20:00 将推送匹配结果到你的频道' };
+      } else {
+        // 删除该用户的 cron
+        removeCronJobForUser(userId);
+        return { text: '❌ 已关闭每日推送，可随时输入「今日匹配」查询' };
+      }
     }
     
     // ==================== STATE: NONE (start) ====================
@@ -428,6 +478,12 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
           catch (e) { saveErr = e; await new Promise(r => setTimeout(r, 1500)); }
         }
         if (saveErr) return { text: `保存遇到网络问题，请再回复一次「确认」重试` };
+        
+        // 注册成功后为用户创建 per-user cron（如果开启了推送）
+        if (session.data.notifyEnabled) {
+          const cronChannel = session.data.channel || 'feishu';
+          setupCronJobForUser(cronChannel, userId, `LoveClaw-晚间报告-${userId}`);
+        }
         
         // Clear session
         const phone = session.data.phone;
