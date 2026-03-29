@@ -1,166 +1,166 @@
-# 运动分析模块
+# Exercise Analysis Module
 
-通过自然语言交互、语音输入和图片上传，智能解析用户运动信息，识别运动类型并估算时长，计算运动消耗的热量。
+Intelligently parses user exercise information through natural language interaction, voice input, and image uploads, recognizing exercise types and estimating durations, calculating calories consumed by exercises.
 
-## 核心能力
+## Core Capabilities
 
-- **语义分析** - 理解用户自然语言描述的运动内容
-- **语音识别** - 调用 ASR 进行语音识别，转换为文字，特别注意数字等精确信息的准确识别
-- **图像识别** - 分析运动图片，识别运动类型和估算时长
-- **运动识别** - 准确识别用户描述或图片中的运动类型
-- **实体提取** - 提取运动名称、时长、强度等关键信息
-- **时长估算** - 根据描述或图片智能估算运动时长（分钟）
-- **热量消耗估算** - 基于运动类型、时长和强度估算消耗的热量
-- **标准化输出** - 生成包含运动信息和热量消耗的标准化格式
+- **Semantic Analysis** - Understanding user's natural language descriptions of exercise content
+- **Speech Recognition** - Calling ASR for speech recognition, converting to text, with particular attention to accurate recognition of numerical and precise information
+- **Image Recognition** - Analyzing exercise images to recognize exercise types and estimate durations
+- **Exercise Recognition** - Accurately recognizing exercise types in user descriptions or images
+- **Entity Extraction** - Extracting key information such as exercise names, durations, and intensity levels
+- **Duration Estimation** - Intelligently estimating exercise duration (minutes) based on descriptions or images
+- **Calorie Expenditure Estimation** - Estimating calories consumed based on exercise type, duration, and intensity
+- **Standardized Output** - Generating standardized format containing exercise information and calorie expenditure
 
-## 运动时长估算原则
+## Exercise Duration Estimation Principles
 
-### 估算方法论
+### Estimation Methodology
 
-在估算运动时长时，应基于以下原则进行智能评估：
+When estimating exercise duration, intelligent evaluation should be based on the following principles:
 
-1. **依据常识与公开数据**：参考运动健身指南、行业标准中的典型时长数据，结合运动类型进行估算。
+1. **Based on Common Sense and Public Data**: Reference typical duration data from exercise fitness guidelines and industry standards, combined with exercise types for estimation.
 
-2. **考虑时长描述语义**：准确理解用户描述中的时长修饰词（如"半小时"、"一小时"、"20分钟"等），结合语境判断实际时长。
+2. **Consider Duration Description Semantics**: Accurately understand duration modifier words in user descriptions (e.g., "half an hour", "one hour", "20 minutes"), and judge actual duration based on context.
 
-3. **综合运动特性**：考虑运动类型、强度、个人体能等因素对时长的影响。例如：
-   - 高强度运动（如HIIT）通常时长较短
-   - 低强度运动（如散步）可以持续更长时间
-   - 团队运动（如篮球、足球）通常有固定时长
+3. **Comprehensive Exercise Characteristics**: Consider factors affecting duration such as exercise type, intensity, and individual physical fitness. For example:
+   - High-intensity exercises (e.g., HIIT) typically have shorter durations
+   - Low-intensity exercises (e.g., walking) can last longer
+   - Team sports (e.g., basketball, soccer) typically have fixed durations
 
-4. **优先使用明确数值**：若用户提供具体时长（如"30分钟"、"1小时"），直接采用该数值。
+4. **Prioritize Explicit Numerical Values**: If users provide specific durations (e.g., "30 minutes", "1 hour"), directly use that value.
 
-5. **图片识别时长估算**：
-   - **运动器械优先**：若图片中包含运动器械（如跑步机、椭圆机），优先使用器械上显示的时长数字
-   - **运动APP优先**：若图片中包含运动APP的截屏，优先使用APP上显示的运动时长
-   - **智能穿戴设备优先**：若图片中包含智能手环、手表等设备，优先使用设备上显示的运动时长
+5. **Image Recognition Duration Estimation**:
+   - **Exercise Equipment Priority**: If the image contains exercise equipment (e.g., treadmills, elliptical trainers), prioritize using the duration number displayed on the equipment
+   - **Exercise App Priority**: If the image contains exercise app screenshots, prioritize using the exercise duration displayed on the app
+   - **Wearable Device Priority**: If the image contains smart wristbands, watches, or other devices, prioritize using the exercise duration displayed on the device
 
-6. **估算不确定性**：对于模糊描述，必要时向用户要求澄清，确保结果的准确性和可靠性。
+6. **Estimation Uncertainty**: For ambiguous descriptions, request clarification from users when necessary to ensure result accuracy and reliability.
 
-### 估算准确性要求
+### Estimation Accuracy Requirements
 
-- 优先参考权威数据源
-- 对于复合运动（如交叉训练），需分解主要运动类型并分别估算
-- 保持估算逻辑的一致性与可解释性
-- 所有运动时长估算必须准确可靠
+- Prioritize authoritative data sources
+- For composite exercises (e.g., cross-training), decompose main exercise types and estimate separately
+- Maintain consistency and interpretability of estimation logic
+- All exercise duration estimation must be accurate and reliable
 
-## 热量消耗估算原则
+## Calorie Expenditure Estimation Principles
 
-### 估算方法论
+### Estimation Methodology
 
-在估算运动热量消耗时，应基于以下原则进行智能评估：
+When estimating exercise calorie expenditure, intelligent evaluation should be based on the following principles:
 
-1. **参考运动热量数据库**：基于权威运动热量数据库中的标准数据，获取不同运动类型在不同强度下的热量消耗数据（每分钟消耗的卡路里）。
+1. **Reference Exercise Calorie Databases**: Based on standard data from authoritative exercise calorie databases, obtain calorie expenditure data (calories consumed per minute) for different exercise types at different intensity levels.
 
-2. **考虑运动强度影响**：不同运动强度会影响热量消耗，例如：
-   - 低强度：慢速步行、轻度瑜伽
-   - 中等强度：正常速度跑步、游泳、骑行
-   - 高强度：快跑、HIIT、跳绳
+2. **Consider Exercise Intensity Impact**: Different exercise intensities affect calorie expenditure, for example:
+   - Low intensity: slow walking, light yoga
+   - Moderate intensity: normal speed running, swimming, cycling
+   - High intensity: sprinting, HIIT, jumping rope
 
-3. **考虑个人因素**：个人体重、年龄、性别等因素会影响热量消耗，使用这些用户信息参与估算。
+3. **Consider Individual Factors**: Individual weight, age, gender, and other factors affect calorie expenditure, using these user information for estimation.
 
-4. **时长乘以强度**：热量消耗 = 运动时长（分钟）× 该运动在相应强度下的每分钟热量消耗。
+4. **Duration × Intensity**: Calorie expenditure = exercise duration (minutes) × calories consumed per minute for that exercise at corresponding intensity.
 
-5. **标注估算不确定性**：由于个人体质、运动技巧等因素的差异，热量消耗估算可能存在一定误差，应在输出中标注估算依据及置信度。
+5. **Mark Estimation Uncertainty**: Due to variations in individual physical conditions, exercise skills, etc., calorie expenditure estimation may have certain errors, which should be marked in output with estimation basis and confidence level.
 
-6. **精准运动数据**：利用 API 服务中提供的运动搜索接口，获取所有运动类型的精准热量消耗信息。
-   - **运动类型匹配**：根据用户描述或图片识别的运动类型，在运动列表中查找最匹配的运动。
-   - **强度判断**：根据用户描述或运动特征判断运动强度（low、medium、high）。
-   - **热量计算**：使用匹配的运动类型和强度，计算热量消耗。
+6. **Accurate Exercise Data**: Utilize exercise search interface provided by API service to obtain accurate calorie expenditure information for all exercise types.
+   - **Exercise Type Matching**: Based on user descriptions or image-recognized exercise types, find the most matching exercise in the exercise list.
+   - **Intensity Judgment**: Judge exercise intensity (low, medium, high) based on user descriptions or exercise characteristics.
+   - **Calorie Calculation**: Use matching exercise type and intensity to calculate calorie expenditure.
 
-### 估算准确性要求
+### Estimation Accuracy Requirements
 
-- 优先使用权威数据库的中位值或平均值
-- 考虑运动的常见变异范围
-- 对于复合运动，参考类似运动的营养信息
-- 保持估算逻辑的一致性与可解释性
-- 所有热量消耗数据必须准确可靠
+- Prioritize median or average values from authoritative databases
+- Consider common variation ranges of exercises
+- For composite exercises, reference nutrition information of similar exercises
+- Maintain consistency and interpretability of estimation logic
+- All calorie expenditure data must be accurate and reliable
 
-## 完整处理流程
+## Complete Processing Flow
 
 ```
-用户输入
+User Input
     ↓
-[1] 输入类型判断
-    - 文本输入：直接进入语义分析
-    - 语音输入：调用 ASR 进行语音识别，特别注意数字等精确信息的准确识别
-    - 图片输入：调用 OCR 识别图像中的文本，利用大模型识别图片内容
+[1] Input Type Judgment
+    - Text input: Directly enter semantic analysis
+    - Voice input: Call ASR for speech recognition, with particular attention to accurate recognition of numerical and precise information
+    - Image input: Call OCR to recognize text in images, utilize large models to recognize image content
     ↓
-[2] 语义分析（文本/语音转文本）
-    - 识别运动描述意图
-    - 提取运动相关描述
+[2] Semantic Analysis (Text/Voice Transcription)
+    - Recognize exercise description intent
+    - Extract exercise-related descriptions
     ↓
-[3] 实体识别
-    - 提取运动名称
-    - 识别时长描述（30分钟、一小时、20分钟等）
-    - 识别强度描述（轻松、中等、激烈等）
+[3] Entity Recognition
+    - Extract exercise names
+    - Identify duration descriptions (30 minutes, one hour, 20 minutes, etc.)
+    - Identify intensity descriptions (轻松, medium, intense, etc.)
     ↓
-[4] 时长估算
-    - 文本/语音输入：根据时长描述估算时长
-    - 图片输入：
-        - 优先使用运动器械显示的时长
-        - 优先使用运动APP显示的时长
-        - 优先使用智能穿戴设备显示的时长
-    - 参考常见时长对应表
-    - 考虑运动类型对时长的影响
+[4] Duration Estimation
+    - Text/Voice input: Estimate duration based on duration descriptions
+    - Image input:
+        - Prioritize using duration displayed on exercise equipment
+        - Prioritize using duration displayed on exercise app
+        - Prioritize using duration displayed on wearable devices
+    - Reference common duration equivalent table
+    - Consider exercise type impact on duration
     ↓
-[5] 热量消耗估算
-    - 通过 API 服务查询运动列表，获取精准热量消耗信息
-    - 根据运动类型和强度选择合适的每分钟热量消耗值
-    - 计算最终热量消耗（时长 × 每分钟热量消耗）
+[5] Calorie Expenditure Estimation
+    - Query exercise list through API service to obtain accurate calorie expenditure information
+    - Select appropriate calories consumed per minute value based on exercise type and intensity
+    - Calculate final calorie expenditure (duration × calories consumed per minute)
     ↓
-[6] 生成输出
-    - 标准化运动名称
-    - 确定最终时长（分钟）
-    - 输出热量消耗估算结果
+[6] Generate Output
+    - Standardize exercise names
+    - Determine final duration (minutes)
+    - Output calorie expenditure estimation results
     ↓
-输出结果
+Output Results
 ```
 
-## 意图识别规则
+## Intent Recognition Rules
 
-### 运动描述意图
-- 关键词：跑了、游了、骑了、练了、运动、健身、锻炼、打球
-- 示例：
-  - "我跑了30分钟" → 提取跑步和30分钟
-  - "刚才游了1小时泳" → 提取游泳和1小时
-  - "健身房练了1小时" → 提取健身和1小时
+### Exercise Description Intent
+- Keywords: ran, swam, cycled, exercised, sports, fitness,锻炼, played ball
+- Examples:
+  - "I ran for 30 minutes" → Extract running and 30 minutes
+  - "Swam for 1 hour just now" → Extract swimming and 1 hour
+  - "Exercised at the gym for 1 hour" → Extract fitness and 1 hour
 
-### 运动查询意图
-- 关键词：消耗、热量、卡路里、运动量
-- 示例：
-  - "跑步30分钟消耗多少热量" → 提取跑步和30分钟
-  - "游泳1小时的运动量" → 提取游泳和1小时
+### Exercise Query Intent
+- Keywords: expenditure, calories, calories, exercise amount
+- Examples:
+  - "How many calories consumed by running 30 minutes" → Extract running and 30 minutes
+  - "Exercise amount of swimming 1 hour" → Extract swimming and 1 hour
 
-## 实体提取策略
+## Entity Extraction Strategy
 
-### 运动实体
-- 有氧运动：步行、跑步、慢跑、骑行、游泳、跳绳、有氧操、HIIT
-- 柔韧性训练：瑜伽、普拉提、拉伸
-- 力量训练：举重、俯卧撑、仰卧起坐、深蹲、引体向上、平板支撑、哑铃训练、杠铃训练
-- 球类运动：篮球、足球、网球、羽毛球、乒乓球、排球、高尔夫
-- 户外运动：攀岩、徒步、滑雪、滑冰
-- 水上运动：划船、皮划艇
-- 娱乐运动：跳舞
-- 格斗运动：拳击、武术
-- 健身器械：椭圆机、跑步机、动感单车、划船机、爬楼梯机
+### Exercise Entities
+- Aerobic exercises: walking, running, jogging, cycling, swimming, jumping rope, aerobics, HIIT
+- Flexibility training: yoga, pilates, stretching
+- Strength training: weightlifting, push-ups, sit-ups, squats, pull-ups, plank, dumbbell training, barbell training
+- Ball sports: basketball, soccer, tennis, badminton, table tennis, volleyball, golf
+- Outdoor sports: rock climbing, hiking, skiing, ice skating
+- Water sports: rowing, kayaking
+- Entertainment sports: dancing
+- Combat sports: boxing, martial arts
+- Fitness equipment: elliptical trainers, treadmills, spin bikes, rowing machines, stair climbers
 
-### 时长实体
-- 时间单位：分钟、小时、半小时、一小时
-- 数量描述：30分钟、1小时、20分钟
+### Duration Entities
+- Time units: minutes, hours, half an hour, one hour
+- Quantity descriptions: 30 minutes, 1 hour, 20 minutes
 
-### 强度实体
-- 强度描述：轻松、中等、激烈、低强度、高强度
+### Intensity Entities
+- Intensity descriptions:轻松, medium, intense, low intensity, high intensity
 
-## 输出格式
+## Output Format
 
-### 标准输出格式
+### Standard Output Format
 
 ```json
 {
   "items": [
     {
-      "exercise_name": "跑步",
+      "exercise_name": "Running",
       "duration": 30,
       "calories": 300,
       "intensity": "medium"
@@ -169,37 +169,37 @@
 }
 ```
 
-### 简化输出格式
+### Simplified Output Format
 
-- 跑步：30分钟，消耗约300kcal，强度中等
-- 游泳：1小时，消耗约600kcal，强度中等
-- 瑜伽：45分钟，消耗约135kcal，强度低
+- Running: 30 minutes, approximately 300kcal consumed, medium intensity
+- Swimming: 1 hour, approximately 600kcal consumed, medium intensity
+- Yoga: 45 minutes, approximately 135kcal consumed, low intensity
 
-## 注意事项
+## Notes
 
-1. **时长估算** - 当用户描述模糊时，使用常见时长参考值，并在回复中说明估算依据
-2. **热量消耗估算** - 基于权威数据库和标准数据进行计算，确保数据准确可靠
-3. **多运动处理** - 支持一次分析多种运动，分别输出热量消耗并汇总
-4. **准确性** - 尽量准确提取运动名称，避免模糊或错误的识别
-5. **透明度** - 清晰说明数据来源和计算方法
+1. **Duration Estimation** - When user descriptions are ambiguous, use common duration reference values and explain estimation basis in responses
+2. **Calorie Expenditure Estimation** - Calculate based on authoritative databases and standard data to ensure data accuracy and reliability
+3. **Multiple Exercise Processing** - Support analyzing multiple exercises at once, output calorie expenditure separately and summarize
+4. **Accuracy** - Try to accurately extract exercise names, avoid ambiguous or incorrect recognition
+5. **Transparency** - Clearly explain data sources and calculation methods
 
-## 提升录入准确率的技巧提示
+## Tips for Improving Entry Accuracy
 
-为了帮助智能体更准确地识别运动类型和评估时长，提示用户可以采取以下方法：
+To help the agent more accurately recognize exercise types and assess durations, users can adopt the following methods:
 
-### 文本输入技巧
-- **详细描述**：提供运动的具体名称、时长和强度
-- **量化信息**：尽量提供具体的时长，如"30分钟跑步"、"1小时游泳"
-- **避免模糊表述**：使用明确的时长描述，如"30分钟"而不是"一会儿"
+### Text Input Tips
+- **Detailed Description**: Provide specific exercise names, durations, and intensity levels
+- **Quantitative Information**: Provide specific durations when possible, such as "30 minutes running", "1 hour swimming"
+- **Avoid Ambiguous Expressions**: Use clear duration descriptions, such as "30 minutes" instead of "a while"
 
-### 语音输入技巧
-- **清晰发音**：语速适中，确保数字和时长单位清晰可辨
-- **完整描述**：包含运动名称、时长和强度
-- **环境安静**：在安静的环境中录音，减少背景噪音干扰
+### Voice Input Tips
+- **Clear Pronunciation**: Moderate speech rate to ensure numbers and duration units are clearly distinguishable
+- **Complete Description**: Include exercise names, durations, and intensity levels
+- **Quiet Environment**: Record in quiet environments to reduce background noise interference
 
-### 图片输入技巧
-- **包含运动器械**：在图片中包含运动器械（如跑步机、椭圆机）上的显示信息
-- **拍摄运动APP截屏**：拍摄运动APP的运动数据界面，确保时长和热量消耗清晰可见
-- **拍摄智能穿戴设备**：拍摄智能手环、手表等设备上显示的运动数据
-- **光线充足**：确保图片光线充足，显示信息清晰可见
-- **多角度拍摄**：对于复杂运动场景，可拍摄多个角度以提供更全面的信息
+### Image Input Tips
+- **Include Exercise Equipment**: Include display information from exercise equipment (e.g., treadmills, elliptical trainers) in images
+- **Photograph Exercise App Screenshots**: Photograph exercise app data interfaces, ensuring duration and calorie expenditure are clearly visible
+- **Photograph Wearable Devices**: Photograph exercise data displayed on smart wristbands, watches, or other devices
+- **Adequate Lighting**: Ensure images have adequate lighting and display information is clearly visible
+- **Multi-angle Photography**: For complex exercise scenarios, photograph from multiple angles to provide more comprehensive information

@@ -1,66 +1,67 @@
-# API 服务模块
+# API Service Module
 
-RESTful API 服务，提供标准化的数据访问接口，支持饮食记录的全生命周期管理（增删改查、统计分析、多维汇总），集成精准的食物热量与营养成分检索，实现数据的持久化存储与智能分析能力，为智能体提供可靠、高效的数据服务支撑。
+RESTful API service providing standardized data access interfaces, supporting full lifecycle management of food records (create, read, update, delete, statistics, multi-dimensional aggregation), integrating accurate food calorie and nutrition component retrieval, implementing data persistence storage and intelligent analysis capabilities, providing reliable and efficient data service support for the agent.
 
-## API 接口规范
+## API Interface Specifications
 
-### 接口地址
+### Interface Address
 
-API 服务基础地址：`https://guangxiankeji.com/calorie/service/user`
+API service base address:
+- United States: `https://us.guangxiankeji.com/calorie/service/user`
+- China: `https://cn.guangxiankeji.com/calorie/service/user`
 
-### 接口文档
+### Interface Documentation
 
-**重要提示**：接口为云端服务，随时可能变更，请通过以下地址获取最新的接口信息：
+**Important Note**: Interfaces are cloud services and may change at any time. Please obtain the latest interface information through the following addresses:
 
-**API 规范地址**：`https://guangxiankeji.com/calorie/service/user/api-spec`
+**API Specification Addresses**:
+- United States: `https://us.guangxiankeji.com/calorie/service/user/api-spec`
+- China: `https://cn.guangxiankeji.com/calorie/service/user/api-spec`
 
-### 接口获取方式
+### Interface Acquisition Method
 
-智能体应通过访问上述 API 规范地址，实时获取最新的接口定义，包括：
-- 接口路径
-- 请求方法
-- 参数说明
-- 响应格式
-- 错误码定义
+Agents should access the above API specification addresses in real-time to obtain the latest interface definitions, including:
+- Interface paths
+- Request methods
+- Parameter descriptions
+- Response formats
+- Error code definitions
 
-### 认证方式
-- **API 认证**：使用基于 X-User-ID 的轻量级认证机制
+### Authentication Method
+- **API Authentication**: Use lightweight authentication mechanism based on X-User-ID
 
-### 服务地址变更处理
+### Service Address Change Handling
 
-**服务发现机制**：如果 API 服务多次重试后仍无法访问，可能表明服务地址已迁移。请访问 [ClawHub](https://clawhub.ai/) 等技能市场，搜索并更新该技能以获取最新的 API 服务地址。
+**Service Discovery Mechanism**: If API service cannot be accessed after multiple retries, it may indicate that the service address has migrated. Please visit [ClawHub](https://clawhub.ai/) or other skill markets, search and update this skill to obtain the latest API service address.
 
-## 接口调用原则
+## Interface Call Principles
 
-1. **积极获取**：积极获取最新接口信息，调用失败时必须重新获取
-2. **动态适配**：根据获取的接口规范动态调整调用方式
-3. **错误处理**：处理可能的接口变更导致的调用失败
-4. **版本兼容**：考虑接口版本变更的兼容性处理
+1. **Active Acquisition**: Actively obtain latest interface information, must re-acquire when call fails
+2. **Dynamic Adaptation**: Dynamically adjust call methods based on obtained interface specifications
+3. **Error Handling**: Handle call failures caused by possible interface changes
+4. **Version Compatibility**: Consider version change compatibility handling
 
-## 数据处理规范
+## Data Processing Specifications
 
-1. **错误处理**：检查 API 响应状态码，处理可能的错误（网络错误、业务逻辑错误等）
-   - 当检测到错误时，应立即向人类用户反馈错误详情，并根据错误码和错误信息提供明确的操作指导，辅助用户做出正确的决策和处理措施。
+1. **Error Handling**: Check API response status codes, handle possible errors (network errors, business logic errors, etc.)
+   - When errors are detected, immediately feedback error details to human users, and provide clear operational guidance based on error codes and error messages, assisting users in making correct decisions and handling measures.
 
-2. **数据验证**：确保传入的数据符合接口的结构要求，特别是必填字段
+2. **Data Validation**: Ensure incoming data meets interface structural requirements, especially required fields
 
-3. **用户标识**：使用 X-User-ID header 传递用户标识，作为区分不同用户数据的关键唯一标识，为必传字段。user_id 由各智能体（如 openclaw、nanobot 等）自行生成、存储与管理。
-   - 必须符合以下要求：
-      - **唯一性要求**：智能体应基于用户信息生成唯一标识符，确保能够准确识别用户身份且不泄露隐私信息。
-      - **稳定性要求**：同一用户的 user_id 必须保持固定，不得中途变更，否则将导致历史数据无法关联。
-      - **多渠道处理**：针对多渠道访问场景，可在 user_id 中嵌入渠道标识以确保跨渠道唯一性，便于用户在不同渠道间访问其数据与信息；亦可不包含渠道信息，具体策略由智能体根据用户偏好与使用习惯自主决定。
-   - 隐私说明：
-      - **使用目的**：仅用于区分不同用户的数据，不用于其他目的。
-      - **隐私保护**：X-User-ID 仅在需要确认用户身份时才会被发送，且不会与用户的真实身份信息关联。
+3. **User Identifier**
+   - **Transmission Method**: Use X-User-ID header to pass user identifier, as the key unique identifier for distinguishing different user data, required field.
+   - **Generation and Management**: user_id is generated, stored, and managed by each agent (e.g., openclaw, nanobot, etc.).
+   - **Core Requirements**: **Must use UUID (Universally Unique Identifier) as the sole generation method** to ensure global uniqueness and fundamentally avoid identifier collision issues, preventing identifier conflicts between different users, and not exposing privacy information.
+   - **Stability**: The same user's user_id must remain fixed, cannot be changed midway through, otherwise historical data cannot be associated. Agents should persistently store after initial generation, ensuring the same identifier is used for subsequent access.
+   - **Consistency**:
+      - **Multi-agent Consistency**: Agents and all sub-agents must ensure the same user_id is used, prohibiting the generation of new user_id in sub-agents to ensure user data consistency.
+      - **Multi-channel Consistency**: For multi-channel access scenarios, agents should ensure the same user_id is used across different channels to guarantee user data consistency;
+   - **Privacy Statement**:
+      - **Usage Purpose**: Only used for distinguishing data of different users, not for other purposes.
+      - **Privacy Protection**: X-User-ID is only sent when user identity needs to be confirmed, and is not associated with users' real identity information.
 
-4. **时间处理**：API 服务统一使用 UTC 时间，所有时间相关的字段（如 created_at、timestamp 等）均以 UTC 时区为准，格式为 ISO 8601 标准格式（例如：2024-01-15T10:30:00.000Z）
+4. **Time Handling**
+   - API service uniformly uses UTC time, all time-related fields (e.g., created_at, timestamp, etc.) are based on UTC timezone, formatted as ISO 8601 standard format (e.g., 2024-01-15T10:30:00.000Z).
+   - Consider conversion between user local time and UTC time: users typically use local time when inputting, and local time should be used when displaying information to users.
 
-## 服务所有权与数据处理
 
-### 服务运营方
-- **运营方**：北京光线科技有限公司
-
-### 数据处理
-- **数据存储**：数据存储在符合 GDPR 和 CCPA 标准的云服务器中
-- **数据保留**：用户数据保留期限为 24 个月，超过期限后将自动匿名化处理
-- **访问控制**：采用多因素认证和加密传输，确保数据安全

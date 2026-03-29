@@ -1,178 +1,178 @@
-# 食物分析模块
+# Food Analysis Module
 
-通过自然语言交互、语音输入和图片上传，智能解析用户饮食信息，识别食物种类并估算重量，计算食物的热量和营养成分。
+Intelligently parses user food information through natural language interaction, voice input, and image uploads, recognizing food types and estimating weights, calculating food calories and nutrition components.
 
-## 核心能力
+## Core Capabilities
 
-- **语义分析** - 理解用户自然语言描述的饮食内容
-- **语音识别** - 调用 ASR 进行语音识别，转换为文字，特别注意数字等精确信息的准确识别
-- **图像识别** - 分析食物图片，识别食物种类和估算重量
-- **食物识别** - 准确识别用户描述或图片中的食物种类
-- **实体提取** - 提取食物名称、数量等关键信息
-- **重量估算** - 根据描述或图片智能估算食物重量（克）
-- **营养成分估算** - 基于公开信息和常识推理估算食物的热量及营养成分
-- **标准化输出** - 生成包含食物信息和营养成分的标准化格式
+- **Semantic Analysis** - Understanding user's natural language descriptions of food content
+- **Speech Recognition** - Calling ASR for speech recognition, converting to text, with particular attention to accurate recognition of numerical and precise information
+- **Image Recognition** - Analyzing food images to recognize food types and estimate weights
+- **Food Recognition** - Accurately recognizing food types in user descriptions or images
+- **Entity Extraction** - Extracting key information such as food names and quantities
+- **Weight Estimation** - Intelligently estimating food weight (grams) based on descriptions or images
+- **Nutrition Component Estimation** - Estimating food calories and nutrition components based on public information and common sense reasoning
+- **Standardized Output** - Generating standardized format containing food information and nutrition components
 
-## 食物重量估算原则
+## Food Weight Estimation Principles
 
-### 估算方法论
+### Estimation Methodology
 
-在估算食物重量时，应基于以下原则进行智能评估：
+When estimating food weight, intelligent evaluation should be based on the following principles:
 
-1. **依据常识与公开数据**：参考食品营养数据库、膳食指南及行业标准中的典型份量数据，结合食物的物理特性进行估算。
+1. **Based on Common Sense and Public Data**: Reference typical portion data from food nutrition databases, dietary guidelines, and industry standards, combined with food physical characteristics for estimation.
 
-2. **考虑份量描述语义**：准确理解用户描述中的份量修饰词（如"小碗"、"大份"、"少量"等），结合语境判断实际份量大小。
+2. **Consider Portion Description Semantics**: Accurately understand portion modifier words in user descriptions (e.g., "small bowl", "large portion", "small amount"), and judge actual portion size based on context.
 
-3. **综合食物特性**：考虑食物种类、形态、密度、含水量等因素对重量的影响。例如：
-   - 液态或半流质食物（粥、汤面）需考虑汤汁占比
-   - 带皮/带核食物需估算可食用部分比例
-   - 烹饪方式会影响食物重量变化（如油炸增重、烘烤失水）
+3. **Comprehensive Food Characteristics**: Consider factors affecting weight such as food type, form, density, and water content. For example:
+   - Liquid or semi-liquid foods (porridge, soup noodles) need to consider broth ratio
+   - Foods with skin/bone/seed need to estimate edible portion ratio
+   - Cooking methods affect food weight changes (e.g., frying increases weight, baking reduces water)
 
-4. **基于可食部分估算**：所有重量估算必须以可食部分（净重）为标准。对于带皮、带骨、带核或带壳的食物，应剔除不可食部分进行计算，包括但不限于：
-   - 水果类：果皮（如桔子皮、香蕉皮）、果核（如苹果核、桃核）
-   - 肉类：骨骼（如排骨骨、鸡骨）、筋膜、肥膘（如用户明确说明）
-   - 坚果类：硬壳（如花生壳、瓜子壳、核桃壳）
-   - 其他不可食部分：鱼刺、虾壳、蛋壳等
+4. **Based on Edible Portion Estimation**: All weight estimation must be based on edible portion (net weight). For foods with skin, bones, seeds, or shells, non-edible parts must be removed for calculation, including but not limited to:
+   - Fruits: peels (e.g., orange peel, banana peel), seeds (e.g., apple core, peach pit)
+   - Meats: bones (e.g., rib bones, chicken bones), fascia, fat (if explicitly stated by users)
+   - Nuts: hard shells (e.g., peanut shells, sunflower seeds shells, walnut shells)
+   - Other non-edible parts: fish bones, shrimp shells, eggshells, etc.
 
-5. **优先使用明确数值**：若用户提供具体重量或包装规格（如"250ml牛奶"、"100g鸡胸肉"），直接采用该数值。
+5. **Prioritize Explicit Numerical Values**: If users provide specific weight or packaging specifications (e.g., "250ml milk", "100g chicken breast"), directly use that value.
 
-6. **图片识别重量估算**：
-   - **食物秤优先**：若图片中包含食物秤，优先使用秤上显示的数字作为重量
-   - **营养成分表优先**：若图片中包含食品包装上的营养成分表，优先使用表中提供的营养数据
-   - **包装重量优先**：若图片中食品包装上标有重量信息，优先采用该数值
-   - **参照物估算**：利用图片中的参照物（如手机、餐具等）大小估算食物重量
+6. **Image Recognition Weight Estimation**:
+   - **Food Scale Priority**: If the image contains a food scale, prioritize using the number displayed on the scale as weight
+   - **Nutrition Label Priority**: If the image contains a nutrition label on food packaging, prioritize using the nutrition data provided in the label
+   - **Packaging Weight Priority**: If the food packaging in the image has weight information, prioritize using that value
+   - **Reference Object Estimation**: Use reference objects in images (e.g., mobile phones, utensils) size to estimate food weight
 
-7. **估算不确定性**：对于模糊描述，必要时向用户要求澄清，确保结果的准确性和可靠性。
+7. **Estimation Uncertainty**: For ambiguous descriptions, request clarification from users when necessary to ensure result accuracy and reliability.
 
-### 估算准确性要求
+### Estimation Accuracy Requirements
 
-- 优先参考权威数据源
-- 对于复合食物或混合菜肴，需分解主要食材并分别估算
-- 估算结果应注明是"净重"还是"含包装/容器重量"
-- 保持估算逻辑的一致性与可解释性
-- 所有食物重量估算必须准确可靠
+- Prioritize authoritative data sources
+- For composite foods or mixed dishes, decompose main ingredients and estimate separately
+- Estimation results should indicate whether it is "net weight" or "with packaging/container weight"
+- Maintain consistency and interpretability of estimation logic
+- All food weight estimation must be accurate and reliable
 
-## 营养成分估算原则
+## Nutrition Component Estimation Principles
 
-### 估算方法论
+### Estimation Methodology
 
-在估算食物营养成分时，应基于以下原则进行智能评估：
+When estimating food nutrition components, intelligent evaluation should be based on the following principles:
 
-1. **参考公开营养数据库**：基于权威营养数据库中的标准数据，如USDA Food Data Central、中国食物成分表等，获取食物的基础营养成分数据。
+1. **Reference Public Nutrition Databases**: Based on standard data from authoritative nutrition databases such as USDA Food Data Central and Chinese Food Composition Table, obtain basic nutrition component data for foods.
 
-2. **考虑烹饪方式影响**：不同烹饪方式会影响食物的营养成分，例如：
-   - 油炸会增加脂肪含量
-   - 水煮会减少水溶性维生素
-   - 烘烤会浓缩营养成分
+2. **Consider Cooking Method Impact**: Different cooking methods affect food nutrition components, for example:
+   - Frying increases fat content
+   - Boiling reduces water-soluble vitamins
+   - Baking concentrates nutrition components
 
-3. **考虑食物加工度**：加工食品的营养成分可能与原材料有显著差异，例如：
-   - 精制谷物与全谷物
-   - 加工肉类与新鲜肉类
-   - 含糖饮料与天然果汁
+3. **Consider Food Processing Level**: Processed food nutrition components may significantly differ from raw materials, for example:
+   - Refined grains vs whole grains
+   - Processed meats vs fresh meats
+   - Sugary drinks vs natural fruit juices
 
-4. **复合食物分解**：对于复合食物（如披萨、三明治、炒菜等），应分解为主要食材，分别估算营养成分后汇总。
+4. **Composite Food Decomposition**: For composite foods (e.g., pizza, sandwiches, stir-fries), decompose into main ingredients, estimate nutrition components separately, and sum up.
 
-5. **标注估算不确定性**：由于食物品种、产地、烹饪方式等因素的差异，营养成分估算可能存在一定误差，应在输出中标注估算依据及置信度。
+5. **Mark Estimation Uncertainty**: Due to variations in food varieties, origins, cooking methods, etc., nutrition component estimation may have certain errors, which should be marked in output with estimation basis and confidence level.
 
-6. **精准食物数据**：利用 API 服务中提供的食物搜索接口，通过输入关键词和区域参数，获取食物的精准热量和营养成分信息。
-   - region 参数为 US、CN、JP 等国家代码，可选，默认值为 US
-   - 根据用户当前对话语言、上下文信息、用户信息等，智能选择 region 参数。
-   - **搜索结果相关性评估**：获取搜索结果后，必须评估食物名称与查询关键词的相关性，只有严格相关的结果方可作为重要参考。
-   - **参考价值判断**：对于类似或相近的搜索结果，需谨慎评估其参考价值，考虑可能存在的误差。
-   - **结果验证**：对搜索返回的营养成分数据，应结合公开知识、权威数据信息和常识进行验证，确保数据的准确性和可靠性，不可直接采信。
-   - **多语言搜索策略**：当原关键词搜索无结果时，可尝试将关键词翻译为其他语言进行搜索。
-   - **翻译结果评估**：对于通过翻译关键词获得的搜索结果，需更加严格地评估其可信程度，考虑翻译过程中可能丢失的信息准确性，结合公开信息和权威资料进行验证。
+6. **Accurate Food Data**: Utilize food search interface provided by API service to obtain accurate calorie and nutrition component information by inputting keywords and region parameters.
+   - region parameter is country codes such as US, CN, JP, optional, default value is US
+   - Intelligently select region parameter based on user's current conversation language, context information, user information, etc.
+   - **Search Result Relevance Assessment**: After obtaining search results, must assess relevance between food names and query keywords, only strictly relevant results may be used as important reference.
+   - **Reference Value Judgment**: For similar or related search results, carefully evaluate their reference value, considering possible errors.
+   - **Result Validation**: For nutrition component data returned by search, verify with public knowledge, authoritative data information, and common sense to ensure data accuracy and reliability, do not directly accept.
+   - **Multilingual Search Strategy**: When original keyword search yields no results, try translating keywords to other languages for search.
+   - **Translation Result Assessment**: For search results obtained through keyword translation, more strictly evaluate their credibility, considering information accuracy that may be lost during translation, verify with public information and authoritative materials.
 
-### 估算准确性要求
+### Estimation Accuracy Requirements
 
-- 优先使用权威数据库的中位值或平均值
-- 考虑食物的常见变异范围
-- 对于加工食品，参考产品标签或类似产品的营养信息
-- 保持估算逻辑的一致性与可解释性
-- 所有营养成分数据必须准确可靠
+- Prioritize median or average values from authoritative databases
+- Consider common variation ranges of foods
+- For processed foods, reference product labels or similar products' nutrition information
+- Maintain consistency and interpretability of estimation logic
+- All nutrition component data must be accurate and reliable
 
-## 完整处理流程
+## Complete Processing Flow
 
 ```
-用户输入
+User Input
     ↓
-[1] 输入类型判断
-    - 文本输入：直接进入语义分析
-    - 语音输入：调用 ASR 进行语音识别，特别注意数字等精确信息的准确识别
-    - 图片输入：调用 OCR 识别图像中的文本，利用大模型识别图片内容
+[1] Input Type Judgment
+    - Text input: Directly enter semantic analysis
+    - Voice input: Call ASR for speech recognition, with particular attention to accurate recognition of numerical and precise information
+    - Image input: Call OCR to recognize text in images, utilize large models to recognize image content
     ↓
-[2] 语义分析（文本/语音转文本）
-    - 识别饮食描述意图
-    - 提取食物相关描述
+[2] Semantic Analysis (Text/Voice Transcription)
+    - Recognize food description intent
+    - Extract food-related descriptions
     ↓
-[3] 实体识别
-    - 提取食物名称
-    - 识别数量描述（一碗、两个、一份等）
-    - 识别烹饪方式（煮、炒、蒸、炸等）
+[3] Entity Recognition
+    - Extract food names
+    - Identify quantity descriptions (one bowl, two pieces, one serving, etc.)
+    - Identify cooking methods (boiling, stir-frying, steaming, frying, etc.)
     ↓
-[4] 重量估算
-    - 文本/语音输入：根据数量描述估算重量
-    - 图片输入：
-        - 优先使用食物秤显示的数字
-        - 优先使用营养成分表数据
-        - 优先使用包装上的重量信息
-        - 利用参照物估算重量
-    - 参考常见份量对应表
-    - 考虑烹饪方式对重量的影响
+[4] Weight Estimation
+    - Text/Voice input: Estimate weight based on quantity descriptions
+    - Image input:
+        - Prioritize using numbers displayed on food scale
+        - Prioritize using nutrition label data
+        - Prioritize using weight information on packaging
+        - Use reference objects to estimate weight
+    - Reference common portion equivalent table
+    - Consider cooking method impact on weight
     ↓
-[5] 营养成分估算
-    - 优先通过 API 服务查询精准营养成分信息
-    - 基于公开数据库查询基础营养成分（当 API 查询失败或无结果时）
-    - 考虑烹饪方式对营养成分的影响
-    - 计算最终营养成分含量
+[5] Nutrition Component Estimation
+    - Prioritize querying accurate nutrition component information through API service
+    - Query basic nutrition components from public databases (when API query fails or no results)
+    - Consider cooking method impact on nutrition components
+    - Calculate final nutrition component content
     ↓
-[6] 生成输出
-    - 标准化食物名称
-    - 确定最终重量（克）
-    - 输出营养成分估算结果
+[6] Generate Output
+    - Standardize food names
+    - Determine final weight (grams)
+    - Output nutrition component estimation results
     ↓
-输出结果
+Output Results
 ```
 
-## 意图识别规则
+## Intent Recognition Rules
 
-### 饮食描述意图
-- 关键词：吃了、喝了、早餐、午餐、晚餐、加餐、吃的、喝的
-- 示例：
-  - "我早餐吃了一碗粥和两个包子" → 提取粥和包子
-  - "刚才喝了一杯咖啡" → 提取咖啡
-  - "午餐吃了牛肉面" → 提取牛肉面
+### Food Description Intent
+- Keywords: ate, drank, breakfast, lunch, dinner, snack, ate, drank
+- Examples:
+  - "I ate porridge and two buns for breakfast" → Extract porridge and buns
+  - "Just drank a cup of coffee" → Extract coffee
+  - "Ate beef noodles for lunch" → Extract beef noodles
 
-### 食物查询意图
-- 关键词：查询、营养、热量、蛋白质、碳水、脂肪
-- 示例：
-  - "苹果有多少热量" → 提取苹果
-  - "鸡胸肉的营养成分" → 提取鸡胸肉
+### Food Query Intent
+- Keywords: query, nutrition, calories, protein, carbohydrates, fat
+- Examples:
+  - "How many calories in an apple" → Extract apple
+  - "Nutrition components of chicken breast" → Extract chicken breast
 
-## 实体提取策略
+## Entity Extraction Strategy
 
-### 食物实体
-- 主食：米饭、面条、馒头、粥、面包
-- 蛋白质：鸡蛋、鸡肉、牛肉、猪肉、鱼、豆腐
-- 蔬菜：青菜、西兰花、番茄、黄瓜、胡萝卜
-- 水果：苹果、香蕉、橙子、葡萄、西瓜
-- 饮品：牛奶、豆浆、咖啡、茶、果汁
+### Food Entities
+- Staple foods: rice, noodles, steamed buns, porridge, bread
+- Proteins: eggs, chicken, beef, pork, fish, tofu
+- Vegetables: greens, broccoli, tomatoes, cucumbers, carrots
+- Fruits: apples, bananas, oranges, grapes, watermelons
+- Beverages: milk, soy milk, coffee, tea, fruit juice
 
-### 数量实体
-- 数量词：一个、两个、一碗、一杯、一份
-- 重量单位：克、斤、两、公斤
-- 体积单位：毫升、升、杯、碗
+### Quantity Entities
+- Quantity words: one, two, one bowl, one cup, one serving
+- Weight units: grams, jin, liang, kilograms
+- Volume units: milliliters, liters, cups, bowls
 
-## 输出格式
+## Output Format
 
-### 标准输出格式
+### Standard Output Format
 
 ```json
 {
   "meal_type": "breakfast",
   "items": [
     {
-      "food_name": "白粥",
+      "food_name": "Rice Porridge",
       "weight": 250,
       "calories": 75,
       "protein": 2.5,
@@ -180,7 +180,7 @@
       "fat": 0.5
     },
     {
-      "food_name": "包子",
+      "food_name": "Steamed Bun",
       "weight": 180,
       "calories": 360,
       "protein": 12,
@@ -191,38 +191,38 @@
 }
 ```
 
-### 简化输出格式
+### Simplified Output Format
 
-- 白粥：250g，热量约75kcal，蛋白质2.5g，碳水16g，脂肪0.5g
-- 包子：180g，热量约360kcal，蛋白质12g，碳水50g，脂肪12g
-- 苹果：180g，热量约95kcal，蛋白质0.5g，碳水25g，脂肪0.3g
+- Rice Porridge: 250g, approximately 75kcal calories, 2.5g protein, 16g carbohydrates, 0.5g fat
+- Steamed Bun: 180g, approximately 360kcal calories, 12g protein, 50g carbohydrates, 12g fat
+- Apple: 180g, approximately 95kcal calories, 0.5g protein, 25g carbohydrates, 0.3g fat
 
-## 注意事项
+## Notes
 
-1. **重量估算** - 当用户描述模糊时，使用常见份量参考值，并在回复中说明估算依据
-2. **营养成分估算** - 基于权威数据库和标准数据进行计算，确保数据准确可靠
-3. **多食物处理** - 支持一次分析多种食物，分别输出营养成分并汇总
-4. **准确性** - 尽量准确提取食物名称，避免模糊或错误的识别
-5. **透明度** - 清晰说明数据来源和计算方法
+1. **Weight Estimation** - When user descriptions are ambiguous, use common portion reference values and explain estimation basis in responses
+2. **Nutrition Component Estimation** - Calculate based on authoritative databases and standard data to ensure data accuracy and reliability
+3. **Multiple Food Processing** - Support analyzing multiple foods at once, output nutrition components separately and summarize
+4. **Accuracy** - Try to accurately extract food names, avoid ambiguous or incorrect recognition
+5. **Transparency** - Clearly explain data sources and calculation methods
 
-## 提升录入准确率的技巧提示
+## Tips for Improving Entry Accuracy
 
-为了帮助智能体更准确地识别食物种类和评估重量，提示用户可以采取以下方法：
+To help the agent more accurately recognize food types and assess weights, users can adopt the following methods:
 
-### 文本输入技巧
-- **详细描述**：提供食物的具体名称、烹饪方式和份量
-- **量化信息**：尽量提供具体的重量或数量，如"100克鸡胸肉"、"一碗200毫升的粥"
-- **避免模糊表述**：使用明确的量词，如"一个中等大小的苹果"而不是"一个苹果"
+### Text Input Tips
+- **Detailed Description**: Provide specific food names, cooking methods, and portion sizes
+- **Quantitative Information**: Provide specific weights or quantities when possible, such as "100g chicken breast", "one bowl of 200ml porridge"
+- **Avoid Ambiguous Expressions**: Use clear quantity words, such as "one medium-sized apple" instead of "one apple"
 
-### 语音输入技巧
-- **清晰发音**：语速适中，确保数字和量词清晰可辨
-- **完整描述**：包含食物名称、份量和烹饪方式
-- **环境安静**：在安静的环境中录音，减少背景噪音干扰
+### Voice Input Tips
+- **Clear Pronunciation**: Moderate speech rate to ensure numbers and quantity words are clearly distinguishable
+- **Complete Description**: Include food names, portions, and cooking methods
+- **Quiet Environment**: Record in quiet environments to reduce background noise interference
 
-### 图片输入技巧
-- **包含参照物**：在图片中包含常见物品（如手机、餐具）作为大小参考
-- **拍摄食物秤**：如果使用食物秤称重，确保秤上的数字清晰可见
-- **拍摄营养成分表**：对于包装食品，拍摄包装上的营养成分表
-- **拍摄完整包装**：包含包装上的重量信息和产品名称
-- **光线充足**：确保图片光线充足，食物细节清晰可见
-- **多角度拍摄**：对于复杂食物，可拍摄多个角度以提供更全面的信息
+### Image Input Tips
+- **Include Reference Objects**: Include common items (e.g., mobile phones, utensils) in images as size references
+- **Photograph Food Scales**: If using food scales for weight, ensure scale numbers are clearly visible
+- **Photograph Nutrition Labels**: For packaged foods, photograph nutrition labels on packaging
+- **Photograph Complete Packaging**: Include weight information and product names on packaging
+- **Adequate Lighting**: Ensure images have adequate lighting and food details are clearly visible
+- **Multi-angle Photography**: For complex foods, photograph from multiple angles to provide more comprehensive information

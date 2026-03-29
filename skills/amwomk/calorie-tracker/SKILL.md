@@ -1,93 +1,147 @@
 ---
 name: "calorie-tracker"
 description: "Smart health management solution with food and exercise recognition, nutrition and calorie analysis, secure data storage, and comprehensive data management. Empowers users with accurate food and exercise logging, personalized nutrition assessment, daily intake tracking, and calorie expenditure monitoring to support a healthy lifestyle."
-metadata: {"tags":["nutrition", "health", "food-tracking", "diet", "wellness", "food-recognition", "calorie-counting", "fitness", "health-tracking", "nutrition-analysis", "exercise-tracking", "workout-logging", "calorie-burning", "healthy-lifestyle", "weight-management", "personalized-nutrition", "fitness-goals", "wellness-journey"], "version":"1.0.0", "emoji":"🍎"}
+metadata: {"tags":["nutrition", "health", "food-tracking", "diet", "wellness", "food-recognition", "calorie-counting", "fitness", "health-tracking", "nutrition-analysis", "exercise-tracking", "workout-logging", "calorie-burning", "healthy-lifestyle", "weight-management", "personalized-nutrition", "fitness-goals", "wellness-journey", "weight-tracking", "body-weight", "bmi-calculation", "weight-monitoring"], "openclaw":{"emoji":"🍎","homepage":"https://us.guangxiankeji.com/calorie/"}}
 ---
 
-# 智能健康营养管理
+# Smart Health and Nutrition Management
 
-## 核心工作
+## Core Functionality
 
-本智能体致力于提供智能化的健康营养管理方案，集成食物分析、运动分析和 API 服务模块，实现食物识别、运动识别、营养分析、热量消耗分析、数据持久化存储、查询统计及全生命周期管理，为用户提供精准的饮食记录、运动记录、营养评估、每日摄入量追踪和热量消耗监控服务。
+This agent provides intelligent health and nutrition management solutions, integrating food analysis, exercise analysis, and API service modules to achieve food recognition, exercise recognition, nutrition analysis, calorie expenditure analysis, data persistence storage, query statistics, and full lifecycle management. It empowers users with accurate food and exercise logging, personalized nutrition assessment, daily intake tracking, and calorie expenditure monitoring to support a healthy lifestyle.
 
-## 业务流程
+## Business Processes
 
-### 饮食记录流程
-1. **用户输入**：接收用户的饮食描述、语音输入或食物图片
-2. **输入处理**：
-   - 语音输入：调用 ASR 进行语音识别，转换为文字
-   - 图片输入：调用 OCR 识别图像中的文本，利用大模型识别图片内容
-   - 文本输入：直接进行语义分析
-3. **食物识别**：调用食物分析模块解析食物类型和分量
-4. **营养分析**：基于食物分析结果估算营养成分数据（卡路里、蛋白质、脂肪、碳水化合物等）
-5. **数据存储**：向用户展示识别结果和营养数据，**询问用户是否要记录**，获得用户明确确认后，调用 API 服务模块将饮食记录持久化存储到数据库，包含食物信息、营养数据、时间戳和用户标识
-   - **必须**询问用户是否要记录
-   - **必须**等待用户确认
-   - **仅在用户确认后**执行存储操作
-   - 存储完成后，告知用户"已记录"或类似信息
-   - 频繁操作不必每次确认，如用户已表示允许存储数据，后续操作无需重复询问
+### Food Logging Process
+1. **User Input**: Receives user's food descriptions, voice input, or food images
+2. **Input Processing**:
+   - Voice input: Calls ASR for speech recognition, converting to text
+   - Image input: Calls OCR to recognize text in images, utilizes large models to recognize image content
+   - Text input: Direct semantic analysis
+3. **Food Recognition**: Calls food analysis module to parse food types and portions
+4. **Nutrition Analysis**: Estimates nutrition data (calories, protein, fat, carbohydrates, etc.) based on food analysis results
+5. **Data Storage**: Displays recognition results and nutrition data to users, **asks users whether to record**, obtains explicit user confirmation, then calls API service module to persistently store food records to the database, including food information, nutrition data, timestamp, and user identifier
+   - **Must** ask users whether to record
+   - **Must** wait for user confirmation
+   - **Only executes storage operation after user confirmation**
+   - After storage completion, informs users with "recorded" or similar message
+   - For frequent operations, confirmation is not required each time; if users have indicated permission to store data, subsequent operations do not need repeated confirmation
 
-### 运动记录流程
-1. **用户输入**：接收用户的运动描述、语音输入或运动图片
-2. **输入处理**：
-   - 语音输入：调用 ASR 进行语音识别，转换为文字
-   - 图片输入：调用 OCR 识别图像中的文本，利用大模型识别图片内容
-   - 文本输入：直接进行语义分析
-3. **运动识别**：调用运动分析模块解析运动类型和时长
-4. **热量消耗分析**：基于运动分析结果估算热量消耗数据（卡路里）
-5. **数据存储**：向用户展示识别结果和热量消耗数据，**询问用户是否要记录**，获得用户明确确认后，调用 API 服务模块将运动记录持久化存储到数据库，包含运动信息、热量消耗数据、时间戳和用户标识
-   - **必须**询问用户是否要记录
-   - **必须**等待用户确认
-   - **仅在用户确认后**执行存储操作
-   - 存储完成后，告知用户"已记录"或类似信息
-   - 频繁操作不必每次确认，如用户已表示允许存储数据，后续操作无需重复询问
+### Exercise Logging Process
+1. **User Input**: Receives user's exercise descriptions, voice input, or exercise images
+2. **Input Processing**:
+   - Voice input: Calls ASR for speech recognition, converting to text
+   - Image input: Calls OCR to recognize text in images, utilizes large models to recognize image content
+   - Text input: Direct semantic analysis
+3. **Exercise Recognition**: Calls exercise analysis module to parse exercise types and durations
+4. **Calorie Expenditure Analysis**: Estimates calorie expenditure data (calories) based on exercise analysis results
+5. **Data Storage**: Displays recognition results and calorie expenditure data to users, **asks users whether to record**, obtains explicit user confirmation, then calls API service module to persistently store exercise records to the database, including exercise information, calorie expenditure data, timestamp, and user identifier
+   - **Must** ask users whether to record
+   - **Must** wait for user confirmation
+   - **Only executes storage operation after user confirmation**
+   - After storage completion, informs users with "recorded" or similar message
+   - For frequent operations, confirmation is not required each time; if users have indicated permission to store data, subsequent operations do not need repeated confirmation
 
-### 数据查询流程
-1. **接收查询请求**：用户查询历史饮食记录、运动记录、每日摄入量、每日消耗量或特定时间段数据
-2. **数据检索**：调用 API 服务模块从数据库查询相关记录
-3. **数据聚合**：根据时间范围（日/周/月）统计营养摄入总量和热量消耗总量
-4. **结果展示**：以结构化格式返回查询结果和营养分析报告
+### Weight Logging Process
+1. **User Input**: Receives user's weight descriptions, voice input, or weight scale images
+2. **Input Processing**:
+   - Voice input: Calls ASR for speech recognition, converting to text
+   - Image input: Calls OCR to recognize text in images, utilizes large models to recognize image content
+   - Text input: Direct semantic analysis
+3. **Weight Recognition**: Calls weight analysis module to parse weight values and units
+4. **Weight Analysis**: Calculates BMI and analyzes weight change trends based on weight data
+5. **Data Storage**: Displays recognition results and analysis data to users, **asks users whether to record**, obtains explicit user confirmation, then calls API service module to persistently store weight records to the database, including weight information, BMI data, timestamp, and user identifier
+   - **Must** ask users whether to record
+   - **Must** wait for user confirmation
+   - **Only executes storage operation after user confirmation**
+   - After storage completion, informs users with "recorded" or similar message
+   - For frequent operations, confirmation is not required each time; if users have indicated permission to store data, subsequent operations do not need repeated confirmation
 
-### 数据管理流程
-- **创建**：新增饮食记录或运动记录（同饮食记录流程或运动记录流程）
-- **读取**：查询历史记录和统计数据
-- **更新**：修改已记录的饮食信息或运动信息（如调整分量、更正食物类型、调整时长、更正运动类型）
-- **删除**：移除错误的饮食记录或运动记录
+### Data Query Process
+1. **Receive Query Request**: Users query historical food records, exercise records, weight records, daily intake, daily expenditure, weight change trends, or specific time period data
+2. **Data Retrieval**: Calls API service module to query relevant records from the database
+3. **Data Aggregation**: Statistics total nutrition intake, total calorie expenditure, and weight change data based on time range (day/week/month)
+4. **Result Display**: Returns query results, nutrition analysis reports, and weight change trend analysis in structured format
 
-### 模块协同机制
-- **食物分析模块**：负责食物识别和分量估算
-- **运动分析模块**：负责运动识别和时长估算
-- **API 服务模块**：实现数据持久化、查询统计和全生命周期管理
+### Data Management Process
+- **Create**: Add new food records, exercise records, or weight records (same as food logging process, exercise logging process, or weight logging process)
+- **Read**: Query historical records and statistics
+- **Update**: Modify recorded food information, exercise information, or weight information (e.g., adjust portion, correct food type, adjust duration, correct exercise type, correct weight value)
+- **Delete**: Remove erroneous food records, exercise records, or weight records
 
-## 交互规范
+### Module Collaboration Mechanism
+- **Food Analysis Module**: Responsible for food recognition and portion estimation
+- **Exercise Analysis Module**: Responsible for exercise recognition and duration estimation
+- **Weight Analysis Module**: Responsible for weight recording and trend analysis
+- **API Service Module**: Implements data persistence, query statistics, and full lifecycle management
 
-### 回复原则
-- **简洁高效**：回复需简明扼要，直接传达关键信息，避免冗余内容
-- **聚焦主题**：严格围绕用户当前请求展开，不引入无关话题或扩展讨论
+## Interaction Standards
 
-### 回复规范
+### Response Principles
+- **Concise and Efficient**: Responses must be concise and direct, conveying key information without redundant content
+- **Focus on Topic**: Strictly revolves around user's current request, without introducing irrelevant topics or expanding discussions
 
-**表达方式**：
-- 以自然、人格化的方式组织回复，如日常对话般流畅
-- 根据上下文灵活调整表达方式，可适当变化语气和措辞
-- 核心信息需完整传达：操作结果、关键数据（如食物名称、热量等）
+### Response Standards
 
-**简洁原则**：
-- 避免冗长的标题和分隔线
-- 营养数据直接列出，不需要过多装饰
-- 总览信息精简为一行或几句话
+**Expression Methods**:
+- Organize responses naturally and personally, flowing smoothly like everyday conversation
+- Flexibly adjust expression methods based on context, appropriately varying tone and wording
+- Core information must be fully conveyed: operation results, key data (e.g., food names, calories, etc.)
 
-**禁止输出的技术性内容**：
-- 记录ID、数据库表名、API 端点地址
-- 技术实现细节、时间戳（除非用户特别询问）
+**Conciseness Principles**:
+- Avoid lengthy headings and separators
+- List nutrition data directly without excessive decoration
+- Summarize information in one or a few sentences
 
-## 集成的核心模块
+**Prohibited Technical Content in Output**:
+- Record IDs, database table names, API endpoint addresses
+- Technical implementation details, timestamps (unless specifically asked by users)
 
-### 食物分析模块
-[食物分析模块](./food-analyzer.md)
+## Integrated Core Modules
 
-### 运动分析模块
-[运动分析模块](./exercise-analyzer.md)
+### Food Analysis Module
+[Food Analysis Module](./food-analyzer.md)
 
-### API 服务模块
-[API 服务模块](./api-service.md)
+### Exercise Analysis Module
+[Exercise Analysis Module](./exercise-analyzer.md)
+
+### Weight Analysis Module
+[Weight Analysis Module](./weight-analyzer.md)
+
+### API Service Module
+[API Service Module](./api-service.md)
+
+## Data and Privacy Statement
+
+### Local Data Processing
+
+All data processing is completed locally to ensure user privacy and data security:
+
+- **Speech Recognition (ASR)**: Local models perform speech-to-text conversion;
+- **Optical Character Recognition (OCR)**: Local models extract text from images;
+- **Image Content Recognition**: Local multimodal models analyze image content, including food recognition, information recognition from food packaging, exercise scene recognition, food scale and weight scale reading recognition;
+- **Semantic Analysis and Reasoning**: Local large models complete natural language understanding, nutrition estimation, and calorie calculation;
+- **Data Isolation**: All user raw data (voice, images, text) is processed locally only, and is not uploaded to any external servers.
+- **Temporary Data**: All temporary processing data (voice segments, image caches, text intermediate results) is immediately cleared after task completion, without establishing any form of local data persistence or logging;
+
+### External Service Interfaces
+This skill uses the following external API services for data storage and query:
+- United States: `https://us.guangxiankeji.com/calorie/service/user/api-spec`
+- China: `https://cn.guangxiankeji.com/calorie/service/user/api-spec`
+
+### Data Types
+This skill collects and processes the following types of personal health data:
+- Food records (food name, weight, nutrition components)
+- Exercise records (exercise type, duration, calorie expenditure)
+- Weight records (weight value, BMI data)
+
+### Service Provider
+- **Provider**: Beijing Guangxian Technology Co., Ltd.
+- **Official Website**: https://us.guangxiankeji.com/calorie/
+- **Privacy Policy**: https://us.guangxiankeji.com/calorie/#/privacy
+- **Service Terms**: https://us.guangxiankeji.com/calorie/#/terms
+
+### Data Security
+- Data stored in cloud servers compliant with GDPR and CCPA standards
+- Data retention period is 24 months, after which data will be automatically anonymized
+- Encrypted transmission ensures data security
