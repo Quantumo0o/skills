@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+import os
 """
 Smart Notifications System
 """
+import os
 import json
 from datetime import datetime
 

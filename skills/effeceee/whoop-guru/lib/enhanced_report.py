@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 Enhanced Health Report - Full features
 """

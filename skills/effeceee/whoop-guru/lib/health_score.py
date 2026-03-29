@@ -5,19 +5,13 @@ Health Score System - For Whoop Guru Skill
 import os
 import json
 
-def get_data_path():
-    skill_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(skill_dir, 'data', 'processed', 'latest.json')
-
-def get_output_path():
-    skill_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(skill_dir, 'data', 'processed', 'health_score.json')
+# 数据路径
+DATA_FILE = os.environ.get('WHOOP_DATA_DIR', '/root/.openclaw/workspace-healthgao/data/processed/latest.json')
+OUTPUT_FILE = os.environ.get('WHOOP_DATA_DIR', '/root/.openclaw/workspace-healthgao/data/processed') + '/health_score.json'
 
 def calculate_health_score():
-    data_file = get_data_path()
-    
     try:
-        with open(data_file) as f:
+        with open(DATA_FILE) as f:
             data = json.load(f)
     except:
         return {"score": 0, "grade": "N/A"}
@@ -62,10 +56,11 @@ def calculate_health_score():
         }
     }
     
-    output_file = get_output_path()
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
-    with open(output_file, 'w') as f:
-        json.dump(result, f, indent=2)
+    try:
+        with open(OUTPUT_FILE, 'w') as f:
+            json.dump(result, f, indent=2)
+    except:
+        pass
     
     return result
 

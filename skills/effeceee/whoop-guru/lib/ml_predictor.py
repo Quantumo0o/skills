@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 """
 ML Prediction Model - Advanced prediction using simple ML
 """
@@ -6,7 +7,7 @@ import json
 import math
 from datetime import datetime, timedelta
 
-DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'processed', 'latest.json')
+DATA_FILE = os.environ.get('WHOOP_DATA_DIR', '/root/.openclaw/workspace-healthgao/data/processed/latest.json')
 
 def load_data():
     with open(DATA_FILE) as f:
