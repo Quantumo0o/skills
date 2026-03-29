@@ -1,14 +1,14 @@
 ---
 name: buffy-agent
-description: Habit tracking, todo, and routines — create and track habits, tasks, and todo lists; schedule reminders and daily briefings across ChatGPT, Telegram, Slack, and OpenClaw. Use when the user wants to manage habits, todo/tasks, or routines, get progress summaries, or set reminder timing.
+description: Free habit tracking, todo, and routines — create and track up to 25 habits, 100 tasks, and 15 routines; schedule reminders and daily briefings across ChatGPT, Telegram, Slack, and OpenClaw. Completely free, no paid tiers. Use when the user wants to manage habits, todo/tasks, or routines, get progress summaries, or set reminder timing.
 primaryEnv: BUFFY_API_KEY
 requires:
   env:
     - BUFFY_API_KEY
-metadata: {"openclaw":{"primaryEnv":"BUFFY_API_KEY","requires":{"env":["BUFFY_API_KEY"]},"keywords":["habit","todo","tasks","routines","reminders","daily briefing"],"summary":"Habit & todo in chat — track habits, manage todo lists, and run routines with reminders."}}
+metadata: {"openclaw":{"primaryEnv":"BUFFY_API_KEY","requires":{"env":["BUFFY_API_KEY"]},"keywords":["habit","todo","tasks","routines","reminders","daily briefing","free"],"summary":"Free habit & todo in chat — track up to 25 habits, 100 tasks, and 15 routines with reminders. No paid plans."}}
 ---
 
-**Habit & todo in chat.** Track habits, manage todo lists, and run routines with reminders and daily briefings. Ask in plain language; Buffy creates and tracks for you.
+**Free habit & todo in chat.** Track up to 25 habits, 100 tasks, and 15 routines with reminders and daily briefings — completely free, no paid tiers. Ask in plain language; Buffy creates and tracks for you.
 
 ## What you can do (habit, todo, routines)
 
@@ -22,7 +22,7 @@ Buffy understands natural language — no forms or menus. One message creates or
 
 ## Overview
 
-Buffy is a personal behavior agent for **habits**, **todo/tasks**, and **routines**. It tracks activities, schedules reminders, and sends daily briefings across multiple channels (ChatGPT, Telegram, Slack, OpenClaw), all powered by a single unified behavior engine.
+Buffy is a **free** personal behavior agent for **habits**, **todo/tasks**, and **routines**. It tracks activities, schedules reminders, and sends daily briefings across multiple channels (ChatGPT, Telegram, Slack, OpenClaw), all powered by a single unified behavior engine. Buffy is completely free with generous limits: 25 habits, 100 tasks, 15 routines, 200 reminders/day, and 365 days of memory.
 
 **This skill** is only the HTTP client for the Buffy API and **requires only `BUFFY_API_KEY`**. Buffy runs as an external HTTP API; all behavior logic lives in the Buffy backend.
 
