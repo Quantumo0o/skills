@@ -3,9 +3,15 @@
   "slug": "gate-mcp-cursor-installer",
   "displayName": "Gate MCP Cursor Installer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773364653971,
-    "commit": "https://github.com/openclaw/skills/commit/08cbf9fc182780ba1fc8585cd8ad742c68b5fefe"
+    "version": "1.0.1",
+    "publishedAt": 1774617937327,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773364653971,
+      "commit": "https://github.com/openclaw/skills/commit/08cbf9fc182780ba1fc8585cd8ad742c68b5fefe"
+    }
+  ]
 }
