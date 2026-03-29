@@ -3,11 +3,16 @@
   "slug": "jisu-stock",
   "displayName": "Stock Inquiry - 股票查询",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773728748618,
-    "commit": "https://github.com/openclaw/skills/commit/27ef630f4b8db77f4e0b9d10504727ef1b27aca5"
+    "version": "1.0.5",
+    "publishedAt": 1774592579084,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773728748618,
+      "commit": "https://github.com/openclaw/skills/commit/27ef630f4b8db77f4e0b9d10504727ef1b27aca5"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1773719792170,
