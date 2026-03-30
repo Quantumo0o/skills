@@ -209,6 +209,8 @@ function getPluginVersion(): string {
 // Plugin Definition
 // ============================================================================
 
+let _telemetrySent = false;
+
 const memoryUnifiedPlugin = {
   id: "memex",
   name: "Memex",
@@ -323,28 +325,39 @@ const memoryUnifiedPlugin = {
     // See docs/RESILIENCY.md for full failure mode analysis.
     const embeddingModel = config.embedding.model || "text-embedding-3-small";
     let embeddingMismatchWarning: string | null = null;
+    let embeddingStatusChecked = false;
 
-    if (!isCli) {
-      const status = store.getEmbeddingStatus(embeddingModel);
+    const refreshEmbeddingMismatchWarning = () => {
+      if (isCli || embeddingStatusChecked) return;
+      embeddingStatusChecked = true;
 
-      if (status === "first_run") {
-        store.setStoredEmbeddingModel(embeddingModel);
-      } else if (status === "model_changed" || status === "interrupted") {
-        const stored = store.getStoredEmbeddingModel();
-        const target = store.getMeta("embedding_target");
-        const reason = status === "interrupted"
-          ? `interrupted re-embed detected (target: ${target})`
-          : `model changed (was: ${stored}, now: ${embeddingModel})`;
+      try {
+        const liveStore = getStore();
+        const status = liveStore.getEmbeddingStatus(embeddingModel);
 
-        api.logger.warn(`memex: ${reason}. Memory recall may return poor results. Run: openclaw memex re-embed`);
+        if (status === "first_run") {
+          liveStore.setStoredEmbeddingModel(embeddingModel);
+          return;
+        }
 
-        // Set warning for context injection — agent will see this and can inform user
-        embeddingMismatchWarning =
-          `Memory embedding model mismatch: memories were embedded with "${stored || target}" ` +
-          `but current model is "${embeddingModel}". Recall quality may be degraded. ` +
-          `Run: openclaw memex re-embed`;
+        if (status === "model_changed" || status === "interrupted") {
+          const stored = liveStore.getStoredEmbeddingModel();
+          const target = liveStore.getMeta("embedding_target");
+          const reason = status === "interrupted"
+            ? `interrupted re-embed detected (target: ${target})`
+            : `model changed (was: ${stored}, now: ${embeddingModel})`;
+
+          api.logger.warn(`memex: ${reason}. Memory recall may return poor results. Run: openclaw memex re-embed`);
+
+          embeddingMismatchWarning =
+            `Memory embedding model mismatch: memories were embedded with "${stored || target}" ` +
+            `but current model is "${embeddingModel}". Recall quality may be degraded. ` +
+            `Run: openclaw memex re-embed`;
+        }
+      } catch (err) {
+        api.logger.warn(`memex: embedding status check failed: ${String(err)}`);
       }
-    }
+    };
 
     // Merge shared reranker config into retrieval config
     const retrievalConfig = {
@@ -647,8 +660,9 @@ const memoryUnifiedPlugin = {
       validateAgentList(config.autoCaptureAgents as string[] | undefined, "autoCaptureAgents");
     }
 
-    // Track startup telemetry (fire-and-forget)
-    if (!isCli) {
+    // Track startup telemetry once (not per-registration)
+    if (!isCli && !_telemetrySent) {
+      _telemetrySent = true;
       (async () => {
         let memoryCount = 0;
         try { memoryCount = (await store.stats()).totalCount; } catch {}
@@ -715,10 +729,11 @@ const memoryUnifiedPlugin = {
     const recentRecalls = new Map<string, string[][]>();
     const RECALL_HISTORY_TURNS = 5;
 
-    // Auto-recall: inject relevant memories before agent starts
+    // Auto-recall: inject relevant memories into prompt context
     // Default ON — LLM needs recalled context to make good memory decisions.
+    // Uses before_prompt_build (not legacy before_agent_start) per SDK recommendation.
     if (config.autoRecall !== false) {
-      api.on("before_agent_start", async (event, ctx) => {
+      api.on("before_prompt_build", async (event: any, ctx: any) => {
         if (!event.prompt || shouldSkipRetrieval(event.prompt, config.autoRecallMinLength)) {
           return;
         }
@@ -845,8 +860,14 @@ const memoryUnifiedPlugin = {
     }
 
     // Embedding mismatch warning: inject into agent context so user is informed
-    if (embeddingMismatchWarning) {
+    if (!isCli) {
       api.on("before_prompt_build", async () => {
+        if (!embeddingStatusChecked) {
+          refreshEmbeddingMismatchWarning();
+        }
+        if (!embeddingMismatchWarning) {
+          return {};
+        }
         // Clear warning once re-embed completes (check live state)
         if (!store.needsReEmbed(embeddingModel)) {
           embeddingMismatchWarning = null;
@@ -928,6 +949,8 @@ const memoryUnifiedPlugin = {
         // IMPORTANT: Do not block gateway startup on external network calls.
         // If embedding/retrieval tests hang (bad network / slow provider), the gateway
         // may never bind its HTTP port, causing restart timeouts.
+
+        refreshEmbeddingMismatchWarning();
 
         const withTimeout = async <T>(p: Promise<T>, ms: number, label: string): Promise<T> => {
           let timeout: ReturnType<typeof setTimeout> | undefined;
@@ -1196,4 +1219,12 @@ function parsePluginConfig(value: unknown): PluginConfig {
   };
 }
 
-export default memoryUnifiedPlugin;
+const pluginExport = Object.assign(memoryUnifiedPlugin, { detectCategory });
+
+export default pluginExport;
+
+if (typeof module !== "undefined" && module?.exports) {
+  module.exports = pluginExport;
+  module.exports.default = pluginExport;
+  module.exports.detectCategory = detectCategory;
+}
