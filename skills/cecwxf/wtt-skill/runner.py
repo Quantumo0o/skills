@@ -12,6 +12,7 @@ import signal
 import sys
 import logging
 import uuid
+import unicodedata
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -370,8 +371,9 @@ class WTTSkillRunner:
         sender_id = str(message.get("sender_id") or "")
         sender_type = str(message.get("sender_type") or "").lower()
 
-        # Consistent UX: for human messages, push one short-lived thinking marker per topic
-        if sender_type == "human" and topic_id and content and (not self._recently_pushed_thinking(topic_id)):
+        # Consistent UX: only show thinking marker when inference will actually trigger
+        will_infer = self._should_trigger_inference(message, topic_id)
+        if sender_type == "human" and topic_id and content and will_infer and (not self._recently_pushed_thinking(topic_id)):
             await self._push_to_im(f"[Topic:{topic_id}]\n🤔 Agent thinking...")
             self._mark_thinking_pushed(topic_id)
 
@@ -387,8 +389,8 @@ class WTTSkillRunner:
                 print(f"\n📬 {notification}\n")
                 await self._push_to_im(notification)
 
-        # Optional: agent inference — pass cached topics for task detection
-        if hasattr(self.agent, "process_wtt_messages"):
+        # Inference gating: only trigger for P2P / task topics, or @mention in discussion
+        if hasattr(self.agent, "process_wtt_messages") and self._should_trigger_inference(message, topic_id):
             topic_meta = self._subscribed_topics.get(topic_id)
             topics_ctx = [topic_meta] if topic_meta else []
             try:
@@ -401,6 +403,8 @@ class WTTSkillRunner:
                 print(f"⚠️ Auto-reasoning timeout (>{infer_timeout}s)")
             except Exception as e:
                 print(f"❌ Auto-reasoning failed: {e}")
+        elif hasattr(self.agent, "process_wtt_messages"):
+            print(f"⏭️ Skipped inference for topic {topic_id[:12]} (no @mention or broadcast)")
 
     # ── Polling Mode ────────────────────────────────────────────────
 
@@ -437,18 +441,126 @@ class WTTSkillRunner:
                                 print(f"\n📬 {notification}\n")
                                 await self._push_to_im(notification)
 
+                # Inference gating: filter to messages that should trigger inference
                 if hasattr(self.agent, "process_wtt_messages"):
-                    try:
-                        await asyncio.wait_for(
-                            self.agent.process_wtt_messages(messages, topics),
-                            timeout=45,
-                        )
-                    except asyncio.TimeoutError:
-                        print("⚠️ Auto-reasoning timeout，已跳过本轮")
-                    except Exception as e:
-                        print(f"❌ Auto-reasoning failed: {e}")
+                    infer_msgs = [m for m in messages if self._should_trigger_inference(m, m.get("topic_id", ""))]
+                    if infer_msgs:
+                        try:
+                            await asyncio.wait_for(
+                                self.agent.process_wtt_messages(infer_msgs, topics),
+                                timeout=45,
+                            )
+                        except asyncio.TimeoutError:
+                            print("⚠️ Auto-reasoning timeout，已跳过本轮")
+                        except Exception as e:
+                            print(f"❌ Auto-reasoning failed: {e}")
+                    skipped = len(messages) - len(infer_msgs)
+                    if skipped:
+                        print(f"⏭️ Skipped inference for {skipped} message(s) (no @mention or broadcast)")
         except Exception as e:
             print(f"❌ Single poll failed: {e}")
+
+    # ── Inference Gating ─────────────────────────────────────────────
+
+    @staticmethod
+    def _normalize_mention_token(raw: str) -> str:
+        text = unicodedata.normalize("NFKC", str(raw or "")).strip().lstrip("@").lower()
+        # Keep only unicode letters/digits to make @yz_agent and @yz-agent equivalent.
+        return "".join(ch for ch in text if ch.isalnum())
+
+    @classmethod
+    def _extract_mentions(cls, content: str) -> list[str]:
+        mentions = set()
+        for m in re.finditer(r"(^|[^\w])@([\w\.-]{1,64})", str(content or ""), re.UNICODE):
+            token = cls._normalize_mention_token(m.group(2) or "")
+            if token:
+                mentions.add(token)
+        return list(mentions)
+
+    @classmethod
+    def _build_agent_aliases(cls, agent_id: str, agent_name: str) -> set[str]:
+        aliases = set()
+
+        def add(v: str):
+            t = cls._normalize_mention_token(v)
+            if t:
+                aliases.add(t)
+
+        add(agent_id)
+        add(agent_name)
+        if agent_name:
+            add(agent_name.replace(" ", "_"))
+            add(agent_name.replace(" ", "-"))
+
+        return aliases
+
+    def _is_mentioned(self, message: dict) -> bool:
+        """Check if this agent is @mentioned in content or runner-targeted by backend."""
+        my_id = self.agent.get_id() if hasattr(self.agent, "get_id") else ""
+        my_name = ""
+        if hasattr(self.agent, "get_name"):
+            my_name = self.agent.get_name() or ""
+        elif hasattr(self.agent, "name"):
+            my_name = self.agent.name or ""
+
+        # Backend-enriched runner targeting (task-linked topics).
+        runner_id = str(message.get("runner_agent_id") or message.get("runnerAgentId") or "")
+        runner_name = str(message.get("runner_agent_name") or message.get("runnerAgentName") or "")
+        aliases = self._build_agent_aliases(my_id, my_name)
+        if runner_id and self._normalize_mention_token(runner_id) in aliases:
+            return True
+        if runner_name and self._normalize_mention_token(runner_name) in aliases:
+            return True
+
+        mentions = self._extract_mentions(str(message.get("content") or ""))
+        if not mentions:
+            return False
+
+        return any(m in aliases for m in mentions)
+
+    def _should_trigger_inference(self, message: dict, topic_id: str) -> bool:
+        """Decide whether a message should trigger agent inference.
+
+        Rules:
+        - Own messages: never (avoid echo loops)
+        - Agent-sent messages: only if explicitly @mentioned (prevents infinite agent loops)
+        - Human P2P messages: always
+        - Human task-linked messages: always
+        - Human discussion messages: only if @mentioned
+        - Broadcast / other subscribed topics: never
+        """
+        sender_id = str(message.get("sender_id") or "")
+        my_id = self.agent.get_id() if hasattr(self.agent, "get_id") else ""
+
+        # Never infer on own messages
+        if sender_id == my_id:
+            return False
+
+        sender_type = str(message.get("sender_type") or "").lower()
+        topic_meta = self._subscribed_topics.get(topic_id, {})
+        topic_type = (topic_meta.get("type") or topic_meta.get("topic_type") or "").lower()
+        topic_name = topic_meta.get("name") or ""
+
+        # Agent-to-agent: only respond if explicitly @mentioned (prevents infinite loops)
+        if sender_type == "agent":
+            return self._is_mentioned(message)
+
+        # From here: sender is human (or unknown)
+
+        # P2P topics — always respond to human messages
+        if topic_type == "p2p" or topic_name.startswith("private://"):
+            return True
+
+        # Task-linked topics — always respond to human messages
+        if topic_meta.get("task_id"):
+            return True
+
+        # Discussion topics — only respond when @mentioned
+        if topic_type == "discussion":
+            return self._is_mentioned(message)
+
+        # Broadcast and other topic types — do not auto-infer
+        return False
 
     # ── Common ──────────────────────────────────────────────────────
 
