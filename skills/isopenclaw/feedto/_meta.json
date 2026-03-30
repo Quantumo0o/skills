@@ -3,11 +3,16 @@
   "slug": "feedto",
   "displayName": "Feedto",
   "latest": {
-    "version": "0.3.2",
-    "publishedAt": 1774366352116,
-    "commit": "https://github.com/openclaw/skills/commit/042e6ac2e345fdefbc9ec43128f76667976606e5"
+    "version": "0.3.3",
+    "publishedAt": 1774625622269,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.3.2",
+      "publishedAt": 1774366352116,
+      "commit": "https://github.com/openclaw/skills/commit/042e6ac2e345fdefbc9ec43128f76667976606e5"
+    },
     {
       "version": "0.3.1",
       "publishedAt": 1774193470925,

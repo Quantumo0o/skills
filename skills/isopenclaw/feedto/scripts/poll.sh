@@ -68,6 +68,13 @@ check_feeds() {
   return 0
 }
 
+# Silent hours: 23:00-07:00 (Asia/Shanghai)
+HOUR=$(TZ=Asia/Shanghai date +%H)
+if [ "$HOUR" -ge 23 ] || [ "$HOUR" -lt 7 ]; then
+  echo "NO_NEW_FEEDS"
+  exit 0
+fi
+
 # Single poll
 if check_feeds; then
   exit 0
