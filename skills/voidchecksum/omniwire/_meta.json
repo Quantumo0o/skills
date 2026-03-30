@@ -3,9 +3,15 @@
   "slug": "omniwire",
   "displayName": "OmniWire",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1774126497100,
-    "commit": "https://github.com/openclaw/skills/commit/ff43dc0218ca3456607676ad7360f1232174c6d5"
+    "version": "3.5.0",
+    "publishedAt": 1774834271149,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1774126497100,
+      "commit": "https://github.com/openclaw/skills/commit/ff43dc0218ca3456607676ad7360f1232174c6d5"
+    }
+  ]
 }
