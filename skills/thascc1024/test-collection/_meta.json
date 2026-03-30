@@ -1,0 +1,11 @@
+{
+  "owner": "thascc1024",
+  "slug": "test-collection",
+  "displayName": "Test Collection",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774867940599,
+    "commit": null
+  },
+  "history": []
+}
