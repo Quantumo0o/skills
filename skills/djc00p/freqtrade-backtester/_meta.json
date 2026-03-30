@@ -1,0 +1,11 @@
+{
+  "owner": "djc00p",
+  "slug": "freqtrade-backtester",
+  "displayName": "Freqtrade Backtester",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1774162489210,
+    "commit": null
+  },
+  "history": []
+}
