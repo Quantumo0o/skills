@@ -38,16 +38,23 @@ ENGLISH_TITLE_ESCAPED=$(escape_html "$ENGLISH_TITLE")
 ENGLISH_CONTENT_ESCAPED=$(escape_html "$ENGLISH_CONTENT")
 CHINESE_TRANSLATION_ESCAPED=$(escape_html "$CHINESE_TRANSLATION")
 
-# Build content type badge and warning
+# Build content type badge and warning (hardcoded, safe)
 if [[ "$CONTENT_TYPE" == "real" ]]; then
     TYPE_BADGE="【真实新闻 · Real News】"
     TYPE_WARNING=""
-    TYPE_BG="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+    TYPE_BG="#667eea"
+    TYPE_BG_END="#764ba2"
 else
     TYPE_BADGE="【学习材料 · Study Material · 非真实新闻】"
     TYPE_WARNING="⚠️ 本文为英语学习材料，基于真实时事趋势编写，非真实新闻报道"
-    TYPE_BG="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+    TYPE_BG="#f093fb"
+    TYPE_BG_END="#f5576c"
 fi
+
+# Escape static content for consistency (defense in depth)
+TYPE_BADGE_ESCAPED=$(escape_html "$TYPE_BADGE")
+TYPE_WARNING_ESCAPED=$(escape_html "$TYPE_WARNING")
+DATE_ESCAPED=$(escape_html "$DATE")
 
 # Build vocabulary HTML safely
 VOCAB_HTML=""
@@ -122,7 +129,7 @@ cat > "$HTML_FILE" << HTMLEOF
     .title { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
     .date { font-size: 16px; opacity: 0.9; }
     .type-badge {
-      background: ${TYPE_BG};
+      background: linear-gradient(135deg, ${TYPE_BG} 0%, ${TYPE_BG_END} 100%);
       color: white;
       padding: 8px 15px;
       border-radius: 5px;
@@ -183,11 +190,11 @@ cat > "$HTML_FILE" << HTMLEOF
 <body>
   <div class="header">
     <div class="title">📰 English Daily Report</div>
-    <div class="date">${DATE}</div>
-    <div class="type-badge">${TYPE_BADGE}</div>
+    <div class="date">${DATE_ESCAPED}</div>
+    <div class="type-badge">${TYPE_BADGE_ESCAPED}</div>
   </div>
 
-  ${TYPE_WARNING:+<div class="type-warning">${TYPE_WARNING}</div>}
+  ${TYPE_WARNING_ESCAPED:+<div class="type-warning">${TYPE_WARNING_ESCAPED}</div>}
 
   <div class="section">
     <div class="section-title">📄 News Summary</div>
