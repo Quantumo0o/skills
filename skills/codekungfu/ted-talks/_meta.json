@@ -1,0 +1,11 @@
+{
+  "owner": "codekungfu",
+  "slug": "ted-talks",
+  "displayName": "TED Talks",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773847700951,
+    "commit": null
+  },
+  "history": []
+}
