@@ -1,23 +1,21 @@
 ---
 name: skill-search-create
-description: 在 ClawHub 上搜索现有技能，当找不到匹配时自动创建新的 OpenClaw 技能。/ Search existing skills on ClawHub and create new OpenClaw skills automatically when no match is found. Activate when user asks to find, search, or create a skill.
+slug: skill-search-create
+version: 1.0.1
+description: 在 ClawHub 上搜索现有技能，当找不到匹配时自动创建新的 OpenClaw 技能。
+user-invocable: true
 metadata:
-  {
-    "openclaw":
-      {
-        "requires": { "bins": ["clawhub"] },
-        "install":
-          [
-            {
-              "id": "node",
-              "kind": "node",
-              "package": "clawhub",
-              "bins": ["clawhub"],
-              "label": "Install ClawHub CLI (npm)",
-            },
-          ],
-      },
-  }
+  author: "蒋斌 (本地开发)"
+  homepage: "https://clawhub.com"
+  openclaw:
+    requires:
+      bins: ["clawhub"]
+    install:
+      - id: node
+        kind: node
+        package: clawhub
+        bins: ["clawhub"]
+        label: "Install ClawHub CLI (npm)"
 ---
 
 # Skill Search & Create
