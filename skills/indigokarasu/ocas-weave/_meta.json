@@ -1,13 +1,18 @@
 {
   "owner": "indigokarasu",
   "slug": "ocas-weave",
-  "displayName": "Ocas Weave",
+  "displayName": "Weave",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773812121917,
-    "commit": "https://github.com/openclaw/skills/commit/86a1bfbe73fc11a7e74344c6a09a331c9b25ec47"
+    "version": "2.3.0",
+    "publishedAt": 1774683362993,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773812121917,
+      "commit": "https://github.com/openclaw/skills/commit/86a1bfbe73fc11a7e74344c6a09a331c9b25ec47"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773721010610,

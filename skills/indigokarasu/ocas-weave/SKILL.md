@@ -1,12 +1,15 @@
 ---
 name: ocas-weave
-description: Private provenance-backed social graph. Maintains queryable records of people, relationships, preferences, and shared experiences for recall, gifting, hosting, introductions, and serendipity. Use when storing or retrieving facts about a person, recording a relationship, preparing for a meeting or dinner, finding who you know in a city, syncing contacts from Google Contacts or Clay, or discovering connections between people.
+source: https://github.com/indigokarasu/weave
+install: openclaw skill install https://github.com/indigokarasu/weave
+description: Use when storing or retrieving facts about people, recording relationships, preparing for meetings, finding gift ideas, discovering connections between people, or syncing contacts. Maintains a private provenance-backed social graph (LadybugDB). Trigger phrases: 'who do I know in', 'what does X like', 'add this person', 'relationship with', 'gift ideas for', 'sync contacts', 'prepare for meeting with', 'update weave'. Do not use for OSINT investigations (use Scout) or general web research (use Sift).
 metadata: {"openclaw":{"emoji":"🕸️"}}
 ---
 
 # Weave
 
-Weave maintains a private, provenance-backed social graph using LadybugDB. All queries use Cypher. No SQL. The database initializes automatically on first use — no manual setup required.
+Weave maintains a private, provenance-backed social graph of people, relationships, preferences, and shared experiences — queryable for meeting prep, gift ideas, hosting, introductions, city connections, and serendipity discovery. Every stored fact carries source type, reference, timestamp, and confidence score; the graph never silently merges two person records and never writes back to external systems without explicit per-sync approval. All queries use Cypher — no SQL. The database initializes automatically on first use.
+
 
 ## When to use
 
@@ -18,12 +21,14 @@ Weave maintains a private, provenance-backed social graph using LadybugDB. All q
 - Discover serendipity connections between people
 - Sync contacts from Google Contacts or Clay
 
+
 ## When not to use
 
 - Web research without a social graph need — use Sift
 - OSINT investigations on people — use Scout
 - CRM or sales pipeline automation
 - Personality profiling without evidence
+
 
 ## Responsibility boundary
 
@@ -32,6 +37,7 @@ Weave owns the private social graph: people, relationships, preferences, and sha
 Weave does not own: general world knowledge (Elephas/Chronicle), OSINT research (Scout), web research (Sift), task management (Triage).
 
 Weave is a standalone database. It does not write to Chronicle and has no runtime dependency on Chronicle. If a person in Weave also exists in Chronicle, Chronicle may store a `weave:person_id` reference on its Entity node. That is Chronicle's concern, not Weave's.
+
 
 ## Storage layout
 
@@ -46,13 +52,12 @@ Weave is a standalone database. It does not write to Chronicle and has no runtim
     {run_id}.json     — one journal per run
 ```
 
-The OCAS_ROOT environment variable overrides `~/openclaw` if set.
 
 Default config.json:
 ```json
 {
   "skill_id": "ocas-weave",
-  "skill_version": "2.0.0",
+  "skill_version": "2.3.0",
   "config_version": "1",
   "created_at": "",
   "updated_at": "",
@@ -70,44 +75,20 @@ Default config.json:
 }
 ```
 
+
 ## Database rules
 
 LadybugDB is an embedded single-file database. One `READ_WRITE` process at a time. If another process holds the lock, operations fail immediately with a lock error — do not retry silently, surface the error.
 
 Multiple `READ_ONLY` connections are safe simultaneously. `COPY FROM` is for bulk import (>100 rows). `MERGE` is for sporadic single-record upserts. Never loop `MERGE` over bulk data.
 
+
 ## Auto-initialization
 
 Every command that opens the database runs `_ensure_init()` first. No manual init command is needed on first use.
 
-```python
-import real_ladybug as lb
-from pathlib import Path
-import os
+Read `references/init_pattern.md` for the `_open_db` implementation pattern. Full DDL is in `references/schemas.md`.
 
-OCAS_ROOT = Path(os.environ.get("OCAS_ROOT", "~/openclaw")).expanduser()
-DB_PATH = OCAS_ROOT / "db/ocas-weave/weave.lbug"
-STAGING = OCAS_ROOT / "db/ocas-weave/staging"
-JOURNALS = OCAS_ROOT / "journals/ocas-weave"
-
-def _open_db(read_only=False):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    STAGING.mkdir(parents=True, exist_ok=True)
-    db = lb.Database(str(DB_PATH), read_only=read_only)
-    conn = lb.Connection(db)
-    if not read_only:
-        _ensure_init(conn)
-    return db, conn
-
-def _ensure_init(conn):
-    tables = {row[0] for row in conn.execute("CALL show_tables() RETURN *")}
-    if "Person" not in tables:
-        _run_ddl(conn)
-
-def _run_ddl(conn):
-    # Full DDL from references/schemas.md
-    pass  # See references/schemas.md for complete DDL
-```
 
 ## Commands
 
@@ -147,9 +128,21 @@ CALL show_warnings() RETURN *;
 
 **weave.journal** -- Write journal for the current run. Read `references/journal.md`. Called at end of every run. Journals are immutable after write.
 
+**weave.update** -- Pull latest skill package from GitHub source. Preserves journals and data.
+
+
+## Run completion
+
+After every Weave command that reads or writes data:
+
+1. Persist any new or updated records to the database
+2. Log material decisions to `decisions.jsonl`
+3. Write journal via `weave.journal` — Observation Journal for queries/upserts/imports, Action Journal for syncs/writebacks
+
 ## Provenance
 
 Every written fact requires: `source_type` (direct / inferred / imported / user-stated), `source_ref`, `record_time` (ISO 8601), `confidence` (0.0–1.0). Use `event_time` when the real-world occurrence has a distinct time. Never write facts without provenance.
+
 
 ## Constraints
 
@@ -163,6 +156,7 @@ Every written fact requires: `source_type` (direct / inferred / imported / user-
 - No outbound sync without explicit per-sync user approval.
 - Surface lock errors immediately.
 - Write a journal at the end of every run. Runs missing journals are invalid.
+
 
 ## OKRs
 
@@ -192,28 +186,77 @@ skill_okrs:
     evaluation_window: 30_runs
 ```
 
+
 ## Optional skill cooperation
 
 - Elephas — read Chronicle read-only for entity enrichment (optional, degrades gracefully if absent)
 - Scout — receive OSINT findings about people as upsert candidates
 - Dispatch — provide social graph context for communication drafting
 
+
 ## Journal outputs
 
 - Observation Journal — query runs, upsert runs, import runs
 - Action Journal — sync runs, writeback runs
 
+
+## Initialization
+
+On first invocation of any Weave command, `_open_db()` handles auto-initialization:
+
+1. Create `~/openclaw/db/ocas-weave/` and subdirectories (`staging/`)
+2. Write default `config.json` with ConfigBase fields if absent
+3. Create `~/openclaw/journals/ocas-weave/`
+4. Open database (auto-creates `weave.lbug` and runs DDL if tables absent)
+5. Register cron job `weave:update` if not already present (check `openclaw cron list` first)
+6. Log initialization as a DecisionRecord
+
+## Background tasks
+
+| Job name | Mechanism | Schedule | Command |
+|---|---|---|---|
+| `weave:update` | cron | `0 0 * * *` (midnight daily) | `weave.update` |
+
+```
+openclaw cron add --name weave:update --schedule "0 0 * * *" --command "weave.update" --sessionTarget isolated --lightContext true --timezone America/Los_Angeles
+```
+
+
+## Self-update
+
+`weave.update` pulls the latest package from the `source:` URL in this file's frontmatter. Runs silently — no output unless the version changed or an error occurred.
+
+1. Read `source:` from frontmatter → extract `{owner}/{repo}` from URL
+2. Read local version from `skill.json`
+3. Fetch remote version: `gh api "repos/{owner}/{repo}/contents/skill.json" --jq '.content' | base64 -d | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])"`
+4. If remote version equals local version → stop silently
+5. Download and install:
+   ```bash
+   TMPDIR=$(mktemp -d)
+   gh api "repos/{owner}/{repo}/tarball/main" > "$TMPDIR/archive.tar.gz"
+   mkdir "$TMPDIR/extracted"
+   tar xzf "$TMPDIR/archive.tar.gz" -C "$TMPDIR/extracted" --strip-components=1
+   cp -R "$TMPDIR/extracted/"* ./
+   rm -rf "$TMPDIR"
+   ```
+6. On failure → retry once. If second attempt fails, report the error and stop.
+7. Output exactly: `I updated Weave from version {old} to {new}`
+
+
 ## Visibility
 
 public
 
-## Reference file map
 
-File | When to read
-`references/schemas.md` | Before any DDL, upsert, or import; before weave.init
-`references/query_patterns.md` | Before any weave.query call
-`references/import_export.md` | Before any COPY FROM or COPY TO operation
-`references/cross_db.md` | Before any weave.attach call or Chronicle enrichment query
-`references/connectors.md` | Before any sync with Google Contacts or Clay
-`references/vcard_projection.md` | Before weave.project.vcard
-`references/journal.md` | Before weave.journal; at end of every run
+## Support file map
+
+| File | When to read |
+|---|---|
+| `references/schemas.md` | Before any DDL, upsert, or import; before weave.init |
+| `references/init_pattern.md` | When implementing _open_db or troubleshooting initialization |
+| `references/query_patterns.md` | Before any weave.query call |
+| `references/import_export.md` | Before any COPY FROM or COPY TO operation |
+| `references/cross_db.md` | Before any weave.attach call or Chronicle enrichment query |
+| `references/connectors.md` | Before any sync with Google Contacts or Clay |
+| `references/vcard_projection.md` | Before weave.project.vcard |
+| `references/journal.md` | Before weave.journal; at end of every run |
