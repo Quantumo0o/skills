@@ -618,7 +618,7 @@ Subscribe and manage escrow event deliveries (`escrow.funded`, `escrow.released`
 
 - Agent endpoint setup is disabled.
 - Ask your human to complete setup at: https://openclawcash.com/venues/polymarket
-- After user setup is complete, use the agent venue order/read endpoints below.
+- After user setup is complete, use the agent venue order/read/redeem endpoints below.
 - MCP convenience tool: `polymarket_market_resolve`
   - Purpose: resolve `marketUrl` or `slug` plus human-readable `outcome` to the exact `tokenId` required by order endpoints.
   - Typical MCP flow:
@@ -872,6 +872,60 @@ Notes:
 - Response is filtered to open markets only (`closed !== true`, `active !== false`, and not past `endDate`).
 - Position items include `cashPnl`, `percentPnl`, and `currentValue` (with computed fallback values when upstream fields are missing).
 
+## Polymarket Redeem (Agent API)
+
+```
+POST /api/agent/venues/polymarket/redeem
+Content-Type: application/json
+X-Agent-Key: occ_your_api_key
+```
+
+Request (single position):
+```json
+{
+  "walletId": "Q7X2K9P",
+  "tokenId": "1234567890",
+  "limit": 100
+}
+```
+
+Request (redeem all redeemable positions):
+```json
+{
+  "walletId": "Q7X2K9P"
+}
+```
+
+Response:
+```json
+{
+  "venue": "polymarket",
+  "walletId": "Q7X2K9P",
+  "network": "polygon-mainnet",
+  "mode": "single",
+  "requestedTokenId": "1234567890",
+  "attempted": 1,
+  "successful": 1,
+  "failed": 0,
+  "results": [
+    {
+      "tokenId": "1234567890",
+      "conditionId": "0x...",
+      "outcomeIndex": 1,
+      "sizeBaseUnits": "1000000",
+      "negativeRisk": false,
+      "status": "success",
+      "txHash": "0xabc..."
+    }
+  ]
+}
+```
+
+Notes:
+- Gasless relay flow is used under the hood (signatureType must be proxy/safe).
+- Use `tokenId` for targeted redeem; omit `tokenId` to redeem all currently redeemable positions.
+- `limit` controls how many redeemable positions are scanned when listing candidates (default `100`, max `200`).
+
 ## Token Approval (ERC-20)
 
 ```
@@ -921,7 +975,7 @@ Network is fixed at wallet creation and cannot be changed.
 - Native SOL transfers account for network fee and may return adjusted transfer values in response
 - Swap supports EVM (Uniswap) and Solana mainnet (Jupiter); Quote supports EVM and Solana mainnet; Approve is EVM-only
 - Polymarket endpoints require a configured `polygon-mainnet` EVM wallet
-- All Polymarket order/read endpoints require exactly one wallet selector (`walletId` or `walletAddress`)
+- All Polymarket order/read/redeem endpoints require exactly one wallet selector (`walletId` or `walletAddress`)
 - Platform fee is deducted from the token amount (not ETH), consistent with ETH transfers
 - For transfer, use `amountDisplay` for simplicity (human-readable), use `valueBaseUnits` when you need precise base-unit control (legacy `amount`/`value` aliases are still accepted)
 - Optional `chain` guard is supported on agent endpoints; mismatches return `400` with `code: "chain_mismatch"`.

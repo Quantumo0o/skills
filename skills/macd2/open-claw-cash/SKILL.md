@@ -5,7 +5,7 @@ license: Proprietary
 compatibility: Requires network access to https://openclawcash.com
 metadata:
   author: agentwalletapi
-  version: "1.18.0"
+  version: "1.19.0"
   required_env_vars:
     - AGENTWALLETAPI_KEY
   optional_env_vars:
@@ -18,7 +18,7 @@ metadata:
 
 # OpenclawCash Agent API
 
-Interact with OpenclawCash-managed wallets to send native assets and tokens, check balances, execute DEX swaps, and manage Polymarket account + orders via Polygon wallets.
+Interact with OpenclawCash-managed wallets to send native assets and tokens, check balances, execute DEX swaps, and manage Polymarket account, orders, and redeem flows via Polygon wallets.
 This skill may also be referred to as `openclawcash`.
 
 ## Requirements
@@ -114,6 +114,8 @@ bash scripts/agentwalletapi.sh polymarket-account Q7X2K9P
 bash scripts/agentwalletapi.sh polymarket-orders Q7X2K9P OPEN 50
 bash scripts/agentwalletapi.sh polymarket-activity Q7X2K9P 50
 bash scripts/agentwalletapi.sh polymarket-positions Q7X2K9P 100
+bash scripts/agentwalletapi.sh polymarket-redeem Q7X2K9P all 100 --yes
+bash scripts/agentwalletapi.sh polymarket-redeem Q7X2K9P 1234567890 100 --yes
 bash scripts/agentwalletapi.sh polymarket-cancel Q7X2K9P order_id_here --yes
 ```
 
@@ -218,6 +220,7 @@ Checkout timing fields for `POST /api/agent/checkout/payreq`:
    - `GET /api/agent/venues/polymarket/account` - Read account summary
    - `GET /api/agent/venues/polymarket/orders` - List open orders
    - `POST /api/agent/venues/polymarket/orders/cancel` - Cancel an order
+   - `POST /api/agent/venues/polymarket/redeem` - Redeem one position by `tokenId` or redeem all redeemable positions
    - `POST /api/agent/venues/polymarket/unlink` - Clear stored Polymarket integration config for a wallet
    - `GET /api/agent/venues/polymarket/activity` - List trade activity
    - `GET /api/agent/venues/polymarket/positions` - List open positions (open-market filtered, includes PnL fields)
@@ -294,6 +297,7 @@ Example:
 | `/api/agent/venues/polymarket/account` | GET | Yes | Read Polymarket account summary |
 | `/api/agent/venues/polymarket/orders` | GET | Yes | List Polymarket open orders |
 | `/api/agent/venues/polymarket/orders/cancel` | POST | Yes | Cancel Polymarket order |
+| `/api/agent/venues/polymarket/redeem` | POST | Yes | Redeem one or all redeemable Polymarket positions via gasless relay |
 | `/api/agent/venues/polymarket/unlink` | POST | Yes | Clear Polymarket integration for wallet |
 | `/api/agent/venues/polymarket/activity` | GET | Yes | List Polymarket trade activity |
 | `/api/agent/venues/polymarket/positions` | GET | Yes | List Polymarket open positions (open-market filtered with PnL fields) |
@@ -347,6 +351,7 @@ Behavior notes:
   - `GET /api/agent/venues/polymarket/account`
   - `GET /api/agent/venues/polymarket/orders`
   - `POST /api/agent/venues/polymarket/orders/cancel` with `orderId`
+  - `POST /api/agent/venues/polymarket/redeem` with optional `tokenId` (omit `tokenId` to redeem all)
   - `POST /api/agent/venues/polymarket/unlink` to clear stored venue config for a wallet
   - `GET /api/agent/venues/polymarket/activity`
   - `GET /api/agent/venues/polymarket/positions`

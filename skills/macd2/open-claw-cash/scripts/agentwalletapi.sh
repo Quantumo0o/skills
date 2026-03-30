@@ -43,6 +43,7 @@
 #   polymarket-orders <walletSelector> [status] [limit] [cursor]
 #   polymarket-activity <walletSelector> [limit] [cursor]
 #   polymarket-positions <walletSelector> [limit]
+#   polymarket-redeem <walletSelector> [tokenId|all] [limit] [--yes]
 #   polymarket-cancel <walletSelector> <orderId> [--yes]
 
 SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -853,7 +854,7 @@ case "$COMMAND" in
     polymarket-config)
         echo "Polymarket setup via agent API is disabled."
         echo "Ask your human to complete setup at https://openclawcash.com/venues/polymarket."
-        echo "Then use polymarket-resolve, polymarket-limit|polymarket-market and polymarket-account|polymarket-orders|polymarket-activity|polymarket-positions."
+        echo "Then use polymarket-resolve, polymarket-limit|polymarket-market, polymarket-redeem and polymarket-account|polymarket-orders|polymarket-activity|polymarket-positions."
         exit 1
         ;;
 
@@ -1020,6 +1021,34 @@ case "$COMMAND" in
             "$URL" | pretty_print_json
         ;;
 
+    polymarket-redeem)
+        confirm_risky_action "Polymarket redeem"
+        WALLET_SELECTOR="$2"
+        TOKEN_OR_ALL="$3"
+        LIMIT="$4"
+        if [ -z "$WALLET_SELECTOR" ]; then
+            echo "Usage: agentwalletapi.sh polymarket-redeem <walletSelector> [tokenId|all] [limit] [--yes]"
+            exit 1
+        fi
+        BODY="{"
+        append_wallet_or_address_json_field BODY "$WALLET_SELECTOR"
+        if [ -n "$TOKEN_OR_ALL" ] && [ "$TOKEN_OR_ALL" != "all" ]; then
+            require_polymarket_token_id "$TOKEN_OR_ALL"
+            json_escape_var TOKEN_ID_ESC "$TOKEN_OR_ALL"
+            BODY="$BODY, \"tokenId\": \"$TOKEN_ID_ESC\""
+        fi
+        if [ -n "$LIMIT" ]; then
+            require_uint "limit" "$LIMIT"
+            BODY="$BODY, \"limit\": $LIMIT"
+        fi
+        BODY="$BODY}"
+        curl -s -X POST \
+            -H "X-Agent-Key: $AGENTWALLETAPI_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" \
+            "$BASE_URL/api/agent/venues/polymarket/redeem" | pretty_print_json
+        ;;
+
     polymarket-cancel)
         confirm_risky_action "Polymarket cancel order"
         WALLET_SELECTOR="$2"
@@ -1082,6 +1111,7 @@ case "$COMMAND" in
         echo "  polymarket-orders <walletSelector> [status] [limit] [cursor]"
         echo "  polymarket-activity <walletSelector> [limit] [cursor]"
         echo "  polymarket-positions <walletSelector> [limit]"
+        echo "  polymarket-redeem <walletSelector> [tokenId|all] [limit] [--yes]"
         echo "  polymarket-cancel <walletSelector> <orderId> [--yes]"
         echo ""
         echo "Examples:"
@@ -1108,6 +1138,8 @@ case "$COMMAND" in
         echo "  agentwalletapi.sh polymarket-resolve https://polymarket.com/market/market-slug No"
         echo "  agentwalletapi.sh polymarket-account 2"
         echo "  agentwalletapi.sh polymarket-orders 2 OPEN 50"
+        echo "  agentwalletapi.sh polymarket-redeem 2 all 100 --yes"
+        echo "  agentwalletapi.sh polymarket-redeem 2 1234567890 100 --yes"
         echo "  agentwalletapi.sh polymarket-cancel 2 0xorderid --yes"
         ;;
 esac
