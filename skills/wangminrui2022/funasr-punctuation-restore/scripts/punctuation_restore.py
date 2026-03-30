@@ -21,7 +21,6 @@ Description: 使用 FunASR 官方 ct-punc 模型，为文本、文件或目录�
 import argparse
 import os
 import gc
-import torch
 import sys
 from pathlib import Path
 import env_manager
@@ -31,8 +30,10 @@ from logger_manager import LoggerManager
 ensure_package.pip("torchaudio")
 ensure_package.pip("modelscope","modelscope","snapshot_download")
 ensure_package.pip("funasr","funasr","AutoModel")
+ensure_package.pip("torch")
 from modelscope.hub.snapshot_download import snapshot_download
 from funasr import AutoModel
+import torch
 
 logger = LoggerManager.setup_logger(logger_name="funasr-punctuation-restore")
 
