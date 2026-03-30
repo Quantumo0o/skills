@@ -1,13 +1,18 @@
 {
   "owner": "vndck",
   "slug": "auto-apply",
-  "displayName": "Mokaru Job Search",
+  "displayName": "Automate your Job Search",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774044626730,
-    "commit": "https://github.com/openclaw/skills/commit/f4999e47866d5d71a46427a79273371507803dc6"
+    "version": "1.0.6",
+    "publishedAt": 1774435306042,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774044626730,
+      "commit": "https://github.com/openclaw/skills/commit/f4999e47866d5d71a46427a79273371507803dc6"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1773599135497,

@@ -83,10 +83,19 @@ curl -s -X POST https://api.mokaru.ai/v1/jobs/search \
       "title": "Frontend Engineer",
       "company": "Acme Corp",
       "companyLogo": "https://...",
+      "companyWebsite": "https://...",
       "location": "New York, NY",
+      "city": "New York",
+      "state": "NY",
+      "country": "US",
       "isRemote": true,
       "employmentType": "fulltime",
       "applyLink": "https://...",
+      "applyIsDirect": false,
+      "publisher": "LinkedIn",
+      "description": "<p>We are looking for a Frontend Engineer...</p>",
+      "highlights": { "qualifications": [...], "responsibilities": [...] },
+      "benefits": ["Health insurance", "401k"],
       "salaryMin": 120000,
       "salaryMax": 160000,
       "salaryPeriod": "year",
@@ -356,7 +365,229 @@ Status changes are automatically recorded in the application's timeline.
 
 ---
 
-### 6. Get Profile
+### 6. List Contacts
+
+**When to use:** The user wants to see their networking contacts. They might say "show my contacts" or "who do I know at Acme Corp?"
+
+**Method:** `GET /v1/contacts`
+
+**Required scope:** `contacts:read`
+
+**Rate limit:** 60 requests per minute
+
+**Query parameters:**
+
+| Param          | Type   | Required | Description                                              |
+|----------------|--------|----------|----------------------------------------------------------|
+| `limit`        | number | No       | Results per page, default 25, max 100                    |
+| `offset`       | number | No       | Number of results to skip                                |
+| `relationship` | string | No       | Filter by type (see relationship values below)           |
+| `search`       | string | No       | Search by name, company, or email (case-insensitive)     |
+
+**Valid relationship values:** `RECRUITER`, `HIRING_MANAGER`, `HR_MANAGER`, `TEAM_LEAD`, `DEPARTMENT_HEAD`, `CEO_FOUNDER`, `COLLEAGUE`, `FRIEND`, `REFERRAL`, `OTHER`
+
+**Curl example:**
+
+```bash
+curl -s -G https://api.mokaru.ai/v1/contacts \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  --data-urlencode "search=Acme" \
+  --data-urlencode "limit=10" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "firstName": "Sarah",
+      "lastName": "Jones",
+      "jobTitle": "Engineering Manager",
+      "company": "Acme Corp",
+      "relationship": "HIRING_MANAGER",
+      "email": "sarah@acme.com",
+      "phone": "+1 555-0200",
+      "linkedIn": "https://linkedin.com/in/sarahjones",
+      "createdAt": "2026-03-10T...",
+      "updatedAt": "2026-03-15T..."
+    }
+  ],
+  "total": 12,
+  "hasMore": true,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+### 7. Get Contact Detail
+
+**When to use:** The user wants to see full details of a specific contact. They might say "show me Sarah's info" or "what's the recruiter's email?"
+
+**Method:** `GET /v1/contacts/{id}`
+
+**Required scope:** `contacts:read`
+
+**Rate limit:** 30 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s https://api.mokaru.ai/v1/contacts/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": {
+    "id": "clx_abc123",
+    "firstName": "Sarah",
+    "lastName": "Jones",
+    "jobTitle": "Engineering Manager",
+    "company": "Acme Corp",
+    "relationship": "HIRING_MANAGER",
+    "email": "sarah@acme.com",
+    "phone": "+1 555-0200",
+    "linkedIn": "https://linkedin.com/in/sarahjones",
+    "createdAt": "2026-03-10T...",
+    "updatedAt": "2026-03-15T..."
+  }
+}
+```
+
+---
+
+### 8. Create Contact
+
+**When to use:** The user wants to save a new networking contact. They might say "add Sarah Jones as a contact" or "save the recruiter's info."
+
+**Method:** `POST /v1/contacts`
+
+**Required scope:** `contacts:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON):**
+
+| Field          | Type   | Required | Description                              |
+|----------------|--------|----------|------------------------------------------|
+| `firstName`    | string | Yes      | First name (max 100 chars)               |
+| `lastName`     | string | Yes      | Last name (max 100 chars)                |
+| `jobTitle`     | string | No       | Contact's job title (max 200 chars)      |
+| `company`      | string | No       | Company name (max 200 chars)             |
+| `relationship` | string | No       | Relationship type (see values above)     |
+| `email`        | string | No       | Email address (max 200 chars)            |
+| `phone`        | string | No       | Phone number (max 50 chars)              |
+| `linkedIn`     | string | No       | LinkedIn profile URL (max 500 chars)     |
+
+**Curl example:**
+
+```bash
+curl -s -X POST https://api.mokaru.ai/v1/contacts \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Sarah",
+    "lastName": "Jones",
+    "jobTitle": "Engineering Manager",
+    "company": "Acme Corp",
+    "relationship": "HIRING_MANAGER",
+    "email": "sarah@acme.com"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx..."
+}
+```
+
+---
+
+### 9. Update Contact
+
+**When to use:** The user wants to update a contact's details. They might say "update Sarah's phone number" or "change the recruiter's company."
+
+**Method:** `PATCH /v1/contacts/{id}`
+
+**Required scope:** `contacts:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON) - all fields optional, at least one required:**
+
+| Field          | Type        | Description                              |
+|----------------|-------------|------------------------------------------|
+| `firstName`    | string      | First name (max 100 chars)               |
+| `lastName`     | string      | Last name (max 100 chars)                |
+| `jobTitle`     | string/null | Job title (max 200 chars, null to clear) |
+| `company`      | string/null | Company name (max 200 chars)             |
+| `relationship` | string/null | Relationship type (see values above)     |
+| `email`        | string/null | Email address (max 200 chars)            |
+| `phone`        | string/null | Phone number (max 50 chars)              |
+| `linkedIn`     | string/null | LinkedIn URL (max 500 chars)             |
+
+**Curl example:**
+
+```bash
+curl -s -X PATCH https://api.mokaru.ai/v1/contacts/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phone": "+1 555-0201",
+    "relationship": "TEAM_LEAD"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx_abc123"
+}
+```
+
+Pass `null` for optional fields to clear them (e.g. `"phone": null`).
+
+---
+
+### 10. Delete Contact
+
+**When to use:** The user wants to remove a contact. They might say "delete that contact" or "remove Sarah from my contacts."
+
+**Method:** `DELETE /v1/contacts/{id}`
+
+**Required scope:** `contacts:write`
+
+**Rate limit:** 10 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s -X DELETE https://api.mokaru.ai/v1/contacts/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+### 11. Get Profile
 
 **When to use:** The user wants to see their career profile, or you need context about their background to tailor a job search. For example, "what skills do I have on file?" or before searching, to understand their experience level.
 
@@ -431,7 +662,68 @@ curl -s https://api.mokaru.ai/v1/profile \
 
 ---
 
-### 7. List Resumes
+### 12. Update Profile
+
+**When to use:** The user wants to update their career profile. They might say "change my job title" or "update my LinkedIn" or "add my new employer."
+
+**Method:** `PATCH /v1/profile`
+
+**Required scope:** `profile:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON) - all fields optional, at least one required:**
+
+| Field          | Type        | Description                              |
+|----------------|-------------|------------------------------------------|
+| `firstName`    | string      | First name (max 100 chars)               |
+| `lastName`     | string      | Last name (max 100 chars)                |
+| `email`        | string      | Email address (max 254 chars)            |
+| `phone`        | string/null | Phone number (max 50 chars)              |
+| `address`      | string/null | Address (max 200 chars)                  |
+| `country`      | string/null | Country (max 100 chars)                  |
+| `province`     | string/null | Province or state (max 100 chars)        |
+| `birthDate`    | string/null | ISO date string (e.g. "1990-01-15")      |
+| `driverLicense`| string/null | Driver license type (max 50 chars)       |
+| `gender`       | string/null | Gender (max 50 chars)                    |
+| `jobTitle`     | string/null | Current job title (max 200 chars)        |
+| `summary`      | string/null | Professional summary (max 2000 chars)    |
+| `sector`       | string/null | Industry sector (max 100 chars)          |
+| `employer`     | string/null | Current employer (max 200 chars)         |
+| `linkedIn`     | string/null | LinkedIn username or URL (auto-normalized)|
+| `website`      | string/null | Website URL (https:// added if missing)  |
+| `portfolio`    | string/null | Portfolio URL (https:// added if missing)|
+
+Pass `null` for optional fields to clear them.
+
+**Curl example:**
+
+```bash
+curl -s -X PATCH https://api.mokaru.ai/v1/profile \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jobTitle": "Senior Software Engineer",
+    "employer": "Acme Corp",
+    "linkedIn": "jane-smith"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+LinkedIn usernames are automatically converted to full URLs. For example, `"jane-smith"` becomes `"https://linkedin.com/in/jane-smith"`. Website and portfolio URLs have `https://` prepended if missing.
+
+**Important:** Profile changes propagate to all resumes that use profile data. This is different from updating a resume's `cvData` which only affects that specific resume.
+
+---
+
+### 13. List Resumes
 
 **When to use:** The user wants to see their resumes, or you need to know which resume to export or update. They might say "show my resumes" or "which CVs do I have?"
 
@@ -478,7 +770,7 @@ curl -s https://api.mokaru.ai/v1/resume \
 
 ---
 
-### 8. Get Resume Detail
+### 14. Get Resume Detail
 
 **When to use:** The user wants to see the full content of a specific resume, or you need the data to provide career advice. They might say "show me my default resume" or "what's on my Software Engineer CV?"
 
@@ -526,7 +818,7 @@ The `cvData` field contains the full resume content: personal info, work experie
 
 ---
 
-### 9. Create Resume
+### 15. Create Resume
 
 **When to use:** The user wants to create a new resume. They might say "create a new resume for backend roles" or "make a copy of my CV with a different name."
 
@@ -572,7 +864,7 @@ curl -s -X POST https://api.mokaru.ai/v1/resume \
 
 ---
 
-### 10. Update Resume
+### 16. Update Resume
 
 **When to use:** The user wants to change their resume name, template, content, or settings. They might say "rename my resume" or "update my skills on the default CV."
 
@@ -617,7 +909,7 @@ curl -s -X PATCH https://api.mokaru.ai/v1/resume/clx_abc123 \
 
 ---
 
-### 11. Delete Resume
+### 17. Delete Resume
 
 **When to use:** The user wants to remove a resume. They might say "delete that old resume" or "remove my Backend CV."
 
@@ -646,7 +938,7 @@ If the deleted resume was the default, another resume is automatically promoted.
 
 ---
 
-### 12. Export Resume as PDF
+### 18. Export Resume as PDF
 
 **When to use:** The user wants to download their resume as a PDF. They might say "export my resume" or "give me a PDF of my CV."
 
@@ -680,6 +972,660 @@ curl -s -X POST https://api.mokaru.ai/v1/resume/clx_abc123/export/pdf \
 
 ---
 
+### 19. List Experiences
+
+**When to use:** The user wants to see their work history. They might say "show my work experience" or "what jobs have I had?"
+
+**Method:** `GET /v1/experiences`
+
+**Required scope:** `experiences:read`
+
+**Rate limit:** 60 requests per minute
+
+**Query parameters:**
+
+| Param    | Type   | Required | Description                           |
+|----------|--------|----------|---------------------------------------|
+| `limit`  | number | No       | Results per page, default 25, max 100 |
+| `offset` | number | No       | Number of results to skip             |
+
+**Curl example:**
+
+```bash
+curl -s -G https://api.mokaru.ai/v1/experiences \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  --data-urlencode "limit=10" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "jobTitle": "Senior Software Engineer",
+      "company": "Acme Corp",
+      "location": "San Francisco, CA",
+      "startDate": "2022-07-01T00:00:00.000Z",
+      "endDate": null,
+      "isCurrent": true,
+      "description": "Building and maintaining the core platform",
+      "responsibilities": ["Led frontend architecture"],
+      "achievements": ["Reduced bundle size by 40%"],
+      "createdAt": "2026-01-10T...",
+      "updatedAt": "2026-03-15T..."
+    }
+  ],
+  "total": 4,
+  "hasMore": false,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+### 20. Create Experience
+
+**When to use:** The user wants to add a new work experience. They might say "add my new job at Acme" or "save this work experience."
+
+**Method:** `POST /v1/experiences`
+
+**Required scope:** `experiences:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON):**
+
+| Field              | Type    | Required | Description                                    |
+|--------------------|---------|----------|------------------------------------------------|
+| `jobTitle`         | string  | Yes      | Job title (max 200 chars)                      |
+| `company`          | string  | Yes      | Company name (max 200 chars)                   |
+| `location`         | string  | No       | Work location (max 200 chars)                  |
+| `startDate`        | string  | No       | ISO date string (e.g. "2022-07-01")            |
+| `endDate`          | string  | No       | ISO date string (null for current position)    |
+| `isCurrent`        | boolean | No       | Whether this is the current position            |
+| `description`      | string  | No       | Role description (max 5000 chars)              |
+| `responsibilities` | array   | No       | List of responsibilities (array of strings)    |
+| `achievements`     | array   | No       | List of achievements (array of strings)        |
+
+**Curl example:**
+
+```bash
+curl -s -X POST https://api.mokaru.ai/v1/experiences \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jobTitle": "Senior Software Engineer",
+    "company": "Acme Corp",
+    "location": "San Francisco, CA",
+    "startDate": "2022-07-01",
+    "isCurrent": true,
+    "description": "Building the core platform",
+    "responsibilities": ["Led frontend architecture"],
+    "achievements": ["Reduced bundle size by 40%"]
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx..."
+}
+```
+
+---
+
+### 21. Get Experience Detail
+
+**When to use:** The user wants to see full details of a specific work experience.
+
+**Method:** `GET /v1/experiences/{id}`
+
+**Required scope:** `experiences:read`
+
+**Rate limit:** 30 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s https://api.mokaru.ai/v1/experiences/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": {
+    "id": "clx_abc123",
+    "jobTitle": "Senior Software Engineer",
+    "company": "Acme Corp",
+    "location": "San Francisco, CA",
+    "startDate": "2022-07-01T00:00:00.000Z",
+    "endDate": null,
+    "isCurrent": true,
+    "description": "Building and maintaining the core platform",
+    "responsibilities": ["Led frontend architecture"],
+    "achievements": ["Reduced bundle size by 40%"],
+    "createdAt": "2026-01-10T...",
+    "updatedAt": "2026-03-15T..."
+  }
+}
+```
+
+---
+
+### 22. Update Experience
+
+**When to use:** The user wants to change details of a work experience. They might say "update my Acme job" or "I left that position, mark it as ended."
+
+**Method:** `PATCH /v1/experiences/{id}`
+
+**Required scope:** `experiences:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON) - all fields optional, at least one required:**
+
+| Field              | Type         | Description                                    |
+|--------------------|--------------|------------------------------------------------|
+| `jobTitle`         | string       | Job title (max 200 chars)                      |
+| `company`          | string       | Company name (max 200 chars)                   |
+| `location`         | string/null  | Work location (max 200 chars, null to clear)   |
+| `startDate`        | string/null  | ISO date string (null to clear)                |
+| `endDate`          | string/null  | ISO date string (null to clear)                |
+| `isCurrent`        | boolean      | Whether this is the current position            |
+| `description`      | string/null  | Role description (max 5000 chars, null to clear)|
+| `responsibilities` | array/null   | List of responsibilities (null to clear)        |
+| `achievements`     | array/null   | List of achievements (null to clear)            |
+
+**Curl example:**
+
+```bash
+curl -s -X PATCH https://api.mokaru.ai/v1/experiences/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "isCurrent": false,
+    "endDate": "2026-03-15"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx_abc123"
+}
+```
+
+Pass `null` for optional fields to clear them.
+
+---
+
+### 23. Delete Experience
+
+**When to use:** The user wants to remove a work experience. They might say "delete that old job" or "remove the internship from my profile."
+
+**Method:** `DELETE /v1/experiences/{id}`
+
+**Required scope:** `experiences:write`
+
+**Rate limit:** 10 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s -X DELETE https://api.mokaru.ai/v1/experiences/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+### 24. List Education
+
+**When to use:** The user wants to see their education history. They might say "show my education" or "what schools do I have listed?"
+
+**Method:** `GET /v1/education`
+
+**Required scope:** `education:read`
+
+**Rate limit:** 60 requests per minute
+
+**Query parameters:**
+
+| Param    | Type   | Required | Description                           |
+|----------|--------|----------|---------------------------------------|
+| `limit`  | number | No       | Results per page, default 25, max 100 |
+| `offset` | number | No       | Number of results to skip             |
+
+**Curl example:**
+
+```bash
+curl -s -G https://api.mokaru.ai/v1/education \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  --data-urlencode "limit=10" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "school": "Stanford University",
+      "degree": "Bachelor of Science",
+      "field": "Computer Science",
+      "startDate": "2018-09-01T00:00:00.000Z",
+      "endDate": "2022-06-15T00:00:00.000Z",
+      "isCurrent": false,
+      "description": "Graduated with honors",
+      "createdAt": "2026-01-10T...",
+      "updatedAt": "2026-03-15T..."
+    }
+  ],
+  "total": 2,
+  "hasMore": false,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+### 25. Create Education
+
+**When to use:** The user wants to add education. They might say "add my Stanford degree" or "save this school to my profile."
+
+**Method:** `POST /v1/education`
+
+**Required scope:** `education:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON):**
+
+| Field         | Type    | Required | Description                                    |
+|---------------|---------|----------|------------------------------------------------|
+| `school`      | string  | Yes      | School or institution name (max 200 chars)     |
+| `degree`      | string  | No       | Degree type (max 200 chars)                    |
+| `field`       | string  | No       | Field of study (max 200 chars)                 |
+| `startDate`   | string  | No       | ISO date string (e.g. "2018-09-01")            |
+| `endDate`     | string  | No       | ISO date string (null if currently enrolled)   |
+| `isCurrent`   | boolean | No       | Whether currently enrolled                      |
+| `description` | string  | No       | Additional details (max 5000 chars)            |
+
+**Curl example:**
+
+```bash
+curl -s -X POST https://api.mokaru.ai/v1/education \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "school": "Stanford University",
+    "degree": "Bachelor of Science",
+    "field": "Computer Science",
+    "startDate": "2018-09-01",
+    "endDate": "2022-06-15"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx..."
+}
+```
+
+---
+
+### 26. Get Education Detail
+
+**When to use:** The user wants to see full details of a specific education entry.
+
+**Method:** `GET /v1/education/{id}`
+
+**Required scope:** `education:read`
+
+**Rate limit:** 30 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s https://api.mokaru.ai/v1/education/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": {
+    "id": "clx_abc123",
+    "school": "Stanford University",
+    "degree": "Bachelor of Science",
+    "field": "Computer Science",
+    "startDate": "2018-09-01T00:00:00.000Z",
+    "endDate": "2022-06-15T00:00:00.000Z",
+    "isCurrent": false,
+    "description": "Graduated with honors",
+    "createdAt": "2026-01-10T...",
+    "updatedAt": "2026-03-15T..."
+  }
+}
+```
+
+---
+
+### 27. Update Education
+
+**When to use:** The user wants to change education details. They might say "update my degree" or "change the field of study."
+
+**Method:** `PATCH /v1/education/{id}`
+
+**Required scope:** `education:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON) - all fields optional, at least one required:**
+
+| Field         | Type        | Description                                    |
+|---------------|-------------|------------------------------------------------|
+| `school`      | string      | School name (max 200 chars)                    |
+| `degree`      | string/null | Degree type (max 200 chars, null to clear)     |
+| `field`       | string/null | Field of study (max 200 chars, null to clear)  |
+| `startDate`   | string/null | ISO date string (null to clear)                |
+| `endDate`     | string/null | ISO date string (null to clear)                |
+| `isCurrent`   | boolean     | Whether currently enrolled                      |
+| `description` | string/null | Additional details (max 5000 chars, null to clear)|
+
+**Curl example:**
+
+```bash
+curl -s -X PATCH https://api.mokaru.ai/v1/education/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "degree": "Master of Science",
+    "field": "Machine Learning"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx_abc123"
+}
+```
+
+---
+
+### 28. Delete Education
+
+**When to use:** The user wants to remove an education entry. They might say "delete that school" or "remove my old degree."
+
+**Method:** `DELETE /v1/education/{id}`
+
+**Required scope:** `education:write`
+
+**Rate limit:** 10 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s -X DELETE https://api.mokaru.ai/v1/education/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+### 29. List Skills
+
+**When to use:** The user wants to see their skills. They might say "show my skills" or "what skills do I have?"
+
+**Method:** `GET /v1/skills`
+
+**Required scope:** `skills:read`
+
+**Rate limit:** 60 requests per minute
+
+**Query parameters:**
+
+| Param    | Type   | Required | Description                           |
+|----------|--------|----------|---------------------------------------|
+| `limit`  | number | No       | Results per page, default 25, max 100 |
+| `offset` | number | No       | Number of results to skip             |
+
+**Curl example:**
+
+```bash
+curl -s -G https://api.mokaru.ai/v1/skills \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  --data-urlencode "limit=50" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": [
+    {
+      "id": "clx...",
+      "name": "TypeScript",
+      "category": "Frontend",
+      "level": "expert",
+      "createdAt": "2026-01-10T...",
+      "updatedAt": "2026-03-15T..."
+    }
+  ],
+  "total": 12,
+  "hasMore": false,
+  "limit": 50,
+  "offset": 0
+}
+```
+
+---
+
+### 30. Create Skill
+
+**When to use:** The user wants to add a skill. They might say "add TypeScript to my skills" or "save this skill."
+
+**Method:** `POST /v1/skills`
+
+**Required scope:** `skills:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON):**
+
+| Field      | Type   | Required | Description                                    |
+|------------|--------|----------|------------------------------------------------|
+| `name`     | string | Yes      | Skill name (max 100 chars)                     |
+| `category` | string | No       | Skill category, e.g. "Frontend" (max 100 chars)|
+| `level`    | string | No       | One of: beginner, intermediate, advanced, expert|
+
+**Curl example:**
+
+```bash
+curl -s -X POST https://api.mokaru.ai/v1/skills \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "TypeScript",
+    "category": "Frontend",
+    "level": "expert"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx..."
+}
+```
+
+---
+
+### 31. Get Skill Detail
+
+**When to use:** The user wants to see details of a specific skill.
+
+**Method:** `GET /v1/skills/{id}`
+
+**Required scope:** `skills:read`
+
+**Rate limit:** 30 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s https://api.mokaru.ai/v1/skills/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "data": {
+    "id": "clx_abc123",
+    "name": "TypeScript",
+    "category": "Frontend",
+    "level": "expert",
+    "createdAt": "2026-01-10T...",
+    "updatedAt": "2026-03-15T..."
+  }
+}
+```
+
+---
+
+### 32. Update Skill
+
+**When to use:** The user wants to change a skill's details. They might say "change my TypeScript level to expert" or "update that skill's category."
+
+**Method:** `PATCH /v1/skills/{id}`
+
+**Required scope:** `skills:write`
+
+**Rate limit:** 20 requests per minute
+
+**Request body (JSON) - all fields optional, at least one required:**
+
+| Field      | Type        | Description                                    |
+|------------|-------------|------------------------------------------------|
+| `name`     | string      | Skill name (max 100 chars)                     |
+| `category` | string/null | Skill category (max 100 chars, null to clear)  |
+| `level`    | string/null | Proficiency level (null to clear)              |
+
+**Curl example:**
+
+```bash
+curl -s -X PATCH https://api.mokaru.ai/v1/skills/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "level": "expert",
+    "category": "Programming Languages"
+  }' | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true,
+  "id": "clx_abc123"
+}
+```
+
+---
+
+### 33. Delete Skill
+
+**When to use:** The user wants to remove a skill. They might say "delete that skill" or "remove TypeScript from my profile."
+
+**Method:** `DELETE /v1/skills/{id}`
+
+**Required scope:** `skills:write`
+
+**Rate limit:** 10 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s -X DELETE https://api.mokaru.ai/v1/skills/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+### 34. Delete Application
+
+**When to use:** The user wants to remove an application from their tracker. They might say "delete that application" or "remove the Acme job from my tracker."
+
+**Method:** `DELETE /v1/tracker/applications/{id}`
+
+**Required scope:** `tracker:write`
+
+**Rate limit:** 10 requests per minute
+
+**Curl example:**
+
+```bash
+curl -s -X DELETE https://api.mokaru.ai/v1/tracker/applications/clx_abc123 \
+  -H "Authorization: Bearer $MOKARU_API_KEY" | jq .
+```
+
+**Response shape:**
+
+```json
+{
+  "success": true
+}
+```
+
+The application and its timeline entries are permanently removed. Any linked resume is unlinked but not deleted.
+
+---
+
 ## Workflows
 
 ### Finding, saving, and preparing for jobs
@@ -695,6 +1641,38 @@ curl -s -X POST https://api.mokaru.ai/v1/resume/clx_abc123/export/pdf \
 1. Call `GET /v1/tracker/applications` to get all applications, or filter by status.
 2. Summarize the pipeline: how many in each status, which are highest priority.
 3. If the user wants to update one, call `PATCH /v1/tracker/applications/{id}`.
+
+### Managing contacts
+
+1. Call `GET /v1/contacts` to list all contacts, or use `search` to find by name/company.
+2. Call `GET /v1/contacts/{id}` for full contact details.
+3. To add a new contact, call `POST /v1/contacts` with at least `firstName` and `lastName`.
+4. To update contact info, call `PATCH /v1/contacts/{id}` with the fields to change. Pass `null` to clear optional fields.
+5. To delete, call `DELETE /v1/contacts/{id}`.
+
+### Managing work experiences
+
+1. Call `GET /v1/experiences` to list all work experiences.
+2. Call `GET /v1/experiences/{id}` to see full details of a specific experience.
+3. To add a new experience, call `POST /v1/experiences` with at least `jobTitle` and `company`.
+4. To update, call `PATCH /v1/experiences/{id}` with the fields to change. Pass `null` to clear optional fields.
+5. To delete, call `DELETE /v1/experiences/{id}`.
+
+### Managing education
+
+1. Call `GET /v1/education` to list all education entries.
+2. Call `GET /v1/education/{id}` to see full details of a specific education entry.
+3. To add, call `POST /v1/education` with at least `school`.
+4. To update, call `PATCH /v1/education/{id}` with the fields to change. Pass `null` to clear optional fields.
+5. To delete, call `DELETE /v1/education/{id}`.
+
+### Managing skills
+
+1. Call `GET /v1/skills` to list all skills.
+2. Call `GET /v1/skills/{id}` to see details of a specific skill.
+3. To add a skill, call `POST /v1/skills` with at least `name`.
+4. To update, call `PATCH /v1/skills/{id}` with the fields to change. Pass `null` to clear optional fields.
+5. To delete, call `DELETE /v1/skills/{id}`.
 
 ### Managing resumes
 
