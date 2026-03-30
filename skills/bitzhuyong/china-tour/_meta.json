@@ -3,11 +3,16 @@
   "slug": "china-tour",
   "displayName": "China Tour",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773755940534,
-    "commit": "https://github.com/openclaw/skills/commit/307c5b18e883a03e479d74baa00a4916e881e6d7"
+    "version": "1.1.3",
+    "publishedAt": 1774583408465,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773755940534,
+      "commit": "https://github.com/openclaw/skills/commit/307c5b18e883a03e479d74baa00a4916e881e6d7"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1773768618244,
