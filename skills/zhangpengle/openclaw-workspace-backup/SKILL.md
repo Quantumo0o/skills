@@ -1,74 +1,36 @@
 ---
 name: workspace-backup
-description: 自动将 Agent 工作空间备份到 GitHub 仓库。从 openclaw.json 动态读取 agents 配置，每个 agent 对应一个 GitHub 分支。每天 03:00 自动执行。
+description: 将工作空间 git 仓库备份到 GitHub 各分支。通过 .env 配置目录列表，每天 03:00 自动执行。当用户说"workspace-backup"、"备份工作空间"、"工作空间备份"时触发。
+metadata: {"openclaw":{"emoji":"💾","requires":{"bins":["git"]},"install":"pip install -e {baseDir}"}}
 ---
 
 # Workspace Backup
 
-自动备份 OpenClaw 所有 Agent 的工作空间到 GitHub。
+将多个本地 git 工作空间自动备份到 GitHub，每个目录对应一个同名远程分支。
 
-## 功能
-
-- 动态读取 `~/.openclaw/openclaw.json` 中的 `agents.list` 配置
-- 每个 agent 的工作空间备份到同名 GitHub 分支
-- 每个 agent 可自定义工作空间路径（若未指定则使用默认工作空间）
-- 每天 03:00 自动执行（通过 OpenClaw cron）
-
-## 使用方式
-
-### 手动执行备份
+## 使用
 
 ```bash
-~/.openclaw/workspace/skills/workspace-backup/scripts/backup.sh
+workspace                    # 备份所有工作空间
+workspace --backup --force   # 强制推送（解决 non-fast-forward 错误）
+workspace --status           # 查看各工作空间状态及最近备份日志
 ```
 
-### 查看备份状态
+每天 03:00 由 OpenClaw cron 自动执行。
 
-```bash
-~/.openclaw/workspace/skills/workspace-backup/scripts/status.sh
+## 配置
+
+在 `workspace_backup/.env`（或 `~/.config/workspace/.env`）中配置备份目录：
+
+```dotenv
+WORKSPACE_main=/home/ubuntu/.openclaw/workspace
+WORKSPACE_formulas=/home/ubuntu/.openclaw/workspace-formulas
 ```
 
-### 定时任务
+`WORKSPACE_<id>` 的 `<id>` 即为目标 GitHub 分支名。用户级 `.env` 优先于包级 `.env`。
+复制 `workspace_backup/.env.example` 为 `.env` 后修改路径即可。
 
-已在 OpenClaw cron 中配置，每天 03:00 执行。
+## 前提条件
 
-## 配置说明
-
-从 `openclaw.json` 读取配置：
-
-```json
-{
-  "agents": {
-    "defaults": {
-      "workspace": "/home/ubuntu/.openclaw/workspace"
-    },
-    "list": [
-      {
-        "id": "main",
-        "workspace": "/home/ubuntu/.openclaw/workspace"
-      },
-      {
-        "id": "formulas",
-        "workspace": "/home/ubuntu/.openclaw/workspace-formulas"
-      }
-    ]
-  }
-}
-```
-
-- `agents.defaults.workspace`: 默认工作空间路径
-- `agents.list[].id`: GitHub 分支名称
-- `agents.list[].workspace`: 该 agent 的工作空间路径（可选，不指定则使用默认值）
-
-## 脚本说明
-
-| 脚本 | 说明 |
-|------|------|
-| `backup.sh` | 执行备份（先 git add -A，再检查暂存区，最后 commit → push） |
-| `status.sh` | 查看各工作空间的 git 状态 |
-
-## 注意事项
-
-- 确保 SSH Key 已配置好，可以直接 git push
-- 首次执行前需要手动 git clone 或在现有目录初始化 git
-- 备份失败会记录日志
+- SSH Key 已配置，可免密 `git push`
+- 各工作空间目录已初始化为 git 仓库并设置远程
