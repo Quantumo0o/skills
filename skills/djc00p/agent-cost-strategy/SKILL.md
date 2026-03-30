@@ -45,7 +45,11 @@ One-word and short conversational messages (hi, thanks, ok, sure, yes, no) shoul
 
 ## Cache Optimization
 
-Prompt caching cuts costs 50-90% on repeated context. See `references/cache-optimization.md` for patterns.
+Prompt caching cuts costs 50-90% on repeated context. Cache writes cost ~25% more but pay off after just 1-2 reuses. See `references/cache-optimization.md` for patterns and break-even math.
+
+## Batch API (Non-Urgent Tasks)
+
+For cron jobs, scheduled analysis, or anything that doesn't need an immediate response — use the Batch API (Anthropic/OpenAI both offer it). **50% discount** in exchange for async delivery (results within 24h). Never use real-time API for background work that can wait.
 
 ## Signs You're Over-Spending
 
@@ -75,3 +79,5 @@ Anthropic's prompt cache builds from repeated context within a live session. Whe
 - Main agent (Sonnet/mid-tier) = conversational only: planning, coordination, reviewing results
 - Sub-agents (Haiku/fast-cheap) = all actual doing: file edits, research, builds, data tasks
 - Keeping the main agent conversational reduces its context growth and keeps cache hits high
+
+

@@ -48,6 +48,47 @@ Fix this specific failure: <paste failure>
 ### Order matters
 Always put static content before dynamic content. Providers cache from the beginning of the prompt — anything after a dynamic section won't be cached.
 
+## Cache Write vs Read Cost — Break-Even Math
+
+Cache writes cost ~25% **more** than regular input tokens, but cache reads cost 90% **less**. It pays off after just 1–2 reuses.
+
+**Formula:**
+```
+break_even_reads = cache_write_cost / (regular_cost - cache_read_cost)
+```
+
+**Example — 10k token system prompt on Anthropic Sonnet:**
+- Regular cost per read: 10k × $3/M = **$0.030**
+- Cache write (one-time): 10k × $3.75/M = **$0.0375**
+- Cache read cost: 10k × $0.30/M = **$0.003**
+- Break-even: $0.0375 / ($0.030 - $0.003) = **1.4 reads**
+
+→ Cache anything reused 2+ times. For sessions that run long (which they should), almost everything is worth caching.
+
+## Batch API (50% Discount for Non-Urgent Tasks)
+
+Anthropic's Batch API processes requests asynchronously at half price — results returned within 24 hours.
+
+**Best for:**
+- Cron/scheduled tasks that don't need immediate responses
+- Bulk analysis (e.g. processing many files overnight)
+- Background monitoring that can tolerate latency
+
+**Not for:**
+- Real-time conversations
+- Any task where the user is waiting
+
+```python
+# Instead of: real-time API call at full price
+response = client.messages.create(model="claude-sonnet-4-6", ...)
+
+# Use: batch API at 50% off for non-urgent work
+batch = client.messages.batches.create(requests=[...])
+# Poll for results later
+```
+
+See Anthropic docs for full Batch API reference.
+
 ## Provider Cache Notes
 
 | Provider | Cache Behavior |
