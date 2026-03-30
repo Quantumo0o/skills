@@ -48,9 +48,9 @@
     "primaryEntrypoint": "AGENTS.md"
   },
   "sharing": {
-    "shareAgentIdentity": false,
-    "shareAgentPersona": false,
-    "shareAgentTone": false,
+    "shareAssistantIdentityContext": false,
+    "shareAssistantPersonaContext": false,
+    "shareAssistantToneContext": false,
     "sharePrivateProjectContext": false,
     "shareTemporaryTaskState": false,
     "sharePlaintextSecrets": false
@@ -58,7 +58,7 @@
   "readOrder": {
     "privateFirst": true,
     "sharedSecond": true,
-    "sharedCannotOverridePersona": true
+    "sharedCannotOverrideIdentityContext": true
   },
   "sourcePriority": [
     "MEMORY.md",
@@ -77,8 +77,8 @@
     "deduplicateSharedMemory": true,
     "mergeSimilarEntries": false,
     "pruneOutdatedSharedEntries": true,
-    "markPrivateExtractedEntries": true,
-    "modifyPrivateMemoryDirectly": false
+    "markLocalExtractedEntries": true,
+    "modifyLocalMemoryDirectly": false
   },
   "reporting": {
     "mode": "log-and-report",

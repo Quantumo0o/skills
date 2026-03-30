@@ -3,9 +3,15 @@
   "slug": "shared-memory-governor",
   "displayName": "Shared Memory Governor",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773749326746,
-    "commit": "https://github.com/openclaw/skills/commit/76480eac63fc684974d21bca8bf7638bb055e242"
+    "version": "1.0.1",
+    "publishedAt": 1774432465938,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773749326746,
+      "commit": "https://github.com/openclaw/skills/commit/76480eac63fc684974d21bca8bf7638bb055e242"
+    }
+  ]
 }
