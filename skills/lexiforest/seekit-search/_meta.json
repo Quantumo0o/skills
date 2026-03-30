@@ -1,0 +1,11 @@
+{
+  "owner": "lexiforest",
+  "slug": "seekit-search",
+  "displayName": "Seekit Search(No API Key Required)",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773844550898,
+    "commit": null
+  },
+  "history": []
+}
