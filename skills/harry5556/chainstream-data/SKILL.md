@@ -1,66 +1,84 @@
 ---
 name: chainstream-data
-description: "Query and analyze on-chain data via CLI and 12 MCP tools across Solana, BSC, Ethereum. Use when user asks to search tokens, check token security or holders, track market trends or hot tokens, analyze wallet PnL or holdings, stream real-time trades, compare multiple tokens, or backtest trading strategies. Covers token analytics, market ranking, wallet profiling, and WebSocket streaming. Keywords: token, wallet, market, trending, PnL, holders, security, candles, WebSocket, on-chain data."
+description: "Query and analyze on-chain data via MCP (17 tools) and CLI across Solana, BSC, Ethereum. Use when user asks to search tokens, check token security or holders, track market trends or hot tokens, analyze wallet PnL or holdings, stream real-time trades, compare multiple tokens, or backtest trading strategies. Covers token analytics, market ranking, wallet profiling, and WebSocket streaming. Keywords: token, wallet, market, trending, PnL, holders, security, candles, WebSocket, on-chain data, MCP."
 ---
 
 # ChainStream Data
 
 On-chain data intelligence for AI agents. Access token analytics, market trends, wallet profiling, and compliance screening across Solana, BSC, and Ethereum.
 
+- **MCP Server**: `https://mcp.chainstream.io/mcp` (streamable-http, 17 tools)
 - **CLI**: `npx @chainstream-io/cli`
-- **MCP Server**: `https://mcp.chainstream.io/mcp` (streamable-http)
+- **SDK**: `@chainstream-io/sdk`
 - **Base URL**: `https://api.chainstream.io`
 
 ## Integration Path (check FIRST)
 
-**Before doing anything, determine which path to use:**
+**Agent runtime decision tree — choose based on environment and operation type:**
 
-1. **Agent already has a wallet** (embedded, MPC, or any `signMessage` capable wallet)?
-   → **Use SDK** (`@chainstream-io/sdk`). Do NOT use CLI. Implement `WalletSigner` interface with your wallet. See [shared/authentication.md](../shared/authentication.md) for code examples.
+1. **MCP tools registered?** (Cursor/Claude Desktop/VS Code already configured ChainStream MCP)
+   → YES → Use MCP tools for data queries (`tokens_search`, `wallets_profile`, etc.)
+   → NO → Use CLI for all operations (`npx @chainstream-io/cli ...`)
 
-2. **Agent does NOT have a wallet?**
-   → **Use CLI** (`npx @chainstream-io/cli`). Run `chainstream login` to create a wallet (no email required). CLI handles auth + x402 payment automatically.
+2. **Need DeFi operation?** (swap, create token, sign transaction)
+   → YES → Must use CLI (MCP has no wallet signing capability)
+   → NO → Continue with MCP (or CLI if MCP unavailable)
 
-3. **Human user with API key from dashboard?**
-   → **Use CLI with API Key**: `npx @chainstream-io/cli config set --key apiKey --value <key>` (read-only, no DeFi)
+3. **MCP call failed?**
+   → Fall back to CLI as backup
 
-x402 payment is transparent in both paths. Never construct payment headers manually — use `@x402/fetch` (SDK path) or CLI (CLI path).
+**Getting an API Key (required for all paths):**
+- Dashboard users: [app.chainstream.io](https://app.chainstream.io) → API Keys
+- AI Agents (x402): CLI auto-purchases on first 402 response (USDC on Base/Solana) → API Key auto-saved. Or check plans first: `npx @chainstream-io/cli wallet pricing`
+- AI Agents (MPP): `tempo request "https://api.chainstream.io/mpp/purchase?plan=<PLAN>"` → MPP payment (USDC.e on Tempo) → API Key auto-returned (fetch `/mpp/pricing` first, let user choose plan)
+- CLI auto-payment: On first 402, CLI auto-purchases and saves API Key
 
-## Prerequisites (CLI path) — MUST complete before any command
+**Channel matrix:**
 
-**IMPORTANT: All CLI data commands require authentication. If you skip this step, commands will fail with "Not authenticated".**
+| Operation | MCP (when registered) | CLI | SDK |
+|-----------|----------------------|-----|-----|
+| Search tokens | `tokens_search` | `token search` | `client.token.search` |
+| Analyze token | `tokens_analyze` | `token info` | `client.token.getToken` |
+| Price history | `tokens_price_history` | `token candles` | `client.token.getCandles` |
+| Wallet profile | `wallets_profile` | `wallet profile` | `client.wallet.*` |
+| Market trending | `market_trending` | `market trending` | `client.ranking.*` |
+| DEX quote | `dex_quote` | `dex route` | `client.dex.route` |
+| DEX swap | _(no signing)_ | `dex swap` | `client.dex.swap` + sign |
+| Create token | _(no signing)_ | `dex create` | `client.dex.createToken` |
+
+## Prerequisites
+
+### MCP path (recommended for data queries)
+
+Add to your MCP client configuration (Cursor, Claude Desktop, VS Code):
+
+```json
+{
+  "mcpServers": {
+    "chainstream": {
+      "url": "https://mcp.chainstream.io/mcp",
+      "headers": { "X-API-KEY": "<your-api-key>" }
+    }
+  }
+}
+```
+
+### CLI path
 
 ```bash
-# Step 0: MUST run first (creates wallet, no email needed)
+# Option A: Use API Key (recommended — works with all agent wallets)
+npx @chainstream-io/cli config set --key apiKey --value <your-api-key>
+
+# Option B: Create ChainStream Wallet (for DeFi + auto x402 payment)
 npx @chainstream-io/cli login
 
-# Verify it worked:
-npx @chainstream-io/cli wallet address
-# Should show EVM and Solana addresses
+# Option C: Import existing key (dev/testing)
+npx @chainstream-io/cli wallet set-raw --chain base
 ```
 
-Alternative auth methods:
-- Import existing key: `npx @chainstream-io/cli wallet set-raw --chain base`
-- API key: `npx @chainstream-io/cli config set --key apiKey --value <key>`
+### SDK path
 
-## Prerequisites (SDK path)
-
-Only needed if agent has its own wallet:
-
-```bash
-npm install @chainstream-io/sdk @x402/core @x402/fetch @x402/evm viem
-```
-
-```typescript
-import { ChainStreamClient, type WalletSigner } from "@chainstream-io/sdk";
-
-const wallet: WalletSigner = {
-  chain: "evm",
-  address: "0xYourAgentWallet",
-  signMessage: async (msg) => yourWallet.personalSign(msg),
-};
-const client = new ChainStreamClient("", { walletSigner: wallet });
-```
+`npm install @chainstream-io/sdk` — see [`shared/authentication.md`](../shared/authentication.md) Path 2 for `WalletSigner` integration.
 
 ## Endpoint Selector
 
@@ -68,72 +86,40 @@ const client = new ChainStreamClient("", { walletSigner: wallet });
 
 | Intent | CLI Command | MCP Tool | Reference |
 |--------|-------------|----------|-----------|
-| Search tokens | `npx @chainstream-io/cli token search --keyword X --chain sol` | `tokens/search` | [token-research.md](references/token-research.md) |
-| Token detail | `npx @chainstream-io/cli token info --chain sol --address ADDR` | `tokens/analyze` | [token-research.md](references/token-research.md) |
-| Security check | `npx @chainstream-io/cli token security --chain sol --address ADDR` | `tokens/analyze` | [token-research.md](references/token-research.md) |
-| Top holders | `npx @chainstream-io/cli token holders --chain sol --address ADDR` | `tokens/analyze` | [token-research.md](references/token-research.md) |
-| K-line / OHLCV | `npx @chainstream-io/cli token candles --chain sol --address ADDR --resolution 1h` | `tokens/price_history` | [token-research.md](references/token-research.md) |
-| Liquidity pools | `npx @chainstream-io/cli token pools --chain sol --address ADDR` | `tokens/discover` | [token-research.md](references/token-research.md) |
+| Search tokens | `npx @chainstream-io/cli token search --keyword X --chain sol` | `tokens_search` | [token-research.md](references/token-research.md) |
+| Token detail | `npx @chainstream-io/cli token info --chain sol --address ADDR` | `tokens_analyze` | [token-research.md](references/token-research.md) |
+| Security check | `npx @chainstream-io/cli token security --chain sol --address ADDR` | `tokens_analyze` | [token-research.md](references/token-research.md) |
+| Top holders | `npx @chainstream-io/cli token holders --chain sol --address ADDR` | `tokens_analyze` | [token-research.md](references/token-research.md) |
+| K-line / OHLCV | `npx @chainstream-io/cli token candles --chain sol --address ADDR --resolution 1h` | `tokens_price_history` | [token-research.md](references/token-research.md) |
+| Liquidity pools | `npx @chainstream-io/cli token pools --chain sol --address ADDR` | `tokens_discover` | [token-research.md](references/token-research.md) |
 
 ### Market
 
 | Intent | CLI Command | MCP Tool | Reference |
 |--------|-------------|----------|-----------|
-| Hot/trending tokens | `npx @chainstream-io/cli market trending --chain sol --duration 1h` | `market/trending` | [market-discovery.md](references/market-discovery.md) |
-| New token listings | `npx @chainstream-io/cli market new --chain sol` | `market/trending` | [market-discovery.md](references/market-discovery.md) |
-| Recent trades | `npx @chainstream-io/cli market trades --chain sol` | `trades/recent` | [market-discovery.md](references/market-discovery.md) |
+| Hot/trending tokens | `npx @chainstream-io/cli market trending --chain sol --duration 1h` | `market_trending` | [market-discovery.md](references/market-discovery.md) |
+| New token listings | `npx @chainstream-io/cli market new --chain sol` | `market_trending` | [market-discovery.md](references/market-discovery.md) |
+| Recent trades | `npx @chainstream-io/cli market trades --chain sol` | `trades_recent` | [market-discovery.md](references/market-discovery.md) |
 
 ### Wallet
 
 | Intent | CLI Command | MCP Tool | Reference |
 |--------|-------------|----------|-----------|
-| Wallet profile (PnL + holdings) | `npx @chainstream-io/cli wallet profile --chain sol --address ADDR` | `wallets/profile` | [wallet-profiling.md](references/wallet-profiling.md) |
-| PnL details | `npx @chainstream-io/cli wallet pnl --chain sol --address ADDR` | `wallets/profile` | [wallet-profiling.md](references/wallet-profiling.md) |
-| Token balances | `npx @chainstream-io/cli wallet holdings --chain sol --address ADDR` | `wallets/profile` | [wallet-profiling.md](references/wallet-profiling.md) |
-| Transfer history | `npx @chainstream-io/cli wallet activity --chain sol --address ADDR` | `wallets/activity` | [wallet-profiling.md](references/wallet-profiling.md) |
+| Wallet profile (PnL + holdings) | `npx @chainstream-io/cli wallet profile --chain sol --address ADDR` | `wallets_profile` | [wallet-profiling.md](references/wallet-profiling.md) |
+| PnL details | `npx @chainstream-io/cli wallet pnl --chain sol --address ADDR` | `wallets_profile` | [wallet-profiling.md](references/wallet-profiling.md) |
+| Token balances | `npx @chainstream-io/cli wallet holdings --chain sol --address ADDR` | `wallets_profile` | [wallet-profiling.md](references/wallet-profiling.md) |
+| Transfer history | `npx @chainstream-io/cli wallet activity --chain sol --address ADDR` | `wallets_activity` | [wallet-profiling.md](references/wallet-profiling.md) |
+| Own wallet balance | `npx @chainstream-io/cli wallet balance --chain sol` | — | — |
 
 ## Quickstart
 
-### Via CLI (recommended)
-
 ```bash
-# FIRST: Authenticate (only needed once, creates wallet automatically)
-npx @chainstream-io/cli login
-
-# Search tokens by keyword
-npx @chainstream-io/cli token search --keyword PUMP --chain sol
-
-# Get full token detail
-npx @chainstream-io/cli token info --chain sol --address <token_address>
-
-# Check token security (honeypot, mint authority, freeze authority)
-npx @chainstream-io/cli token security --chain sol --address <token_address>
-
-# Top holders
-npx @chainstream-io/cli token holders --chain sol --address <token_address> --limit 20
-
-# K-line / candlestick data (last 24h, 1h resolution)
-npx @chainstream-io/cli token candles --chain sol --address <token_address> --resolution 1h
-
-# Hot tokens in last 1 hour, sorted by default
-npx @chainstream-io/cli market trending --chain sol --duration 1h
-
-# Newly created tokens
-npx @chainstream-io/cli market new --chain sol
-
-# Wallet PnL
-npx @chainstream-io/cli wallet pnl --chain sol --address <wallet_address>
-
-# Raw JSON output (for piping)
-npx @chainstream-io/cli token info --chain sol --address <addr> --raw | jq '.marketData.priceInUsd'
+npx @chainstream-io/cli login                                              # Auth (one-time)
+npx @chainstream-io/cli token search --keyword PUMP --chain sol            # Search tokens
+npx @chainstream-io/cli token info --chain sol --address <addr> --json     # Token detail (single-line JSON for piping)
 ```
 
-### Via MCP Tool (alternative for MCP-capable agents)
-
-```
-Use tool: tokens/search with { "keyword": "PUMP", "chain": "sol" }
-Use tool: wallets/profile with { "chain": "sol", "address": "<wallet_address>" }
-```
+All commands from the Endpoint Selector tables above work after `login`. Append `--json` for machine-readable output.
 
 ## AI Workflows
 
@@ -182,29 +168,11 @@ npx @chainstream-io/cli wallet profile → npx @chainstream-io/cli wallet activi
 
 | Error | Meaning | Recovery |
 |-------|---------|----------|
-| "Not authenticated" | CLI has no wallet/key configured | Run `npx @chainstream-io/cli login` (this is the most common first-time error) |
-| 401 | Server rejected auth | Re-run `npx @chainstream-io/cli login` or check API key |
-| 402 / payment failed | No quota or insufficient USDC | See **Payment Recovery** below |
+| "Not authenticated" / 401 / 402 | No API Key or no active subscription | Quick fix: `npx @chainstream-io/cli config set --key apiKey --value <key>`. No key? **MANDATORY — READ** [`shared/authentication.md`](../shared/authentication.md) for purchase flow |
 | 429 | Rate limit | Wait 1s, exponential backoff |
 | 5xx | Server error | Retry once after 2s |
 
-### Payment Recovery (402 / insufficient USDC)
-
-When CLI reports payment failure or 402, follow these steps **exactly**:
-
-1. **Run `npx @chainstream-io/cli wallet pricing`** to fetch ALL available plans
-2. **Present every plan to the user** in a table (name, price, CU quota, duration) — do NOT only mention the cheapest plan. The `quota_total` is a **compute unit (CU) quota**, NOT a call count. Each API call consumes CU based on the endpoint and response size.
-3. **Show the wallet address** (run `npx @chainstream-io/cli wallet address`) and tell the user which network to fund (Base or Solana)
-4. **Let the user choose** which plan they want
-5. After user funds the wallet, **retry the original command** — CLI auto-pays
-
-Example response to user:
-> "Your wallet needs USDC to activate a ChainStream subscription. Here are the available plans:
-> [show all plans from `wallet pricing` output]
-> Your wallet address: 0x... (Base) / ... (Solana)
-> Please transfer USDC to one of these addresses, and I'll retry the query."
-
-For full error handling, see [shared/error-handling.md](../shared/error-handling.md).
+On 401/402: ask the user "Do you have a ChainStream API Key?" — if yes, set it and retry; if no, load [`shared/x402-payment.md`](../shared/x402-payment.md) for the full purchase flow (x402 on Base/Solana, or MPP on Tempo). **NEVER auto-select a plan.**
 
 ## Skill Map
 
@@ -217,4 +185,4 @@ For full error handling, see [shared/error-handling.md](../shared/error-handling
 
 ## Related Skills
 
-- [chainstream-defi](../chainstream-defi/) — When analysis leads to action: swap, bridge, launchpad, transaction execution
+- [chainstream-defi](../chainstream-defi/) — When analysis leads to action: swap, launchpad, transaction signing and broadcast
