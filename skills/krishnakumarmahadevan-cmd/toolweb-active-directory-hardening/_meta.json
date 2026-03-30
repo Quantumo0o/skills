@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "toolweb-active-directory-hardening",
+  "displayName": "Active Directory Hardening",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774888635732,
+    "commit": null
+  },
+  "history": []
+}
