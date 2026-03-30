@@ -4,14 +4,11 @@ description: Local SiYuan API integration for notebook/document/block/asset oper
 homepage: https://github.com/siyuan-note/siyuan
 metadata:
   openclaw:
+    primaryEnv: SIYUAN_API_TOKEN
     requires:
       env:
-        SIYUAN_API_TOKEN:
-          description: SiYuan API token from Settings > About
-          required: true
-        SIYUAN_API_URL:
-          description: SiYuan API base URL. Default is http://127.0.0.1:6806
-          required: false
+        - SIYUAN_API_TOKEN
+        - SIYUAN_API_URL
 ---
 
 # SiYuan Skill
@@ -28,13 +25,12 @@ metadata:
 
 ## Configuration
 
-Configuration can be provided via either:
-1. Environment variables in your shell
-2. `~/.openclaw/.env` file (recommended) - add lines like:
-   ```
-   SIYUAN_API_TOKEN=your_token_here
-   SIYUAN_API_URL=http://127.0.0.1:6806
-   ```
+Configuration can be provided via environment variables in your shell, for example:
+
+```bash
+export SIYUAN_API_TOKEN=your_token_here
+export SIYUAN_API_URL=http://127.0.0.1:6806
+```
 
 - `SIYUAN_API_TOKEN` (required): from SiYuan `Settings > About`.
 - `SIYUAN_API_URL` (optional): defaults to `http://127.0.0.1:6806`.
