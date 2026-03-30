@@ -1,7 +1,7 @@
 ---
 name: i-skill
 description: "Generates personalized interaction guides by analyzing user conversations. Invoke when users seek personalized responses, want AI assistants to better understand their preferences, or need customized service adaptation. Activation: '激活个性化' or 'personalization'."
-version: "3.0.3"
+version: "3.1.0"
 tags: ["personalization", "user-profile", "ai-assistant", "conversation-analysis"]
 activation_mode: "manual"
 ---
@@ -110,7 +110,7 @@ The profile is stored in `myself.md` (from data directory) and **must strictly f
 (2-5 recent topics or projects, in reverse chronological order)
 
 ## Observation Notes
-(Free-form description of other stable traits, interesting details, or memorable preferences observed from conversations. 1-3 items, concise.)
+(Free-form description of other stable traits, interesting details, or memorable preferences observed from conversations. 1-3 items, concise. Prefer prefixing each item with `[场景]` for traceability, e.g. `[2026-03-27, cogito讨论] 对"本质"有执念...`)
 ```
 
 ### Profile Generation Rules
@@ -120,6 +120,7 @@ The profile is stored in `myself.md` (from data directory) and **must strictly f
 - **Length limit**: Entire profile must not exceed 800 words
 - **No fabrication**: Do not write information without evidence; mark uncertain fields as "To be observed"
 - **On each update**: Regenerate completely rather than appending. Retain valuable content from previous versions, discard what's outdated
+- **Confidence tags** (for uncertain or newly observed traits): Append `[~]` (1st observation, tentative) or `[!!]` (2nd observation, emerging) after the value. Tags are removed once confirmed (3+ consistent signals or user approval). Unmarked = confirmed. Example: `- **Learning Focus**: LLM应用开发 [~]Rust（待观察）`
 
 ---
 
@@ -143,6 +144,8 @@ When **any** of the following conditions are met, **ask the user for explicit co
 - **Do NOT trigger updates for**: Casual greetings, single technical Q&A, repeated discussions of known topics
 - **Tweak vs. Rewrite**: If only 1-2 fields change, modify those fields directly; if 3+ fields change, regenerate the full profile
 - **Prevent over-updating**: The same field must not be updated more than once within 5 conversation rounds (unless the user explicitly corrects it)
+- **Signal exclusion**: Do NOT learn from silence/vague praise ("上次那个不错" context-dependent) / single events / hypothetical discussions / third-party preferences. Only explicit corrections, direct preference declarations, and 3+ repeated consistent signals count.
+- **Gradual confirmation**: For non-explicit signals (e.g., topic drift → potential new interest), use confidence tags: 1st occurrence → `[~]` in Observation Notes only (no profile field change); 2nd → `[!!]`; 3rd → ask user before writing to profile fields.
 
 ### Consent-First Update Behavior
 
