@@ -31,7 +31,7 @@ allowed-tools: Bash(edge-tts:*)
 - **默认语音**: zh-CN-XiaoxiaoNeural（甜美自然的中文语音）
 - **备用方案**: 当 edge-tts 不可用时，自动降级到系统自带的 System.Speech
 - **平台支持**:
-  - ✅ QQ 发送（<qqvoice> wav 格式）
+  - ✅ QQ 发送（<qqmedia> wav 格式）
 
 ## 使用方式
 
@@ -41,7 +41,7 @@ allowed-tools: Bash(edge-tts:*)
 
 1. 检测 edge-tts 是否可用
 2. 使用 Edge TTS + XiaoxiaoNeural 生成语音
-3. 发送 `<qqvoice>输出文件.wav</qqvoice>`
+3. 发送 `<qqmedia>输出文件.wav</qqmedia>`
 
 ### 前置条件
 
@@ -106,7 +106,7 @@ pip install --user edge-tts -i https://mirrors.aliyun.com/pypi/simple/
 用户: 生成语音，"你好！这是一段测试文本。"
 
 AI: [调用 edge-tts 生成语音]
-[发送 <qqvoice>C:\Users\ADMINI~1\AppData\Local\Temp\xxx.wav</qqvoice>]
+[发送 <qqmedia>C:\Users\ADMINI~1\AppData\Local\Temp\xxx.wav</qqmedia>]
 [提示语音生成完成]
 ```
 
