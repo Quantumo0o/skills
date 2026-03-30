@@ -3,7 +3,7 @@ name: epic-games
 description: Fetch current and upcoming free games from Epic Games Store. Use when the user asks about Epic free games, this week's free games, or Epic giveaways.
 ---
 
-# Epic Games Free Games
+# Epic Free Games
 
 ## API
 
