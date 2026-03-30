@@ -1,0 +1,11 @@
+{
+  "owner": "davek-dev",
+  "slug": "joplin-cli-skill",
+  "displayName": "Joplin",
+  "latest": {
+    "version": "1.3.6",
+    "publishedAt": 1773845773638,
+    "commit": null
+  },
+  "history": []
+}
