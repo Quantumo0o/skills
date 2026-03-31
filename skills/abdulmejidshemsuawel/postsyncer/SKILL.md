@@ -1,8 +1,8 @@
 ---
 name: postsyncer-social-media-assistant
-version: 2.0.0
+version: 2.1.0
 title: Social Media Assistant (via postsyncer.com)
-description: Manages social media through PostSyncer using REST API calls. Use when scheduling, posting, or managing content across Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Threads, Bluesky, Pinterest, Telegram, Mastodon. Covers posts (create, list, update, delete), media via public URLs, comments (sync, reply, hide, delete), labels, and analytics. Accounts must be pre-connected in the PostSyncer app.
+description: Manages social media through PostSyncer using REST and/or MCP. Use when scheduling, posting, or managing content across Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Threads, Bluesky, Pinterest, Telegram, Mastodon. Covers posts, media library (list, import URLs, delete, multipart file upload), media folders (CRUD), comments with optional `media` attachments, labels, campaigns, and analytics. Accounts must be pre-connected in the PostSyncer app.
 license: MIT
 author: PostSyncer <support@postsyncer.com>
 homepage: https://postsyncer.com/openclaw
@@ -23,8 +23,14 @@ Autonomously manage social media through [PostSyncer](https://postsyncer.com) us
 
 1. Create a PostSyncer account at [app.postsyncer.com](https://app.postsyncer.com)
 2. [Connect social profiles](https://app.postsyncer.com/dashboard?action=accounts) (Instagram, TikTok, YouTube, X, LinkedIn, etc.)
-3. Go to [**Settings → API Integrations**](https://app.postsyncer.com/dashboard?action=settings&section=api-integrations) and create a personal access token with abilities: `workspaces`, `accounts`, `posts`, `labels`
+3. Go to [**Settings → API Integrations**](https://app.postsyncer.com/dashboard?action=settings&section=api-integrations) and create a personal access token with abilities: `workspaces`, `accounts`, `posts`, and (if you use them) `labels`, `campaigns`
 4. Add to `.env`: `POSTSYNCER_API_TOKEN=your_token`
+
+## PostSyncer MCP (optional)
+
+[PostSyncer MCP](https://postsyncer.com/openclaw) uses the **same Bearer token** as REST. Typical tools: `list-workspaces`, `list-accounts`, post CRUD, **`list-media`**, **`get-media`**, **`upload-media-from-url`**, **`delete-media`**, **`list-folders`**, **`create-folder`**, **`get-folder`**, **`update-folder`**, **`delete-folder`**, comments, labels, campaigns, analytics.
+
+**Multipart file upload** is only via REST: `POST /api/v1/media/upload/file` (not exposed as an MCP tool). Use **`upload-media-from-url`** or REST URL import when the client cannot send multipart.
 
 ## How to Make API Calls
 
@@ -63,6 +69,90 @@ Returns accounts with `id`, `platform`, `username`, `workspace_id`.
 
 ---
 
+### Media library
+
+Requires the `posts` ability. Responses include `id`, `workspace_id`, `folder_id`, and asset metadata.
+
+**List Media** — `GET /api/v1/media`
+
+```bash
+curl -G "https://postsyncer.com/api/v1/media" \
+  --data-urlencode "workspace_id=12" \
+  --data-urlencode "page=1" \
+  --data-urlencode "per_page=50" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN"
+```
+
+Query params: `workspace_id`, `folder_id`, `root_only` (true/false), `page`, `per_page` (max 100).
+
+**Get Media** — `GET /api/v1/media/{media_id}`
+
+```bash
+curl "https://postsyncer.com/api/v1/media/999" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN"
+```
+
+**Import from URLs** — `POST /api/v1/media/upload/url`
+
+```bash
+curl -X POST "https://postsyncer.com/api/v1/media/upload/url" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"workspace_id": 12, "urls": ["https://example.com/photo.jpg"], "folder_id": null}'
+```
+
+**Upload file (multipart)** — `POST /api/v1/media/upload/file`
+
+Use `multipart/form-data` with fields such as `workspace_id`, `file` (and optional chunk/chunk metadata if your client uses chunked upload). Not JSON.
+
+**Delete Media** — `DELETE /api/v1/media/{media_id}` *(confirm first)*
+
+```bash
+curl -X DELETE "https://postsyncer.com/api/v1/media/999" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN"
+```
+
+---
+
+### Media folders
+
+Requires the `posts` ability.
+
+**List Folders** — `GET /api/v1/folders`
+
+```bash
+curl -G "https://postsyncer.com/api/v1/folders" \
+  --data-urlencode "workspace_id=12" \
+  --data-urlencode "root=1" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN"
+```
+
+Query params: `workspace_id`, `parent_id`, `root` (top-level only).
+
+**Create Folder** — `POST /api/v1/folders`
+
+```bash
+curl -X POST "https://postsyncer.com/api/v1/folders" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"workspace_id": 12, "name": "Campaign assets", "color": "#3b82f6", "parent_id": null}'
+```
+
+**Get Folder** — `GET /api/v1/folders/{id}`
+
+**Update Folder** — `PUT /api/v1/folders/{id}`
+
+```bash
+curl -X PUT "https://postsyncer.com/api/v1/folders/5" \
+  -H "Authorization: Bearer $POSTSYNCER_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "Renamed folder"}'
+```
+
+**Delete Folder** — `DELETE /api/v1/folders/{id}` *(confirm first)*
+
+---
+
 ### Posts
 
 **List Posts** — `GET /api/v1/posts`
@@ -90,7 +180,7 @@ curl -X POST "https://postsyncer.com/api/v1/posts" \
   -d '{
     "workspace_id": 12,
     "schedule_type": "schedule",
-    "content": [{"text": "Caption #hashtags", "media": ["https://example.com/image.jpg"]}],
+    "content": [{"text": "Caption #hashtags", "media": [42, "https://example.com/image.jpg"]}],
     "accounts": [{"id": 136}, {"id": 95, "settings": {"board_id": 123}}],
     "schedule_for": {"date": "2026-03-26", "time": "14:30", "timezone": "America/New_York"},
     "labels": [5],
@@ -100,7 +190,7 @@ curl -X POST "https://postsyncer.com/api/v1/posts" \
 
 - `schedule_type`: `publish_now` | `schedule` | `draft`
 - `schedule_for`: Required when `schedule_type` is `schedule`. Date `YYYY-MM-DD`, time `HH:MM`
-- `content`: Array of thread items. Each needs `text` and/or `media` (public HTTPS URLs)
+- `content`: Array of thread items. Each needs `text` and/or `media`: an array of **library media IDs** (integers) and/or **HTTPS URL strings** (import or list media first when you want stable IDs)
 - `accounts`: Array of `{id, settings?}`. Platform-specific options go in `settings`
 
 **Update Post** — `PUT /api/v1/posts/{id}`
@@ -150,8 +240,10 @@ curl "https://postsyncer.com/api/v1/comments/456" \
 curl -X POST "https://postsyncer.com/api/v1/comments" \
   -H "Authorization: Bearer $POSTSYNCER_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"post_id": 123, "content": "Reply text", "parent_comment_id": null, "media_urls": []}'
+  -d '{"post_id": 123, "content": "Reply text", "parent_comment_id": null, "media": [42]}'
 ```
+
+Optional `media`: array of **integer library IDs** and/or **HTTPS URLs** (same shape as post `content[].media`; do not use a deprecated `media_urls` field).
 
 **Update Comment** — `PUT /api/v1/comments/{id}`
 
@@ -304,7 +396,8 @@ Pass per-platform options in `accounts[].settings` when creating/updating posts:
 
 1. `GET /api/v1/workspaces` → get `workspace_id`
 2. `GET /api/v1/accounts` → get `id`s for target platforms
-3. `POST /api/v1/posts` with `schedule_type: "schedule"` and `schedule_for`
+3. Optionally `POST /api/v1/media/upload/url` (or MCP `upload-media-from-url`) → use returned `id`s in `content[].media`
+4. `POST /api/v1/posts` with `schedule_type: "schedule"` and `schedule_for`
 
 ### Reply to Comments
 
@@ -322,7 +415,7 @@ Pass per-platform options in `accounts[].settings` when creating/updating posts:
 
 ## Best Practices
 
-- **Always start with** `GET /workspaces` and `GET /accounts` to discover IDs
+- **Always start with** `GET /workspaces` and `GET /accounts` to discover IDs; use `GET /folders` and `GET /media` when organizing or attaching library assets
 - **New automations:** Use `schedule_type: "draft"` or confirm before `publish_now`
 - **Destructive actions:** State what will happen, confirm before delete operations
 - **Multi-network:** One post can target multiple accounts; check per-platform `status` in the response
