@@ -63,7 +63,7 @@
 
 ## searchHint — 模糊搜索
 
-`GET /skills/searchHint?key=<搜索词>`（API Key 通过请求头传递）
+`GET /skills/searchHint?key=<搜索词>&apikey=<API_KEY>`（API Key 通过 URL 参数 `apikey` 传递）
 
 返回：`data` 为数组，最多 5 条，按相关度排序，不支持分页。
 

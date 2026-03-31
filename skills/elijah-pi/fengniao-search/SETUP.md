@@ -24,6 +24,12 @@ node -v
 - 公用 Key 与额度说明以页面当前展示为准
 - 左上角“美亚风鸟” Logo 可点击跳转风鸟官网
 
+## API 额度限制
+
+- 公用 API Key 目前有每日使用上限，具体上限与剩余额度以 `https://www.riskbird.com/skills` 页面实时展示为准
+- 当接口返回 `code=9999` 且 `msg` 包含“访问已达上限”时，表示当日额度已用完，不是本地配置错误
+- 额度查看方式：访问页面中部“公用 API Key”展示区查看实时剩余额度
+
 ## 临时设置 API Key
 
 只在当前终端会话中设置，关闭终端后失效。
@@ -101,10 +107,10 @@ node scripts/tool.mjs call biz_basic_info --params '{"entid":"AerjZTfkSh0"}'
 - 只读取 skill 包内的 `tools.json` 和 `references/` 文件
 - 不读取用户主目录中的 agent 配置或 shell 启动配置
 - 不写入本地文件
-- API 凭证通过 HTTP 请求头发送，不放入 URL 参数
+- API 凭证读取自环境变量，但实际调用时通过 URL 参数 `apikey` 发送，不通过 HTTP 请求头发送
 
 ## 生产环境说明
 
-公开发布包固定使用测试地址 `https://test.riskbird.com/test-qbb-api`。
+公开发布包固定使用生产地址 `https://m.riskbird.com/prod-qbb-api`。
 
 如果你有自有付费账号并需要切换生产地址，请在私有 fork 中审阅并修改源码后自行使用，不建议在公开市场包中暴露可切换端点。

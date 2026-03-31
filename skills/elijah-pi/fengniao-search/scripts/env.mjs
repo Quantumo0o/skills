@@ -1,5 +1,5 @@
 const ENV_KEY = "FN_API_KEY";
-export const BASE_URL = "https://test.riskbird.com/test-qbb-api";
+export const BASE_URL = "https://m.riskbird.com/prod-qbb-api";
 
 export async function getApiKey() {
   const key = process.env[ENV_KEY];

@@ -8,37 +8,9 @@ const __dir = dirname(fileURLToPath(import.meta.url));
 const TOOLS = JSON.parse(
   readFileSync(join(__dir, "../tools.json"), "utf8")
 );
-
-const SEMANTIC_QUERY_ALIASES = {
-  "注册号": ["企业基本信息"],
-  "工商注册号": ["企业基本信息"],
-  "统一社会信用代码": ["企业基本信息"],
-  "信用代码": ["企业基本信息"],
-  "法人": ["企业基本信息"],
-  "法定代表人": ["企业基本信息"],
-  "营业期限": ["企业基本信息"],
-  "官网": ["企业基本信息"],
-  "电话": ["企业基本信息"],
-  "邮箱": ["企业基本信息"],
-  "股权结构": ["企业股东信息"],
-  "股东结构": ["企业股东信息"],
-  "董监高": ["企业高级职员"],
-  "高管": ["企业高级职员"],
-  "对外投资": ["企业对外投资"],
-  "工商变更": ["企业工商变更"],
-  "法人变更": ["企业工商变更"],
-  "地址变更": ["企业工商变更"],
-  "被执行": ["被执行人"],
-  "执行标的": ["被执行人"],
-  "老赖": ["失信被执行人"],
-  "失信": ["失信被执行人"],
-  "限消": ["限制高消费"],
-  "限高": ["限制高消费"],
-  "经营异常": ["经营异常"],
-  "严重违法": ["严重违法"],
-  "行政处罚": ["行政处罚"],
-  "处罚机关": ["行政处罚"]
-};
+const SEMANTIC_QUERY_ALIASES = JSON.parse(
+  readFileSync(join(__dir, "../search_aliases.json"), "utf8")
+);
 
 function normalizeSearchText(input) {
   return String(input || "")
@@ -167,14 +139,13 @@ export async function call(toolId, params = {}) {
   if (!tool) throw new Error(`未找到工具: ${toolId}`);
 
   const url = new URL(BASE_URL + tool.endpoint);
+  // 风鸟接口实际要求通过 URL 参数 apikey 传递鉴权信息，而不是请求头。
+  url.searchParams.set("apikey", apiKey);
 
   const options = {
     method: tool.method,
     headers: {
       "Accept": "application/json",
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-      "X-API-Key": apiKey,
     },
   };
 
@@ -183,6 +154,7 @@ export async function call(toolId, params = {}) {
       if (v != null) url.searchParams.set(k, v);
     });
   } else {
+    options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(params);
   }
 

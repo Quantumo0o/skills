@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// tool.mjs - CLI entrypoint for fengniao-search skill
+// tool.mjs - CLI entrypoint for china-company-search-fengniao skill
 import { discover, call } from "./client.mjs";
 
 const [, , command, ...args] = process.argv;
