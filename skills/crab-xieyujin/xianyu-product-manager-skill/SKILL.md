@@ -1,151 +1,267 @@
-# XianYu Product Manager Skill
+---
 
-## Overview
-A comprehensive product management solution specifically designed for AI service providers on the Xianyu (Xianfish) platform. This skill leverages the XianYu API Client to automate the creation, management, and optimization of AI customization service listings, enabling sellers to efficiently scale their operations and maximize revenue.
+name: xianyu-product-manager
+description: Intelligent product management for AI service providers on Xianyu platform with professional templates and batch operations.
+version: 1.0.2
+metadata:
+  openclaw:
+    requires:
+      env:
+        - XIAN_YU_APP_KEY
+        - XIAN_YU_APP_SECRET
+      bins:
+        - python
+    primaryEnv: XIAN_YU_APP_KEY
+    homepage: https://www.goofish.pro
 
-## Key Features
+---
 
-### 🎯 AI Service Templates
-- **Pre-built Service Tiers**: Three standardized pricing tiers optimized for conversion
-  - **Basic Tier** (¥299): Simple workflow automation, 3-day delivery
-  - **Standard Tier** (¥699): Multi-platform integration, 5-day delivery  
-  - **Premium Tier** (¥1500): Enterprise-grade solutions, 7-day delivery with premium support
-- **Customizable Descriptions**: Professionally crafted service descriptions highlighting key benefits
-- **Template Flexibility**: Easy customization for different AI service types (workflow, chatbot, automation, data analysis)
+# 闲鱼商品管理技能
 
-### 🚀 Batch Operations
-- **Mass Product Creation**: Deploy complete service portfolios in minutes
-- **Service Type Matrix**: Automatically generate combinations of service types and pricing tiers
-- **Efficient SKU Management**: Handle multiple variants and configurations seamlessly
-- **Bulk Status Monitoring**: Track performance across all listings simultaneously
+## 技能概述
 
-### 📊 A/B Testing Support
-- **Title Variations**: Test different headline approaches for maximum click-through
-- **Description Optimization**: Compare service description effectiveness
-- **Pricing Experiments**: Validate optimal price points through controlled testing
-- **Performance Analytics**: Measure conversion rates and revenue impact
+这是一个专为AI服务提供商设计的智能商品管理技能，帮助您快速创建、管理和优化闲鱼平台上的AI定制服务商品。本技能基于真实的市场需求和成功案例，提供标准化的商品模板和智能化的批量操作功能，让您能够高效地部署和管理完整的AI服务产品线。
 
-### 🔧 Integration Ready
-- **Seamless API Client Integration**: Built on top of xianyu-api-client-skill
-- **Modular Architecture**: Easy extension for additional service types
-- **Error Resilience**: Robust error handling for partial failures during batch operations
-- **Logging and Monitoring**: Comprehensive operation tracking for debugging
+## 核心价值
 
-## Technical Specifications
+- **专业模板**：基于50+成功案例提炼的标准商品模板，确保高转化率
+- **批量效率**：一键创建多个商品变体，效率提升90%以上
+- **智能优化**：内置A/B测试和性能监控，持续优化商品表现
+- **风险控制**：自动合规检查，避免违规风险
 
-### Core Data Structures
-- **Product Templates**: JSON-based template system with merge capabilities
-- **Service Configuration**: Flexible service type and tier definitions
-- **Metadata Management**: Automatic outer_id generation with timestamp uniqueness
-- **Content Localization**: Ready for multi-language service descriptions
+## 使用前准备
 
-### Supported Service Types
-- **Workflow Automation**: Business process automation and integration
-- **AI Chatbots**: Custom conversational AI assistants
-- **Data Analysis**: Automated data processing and insights generation
-- **Custom AI Solutions**: Tailored AI applications for specific business needs
+### 必需依赖
 
-### Pricing Strategy Implementation
-- **Competitive Positioning**: Prices aligned with market research and value perception
-- **Psychological Pricing**: Strategic use of charm pricing (¥299 vs ¥300)
-- **Value Stacking**: Clear differentiation between service tiers
-- **Bundle Opportunities**: Potential for service package combinations
+- **xianyu-api-client-skill**：必须先配置好API客户端技能
+- **闲鱼管家开发者账号**：需要有效的appKey和appSecret
 
-## Usage Examples
+### 商品信息准备
 
-### Single Product Creation
-```python
-from xianyu_product_manager_skill import XianYuProductManager
+在使用本技能前，您需要明确以下信息：
 
-manager = XianYuProductManager()
-result = manager.create_product(
-    service_type="workflow",
-    price_tier="standard",
-    custom_title="🚀 Professional AI Workflow Automation | Multi-Platform Integration"
-)
+#### 1. 必需的闲鱼账户信息
 
-if result['success']:
-    print(f"Product created: {result['result']['data']['product_id']}")
+- **闲鱼号**：您的真实闲鱼账号（如：xy137114666612）
+- **商品图片**：至少1张有效的商品图片URL（详见下方图片来源说明）
+- **地理位置**：省市区代码（系统会自动填充北京默认值）
+
+#### 商品图片来源说明
+
+商品图片是创建闲鱼商品的必需字段，本技能支持以下三种图片来源方式：
+
+##### 方案一：远程图片URL（推荐）
+
+- **适用场景**：已有图片托管在云端或CDN
+- **使用方法**：提供公开可访问的图片URL列表
+- **示例**：
+  
+  ```python
+  image_config = {
+      "remote_urls": [
+          "https://your-cdn.com/ai-service-1.jpg",
+          "https://your-cdn.com/ai-service-2.jpg"
+      ]
+  }
+  ```
+
+##### 方案二：AI生成图片
+
+- **适用场景**：没有现成图片，需要自动生成专业商品图
+- **使用方法**：调用`image_generate`工具生成图片，然后将返回的URL用于商品创建
+- **操作步骤**：
+  1. 调用`image_generate`工具生成商品图片
+  2. 获取返回的CDN URL
+  3. 将URL配置到`remote_urls`参数中
+- **示例prompt**：
+  
+  ```
+  Professional AI service dashboard showing automation workflow, clean modern interface, business technology style
+  ```
+
+##### 方案三：本地文件上传
+
+- **适用场景**：有本地设计文件需要上传
+- **使用方法**：先将本地文件上传到图片托管服务（如阿里云OSS、七牛云等），获取公开URL后再使用
+- **注意**：闲鱼API不支持直接上传本地文件，必须使用公开URL
+
+##### 默认图片处理
+
+- 如果未提供任何图片配置，系统将使用默认的示例图片
+- 默认图片URL：`https://sc02.alicdn.com/kf/Ad9aeca17b83741918e6e13c5a8101a65j.png`
+- **强烈建议**：替换为自己的专属图片以提高转化率和品牌识别度
+
+#### 2. 服务类型定义
+
+确定您要提供的AI服务类型，例如：
+
+- AI客服Agent（电商/服务业）
+- 数据分析Agent（内容创作者/电商）
+- 工作流自动化Agent（企业办公）
+- 社交媒体Agent（营销推广）
+
+#### 3. 定价策略
+
+根据您的服务能力和服务成本，确定价格区间：
+
+- 基础版：¥299-499（简单需求，快速交付）
+- 标准版：¥699-999（中等复杂度，多平台集成）
+- 高级版：¥1500+（复杂需求，定制开发）
+
+#### 4. 商品标题规范
+
+- **长度限制**：不超过60个字符
+- **禁止内容**：不能包含表情符号（如🎯、🔥等）
+- **关键词优化**：包含核心服务关键词
+
+#### 5. 服务描述素材
+
+准备具体的服务案例和效果数据，用于生成真实可信的商品描述。
+
+## 功能特性
+
+### 智能商品模板
+
+本技能提供三种预设的商品模板，每种都经过市场验证，采用**标题公式 + 描述公式**的优化结构：
+
+#### 标题公式：核心关键词 + 卖点 + 使用场景
+
+- **基础版标题示例**：`AI客服Agent 自动回复省70%人力 电商/服务业专用`
+- **标准版标题示例**：`AI数据分析Agent 自动生成爆款选题 内容创作者必备`
+- **高级版标题示例**：`AI工作流定制 企业级多平台集成 复杂业务自动化`
+
+#### 描述公式：服务内容 + 常见案例 + 带来效益 + FAQ
+
+- **【服务内容】**：具体列出3-5个核心功能
+- **【常见案例】**：真实客户痛点和解决方案  
+- **【带来效益】**：量化效率提升、成本节省、体验改善
+- **【FAQ】**：解答适用人群、技术要求、交付周期等疑问
+
+#### 基础版模板（¥299起）
+
+- **适用场景**：个人用户、小团队的简单AI需求
+- **核心卖点**：快速交付、价格实惠、基础功能完整
+- **交付周期**：3天内
+
+#### 标准版模板（¥699起）
+
+- **适用场景**：中小企业、内容创作者的中等复杂度需求
+- **核心卖点**：多平台集成、专业支持、完整文档
+- **交付周期**：5天内
+
+#### 高级版模板（¥1500起）
+
+- **适用场景**：企业级用户的复杂业务需求
+- **核心卖点**：定制开发、专属支持、长期维护
+- **交付周期**：7天内
+
+### 批量商品管理
+
+- **一键部署**：同时创建多个服务类型和价格档位的商品组合
+- **智能变体**：自动生成标题、描述的多种变体用于A/B测试
+- **批量编辑**：统一修改多个商品的价格、库存、描述等信息
+- **状态监控**：实时监控所有商品的上下架状态和销售表现
+
+### A/B测试系统
+
+- **自动变体创建**：基于同一服务创建不同标题/描述的商品
+- **性能追踪**：监控各变体的浏览量、咨询量、成交转化率
+- **智能优化**：自动识别高转化变体，建议淘汰低效商品
+- **数据驱动**：基于实际数据持续优化商品策略
+
+## 用户交互流程
+
+### 智能引导确认
+
+本技能采用分步骤的智能引导流程，确保每次操作都符合您的预期：
+
+#### 第一步：需求确认
+
+```
+请选择要创建的AI服务类型：
+1. AI客服Agent（电商/服务业）
+2. 数据分析Agent（内容创作者）
+3. 工作流自动化Agent（企业办公）  
+4. 自定义服务类型
+
+请输入选项 [1-4]:
 ```
 
-### Batch Portfolio Deployment
-```python
-# Deploy complete AI service portfolio
-service_types = ['workflow', 'chatbot', 'automation', 'data_analysis']
-price_tiers = ['basic', 'standard', 'premium']
+#### 第二步：定价策略确认
 
-results = manager.create_batch_products(service_types, price_tiers)
-success_count = sum(1 for r in results if r['success'])
-print(f"Successfully deployed {success_count} out of {len(results)} products")
+```
+请选择定价策略：
+1. 基础版 ¥299（推荐新手）
+2. 标准版 ¥699（推荐大多数用户）
+3. 高级版 ¥1500（企业级需求）
+4. 自定义价格
+
+请输入选项 [1-4]:
 ```
 
-### Custom Service Template
-```python
-custom_data = manager.generate_product_data(
-    service_type="custom_ai",
-    price_tier="premium",
-    custom_title="💎 Bespoke AI Solution | Enterprise Grade",
-    custom_content="Custom enterprise AI solution with dedicated support..."
-)
+#### 第三步：商品数量确认
+
+```
+检测到您选择的是标准版AI客服Agent
+建议创建以下商品组合：
+- 基础版：1个（用于引流）
+- 标准版：2个（不同标题变体，用于A/B测试）
+- 高级版：1个（用于高价值客户）
+
+预计总商品数量：4个
+预计总费用：¥2596
+是否确认创建？[Y/N]
 ```
 
-## Business Value Proposition
+#### 第四步：执行确认
 
-### Revenue Impact
-- **Increased Listing Volume**: Deploy 10x more listings than manual creation
-- **Optimized Conversion**: Professional templates increase conversion by 20-30%
-- **Revenue Diversification**: Multiple service tiers capture different customer segments
-- **Scalable Operations**: Handle growing demand without proportional effort increase
+```
+正在准备商品创建...
+✓ 验证API配置
+✓ 生成商品数据
+✓ 检查类目兼容性
 
-### Operational Efficiency
-- **Time Savings**: Reduce product creation time from 10 minutes to 10 seconds per listing
-- **Consistency**: Ensure brand and quality consistency across all listings
-- **Maintenance**: Easy updates and modifications across entire portfolio
-- **Compliance**: Built-in adherence to Xianyu platform requirements
+即将创建4个商品，预计耗时2-3分钟
+是否开始执行？[Y/N]
+```
 
-## Configuration Requirements
+### 交互控制选项
 
-### Dependencies
-- **Required**: xianyu-api-client-skill (v1.0.0+)
-- **Python Version**: 3.7+
-- **Environment**: Valid Xianyu Guanjia API credentials
+- **快速模式**：跳过详细确认，使用默认配置快速创建
+- **专家模式**：手动配置每个商品的详细参数
+- **预览模式**：只生成商品数据但不实际创建，用于审核
 
-### Optional Customization
-- **Custom Templates**: Override default service descriptions and pricing
-- **Service Extensions**: Add new service types through configuration
-- **Branding**: Customize titles and descriptions to match brand voice
+## 最佳实践建议
 
-## Best Practices
+### 商品组合策略
 
-### Template Optimization
-- **Regular Updates**: Refresh templates based on performance data
-- **Seasonal Adjustments**: Modify descriptions for holidays and special events
-- **Competitor Analysis**: Adjust positioning based on market changes
-- **Customer Feedback**: Incorporate client testimonials and success stories
+- **金字塔结构**：1个低价引流商品 + 2-3个主力商品 + 1个高价商品
+- **差异化定位**：每个商品针对不同的客户痛点和需求
+- **定期更新**：每2-3周更新一次商品描述和价格
 
-### Portfolio Management
-- **Inventory Control**: Monitor and adjust stock levels based on demand
-- **Pricing Strategy**: Implement dynamic pricing based on performance metrics
-- **Listing Rotation**: Regularly refresh older listings to maintain visibility
-- **Performance Tracking**: Monitor key metrics (views, inquiries, conversions)
+### A/B测试建议
 
-## Integration Ecosystem
+- **标题测试**：测试不同的关键词组合和卖点强调
+- **价格测试**：在±10%范围内测试最优价格点
+- **描述测试**：测试案例分享vs功能列表的不同效果
 
-This skill integrates seamlessly with:
-- **xianyu-api-client-skill**: Foundation for all API communications
-- **xianyu-automation-skill**: Automated portfolio management and optimization
-- **Custom Business Logic**: Extensible for specific business requirements
+### 风险控制
 
-## Version Information
-- **Current Version**: 1.0.0
-- **API Compatibility**: Xianyu Guanjia Open Platform v1
-- **License**: MIT License
+- **合规检查**：确保商品描述不包含违禁词汇
+- **库存管理**：合理设置库存数量，避免超卖
+- **价格监控**：定期检查竞争对手价格，保持竞争力
 
-## Getting Started
+## 依赖关系
 
-1. **Configure API Credentials**: Set up XIAN_YU_APP_KEY and XIAN_YU_APP_SECRET
-2. **Initialize Manager**: Create XianYuProductManager instance
-3. **Deploy Templates**: Use create_product() or create_batch_products() methods
-4. **Monitor Performance**: Track results and optimize based on data
+- **必需依赖**：xianyu-api-client-skill（v1.0.3+）
+- **可选依赖**：xianyu-automation-skill（用于自动化管理）
 
-For advanced customization and enterprise deployments, refer to the comprehensive documentation and example implementations provided in the source code.
+## 版本信息
+
+- **当前版本**：1.0.2
+- **兼容性**：闲鱼管家开放平台 v1
+- **Python版本**：3.7+
+
+## 开始使用
+
+完成API配置后，您可以通过简单的交互式命令快速创建专业的AI服务商品，无需编写任何代码即可享受高效的批量商品管理体验。
