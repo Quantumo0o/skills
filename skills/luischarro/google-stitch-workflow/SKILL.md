@@ -13,6 +13,16 @@ This skill separates three concerns that are often conflated:
 - browser-only Stitch product features
 - optional local workflow conventions that improve traceability
 
+## Quick operating rules
+
+If you only remember a few things, remember these:
+
+- inspect the project and target screen before editing
+- work one screen at a time
+- keep prompts short, explicit, and preservation-oriented
+- review the visual result before the next major step
+- move to code only after one direction is clearly accepted
+
 ## When to use this skill
 
 Use this skill when the task involves one or more of these goals:
@@ -25,6 +35,16 @@ Use this skill when the task involves one or more of these goals:
 
 Do not assume the browser UI, the public product marketing, and the MCP surface expose the same operations.
 
+## When not to use this skill
+
+Do not use Stitch as the primary path when the real task is:
+
+- implementing production UI code directly
+- making deterministic pixel-perfect edits to an existing coded screen
+- redesigning an app without reliable reference screens or screenshots
+- planning an entire product in one step without screen-level iteration
+- evaluating engineering feasibility without a prior visual direction
+
 ## Design principles
 
 - prefer verified MCP behavior over product-level assumptions
@@ -35,6 +55,9 @@ Do not assume the browser UI, the public product marketing, and the MCP surface 
 ## Read only what you need
 
 - Prompt reference: [`references/prompt-structuring.md`](./references/prompt-structuring.md)
+- Visual review and artifacts reference: [`references/visual-review-and-artifacts.md`](./references/visual-review-and-artifacts.md)
+- Redesign prompt patterns: [`references/redesign-prompt-patterns.md`](./references/redesign-prompt-patterns.md)
+- Local workflow conventions: [`references/local-workflow-conventions.md`](./references/local-workflow-conventions.md)
 - Keep the main skill focused on operating rules. Use the prompt reference only when the request needs prompt shaping or prompt repair.
 
 ## Operating model
@@ -47,7 +70,24 @@ Stitch is most reliable when treated as an iterative design system:
 4. preserve what must stay stable
 5. move to code only after the screen direction is coherent
 
+Preferred discipline:
+
+- review screenshots or returned visual artifacts immediately after each generate or edit
+- keep one screen as the unit of iteration
+- do not ask the user to reason from opaque screen IDs alone when visual confirmation is available
+
 Avoid using Stitch as if it were a deterministic code generator or a full-product planner in a single prompt.
+
+## What a good Stitch pass should produce
+
+A successful pass should leave the session with:
+
+- one clearly identified target project
+- one clearly identified canonical screen or small set of candidate screens
+- the exact prompt or edit intent that produced the result
+- a short judgment on whether the result is accepted, rejected, or needs another small iteration
+
+If those artifacts are missing, slow down and re-establish state before continuing.
 
 ## Capability boundaries
 
@@ -193,51 +233,38 @@ Keep the real structure and improve only hierarchy, spacing, and polish.
 Do not invent new sections.
 ```
 
+### Workflow E: visual review before further iteration
+
+Use this when the session already has multiple candidate screens or when the
+next edit would otherwise be ambiguous.
+
+1. use `list_screens` to find the likely targets
+2. use `get_screen` to inspect candidate screens
+3. when a screenshot or visual artifact is available, review it before the next major edit
+4. ask the user to choose using a human description of the screen, not only an opaque ID
+5. continue only after the canonical target is clear
+
+### Workflow F: decide whether to stay in Stitch or move to code
+
+Stay in Stitch when:
+
+- the information architecture is still drifting
+- the visual hierarchy is still weak
+- multiple screen directions are still being explored
+- the user is reacting to screenshots rather than implementation details
+
+Move to code when:
+
+- one canonical screen direction is accepted
+- the required elements are stable
+- the remaining work is implementation fidelity rather than design exploration
+- the screen can be implemented coherently in the target stack
+
 ## Optional local workflow enhancements
 
-These conventions are useful, but they are not native Stitch capabilities. Treat them as local workflow layers.
+If you want aliases, execution artifacts, derivation history, or last-active-screen state, use [`references/local-workflow-conventions.md`](./references/local-workflow-conventions.md).
 
-### Screen aliases
-
-Use human-readable identifiers for screens when the project grows beyond a few artifacts.
-
-Benefits:
-
-- easier collaboration
-- easier revision tracking
-- lower dependence on opaque screen IDs
-
-### Execution artifacts
-
-Store local outputs for each operation in a dedicated run directory.
-
-Recommended contents:
-
-- prompt used
-- project and screen identifiers
-- downloaded HTML if available
-- downloaded preview image if available
-- timestamp
-
-### Operation history
-
-Maintain a chronological local log of design operations and alias changes.
-
-This is useful for:
-
-- traceability
-- recovery
-- auditability of screen evolution
-
-### Screen derivation history
-
-Track parent-child relationships between generated, edited, and variant-derived screens.
-
-### Last-active-screen state
-
-Keep a small local state file that records the latest project and screen used.
-
-Use it to reduce needless ID lookup, but never let it override explicit user intent.
+These are useful for traceability, but they are optional and not part of the Stitch MCP contract.
 
 ## Session discipline
 
@@ -245,6 +272,7 @@ Use it to reduce needless ID lookup, but never let it override explicit user int
 - review the returned screen before issuing another large prompt
 - prefer one short generation followed by controlled edits
 - stop repeating the same failing payload
+- confirm the visually reviewed canonical screen before moving to export or code translation
 - move to code only after the screen family is coherent
 
 ## Failure handling
@@ -258,6 +286,10 @@ Check in this order:
 3. `selectedScreenIds` shape
 4. whether the screen is genuinely editable generated output
 5. whether the prompt is trying to change too much at once
+
+Long-running operations may still complete even when the client appears to
+fail. Re-check `list_screens`, inspect any likely new screens, and avoid blind
+re-submission of the same prompt.
 
 Do not brute-force retries with the same payload.
 
