@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
-微博热搜日报 - 自动抓取微博热搜榜
+微博热搜日报 v2.0 - 自动抓取微博热搜榜
 作者: 小天🦞
-版本: 1.0.0
+版本: 2.0.0
 """
 
 import argparse
 import json
 import csv
 import sys
+import os
 import urllib.request
 import urllib.error
 from datetime import datetime
 from typing import List, Dict, Optional
+
+# 设置控制台编码
+if sys.platform == 'win32':
+    os.system('chcp 65001 >nul 2>&1')
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # 微博热搜API地址
 WEIBO_HOT_API = "https://weibo.com/ajax/side/hotSearch"
