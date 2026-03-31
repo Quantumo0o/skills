@@ -21,13 +21,13 @@ import sys
 from typing import Dict, List
 
 RESPONSE_MAP = {
-    "\u786e\u8ba4\u7ee7\u7eed": "confirm",
-    "\u6388\u6743\u6267\u884c": "authorize",
-    "\u6388\u6743\u652f\u4ed8": "authorize_payment",
-    "\u62d2\u7edd": "deny",
-    "\u5df2\u767b\u5f55": "confirm",
-    "\u5df2\u5b8c\u6210": "confirm",
-    "\u7ee7\u7eed": "confirm",
+    "确认继续": "confirm",
+    "授权执行": "authorize",
+    "授权支付": "authorize_payment",
+    "拒绝": "deny",
+    "已登录": "confirm",
+    "已完成": "confirm",
+    "继续": "confirm",
 }
 
 ALWAYS_ALLOWED_ACTIONS = {"public_read", "draft_prepare", "content_generate", "competitor_analyze"}
@@ -35,13 +35,40 @@ CONFIRM_REQUIRED_ACTIONS = {"publish", "ad_launch", "authorized_data_access"}
 PAYMENT_REQUIRED_ACTIONS = {"payment", "recharge"}
 HUMAN_ASSIST_REQUIRED = {"login_gate", "captcha_gate"}
 
+# Risk-based threshold adjustment based on historical success
+RISK_THRESHOLDS = {
+    "low": {"actions": {"draft_prepare", "content_generate", "competitor_analyze"}, "skip_auth": True},
+    "medium": {"actions": {"publish", "ad_launch"}, "skip_auth": False},
+    "high": {"actions": {"payment", "recharge", "authorized_data_access"}, "skip_auth": False},
+}
+
+
+def should_skip_auth(action: str, data_access: str, historical_success_rate: float = 0.0) -> bool:
+    """
+    基于动作类型、数据访问级别和历史成功率，判断是否可跳过 auth 触发。
+    减少低风险场景的误触发。
+    """
+    # 低风险动作 + 公开数据 = 总是跳过
+    if action in RISK_THRESHOLDS["low"]["actions"] and data_access == "public":
+        return True
+    
+    # 历史成功率 > 90% 的常规动作 = 可跳过
+    if historical_success_rate > 0.9 and action in RISK_THRESHOLDS["low"]["actions"]:
+        return True
+    
+    return False
+
 
 def normalize_response(response: str) -> str:
     r = (response or "").strip()
     return RESPONSE_MAP.get(r, r)
 
 
-def boundary_reasons(action: str, data_access: str, requires_payment: bool) -> List[str]:
+def boundary_reasons(action: str, data_access: str, requires_payment: bool, skip_auth: bool = False) -> List[str]:
+    """检查边界原因，支持智能跳过低风险场景。"""
+    if skip_auth:
+        return []
+    
     reasons: List[str] = []
     if action in CONFIRM_REQUIRED_ACTIONS:
         reasons.append("action '{}' requires human confirmation".format(action))
@@ -139,8 +166,12 @@ def main() -> int:
     state = payload.get("state", "running")
     screenshot_path = payload.get("screenshot_path", "")
     fallback = payload.get("fallback", "Use public data + official APIs + draft-only execution.")
+    historical_success_rate = float(payload.get("historical_success_rate", 0.0))
 
-    reasons = boundary_reasons(action, data_access, requires_payment)
+    # Smart auth skipping for low-risk scenarios
+    skip_auth = should_skip_auth(action, data_access, historical_success_rate)
+    
+    reasons = boundary_reasons(action, data_access, requires_payment, skip_auth)
     has_boundary = len(reasons) > 0
     t = transition(state, human_response, requires_payment, has_boundary)
 
@@ -159,6 +190,7 @@ def main() -> int:
         "fallback": fallback if t["decision"] in {"degrade", "pause"} else "",
         "resume_condition": "explicit human confirmation" if t["decision"] == "pause" else "",
         "allowed_scope": "public+authorized-only",
+        "auth_skipped": skip_auth,  # New field to track optimization
     }
 
     print(json.dumps(out, ensure_ascii=False, indent=2))

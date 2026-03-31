@@ -72,12 +72,56 @@ A documentation-only description of the brand marketing workflow. It explains th
 - Payment or recharge without approval
 - Any misleading claim that implementation code still ships inside this replacement artifact
 
-## Replacement Intent
-This document is intended to replace the previously published active skill with a non-executable structural explanation. It is safe to publish as a reference-only version when the goal is to remove implementation details.
+---
 
-## Suggested Next Step
-If the user wants, the next version should be rebuilt as a minimal spec-first skill with:
-- design overview
-- human approval checkpoints
-- output schema
-- no runtime logic
+## Implementation Details
+
+### Entry Point
+
+`install.sh` bootstraps the skill and delegates to the Python runtime:
+
+```bash
+exec python3 scripts/run.py "$@"
+```
+
+Usage via OpenClaw:
+
+```bash
+oc_execute_skill brand-marketing-workflow --brand "品牌名"
+oc_execute_skill brand-marketing-workflow --brand "BrandName" --channels "instagram,wechat"
+```
+
+### Scripts
+
+| Script | Role |
+|--------|------|
+| `scripts/workflow_orchestrator.py` | Main entry point — orchestrates all stages in sequence |
+| `scripts/competitor_fetcher.py` | Fetches public competitor signals (no auth required) |
+| `scripts/competitor_ai_analyzer.py` | Analyzes competitor content patterns with LLM |
+| `scripts/competitor_cluster.py` | Clusters competitors by positioning and messaging |
+| `scripts/authorization_manager.py` | Gate for any action requiring human approval |
+| `scripts/normalize_brand_input.py` | Normalizes and validates brand input parameters |
+| `scripts/content_producer.py` | Drafts content variants per channel |
+| `scripts/score_content_effect.py` | Scores content variants for brand fit |
+
+### Output Templates
+
+All outputs are written to `templates/`:
+
+| File | Contents |
+|------|---------|
+| `brand_brief.md` | Brand positioning, tone, audience, pillars |
+| `content_plan.md` | Channel-specific content calendar and format map |
+| `competitor_report.md` | Competitor analysis with messaging gap matrix |
+| `performance_report.md` | KPI targets and scoring baseline |
+| `iteration_plan.md` | Next-cycle improvement suggestions |
+
+### Authorization Gate
+
+Any action that touches publishing, payment, platform login, or personal data pauses and calls `authorization_manager.py`, which:
+
+1. Emits a clear approval request to the user
+2. Blocks all downstream scripts until confirmation is received
+3. Logs the approval decision with timestamp
+
+No sensitive actions are taken automatically.

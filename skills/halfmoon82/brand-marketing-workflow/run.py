@@ -16,6 +16,7 @@ import argparse
 import json
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 BASE = Path(__file__).parent / "scripts"
@@ -94,20 +95,46 @@ def run_workflow(payload: dict) -> dict:
     # Step 2: full orchestration (brief + strategy + parallel tasks + auth + browser)
     orchestrated = call("workflow_orchestrator.py", payload)
 
-    # Step 3: content producer (real LLM generation)
-    content = call("content_producer.py", {
-        "brand_brief": orchestrated.get("brand_brief"),
-        "content_strategy": orchestrated.get("content_strategy"),
-        "competitor_insights": [],  # 将在 Step 4 填入，Step 3 先用空列表（保持顺序）
-        "channels": payload.get("channels", []),
-        "generate_count": 2,
-    })
+    # Step 3 & 4: Parallel execution - content producer + competitor intelligence
+    # These two don't depend on each other, can run in parallel
+    def run_content_producer():
+        return call("content_producer.py", {
+            "brand_brief": orchestrated.get("brand_brief"),
+            "content_strategy": orchestrated.get("content_strategy"),
+            "competitor_insights": [],  # Will be populated from parallel competitor analysis
+            "channels": payload.get("channels", []),
+            "generate_count": 2,
+        })
 
-    # Step 4: competitor intelligence (fetch → analyze → cluster)
-    raw_competitor_data = call("competitor_fetcher.py", {
-        "competitor_scope": payload.get("competitor_scope") or [],
-        "brand_name": payload.get("brand_name", ""),
-    })
+    def run_competitor_fetcher():
+        return call("competitor_fetcher.py", {
+            "competitor_scope": payload.get("competitor_scope") or [],
+            "brand_name": payload.get("brand_name", ""),
+        })
+
+    # Execute content and competitor tasks in parallel
+    content_result = None
+    raw_competitor_data = []
+    
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_content = executor.submit(run_content_producer)
+        future_competitor = executor.submit(run_competitor_fetcher)
+        
+        for future in as_completed([future_content, future_competitor]):
+            try:
+                result = future.result()
+                if future == future_content:
+                    content_result = result
+                else:
+                    raw_competitor_data = result
+            except Exception as e:
+                print(f"[WARN] Parallel task failed: {e}", file=sys.stderr)
+                if future == future_content:
+                    content_result = {"topics": [], "titles": [], "posts": {}, "scripts": [], "comment_replies": []}
+                else:
+                    raw_competitor_data = []
+
+    # Step 4 continued: Competitor analysis (depends on fetcher results)
     analyzed_signals = call("competitor_ai_analyzer.py", {
         "raw_data": raw_competitor_data,
         "brand_brief": orchestrated.get("brand_brief"),
@@ -145,7 +172,7 @@ def run_workflow(payload: dict) -> dict:
         "normalized_input": normalized,
         "brand_brief": orchestrated.get("brand_brief"),
         "content_strategy": orchestrated.get("content_strategy"),
-        "content_assets": content,
+        "content_assets": content_result,
         "competitor_clusters": clusters,
         "performance_score": score,
         "authorization": auth,

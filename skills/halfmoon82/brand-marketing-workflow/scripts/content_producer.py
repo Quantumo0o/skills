@@ -13,14 +13,12 @@ import re
 import sys
 from pathlib import Path
 
-# 允许直接运行时找到同目录的 gateway_client
+# 允许直接运行时找到同目录的 oc_llm_client
 sys.path.insert(0, str(Path(__file__).parent))
-from gateway_client import llm_complete  # noqa: E402
+from oc_llm_client import llm_complete  # noqa: E402
 
 # ─── 常量 ────────────────────────────────────────────────────────────────────
 
-PRIMARY_MODEL = "gpt-5.3-codex"
-FALLBACK_MODEL = "gpt-5.4-mini"
 MAX_TOKENS = 3000
 
 # ─── 工具函数 ─────────────────────────────────────────────────────────────────
@@ -90,14 +88,14 @@ def _build_prompt(payload: dict) -> str:
     scripts_example = '"视频脚本大纲1"'
     replies_example = '"回复模板1", "回复模板2"'
 
-    prompt = f"""你是品牌内容策划专家。请根据以下品牌 Brief 和竞品洞察，生成多渠道内容草稿。
+    prompt = f"""你是资深品牌内容策划专家。请根据以下品牌 Brief 和竞品洞察，生成高质量、品牌调性一致的多渠道内容草稿。
 
 【品牌 Brief】
 品牌名：{brand_name}
 定位：{brand_positioning}
 语气：{brand_tone}
 目标受众：{audience_str}
-品牌 DOs：{dos_str}
+品牌 DOs（必须体现）：{dos_str}
 品牌 DON'Ts（绝对避免）：{donts_str}
 
 【竞品差异化机会】
@@ -106,12 +104,20 @@ def _build_prompt(payload: dict) -> str:
 【内容策略】
 内容支柱：{pillars_str}
 
+【质量要求】
+1. 内容必须紧扣品牌定位，每句话都能体现品牌调性
+2. 标题要有吸引力，能在3秒内抓住受众注意力
+3. 正文要有情感共鸣，避免空洞的促销语言
+4. 严格检查：绝不出现 DON'Ts 列表中的任何关键词或概念
+5. 各渠道内容要适配平台特性，但保持品牌一致性
+
 【任务】
 生成 {generate_count} 套内容草稿，覆盖以下渠道：{channels_str}
 
 各渠道格式要求：
 - {channel_format_str}
 
+【输出格式】
 只输出以下 JSON 格式，不要其他说明：
 {{
   "topics": [{topics_example}],
@@ -123,14 +129,24 @@ def _build_prompt(payload: dict) -> str:
     return prompt
 
 
-def _call_llm_with_fallback(prompt: str) -> str:
-    """调用 LLM，失败时降级到 FALLBACK_MODEL。"""
-    try:
-        return llm_complete(prompt, model=PRIMARY_MODEL, max_tokens=MAX_TOKENS)
-    except RuntimeError as e:
-        print(f"[content_producer] 主模型 {PRIMARY_MODEL} 失败，降级到 {FALLBACK_MODEL}: {e}",
-              file=sys.stderr)
-        return llm_complete(prompt, model=FALLBACK_MODEL, max_tokens=MAX_TOKENS)
+def _call_llm_with_fallback(prompt: str, max_retries: int = 3) -> str:
+    """调用 LLM（使用用户 openclaw.json 中配置的默认模型），带重试机制。"""
+    import time
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            return llm_complete(prompt, max_tokens=MAX_TOKENS)
+        except Exception as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # 指数退避: 1s, 2s, 4s
+                time.sleep(wait_time)
+            continue
+    
+    # 所有重试失败，返回一个安全的 fallback 响应
+    print(f"[WARN] LLM call failed after {max_retries} retries: {last_error}", file=sys.stderr)
+    raise last_error  # 重新抛出，让上层处理
 
 
 def _extract_json_from_response(text: str) -> dict:

@@ -76,13 +76,31 @@ def _cache_path() -> Path:
 
 
 def _load_cache() -> dict:
-    """加载当日缓存，key 为竞品名称。"""
+    """加载当日缓存，key 为竞品名称。带 TTL 检查（6小时）。"""
     path = _cache_path()
     if path.exists():
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
             if isinstance(data, list):
-                return {item["competitor_name"]: item for item in data if "competitor_name" in item}
+                items = {item["competitor_name"]: item for item in data if "competitor_name" in item}
+                # TTL 检查：6小时 = 21600秒
+                TTL_SECONDS = 6 * 60 * 60
+                now = datetime.now(timezone.utc).timestamp()
+                valid_items = {}
+                for name, item in items.items():
+                    fetched_at = item.get("fetched_at", "")
+                    if fetched_at:
+                        try:
+                            fetched_ts = datetime.fromisoformat(fetched_at.replace("Z", "+00:00")).timestamp()
+                            if now - fetched_ts < TTL_SECONDS:
+                                valid_items[name] = item
+                            else:
+                                print(f"[CACHE] TTL expired for {name}, will re-fetch", file=sys.stderr)
+                        except Exception:
+                            valid_items[name] = item  # 解析失败保留
+                    else:
+                        valid_items[name] = item
+                return valid_items
         except Exception:
             pass
     return {}
@@ -126,11 +144,73 @@ def _http_get(url: str, headers: dict | None = None) -> str:
         return raw.decode(charset, errors="replace")
 
 
+def _filter_noise(text: str) -> str:
+    """过滤竞品信号中的噪声内容（广告、导航栏、页脚等）。"""
+    import re
+    
+    # 删除常见噪声模式
+    noise_patterns = [
+        r'\[广告\].*?\n',  # 广告标记
+        r'跳转.*?\n',      # 跳转提示
+        r'点击.*?查看.*?\n',  # CTA 噪声
+        r'© \d{4}.*?\n',   # 版权页脚
+        r'隐私政策|用户协议|联系我们|关于我们',  # 导航链接
+        r'\d+\.\d+\.\d+.*?更新日志',  # 版本信息
+    ]
+    
+    filtered = text
+    for pattern in noise_patterns:
+        filtered = re.sub(pattern, '', filtered, flags=re.IGNORECASE)
+    
+    # 删除过短的行（可能是导航项）
+    lines = filtered.split('\n')
+    meaningful_lines = [l for l in lines if len(l.strip()) > 15]
+    
+    return '\n'.join(meaningful_lines)
+
+
+def _score_relevance(text: str, competitor_name: str) -> float:
+    """评分文本与竞品的相关性（0-1）。"""
+    if not text:
+        return 0.0
+    
+    text_lower = text.lower()
+    name_lower = competitor_name.lower()
+    
+    # 基础分数：品牌名出现次数
+    name_count = text_lower.count(name_lower)
+    base_score = min(name_count * 0.1, 0.3)  # 最多 0.3
+    
+    # 行业关键词加分
+    industry_keywords = ['品牌', '营销', '策略', '产品', '市场', '用户', '增长', 
+                        'brand', 'marketing', 'strategy', 'product', 'growth']
+    keyword_hits = sum(1 for kw in industry_keywords if kw in text_lower)
+    keyword_score = min(keyword_hits * 0.05, 0.4)  # 最多 0.4
+    
+    # 内容长度适中加分（太短=没信息，太长=噪声多）
+    length = len(text)
+    if 500 <= length <= 3000:
+        length_score = 0.3
+    elif length > 3000:
+        length_score = 0.2
+    else:
+        length_score = 0.1
+    
+    return min(base_score + keyword_score + length_score, 1.0)
+
+
 def _truncate(text: str) -> str:
     """截断到 MAX_TEXT_LEN 字符。"""
     if len(text) <= MAX_TEXT_LEN:
         return text
     return text[:MAX_TEXT_LEN] + "…[截断]"
+
+
+def _filter_and_score(text: str, competitor_name: str) -> tuple[str, float]:
+    """过滤噪声并评分相关性，返回 (filtered_text, relevance_score)。"""
+    filtered = _filter_noise(text)
+    score = _score_relevance(filtered, competitor_name)
+    return filtered, score
 
 
 def _now_iso() -> str:
@@ -210,14 +290,17 @@ def fetch_competitor(name: str, targets_cfg: dict, brave_key: str) -> dict:
             try:
                 text, jina_url = fetch_via_jina(url)
                 text = _truncate(text.strip())
-                if len(text) >= 50:
+                # 过滤噪声并评分
+                filtered_text, relevance_score = _filter_and_score(text, name)
+                if len(filtered_text) >= 50:
                     return {
                         "competitor_name": name,
-                        "raw_text": text,
+                        "raw_text": filtered_text,
                         "source_type": "jina",
                         "url_used": jina_url,
                         "fetched_at": fetched_at,
                         "fetch_ok": True,
+                        "relevance_score": relevance_score,
                         "error": None,
                     }
             except Exception as e:
@@ -228,14 +311,17 @@ def fetch_competitor(name: str, targets_cfg: dict, brave_key: str) -> dict:
         try:
             text = fetch_via_brave(search_query, brave_key)
             text = _truncate(text.strip())
-            if len(text) >= 50:
+            # 过滤噪声并评分
+            filtered_text, relevance_score = _filter_and_score(text, name)
+            if len(filtered_text) >= 50:
                 return {
                     "competitor_name": name,
-                    "raw_text": text,
+                    "raw_text": filtered_text,
                     "source_type": "brave",
                     "url_used": BRAVE_SEARCH_URL,
                     "fetched_at": fetched_at,
                     "fetch_ok": True,
+                    "relevance_score": relevance_score,
                     "error": None,
                 }
             # Brave 返回但内容太短
