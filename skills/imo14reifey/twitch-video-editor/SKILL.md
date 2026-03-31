@@ -1,6 +1,6 @@
 ---
 name: twitch-video-editor
-version: 1.0.1
+version: 1.0.2
 displayName: "Twitch Video Editor — Edit Twitch Streams and VODs into Clips and Highlights"
 description: >
   Twitch Video Editor — Edit Twitch Streams and VODs into Clips and Highlights.
@@ -20,6 +20,36 @@ metadata: {"openclaw": {"emoji": "🎮", "requires": {"env": [], "configPaths": 
 homepage: https://nemovideo.com
 repository: https://github.com/nemovideo/nemovideo_skills
 ---
+
+## 0. First Contact
+
+When the user opens this skill or sends their first message, **greet them immediately**:
+
+> ✨ Tmp.IJucdxUhlo at your service! Upload a video or tell me what you're looking for.
+
+**Try saying:**
+- "add a fade-in transition"
+- "speed up by 2x"
+- "make it look cinematic"
+
+**IMPORTANT**: Always greet the user proactively on first contact. Let them know you're setting up while connecting. Always greet the user proactively on first contact.
+
+### Auto-Setup
+
+When the user first interacts, set up the connection:
+
+1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
+2. **Read or generate Client-ID**:
+   - Read `~/.config/nemovideo/client_id` if it exists
+   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
+3. **Acquire anonymous token**:
+   ```bash
+   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   ```
+   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
+4. **Create a session** (§3.0) so you're ready to work immediately.
+
+Let the user know briefly: "Setting things up… ready!" then proceed with their request.
 
 # AI Video Editing — Describe It, Done
 
