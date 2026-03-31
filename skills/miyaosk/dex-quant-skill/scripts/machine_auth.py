@@ -11,7 +11,7 @@ Token 存储位置: ~/.dex-quant/config.json
 用法:
     from machine_auth import MachineAuth
 
-    auth = MachineAuth("https://generous-hope-production-6cf6.up.railway.app")
+    auth = MachineAuth("https://dex-quant-app-production.up.railway.app")
     token = auth.register_or_load()   # 自动注册或读缓存
     quota = auth.check_quota()        # 查配额
     print(f"剩余 {quota['remaining']} 个策略位")
@@ -47,7 +47,7 @@ def get_machine_code() -> str:
 class MachineAuth:
     """机器码认证客户端"""
 
-    def __init__(self, server_url: str = "https://generous-hope-production-6cf6.up.railway.app"):
+    def __init__(self, server_url: str = "https://dex-quant-app-production.up.railway.app"):
         self.server_url = server_url.rstrip("/")
         self.base_url = self.server_url + API_PREFIX
         self._client = httpx.Client(timeout=30.0)
@@ -124,17 +124,17 @@ class MachineAuth:
     def print_quota(self) -> None:
         """格式化打印配额信息"""
         q = self.check_quota()
-        print("\n" + "=" * 45)
-        print("  策略配额")
-        print("=" * 45)
-        print(f"  机器码:     {q['machine_code'][:8]}...")
-        print(f"  已用/上限:  {q['used_strategies']}/{q['max_strategies']}")
-        print(f"  剩余:       {q['remaining']}")
+        print(f"\n{'━' * 40}")
+        print(f"  📦 策略配额")
+        print(f"{'━' * 40}")
+        print(f"  🔑 机器码:    {q['machine_code'][:8]}...")
+        print(f"  📊 已用/上限: {q['used_strategies']}/{q['max_strategies']}")
+        print(f"  📋 剩余:      {q['remaining']}")
         if q.get("strategies"):
-            print("-" * 45)
+            print(f"{'━' * 40}")
             for s in q["strategies"]:
-                print(f"  - {s['name']} ({s['strategy_id']}) [{s['status']}]")
-        print("=" * 45)
+                print(f"  📌 {s['name']} ({s['strategy_id']}) [{s['status']}]")
+        print(f"{'━' * 40}")
 
     def close(self):
         self._client.close()
@@ -148,7 +148,7 @@ class MachineAuth:
 
 if __name__ == "__main__":
     import sys
-    server = sys.argv[1] if len(sys.argv) > 1 else "https://generous-hope-production-6cf6.up.railway.app"
+    server = sys.argv[1] if len(sys.argv) > 1 else "https://dex-quant-app-production.up.railway.app"
     auth = MachineAuth(server)
     auth.register_or_load()
     auth.print_quota()

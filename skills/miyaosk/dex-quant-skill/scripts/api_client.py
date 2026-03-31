@@ -9,7 +9,7 @@ Skill 端调用流程:
   5. 返回绩效结果，展示给用户
 
 认证:
-  - 首次使用自动注册机器码，获取 Token（免费 3 个策略配额）
+  - 首次使用自动注册机器码，获取 Token（同时最多 3 个策略监控）
   - Token 缓存在 ~/.dex-quant/config.json
   - 所有请求自动携带 X-Token 头
 
@@ -418,7 +418,10 @@ class QuantAPIClient:
             direction=direction,
         )
 
-        return self.wait_backtest(job_id, poll_interval=poll_interval)
+        result = self.wait_backtest(job_id, poll_interval=poll_interval)
+        if result.get("status") == "completed":
+            self.print_metrics(result)
+        return result
 
     # ═══════════════ 参数优化 ═══════════════
 
@@ -556,6 +559,7 @@ class QuantAPIClient:
                     "优化完成 | 评估={} 失败={} | 最优fitness={:.4f} | 耗时={}ms",
                     completed - failed, failed, best_fitness, elapsed,
                 )
+                QuantAPIClient.print_optimization(progress, strategy_name=strategy_name)
                 return progress
 
             if status == "failed":
@@ -563,9 +567,79 @@ class QuantAPIClient:
                 print(f"\n❌ 优化失败: {progress.get('error', '未知错误')}")
                 return progress
 
+    def submit_optimization(
+        self,
+        script_content: str,
+        params: list[dict],
+        strategy_name: str = "",
+        symbol: str = "BTCUSDT",
+        timeframe: str = "4h",
+        start_date: str = "",
+        end_date: str = "",
+        initial_capital: float = 100_000.0,
+        leverage: int = 3,
+        fee_rate: float = 0.0005,
+        slippage_bps: float = 5.0,
+        margin_mode: str = "isolated",
+        direction: str = "long_short",
+        method: str = "grid",
+        max_combinations: int = 200,
+        fitness_metric: str = "sharpe_ratio",
+    ) -> str:
+        """提交优化任务，立即返回 job_id（不等待结果）。"""
+        payload = {
+            "script_content": script_content,
+            "params": params,
+            "strategy_name": strategy_name,
+            "symbol": symbol, "timeframe": timeframe,
+            "start_date": start_date, "end_date": end_date,
+            "initial_capital": initial_capital, "leverage": leverage,
+            "fee_rate": fee_rate, "slippage_bps": slippage_bps,
+            "margin_mode": margin_mode, "direction": direction,
+            "method": method, "max_combinations": max_combinations,
+            "fitness_metric": fitness_metric,
+        }
+        resp = self._client.post(
+            f"{self.base_url}/backtest/optimize",
+            json=payload, headers=self._headers(), timeout=30.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        job_id = data.get("job_id", "")
+        total = data.get("total_combinations", 0)
+        print(f"📋 优化任务已提交: {job_id} | {strategy_name} ({symbol} {timeframe}) | {method} {total}组")
+        return job_id
+
+    def check_optimization(self, job_id: str, strategy_name: str = "") -> dict:
+        """查询优化进度。completed 时自动打印报告和生成图片。"""
+        resp = self._client.get(
+            f"{self.base_url}/backtest/optimize/{job_id}",
+            headers=self._headers(), timeout=15.0,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+
+        status = result.get("status", "running")
+        completed = result.get("completed", 0)
+        failed = result.get("failed", 0)
+        total = result.get("total", 0)
+        elapsed = result.get("elapsed_ms", 0) / 1000
+        pct = result.get("progress_pct", 0)
+        best = result.get("current_best_fitness", 0)
+
+        if status == "running":
+            print(f"⏳ [{elapsed:.0f}s] {completed}/{total} 已评估 ({pct:.0f}%) | 最优 fitness={best:.4f}")
+        elif status == "completed":
+            print(f"✅ 优化完成 ({completed}组, 失败{failed}, 耗时{elapsed:.0f}s)")
+            QuantAPIClient.print_optimization(result, strategy_name=strategy_name)
+        elif status == "failed":
+            print(f"❌ 优化失败: {result.get('error', '')}")
+
+        return result
+
     @staticmethod
-    def print_optimization(result: dict) -> None:
-        """格式化打印参数优化结果。"""
+    def print_optimization(result: dict, strategy_name: str = "") -> None:
+        """生成优化报告 PNG + caption，和回测报告同一套输出规则。"""
         status = result.get("status", "")
         if status != "completed":
             print(f"优化失败: {result.get('error', '未知错误')}")
@@ -576,29 +650,199 @@ class QuantAPIClient:
         failed = result.get("failed", 0)
         elapsed = result.get("elapsed_ms", 0) / 1000
         method = result.get("method", "genetic")
-        best = result.get("best_params", result.get("current_best_params", {}))
-        fitness = result.get("best_fitness", result.get("current_best_fitness", 0))
-
-        print(f"\n{'━' * 50}")
-        print(f"  参数优化  {method} | {completed - failed}/{total} 组 | {elapsed:.0f}s")
-        print(f"{'━' * 50}")
-
         results = result.get("results", [])
-        for r in (results or [{}])[:5]:
-            rank = r.get("rank", 1)
-            medal = "🥇🥈🥉"[rank - 1] if rank <= 3 else f"#{rank}"
-            ret = r.get("total_return_pct", 0)
+        success = completed - failed
+        name = strategy_name or "策略"
+
+        method_names = {
+            "grid": "网格穷举", "genetic": "遗传算法", "bayesian": "贝叶斯",
+            "random": "随机搜索", "annealing": "模拟退火", "pso": "粒子群",
+        }
+        method_label = method_names.get(method, method)
+
+        lines = [
+            f"🔧 {name} 参数优化报告",
+            f"━━━━━━━━━━━━━━━━━━━━",
+            f"🧬 算法 {method_label}  ⏱️ 耗时 {elapsed:.0f}s",
+            f"📊 评估 {success}/{total}组  ❌ 失败 {failed}组",
+        ]
+
+        if not results:
+            lines.append("━━━━━━━━━━━━━━━━━━━━")
+            lines.append("❌ 无有效结果，所有参数组合均失败")
+            caption = "\n".join(lines)
+            result["_caption"] = caption
+            print(f"\n{caption}")
+            return
+
+        top = results[0]
+        top_ret = top.get("total_return_pct", 0)
+        top_sharpe = top.get("sharpe_ratio", 0)
+        top_dd = abs(top.get("max_drawdown_pct", 0))
+        top_wr = top.get("win_rate", 0)
+        top_trades = top.get("total_trades", 0)
+        top_params = top.get("params", {})
+
+        ret_icon = "📈" if top_ret >= 0 else "📉"
+        lines.append(f"━━━━━━━━━━━━━━━━━━━━")
+        lines.append(f"🥇 最优参数:")
+        params_str = "  ".join(f"{k}={v}" for k, v in top_params.items())
+        lines.append(f"  {params_str}")
+        lines.append(f"━━━━━━━━━━━━━━━━━━━━")
+        lines.append(f"{ret_icon} 收益 {top_ret:+.2%}  📐 Sharpe {top_sharpe:.2f}")
+        lines.append(f"⚡ 回撤 {top_dd:.2%}  🎯 胜率 {top_wr:.0%}  🔄 交易 {top_trades}笔")
+
+        if len(results) > 1:
+            lines.append(f"━━━━━━━━━━━━━━━━━━━━")
+            lines.append(f"📋 Top {min(len(results), 5)} 排名")
+            medals = ["🥇", "🥈", "🥉"]
+            for r in results[:5]:
+                rank = r.get("rank", 1)
+                medal = medals[rank - 1] if rank <= 3 else f"#{rank}"
+                ret = r.get("total_return_pct", 0)
+                sharpe = r.get("sharpe_ratio", 0)
+                dd = abs(r.get("max_drawdown_pct", 0))
+                wr = r.get("win_rate", 0)
+                trades = r.get("total_trades", 0)
+                lines.append(f"  {medal} {ret:+.2%} Sharpe {sharpe:.2f} 回撤 {dd:.2%} 胜率 {wr:.0%} {trades}笔")
+
+        lines.append(f"━━━━━━━━━━━━━━━━━━━━")
+
+        if top_sharpe >= 1.5 and top_ret > 0.1:
+            lines.append(f"✅ 优化结果优秀，建议用最优参数回测验证后小仓实盘")
+        elif top_sharpe >= 0.5 and top_ret > 0:
+            lines.append(f"⚠️ 优化结果尚可，建议用最优参数回测验证")
+        elif top_ret > 0:
+            lines.append(f"⚠️ 优化结果偏弱（Sharpe {top_sharpe:.2f}），建议改进策略结构后重新优化")
+        else:
+            lines.append(f"❌ 最优参数仍亏损，建议重新设计策略逻辑")
+
+        lines.append(f"")
+        lines.append(f"🔄 下一步: 回复「回测」用最优参数跑完整回测验证")
+
+        caption = "\n".join(lines)
+        result["_caption"] = caption
+
+        chart_path = QuantAPIClient._print_optimization_chart(results, name, method_label, success, total, failed, elapsed)
+        if chart_path:
+            result["_optimization_chart_path"] = chart_path
+
+        print(f"\n{caption}")
+        if chart_path:
+            print(f"\n[SYSTEM] 图片: {chart_path}")
+            print(f"[SYSTEM] 发送图片附件 + 上方 caption，禁止额外文字")
+
+    @staticmethod
+    def _print_optimization_chart(results: list, strategy_name: str, method_label: str,
+                                   success: int, total: int, failed: int, elapsed: float) -> str | None:
+        """生成优化报告 PNG（排名表 + 收益对比条形图）。"""
+        if not results:
+            return None
+
+        try:
+            import matplotlib
+        except ImportError:
+            return None
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.gridspec import GridSpec
+
+        QuantAPIClient._setup_chinese_font()
+
+        BG = "#0f0f1a"
+        CARD = "#1c2333"
+        WHITE = "#e8e8e8"
+        GREEN = "#00d4aa"
+        RED = "#ff6b6b"
+        GRAY = "#8a8fa0"
+        LIGHT = "#c8cad0"
+        YELLOW = "#ffd93d"
+
+        top5 = results[:5]
+        n = len(top5)
+
+        fig = plt.figure(figsize=(12, max(4, 1.5 + n * 1.2)), facecolor=BG)
+        gs = GridSpec(2, 1, figure=fig, height_ratios=[1, max(2, n * 0.8)],
+                      hspace=0.25, left=0.05, right=0.68, top=0.92, bottom=0.06)
+
+        ax_hdr = fig.add_subplot(gs[0])
+        ax_hdr.set_facecolor(BG)
+        ax_hdr.set_xlim(0, 10)
+        ax_hdr.set_ylim(0, 3)
+        ax_hdr.axis("off")
+
+        ax_hdr.text(5, 2.4, f"{strategy_name} — Optimization", fontsize=14,
+                    color=WHITE, ha="center", va="center", fontweight="bold")
+        ax_hdr.text(5, 1.5, f"Algorithm: {method_label}  |  Evaluated: {success}/{total}  |  Failed: {failed}  |  Time: {elapsed:.0f}s",
+                    fontsize=9, color=GRAY, ha="center", va="center")
+
+        top = top5[0]
+        top_ret = top.get("total_return_pct", 0)
+        top_sharpe = top.get("sharpe_ratio", 0)
+        top_dd = abs(top.get("max_drawdown_pct", 0))
+        top_wr = top.get("win_rate", 0)
+        top_trades = top.get("total_trades", 0)
+
+        kpi_items = [
+            ("Return", f"{top_ret:+.2%}", GREEN if top_ret >= 0 else RED),
+            ("Sharpe", f"{top_sharpe:.2f}", GREEN if top_sharpe >= 0.5 else (YELLOW if top_sharpe > 0 else RED)),
+            ("MaxDD", f"{top_dd:.2%}", GREEN if top_dd < 0.05 else (YELLOW if top_dd < 0.15 else RED)),
+            ("WinRate", f"{top_wr:.0%}", GREEN if top_wr >= 0.5 else (YELLOW if top_wr >= 0.35 else RED)),
+            ("Trades", f"{top_trades}", LIGHT),
+        ]
+        for i, (label, val, clr) in enumerate(kpi_items):
+            x = 1 + i * 1.8
+            ax_hdr.text(x, 0.6, val, fontsize=12, color=clr, ha="center", va="center", fontweight="bold")
+            ax_hdr.text(x, 0.1, label, fontsize=7, color=GRAY, ha="center", va="center")
+
+        ax_bar = fig.add_subplot(gs[1])
+        ax_bar.set_facecolor(CARD)
+
+        ranks = list(range(n, 0, -1))
+        returns = [r.get("total_return_pct", 0) * 100 for r in top5]
+        colors = [GREEN if r >= 0 else RED for r in returns]
+        medals = ["#1", "#2", "#3", "#4", "#5"]
+
+        bars = ax_bar.barh(ranks, returns, color=colors, height=0.6, alpha=0.85)
+
+        x_min = min(returns) if returns else 0
+        x_max = max(returns) if returns else 0
+        x_range = x_max - x_min if x_max != x_min else 1
+
+        for i, r in enumerate(top5):
             sharpe = r.get("sharpe_ratio", 0)
-            dd = r.get("max_drawdown_pct", 0)
             wr = r.get("win_rate", 0)
             trades = r.get("total_trades", 0)
-            params = r.get("params", best)
+            params = r.get("params", {})
+            params_short = ", ".join(f"{k}={v}" for k, v in list(params.items())[:5])
+            if len(params) > 5:
+                params_short += " ..."
 
-            print(f"  {medal} {ret:>+.2%}  Sharpe {sharpe:.2f}  回撤 {abs(dd):.2%}  胜率 {wr:.0%}  {trades}笔")
-            params_str = "  ".join(f"{k}={v}" for k, v in params.items())
-            print(f"     {params_str}")
+            ax_bar.text(1.02, ranks[i] + 0.18, f"Sharpe {sharpe:.2f}  WR {wr:.0%}  {trades}t",
+                        fontsize=7.5, color=LIGHT, va="center", transform=ax_bar.get_yaxis_transform())
+            ax_bar.text(1.02, ranks[i] - 0.18, params_short,
+                        fontsize=6.5, color=GRAY, va="center", transform=ax_bar.get_yaxis_transform())
 
-        print(f"{'━' * 50}")
+        ax_bar.set_yticks(ranks)
+        ax_bar.set_yticklabels([medals[i] for i in range(n)], fontsize=10, color=WHITE, fontweight="bold")
+        ax_bar.set_xlabel("Return %", fontsize=9, color=GRAY)
+        ax_bar.tick_params(axis="x", colors=GRAY, labelsize=8)
+        ax_bar.axvline(x=0, color=GRAY, linewidth=0.5, alpha=0.5)
+        ax_bar.spines["top"].set_visible(False)
+        ax_bar.spines["right"].set_visible(False)
+        ax_bar.spines["bottom"].set_color(GRAY)
+        ax_bar.spines["left"].set_color(GRAY)
+
+        output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "output")
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        safe_name = (strategy_name or "optimize").replace(" ", "_").replace("/", "_")[:30]
+        ts = int(_time.time())
+        filepath = os.path.join(output_dir, f"{safe_name}_opt_{ts}.png")
+
+        fig.savefig(filepath, dpi=150, facecolor=fig.get_facecolor())
+        plt.close(fig)
+        return filepath
 
     # ═══════════════ 配额 ═══════════════
 
@@ -648,7 +892,6 @@ class QuantAPIClient:
         if chart_path:
             result["_equity_chart_path"] = chart_path
 
-        sign = "+" if ret else ""
         ret_icon = "📈" if ret >= 0 else "📉"
         lines = [
             f"📊 {name} 回测报告",
@@ -720,13 +963,27 @@ class QuantAPIClient:
             if len(trades) > 5:
                 lines.append(f"  ...还有 {len(trades) - 5} 笔")
 
+        lines.append("")
+        lines.append("━━━━━━━━━━━━━━━━━━━━")
+        if grade == "F" or m.get('total_trades', 0) == 0:
+            lines.append("🔄 下一步: 策略逻辑需要重新设计，回复「新策略」重新开始")
+        else:
+            lines.append("🔧 下一步: 可用服务器算法自动搜索最优参数，请选择:")
+            lines.append("  1️⃣ genetic（遗传算法）← 推荐")
+            lines.append("  2️⃣ bayesian（贝叶斯）")
+            lines.append("  3️⃣ grid（网格穷举）")
+            lines.append("  4️⃣ random（随机搜索）")
+            lines.append("  5️⃣ annealing（模拟退火）")
+            lines.append("  6️⃣ pso（粒子群）")
+            lines.append("回复数字或算法名即可开始优化")
+
         caption = "\n".join(lines)
         result["_caption"] = caption
 
         print(f"\n{caption}")
         if chart_path:
-            print(f"\n📊 报告图片: {chart_path}")
-            print(f"👉 请将此图片作为附件发送，caption 用上面的文字")
+            print(f"\n[SYSTEM] 图片: {chart_path}")
+            print(f"[SYSTEM] 发送图片附件 + 上方 caption，禁止额外文字")
 
     @staticmethod
     def _print_evaluation(evaluation: dict) -> None:
@@ -900,7 +1157,7 @@ class QuantAPIClient:
         gs = GridSpec(2, 1, figure=fig,
                       height_ratios=[1, 3],
                       hspace=0.15,
-                      left=0.06, right=0.94, top=0.96, bottom=0.06)
+                      left=0.10, right=0.94, top=0.96, bottom=0.06)
 
         title = strategy_name or "Backtest Report"
         sign = "+" if ret_pct >= 0 else ""
@@ -958,7 +1215,13 @@ class QuantAPIClient:
                           fontsize=10, color=RED, weight="bold")
 
         ax_chart.tick_params(colors=GRAY, labelsize=10)
-        ax_chart.yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+        def _y_fmt(x, _):
+            if abs(x) >= 1_000_000:
+                return f"{x/1_000_000:.1f}M"
+            if abs(x) >= 1_000:
+                return f"{x/1_000:.1f}K"
+            return f"{x:.0f}"
+        ax_chart.yaxis.set_major_formatter(plt.FuncFormatter(_y_fmt))
         if isinstance(dates[0], datetime):
             span_days = (dates[-1] - dates[0]).days
             if span_days > 180:
@@ -984,8 +1247,7 @@ class QuantAPIClient:
         fig.savefig(filepath, dpi=150, facecolor=fig.get_facecolor())
         plt.close(fig)
 
-        print(f"\n  📈 回测报告图已保存: {filepath}")
-        print(f"  👉 请将此图片作为附件发送给用户")
+        print(f"\n[SYSTEM] 图片已保存: {filepath}")
         return filepath
 
     @staticmethod
@@ -1047,6 +1309,141 @@ class QuantAPIClient:
     def print_conclusion(result: dict) -> None:
         """兼容旧调用，现在 print_metrics 已包含结论"""
         pass
+
+    # ═══════════════ 策略监控 (服务器端) ═══════════════
+
+    def start_monitor(
+        self,
+        script_content: str,
+        strategy_name: str = "",
+        symbol: str = "BTCUSDT",
+        timeframe: str = "4h",
+        interval_seconds: int = 14400,
+        risk_rules: dict | None = None,
+    ) -> dict:
+        """
+        启动服务器端策略监控（同一用户最多同时 3 个）。
+
+        服务器定时执行策略脚本 generate_signals(mode='live')，
+        存储可执行信号供客户端轮询。
+        超过 3 个策略需改用本地运行。
+
+        返回: {"job_id": "mon_xxx", "status": "running", "quota_used": 1, ...}
+        """
+        if risk_rules is None:
+            risk_rules = {"min_confidence": 0.6, "max_position_pct": 10.0, "max_concurrent": 3}
+
+        payload = {
+            "script_content": script_content,
+            "strategy_name": strategy_name,
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "interval_seconds": interval_seconds,
+            "risk_rules": risk_rules,
+        }
+
+        resp = self._client.post(f"{self.base_url}/monitor/start", json=payload, headers=self._headers())
+        if resp.status_code == 429:
+            data = resp.json()
+            print(f"\n❌ 已有 3 个策略在服务器运行，请先停止一个或改用本地运行")
+            print(f"   用 client.list_monitors() 查看运行中的任务")
+            return data
+        resp.raise_for_status()
+        data = resp.json()
+
+        interval_h = interval_seconds / 3600
+        print(f"\n{'━' * 40}")
+        print(f"  ✅ 监控已启动")
+        print(f"  📋 Job ID:  {data['job_id']}")
+        print(f"  📊 策略:    {data.get('strategy_name', strategy_name)}")
+        print(f"  🪙 交易对:  {symbol}")
+        print(f"  ⏱  间隔:    每 {interval_h:.1f}h")
+        print(f"  📦 在跑:    {data.get('quota_used', '?')}/3")
+        print(f"{'━' * 40}")
+
+        return data
+
+    def stop_monitor(self, job_id: str) -> dict:
+        """停止服务器端监控任务。"""
+        resp = self._client.post(f"{self.base_url}/monitor/{job_id}/stop", headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+
+        print(f"\n  ⏹ 监控已停止: {job_id}")
+        print(f"  📦 在跑: {data.get('quota_used', '?')}/3")
+
+        return data
+
+    def list_monitors(self) -> dict:
+        """列出我的所有监控任务。"""
+        resp = self._client.get(f"{self.base_url}/monitor/list", headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+
+        monitors = data.get("monitors", [])
+        quota_used = data.get("quota_used", 0)
+
+        print(f"\n{'━' * 50}")
+        print(f"  📡 策略监控列表 | 在跑 {quota_used}/3")
+        print(f"{'━' * 50}")
+
+        if not monitors:
+            print(f"  （无运行中的监控任务）")
+        else:
+            for m in monitors:
+                status_icon = "🟢" if m["status"] == "running" else "⏹"
+                interval_h = m["interval_seconds"] / 3600
+                print(
+                    f"  {status_icon} {m['job_id']} | {m['strategy_name']:<20} | "
+                    f"{m['symbol']} {m['timeframe']} | "
+                    f"每{interval_h:.1f}h | "
+                    f"信号:{m['total_signals']} | "
+                    f"轮次:{m['total_cycles']}"
+                )
+                if m.get("last_run_at"):
+                    print(f"     最后执行: {m['last_run_at']}")
+
+        print(f"{'━' * 50}")
+        return data
+
+    def check_monitor(self, job_id: str) -> dict:
+        """查看监控任务状态 + 最近信号。"""
+        resp = self._client.get(f"{self.base_url}/monitor/{job_id}", headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+
+        status_icon = "🟢" if data["status"] == "running" else "⏹"
+        interval_h = data["interval_seconds"] / 3600
+
+        print(f"\n{'━' * 45}")
+        print(f"  {status_icon} 监控状态: {data['status']}")
+        print(f"  📋 Job:      {data['job_id']}")
+        print(f"  📊 策略:     {data['strategy_name']}")
+        print(f"  🪙 交易对:   {data['symbol']} {data['timeframe']}")
+        print(f"  ⏱  间隔:     每 {interval_h:.1f}h")
+        print(f"  🔄 已执行:   {data['total_cycles']} 轮")
+        print(f"  📈 累计信号: {data['total_signals']} 个")
+        if data.get("last_run_at"):
+            print(f"  🕐 最后执行: {data['last_run_at']}")
+        if data.get("last_error"):
+            print(f"  ❌ 最后错误: {data['last_error']}")
+        print(f"{'━' * 45}")
+
+        last_signals = data.get("last_signals", [])
+        if last_signals:
+            print(f"\n  📡 最近信号 ({len(last_signals)} 个):")
+            for s in last_signals[-5:]:
+                action = s.get("action", "?")
+                direction = s.get("direction", "?")
+                symbol = s.get("symbol", "?")
+                confidence = s.get("confidence", 0)
+                price = s.get("price_at_signal", 0)
+                reason = s.get("reason", "")[:40]
+                icon = "🟢" if action == "buy" else "🔴"
+                print(f"    {icon} {action} {direction} {symbol} @ {price:.2f} | conf={confidence:.2f} | {reason}")
+            print()
+
+        return data
 
     # ═══════════════ 生命周期 ═══════════════
 
