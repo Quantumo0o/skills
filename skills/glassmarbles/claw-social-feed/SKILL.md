@@ -1,63 +1,62 @@
 ---
 name: claw-social-feed
-description: 将社交媒体内容抓取并存入 Obsidian。支持 Twitter/X、Reddit、GitHub 等 36 个平台（通过 bb-browser）。增量抓取、自动过滤、打标签、定时同步。触发场景：(1) 用户要求抓取/同步社交媒体内容到 Obsidian；(2) 用户要求设置定时同步；(3) 用户提供要追踪的账号列表。
-allowed-tools: Bash(fetch_save.py:*)
+description: "Fetch social media content and save to Obsidian. Supports Twitter/X, Reddit, GitHub, HackerNews, Bilibili, Weibo, Xiaohongshu and 30+ platforms via bb-browser. Use when: (1) user asks to fetch/sync social media content to Obsidian; (2) user asks to set up scheduled sync; (3) user provides a list of accounts to track."
 ---
 
 # claw-social-feed
 
-把社交媒体的时间线内容抓取到 Obsidian vault 中。支持多平台、增量同步、智能过滤、自动打标签。
+Fetch social media timelines into Obsidian vaults. Multi-platform, incremental sync, smart filtering, auto-tagging.
 
-**核心依赖**：`bb-browser`（通过 `--openclaw` 复用 OpenClaw 浏览器），bb-browser 支持 36 个平台，详见 [references/platforms.md](references/platforms.md)。
+**Core dependency**: `bb-browser` (via `--openclaw` flag to reuse the OpenClaw browser session). Supports 36 platforms via bb-browser adapters — see [references/platforms.md](references/platforms.md).
 
-## 工作流程
+## Workflow
 
 ```
-用户配置 (config.yaml)
+User config (config.yaml)
       │
       ▼
 fetch_save.py
       │
-      ├── 账号去重检查
-      ├── 读取 state.json（上次抓取状态）
+      ├── Dedup accounts
+      ├── Read state.json (last fetch cursor)
       │
       ▼
 bb-browser site <platform>/<cmd> --openclaw --json
       │
       ▼
-过滤 → 打标签 → 写入 Obsidian
+Filter → Tag → Write to Obsidian
       │
       ▼
-更新 state.json
+Update state.json
 ```
 
-## 快速开始
+## Quick Start
 
-### 1. 初始化（首次使用）
+### 1. Install bb-browser
 
 ```bash
-# 更新 bb-browser 适配器
-bb-browser site update
+# Requires Node.js 18+
+npm install -g bb-browser
 
-# 测试抓取
-python3 scripts/fetch_save.py --verbose
+# Verify
+bb-browser --version
 ```
 
-### 2. 编辑配置
+### 2. Configure accounts
 
-编辑 `config.yaml`：
+Edit `config.yaml`:
 
 ```yaml
 accounts:
   - platform: twitter
-    username: your_twitter_handle  # ← 替换成你的用户名
-  # - platform: reddit
-  #   username: your_reddit_username  # 其他平台示例
+    username: your_target_handle
+  - platform: hackernews
+    username: your_username
 
-vault_base: ~/Documents/Obsidian Vault/你的文件夹名  # ← 修改为你的 Vault 路径
+vault_base: ~/Documents/Obsidian Vault/SocialFeed
 
 fetch:
-  count: 20  # 默认值，可改
+  count: 20
 
 filters:
   min_text_length: 30
@@ -68,49 +67,48 @@ filters:
 tagging:
   enabled: true
   keywords:
-    AI / LLM / GPT: AI
-    skill / Skills: skill
-    Python / JavaScript: coding
+    AI / LLM / GPT / Claude: AI
+    Python / JavaScript / Rust: coding
 ```
 
-### 3. 手动运行
+### 3. Run
 
 ```bash
 python3 scripts/fetch_save.py --verbose
 ```
 
-### 4. 查看结果
+### 4. Check output
 
-内容存入 `vault_base` 配置目录下，每个内容一条 `.md` 文件，带 Obsidian YAML frontmatter（平台、作者、日期、URL、点赞、标签）。
+Content lands in `vault_base/@username/` — one `.md` file per post, with Obsidian YAML frontmatter (platform, author, date, URL, likes, tags).
 
 ---
 
-## 配置说明
+## Config Reference
 
-### accounts — 抓取账号列表
+### accounts
 
 ```yaml
 accounts:
   - platform: twitter
-    username: your_handle  # ← 必填，替换成你的用户名
+    username: dotey
 ```
 
-- `platform`：必须是 bb-browser 支持的平台名（见 references/platforms.md）
-- `username`：该平台的用户标识（不是昵称）
-- **注意账号唯一性**：`platform + username` 组合不可重复
+- `platform`: must match a bb-browser supported platform (see [references/platforms.md](references/platforms.md))
+- `username`: the platform-native user identifier
+- **Deduplication**: `platform + username` must be unique within the list
 
-### filters — 过滤规则
+### filters
 
-| 字段 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `min_text_length` | int | 30 | 正文低于此字数跳过 |
-| `skip_retweet_no_comment` | bool | true | 转推无原创评论时跳过 |
-| `skip_link_only` | bool | true | 仅有链接/图片无文字时跳过 |
-| `blocked_keywords` | list | [] | 包含任一关键词时跳过 |
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `min_text_length` | int | 30 | Skip posts below this character count |
+| `skip_retweet_no_comment` | bool | true | Skip retweets with no original comment |
+| `skip_link_only` | bool | true | Skip posts that are links/images with little text |
+| `blocked_keywords` | list | [] | Skip posts containing any of these keywords |
 
-### tagging — 自动打标签
+### tagging
 
-根据内容中的关键词自动添加 tag：
+Auto-tag based on keyword matching (case-insensitive, `/` separated synonyms = OR):
 
 ```yaml
 tagging:
@@ -118,55 +116,54 @@ tagging:
   keywords:
     AI / LLM / 大模型: AI
     skill / Skills: skill
+    Python / JavaScript: coding
 ```
 
-匹配规则：关键词支持 `/` 分隔的多个同义词（OR 关系），匹配时忽略大小写。`/` 两端的空格会被 trim。
-
-### fetch.count — 抓取条数
+### fetch.count
 
 ```yaml
 fetch:
-  count: 20  # 默认20，最大100
+  count: 20  # default 20, max 100
 ```
 
-bb-browser `twitter/tweets` 默认返回约20条，按时间倒序。开启定时任务时建议设为50-100，防止高频发布者在两次抓取间隔内产出超过20条导致内容被截断。
+`twitter/tweets` returns ~20 tweets newest-first by default. For scheduled syncs, set to 50–100 to avoid missing posts from high-frequency accounts between sync intervals.
 
 ---
 
-## 增量抓取
+## Incremental Sync
 
-脚本通过 `state.json` 记录每个账号的上次抓取时间。下次运行时：
+`state.json` tracks the last-fetched timestamp per account. On re-run:
 
-1. 跳过 `created_at ≤ last_fetch` 的内容
-2. 只存新增内容
-3. 成功后将 `last_fetch` 更新为本次运行时间
+1. Skips posts with `created_at ≤ last_fetch`
+2. Saves only new content
+3. Updates `last_fetch` timestamp
 
-**漏执行补偿**：如果 cron 因关机等原因漏跑，开机后会自动补偿 `catchup_window_days` 天内的内容（默认3天）。
+**Missed-run compensation**: if a cron job missed a run (e.g., machine was off), the next run will backfill content within `catchup_window_days` (default 3 days).
 
-如需强制重新抓取某个账号，手动删除 `state.json` 中对应账号的记录即可。
-
----
-
-## 设置定时任务
-
-要开启定时同步，告诉我：
-
-> 「每天早上9点同步」或「每周一早上8点同步」
-
-我会帮你创建 cron。cron 任务通过 `sessionTarget: isolated` 后台运行，使用增量模式（只拉新内容），不会重复存入。
+To force re-fetch an account: delete its entry in `state.json` or delete the corresponding `.md` files.
 
 ---
 
-## 故障排除
+## Scheduled Sync
+
+To enable automatic sync, ask the agent:
+
+> "Sync every morning at 9am" or "Sync every Monday at 8am"
+
+The agent will create a cron job that runs in isolated mode with incremental sync — no duplicates.
+
+---
+
+## Troubleshooting
 
 **`bb-browser: command not found`**
-脚本会自动查找 bb-browser（依次尝试 PATH、nvm 常见路径）。若仍找不到，可手动安装或确认 npm 全局 bin 目录在 PATH 中。
+The script auto-detects bb-browser PATH. If it still fails, confirm npm global bin is in your PATH, or install via `npm install -g bb-browser`.
 
-**`twitter/search` 报错 `webpack module not found`**
-这是 bb-browser 适配器兼容性问题，不影响 `twitter/tweets`。改用 `twitter/tweets` 命令。
+**`twitter/search` returns webpack module error**
+Use `twitter/tweets` instead of `twitter/search`. This is a known bb-browser adapter compatibility issue.
 
-**平台返回 401 未登录**
-确认 OpenClaw 浏览器已登录该平台。手动打开该网站登录一次后重试。
+**Platform returns 401 Unauthorized**
+The OpenClaw browser needs to be logged into that platform. Open the site manually in the browser, log in once, then retry.
 
-**文件已存在但想重新抓取**
-删除 `state.json` 中对应账号记录，或删除对应 `.md` 文件。
+**File already exists but want to re-fetch**
+Delete the corresponding entry in `state.json` or delete the `.md` files for that account.

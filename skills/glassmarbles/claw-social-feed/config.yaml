@@ -1,46 +1,41 @@
-# claw-social-feed 配置
+# claw-social-feed — Configuration Template
+# Copy this file and fill in your accounts.
 
-# 要抓取的账号列表
-# platform: 平台名（来自 bb-browser 支持列表）
-# username: 该平台的用户名/ID
+# ── Accounts to fetch ──
+# Run `bb-browser site list` to see all supported platforms.
 accounts:
   - platform: twitter
-    username: your_twitter_handle  # 替换成你的用户名
+    username: replace_with_your_target_handle
+  # - platform: reddit
+  #   username: your_reddit_username
 
-# Obsidian Vault 路径（请修改为你的 Vault 路径）
-vault_base: ~/Documents/Obsidian Vault/你的文件夹名
+# ── Obsidian Vault ──
+# Content will be saved to vault_base/@username/
+vault_base: ~/Documents/Obsidian Vault/SocialFeed
 
-# 抓取参数
+# ── Fetch settings ──
 fetch:
-  count: 20  # 每账号每次抓取条数上限，默认20，最大100
+  count: 20  # tweets per account per run; max 100
 
-# 过滤规则（留空使用默认值）
+# ── Content filters ──
 filters:
-  min_text_length: 30          # 正文最小字数，低于此跳过
-  skip_retweet_no_comment: true  # 转推无原创评论时跳过
-  skip_link_only: true         # 仅有链接/图片无文字时跳过
-  blocked_keywords: []          # 包含任一关键词的内容跳过
+  min_text_length: 30          # skip posts shorter than this
+  skip_retweet_no_comment: true # skip retweets without original text
+  skip_link_only: true         # skip link/image-only posts with little text
+  blocked_keywords: []           # skip posts containing any keyword
 
-# 自动打标签（基于内容关键词匹配）
+# ── Auto-tagging ──
+# Keywords are OR-separated within each group; case-insensitive matching.
 tagging:
   enabled: true
   keywords:
-    AI / LLM / 大模型 / GPT / Claude: AI
-    skill / Skills / skill编写: skill
+    AI / LLM / GPT / Claude / 大模型: AI
+    skill / Skills: skill
     Python / JavaScript / Rust / coding: coding
     产品 / product / PM: product
-    投资 / 股票 / 加密 / 比特币: finance
+    投资 / 股票 / 加密 / finance: finance
     视频 / YouTube / B站 / bilibili: video
 
-# 增量抓取状态（脚本自动维护，勿手动修改）
-state_file: .claw-social-feed-state.json
-
-# 漏执行补偿窗口（天）
+# ── Incremental sync ──
+# How many days of backfill to capture if a run was missed.
 catchup_window_days: 3
-
-# Cron 定时任务（默认关闭，由 Agent 根据用户指令设置）
-cron:
-  enabled: false
-  schedule: daily  # daily | weekly
-  time: "09:00"
-  day_of_week: monday  # 仅 weekly 时使用
