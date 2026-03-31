@@ -1,130 +1,115 @@
 #!/bin/bash
 #
-# Good-Memory: Session 历史记录恢复脚本（新版本）
-# 原理：Session 重置后文件名自动改为 .reset.时间戳.jsonl
-# 用法: recovery.sh <command> [options]
+# Good-Memory: Session 历史记录恢复脚本 v2.0.0
+# 简化版：快速读取reset文件的历史记录
 #
 
 set -e
 
-SESSIONS_BASE="/root/.openclaw/agents"
+# 支持环境变量自定义路径
+OPENCLAW_BASE="${OPENCLAW_BASE:-/root/.openclaw}"
+SESSIONS_DIR="${SESSIONS_DIR:-${OPENCLAW_BASE}/agents/main/sessions}"
 
-# 颜色输出
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-error() { echo -e "${RED}ERROR: $1${NC}" >&2; exit 1; }
-info() { echo -e "${GREEN}$1${NC}"; }
-warn() { echo -e "${YELLOW}WARNING: $1${NC}"; }
-
-# 找到最新的 .reset. 文件
+# 找到最新的reset文件
 find_latest_reset() {
-    local agent="$1"
-    local sessions_dir="${SESSIONS_BASE}/${agent}/sessions"
-
-    [[ -d "$sessions_dir" ]] || { echo ""; return 0; }
-
-    # 找所有 .reset.* 文件（即 .jsonl.reset.时间戳 格式），按修改时间倒序，取最新的
-    local latest_file=$(ls -t "${sessions_dir}"/*.jsonl.reset.* 2>/dev/null | head -1 || echo "")
-
-    echo "$latest_file"
+    ls -t "${SESSIONS_DIR}"/*.jsonl.reset.* 2>/dev/null | head -1
 }
 
-# 列出所有 .reset. 文件（按时间倒序）
-list_reset_files() {
-    local agent="$1"
-    local sessions_dir="${SESSIONS_BASE}/${agent}/sessions"
-
-    [[ -d "$sessions_dir" ]] || { echo "[]"; return 0; }
-
-    ls -t "${sessions_dir}"/*.jsonl.reset.* 2>/dev/null || echo ""
-}
-
-# 读取指定文件的最后 N 行
-read_tail() {
+# 读取reset文件的最后N条记录并格式化
+read_history() {
     local file="$1"
     local lines="${2:-50}"
+    
+    if [[ ! -f "$file" ]]; then
+        echo "File not found: $file"
+        return 1
+    fi
 
-    [[ -z "$file" || ! -f "$file" ]] && { echo "File not found: $file"; return 1; }
+    # 读取最后N行，过滤出用户和助手的消息
+    tail -n "$lines" "$file" | python3 -c "
+import sys, json
 
-    tail -n "$lines" "$file" | while IFS= read -r line; do
-        # 提取 timestamp 和 content
-        local timestamp=$(echo "$line" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('timestamp',''))" 2>/dev/null || echo "")
-        local msg_type=$(echo "$line" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('type',''))" 2>/dev/null || echo "")
-
-        if [[ "$msg_type" == "message" ]]; then
-            local msg=$(echo "$line" | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(json.dumps(d.get('message',{})))" 2>/dev/null)
-            local role=$(echo "$msg" | python3 -c "import sys,json; m=json.load(sys.stdin); print(m.get('role',''))" 2>/dev/null || echo "")
-            local ct=$(echo "$msg" | python3 -c "import sys,json; m=json.load(sys.stdin); print(json.dumps(m.get('content','')))" 2>/dev/null)
-
-            local text=""
-            if [[ "$ct" == *"text"* ]]; then
-                text=$(echo "$ct" | python3 -c "import sys,json; ct=json.load(sys.stdin); text='';
-if isinstance(ct,list):
-    for c in ct:
-        if isinstance(c,dict) and c.get('type')=='text': text=c.get('text',''); break
-elif isinstance(ct,str): text=ct
-print(text[:300])" 2>/dev/null || echo "")
-            elif [[ "$ct" == *"toolResult"* || "$ct" == *"tool_use"* ]]; then
-                text="[tool result]"
-            fi
-
-            [[ -n "$text" ]] && echo "[${timestamp}] [${role}] ${text}"
-        elif [[ -n "$msg_type" ]]; then
-            echo "[${timestamp}] [${msg_type}]"
-        fi
-    done
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        data = json.loads(line)
+        if data.get('type') == 'message':
+            msg = data.get('message', {})
+            role = msg.get('role', '')
+            content = msg.get('content', '')
+            
+            # 提取文本内容
+            text = ''
+            if isinstance(content, list):
+                for c in content:
+                    if isinstance(c, dict) and c.get('type') == 'text':
+                        text = c.get('text', '')
+                        break
+            elif isinstance(content, str):
+                text = content
+            
+            if text and role in ('user', 'assistant'):
+                # 截断过长文本
+                if len(text) > 300:
+                    text = text[:300] + '...'
+                print(f'[{role}] {text}')
+    except:
+        pass
+"
 }
 
 # 主入口
 main() {
-    [[ $# -lt 1 ]] && { echo "Usage: $0 <command> [options]"; echo "Commands: latest, read, read-file, list"; exit 1; }
+    [[ $# -lt 1 ]] && {
+        echo "Usage: $0 <command> [options]"
+        echo "Commands:"
+        echo "  latest          - 显示最新的reset文件路径"
+        echo "  read [--lines N] - 读取最新reset文件的历史记录（默认50条）"
+        echo "  read-file <file> [--lines N] - 读取指定reset文件的历史记录"
+        echo "  list            - 列出所有reset文件（按时间倒序）"
+        exit 1
+    }
 
     local command="$1"; shift
 
     case "$command" in
         latest)
-            [[ $# -lt 1 ]] && { echo "Usage: $0 latest <agent>"; exit 1; }
-            find_latest_reset "$1"
+            find_latest_reset
             ;;
         read)
-            [[ $# -lt 1 ]] && { echo "Usage: $0 read <agent> [--lines N]"; exit 1; }
-            local agent="$1"; shift
-            local lines=100
+            local lines=50
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     --lines) lines="$2"; shift 2 ;;
                     *) shift ;;
                 esac
             done
-            local latest_file=$(find_latest_reset "$agent")
+            local latest_file=$(find_latest_reset)
             if [[ -n "$latest_file" ]]; then
-                read_tail "$latest_file" "$lines"
+                read_history "$latest_file" "$lines"
             else
-                echo "No reset session found for agent: $agent"
+                echo "No reset session found"
             fi
             ;;
         read-file)
             [[ $# -lt 1 ]] && { echo "Usage: $0 read-file <file> [--lines N]"; exit 1; }
             local file="$1"; shift
-            local lines=100
+            local lines=50
             while [[ $# -gt 0 ]]; do
                 case "$1" in
                     --lines) lines="$2"; shift 2 ;;
                     *) shift ;;
                 esac
             done
-            read_tail "$file" "$lines"
+            read_history "$file" "$lines"
             ;;
         list)
-            [[ $# -lt 1 ]] && { echo "Usage: $0 list <agent>"; exit 1; }
-            list_reset_files "$1"
+            ls -t "${SESSIONS_DIR}"/*.jsonl.reset.* 2>/dev/null || echo "No reset files found"
             ;;
         *)
             echo "Unknown command: $command"
-            echo "Commands: latest, read, read-file, list"
             exit 1
             ;;
     esac
