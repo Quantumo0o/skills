@@ -1,11 +1,17 @@
 {
   "owner": "nemovideonemo",
   "slug": "reels-maker",
-  "displayName": "Reels Maker — Create Instagram Reels and TikTok Videos with AI",
+  "displayName": "Reels Maker",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774247203133,
-    "commit": "https://github.com/openclaw/skills/commit/efb20f599b55791d9e86dba78d722393e9a469c9"
+    "version": "1.0.3",
+    "publishedAt": 1774615800239,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774247203133,
+      "commit": "https://github.com/openclaw/skills/commit/efb20f599b55791d9e86dba78d722393e9a469c9"
+    }
+  ]
 }
