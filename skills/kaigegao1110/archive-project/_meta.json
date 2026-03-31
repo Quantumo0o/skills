@@ -3,11 +3,16 @@
   "slug": "archive-project",
   "displayName": "Archive Project",
   "latest": {
-    "version": "1.3.0",
-    "publishedAt": 1774581293477,
-    "commit": "https://github.com/openclaw/skills/commit/7071ef2ed62a40100f8995b00248ad054b0365b9"
+    "version": "1.2.5",
+    "publishedAt": 1774724435830,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.0",
+      "publishedAt": 1774581293477,
+      "commit": "https://github.com/openclaw/skills/commit/7071ef2ed62a40100f8995b00248ad054b0365b9"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1774580234432,
