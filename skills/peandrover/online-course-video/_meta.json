@@ -3,9 +3,15 @@
   "slug": "online-course-video",
   "displayName": "Online Course Video",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774623738221,
-    "commit": "https://github.com/openclaw/skills/commit/83a037ee756c2dd076f35644896adea050b0f3b4"
+    "version": "1.0.0",
+    "publishedAt": 1774731117670,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774623738221,
+      "commit": "https://github.com/openclaw/skills/commit/83a037ee756c2dd076f35644896adea050b0f3b4"
+    }
+  ]
 }
