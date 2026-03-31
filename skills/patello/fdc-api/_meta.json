@@ -1,0 +1,11 @@
+{
+  "owner": "patello",
+  "slug": "fdc-api",
+  "displayName": "USDA FoodData Central API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774702257896,
+    "commit": null
+  },
+  "history": []
+}
