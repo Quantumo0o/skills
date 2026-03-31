@@ -3,9 +3,15 @@
   "slug": "video-size-reducer",
   "displayName": "Video Size Reducer",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774343505073,
-    "commit": "https://github.com/openclaw/skills/commit/4863a28672402eb2e47486ffc4a781d1433e777a"
+    "version": "1.0.5",
+    "publishedAt": 1774650450238,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774343505073,
+      "commit": "https://github.com/openclaw/skills/commit/4863a28672402eb2e47486ffc4a781d1433e777a"
+    }
+  ]
 }
