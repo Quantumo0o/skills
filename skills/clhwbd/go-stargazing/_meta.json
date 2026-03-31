@@ -3,11 +3,16 @@
   "slug": "go-stargazing",
   "displayName": "Go Stargazing",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1774829886274,
-    "commit": "https://github.com/openclaw/skills/commit/28e1d842ccce9f10ac843bb58a1b4f737d1a8970"
+    "version": "1.2.0",
+    "publishedAt": 1774883543844,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1774829886274,
+      "commit": "https://github.com/openclaw/skills/commit/28e1d842ccce9f10ac843bb58a1b4f737d1a8970"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1774807928575,

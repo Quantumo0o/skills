@@ -1299,6 +1299,40 @@ def annotate_daily_route_context(daily_payloads: List[dict]) -> None:
             }
 
 
+def _weather_indicators_str(r: dict) -> str:
+    """Build a compact weather indicators string for a region."""
+    parts = []
+    parts.append(f"云量均值 {r.get('night_avg_cloud', '?')}%")
+    parts.append(f"云量最差 {r.get('night_worst_cloud', '?')}%")
+    if r.get('cloud_stability'):
+        parts.append(f"云量走势 {r.get('cloud_stability')}")
+    if r.get('usable_hours') is not None:
+        parts.append(f"可拍窗口 {r.get('usable_hours')}h")
+    if r.get('longest_usable_streak_hours') is not None:
+        parts.append(f"最长连续 {r.get('longest_usable_streak_hours')}h")
+    if r.get('night_avg_wind_kmh') is not None:
+        parts.append(f"风速 {r.get('night_avg_wind_kmh')} km/h")
+    if r.get('night_avg_humidity') is not None:
+        parts.append(f"湿度 {r.get('night_avg_humidity')}%")
+    if r.get('night_avg_visibility_m') is not None:
+        parts.append(f"能见度 {r.get('night_avg_visibility_m'):.0f} m")
+    if r.get('night_avg_dew_point') is not None:
+        parts.append(f"露点 {r.get('night_avg_dew_point')}°")
+    if r.get('night_max_precip') is not None:
+        parts.append(f"降水 {r.get('night_max_precip')} mm")
+    if r.get('night_min_cloud_base') is not None:
+        parts.append(f"云底高 {r.get('night_min_cloud_base')} m")
+    if r.get('moon_interference') is not None:
+        parts.append(f"月光干扰 {r.get('moon_interference')}/100")
+    if r.get('light_pollution_bortle'):
+        parts.append(f"光污染 {r.get('light_pollution_bortle')}")
+    if r.get('avg_elevation_m') is not None:
+        parts.append(f"海拔 {r.get('avg_elevation_m'):.0f} m")
+    if r.get('night_weather_codes') and r.get('night_weather_codes') != []:
+        parts.append(f"天气代码 {r.get('night_weather_codes')}")
+    return " | ".join(parts)
+
+
 def _trip_daily_brief(day_payloads: List[dict]) -> List[str]:
     lines = []
     for payload in day_payloads:
@@ -1330,6 +1364,55 @@ def _trip_daily_brief(day_payloads: List[dict]) -> List[str]:
         if parts:
             lines.append("；".join(parts))
     return lines
+
+
+def _trip_daily_brief_with_metrics(day_payloads: List[dict]) -> List[str]:
+    """Enhanced per-night breakdown: primary region + weather metrics + top-N candidates."""
+    lines = []
+    for payload in day_payloads:
+        date = (payload.get("target_datetime") or "")[:10]
+        ds = payload.get("decision_summary") or {}
+        candidates = payload.get("daily_candidate_regions") or []
+        # Use route_candidate_regions as fallback
+        if not candidates:
+            candidates = payload.get("route_candidate_regions") or []
+        primary = candidates[0] if candidates else {}
+
+        region = ds.get("primary_region") or primary.get("display_label") or primary.get("label")
+        score = primary.get("final_score") or primary.get("decision_rank_score")
+        night_window = ""
+        if primary.get("astronomical_night_start") and primary.get("astronomical_night_end"):
+            night_window = f"{primary['astronomical_night_start']}-{primary['astronomical_night_end']}"
+
+        # Header line
+        header = f"📅 {date}"
+        if region:
+            score_str = f"（综合得分 {score:.2f}）" if score else ""
+            header += f" · {region}{score_str}"
+        if night_window:
+            header += f" | 天文夜窗 {night_window}"
+        lines.append(header)
+
+        # Weather indicators for primary region
+        if primary:
+            weather_str = _weather_indicators_str(primary)
+            lines.append(f"   气象指标：{weather_str}")
+
+        # Top-N candidates (score threshold: 70, show top 10)
+        threshold = ds.get("daily_candidate_threshold", {})
+        min_score = threshold.get("min_score", 70.0) if threshold else 70.0
+        shown = [r for r in candidates if (r.get("final_score") or r.get("decision_rank_score") or 0) >= min_score][:10]
+        if len(shown) > 1:
+            for i, r in enumerate(shown, 1):
+                r_score = r.get("final_score") or r.get("decision_rank_score") or 0
+                r_label = r.get("display_label") or r.get("label") or "?"
+                cloud = r.get("night_avg_cloud")
+                wind = r.get("night_avg_wind_kmh")
+                wind_str = f" | 风{wind}km/h" if wind is not None else ""
+                lines.append(f"   {i}. {r_label}（{r_score:.2f}分）| 云量{cloud}%{wind_str}")
+        lines.append("")
+    return lines
+
 
 
 def _trip_risk_note(primary_trip: Optional[dict], daily_payloads: List[dict]) -> Optional[str]:
@@ -1374,6 +1457,18 @@ def _trip_plan_summary(primary_trip: Optional[dict]) -> tuple:
             "远线方案",
         )
     return ("暂无可用路线方案。", None, None)
+
+
+def _multi_day_nightly_reply(day_payloads: List[dict]) -> List[str]:
+    lines = ["这次按逐晚独立推荐来给，不做跨晚路线连续性判断；如果你需要主路线/备选路线/远线方案，请改用 go-stargazing-trip。", ""]
+    for payload in day_payloads:
+        date = (payload.get("target_datetime") or "")[:10]
+        ds = payload.get("decision_summary") or {}
+        lines.append(f"【{date}】")
+        final_reply = ds.get("final_reply_draft") or ds.get("one_line") or "暂无单晚推荐结果。"
+        lines.append(final_reply)
+        lines.append("")
+    return lines
 
 
 def build_trip_plans(daily_payloads: List[dict], trip_top_n: int = 3) -> List[dict]:
@@ -1776,34 +1871,21 @@ def main() -> None:
                 trip_confidence = "mock"
             daily_payloads.append(build_daily_payload(trip_args, boxes, province_polygons, prefecture_polygons, county_polygons, trip_dt, trip_confidence))
 
-        annotate_daily_route_context(daily_payloads)
-        trip_plans = build_trip_plans(daily_payloads, trip_top_n=args.trip_top_n)
-        primary_trip = trip_plans[0] if trip_plans else None
-        trip_one_line, route_style_note, plan_label = _trip_plan_summary(primary_trip)
-        trip_daily_lines = _trip_daily_brief(daily_payloads)
-        trip_risk_note = _trip_risk_note(primary_trip, daily_payloads)
-        trip_moon_advisory = None
-        trip_lp_note = None
-        if daily_payloads:
-            first_ds = daily_payloads[0].get("decision_summary") or {}
-            top_region = (first_ds.get("region_labels") or [{}])[0] if first_ds.get("region_labels") else {}
-            moon_val = top_region.get("moon_interference")
-            if moon_val is not None:
-                trip_moon_advisory = _moon_advisory(moon_val)
-            trip_lp_note = top_region.get("light_pollution_note")
-        trip_reference_info = build_reference_info_note(trip_mode=True, moon_advisory=trip_moon_advisory, light_pollution_note=trip_lp_note)
-        trip_reply_lines = [trip_one_line]
-        if route_style_note:
-            trip_reply_lines.append(f"说明：{route_style_note}")
-        if trip_risk_note:
-            trip_reply_lines.append(f"风险：{trip_risk_note}")
-        trip_reply_lines.append(trip_reference_info.get("note"))
-        if trip_daily_lines:
-            trip_reply_lines.append("逐晚建议：")
-            trip_reply_lines.extend([f"- {line}" for line in trip_daily_lines])
+        nightly_reply_lines = _multi_day_nightly_reply(daily_payloads)
+        daily_best_regions = []
+        for x in daily_payloads:
+            ds = x.get("decision_summary") or {}
+            labels = ds.get("region_labels") or []
+            best = labels[0] if labels else {}
+            if best:
+                daily_best_regions.append({
+                    "date": x.get("target_datetime", "")[:10],
+                    "region": best.get("display_label") or best.get("label"),
+                    "score": round(_region_score(best), 2),
+                })
         payload = {
-            "trip_mode": True,
-            "trip_profile": args.trip_mode,
+            "multi_day_mode": True,
+            "trip_mode": False,
             "trip_start_date": args.trip_start_date,
             "trip_days": args.trip_days,
             "trip_dates": [x.get("target_datetime", "")[:10] for x in daily_payloads],
@@ -1815,16 +1897,7 @@ def main() -> None:
                 "source_direct_stage2_threshold": args.direct_stage2_threshold,
             },
             "daily_results": daily_payloads,
-            "daily_best_regions": [
-                {
-                    "date": x.get("target_datetime", "")[:10],
-                    "region": (_best_route_region(x) or {}).get("display_label") or (_best_route_region(x) or {}).get("label"),
-                    "adjacent_night_support": (_best_route_region(x) or {}).get("adjacent_night_support"),
-                    "route_anchor_strength": (_best_route_region(x) or {}).get("route_anchor_strength"),
-                    "route_anchor_note": (_best_route_region(x) or {}).get("route_anchor_note"),
-                }
-                for x in daily_payloads if _best_route_region(x)
-            ],
+            "daily_best_regions": daily_best_regions,
             "daily_candidate_regions": [
                 {
                     "date": x.get("target_datetime", "")[:10],
@@ -1834,33 +1907,36 @@ def main() -> None:
                         {
                             "region": row.get("display_label") or row.get("label"),
                             "score": round(_region_score(row), 2),
-                            "adjacent_night_support": row.get("adjacent_night_support"),
-                            "route_anchor_strength": row.get("route_anchor_strength"),
-                            "route_anchor_note": row.get("route_anchor_note"),
+                            "night_avg_cloud": row.get("night_avg_cloud"),
+                            "night_worst_cloud": row.get("night_worst_cloud"),
+                            "cloud_stability": row.get("cloud_stability"),
+                            "usable_hours": row.get("usable_hours"),
+                            "longest_usable_streak_hours": row.get("longest_usable_streak_hours"),
+                            "night_avg_wind_kmh": row.get("night_avg_wind_kmh"),
+                            "night_avg_humidity": row.get("night_avg_humidity"),
+                            "night_avg_visibility_m": row.get("night_avg_visibility_m"),
+                            "night_avg_dew_point": row.get("night_avg_dew_point"),
+                            "night_max_precip": row.get("night_max_precip"),
+                            "night_min_cloud_base": row.get("night_min_cloud_base"),
+                            "moon_interference": row.get("moon_interference"),
+                            "light_pollution_bortle": row.get("light_pollution_bortle"),
+                            "avg_elevation_m": row.get("avg_elevation_m"),
+                            "night_weather_codes": row.get("night_weather_codes"),
                         }
                         for row in (x.get("daily_candidate_regions") or [])
                     ],
                 }
                 for x in daily_payloads
             ],
-            "trip_plans": trip_plans,
             "decision_summary": {
-                "primary_route": primary_trip,
-                "backup_routes": trip_plans[1:] if len(trip_plans) > 1 else [],
-                "plan_label": plan_label,
-                "trip_refine_note": "这次多天路线规划会把更多候选区域一起保留下来，避免只看单晚第一名，结果把能连起来走的方案过早裁掉。",
-                "route_style_note": route_style_note,
-                "risk_note": trip_risk_note,
-                "reference_info": trip_reference_info,
-                "reference_note": trip_reference_info.get("note"),
-                "light_pollution_note": trip_lp_note,
-                "daily_brief": trip_daily_lines,
-                "one_line": trip_one_line,
-                "final_reply_draft": "\n".join(trip_reply_lines),
+                "one_line": f"这次按逐晚独立推荐来给，共 {len(daily_payloads)} 晚；不做跨晚路线连续性判断。",
+                "multi_day_refine_note": "如果你需要主路线 / 备选路线 / 远线方案，请改用 go-stargazing-trip；当前 skill 只保留逐晚推荐。",
+                "daily_brief": nightly_reply_lines,
+                "final_reply_draft": "\n".join(nightly_reply_lines),
                 "reply_drafts": {
-                    "concise": trip_one_line,
-                    "standard": "\n".join(trip_reply_lines[:4]) if len(trip_reply_lines) >= 4 else "\n".join(trip_reply_lines),
-                    "detailed": "\n".join(trip_reply_lines),
+                    "concise": f"这次按逐晚独立推荐来给，共 {len(daily_payloads)} 晚；不做路线连续性判断。",
+                    "standard": "\n".join(nightly_reply_lines[:8]) if len(nightly_reply_lines) >= 8 else "\n".join(nightly_reply_lines),
+                    "detailed": "\n".join(nightly_reply_lines),
                 },
             },
         }

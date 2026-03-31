@@ -92,7 +92,7 @@ def fetch_openmeteo_payload(point: SamplePoint, target_dt: datetime, timezone: s
     params = {
         "latitude": point.lat,
         "longitude": point.lng,
-        "hourly": "cloud_cover,relative_humidity_2m,visibility,wind_speed_10m",
+        "hourly": "cloud_cover,relative_humidity_2m,visibility,wind_speed_10m,dew_point_2m,precipitation,cloud_base_height,weather_code",
         "timezone": timezone,
         "start_date": target_dt.date().isoformat(),
         "end_date": end_date,
