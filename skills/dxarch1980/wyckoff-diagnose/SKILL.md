@@ -1,7 +1,7 @@
 ---
 name: wyckoff-diagnose
-version: 1.0.0
-description: Wyckoff 2.0 诊股系统。输入任意A股代码，输出完整分析报告（Phase状态、Volume Profile关键价位，综合评分、评级、操作建议）。当用户要求"诊股"、"分析股票"、"帮我看看XXX"、"这个股怎么样"、"诊断"时触发。支持输入6位股票代码。
+version: 1.2.0
+description: Wyckoff 2.0 诊股系统。输入任意A股代码，输出完整分析报告（Phase状态、Volume Profile关键价位，综合评分、评级、操作建议）。支持右侧趋势🅡和左侧积累🅁双视角诊断。当用户要求"诊股"、"分析股票"、"帮我看看XXX"、"这个股怎么样"、"诊断"时触发。支持输入6位股票代码。
 ---
 
 # Wyckoff 诊股系统
@@ -63,20 +63,40 @@ Phase D（突破）：放量突破区间边界 → 入场信号
 | 🄲 C | 不建议（<40分） | 存在风险，不宜买入 |
 | 🄳 D | 回避 | 风险过高，建议回避 |
 
-## 调用方式
+## 双视角诊断
 
-```python
-# 命令行
+诊股系统同时支持**右侧趋势**和**左侧积累**两种视角分析：
+
+### 右侧趋势（默认）
+**逻辑：** 等趋势确认了才买，核心是"突破跟进"
+- Phase E 上涨趋势 / Phase D 向上突破 + 价格在 VPOC 上方 → 🅢🄰
+- Phase C Spring 测试后价格收回 VPOC → 待确认
+- 价格在 VPOC/VAL 下方 → 🔴 回避
+
+### 左侧积累
+**逻辑：** 主力悄悄收集、价格还在低位，提前埋伏等拉升
+- Phase B 积累区间 + 价格在区间低位 → 🅢🄰 重点关注
+- 价格紧贴 LVN 支撑 / 在 VAL 下方低位 → ✅ 加分
+- 缩量止跌（5日均量 < 20日均量）→ ✅ 主力在吸筹
+- Phase E 下跌趋势 / 放量下跌 → 🔴 不抄底
+
+### 调用方式
+
+```bash
+# 默认：同时输出双视角报告
 python scripts/diagnose.py 000001
 
-# 作为模块
-import sys
-sys.path.insert(0, 'scripts')
-from diagnose import diagnose
+# 仅右侧趋势
+python scripts/diagnose.py 000001 --side right
 
-report = diagnose('000001')
-print(report)
+# 仅左侧积累
+python scripts/diagnose.py 000001 --side left
+
+# 批量（文件）
+python scripts/diagnose.py -f stocks.txt --side both
 ```
+
+---
 
 ## 评分维度
 
