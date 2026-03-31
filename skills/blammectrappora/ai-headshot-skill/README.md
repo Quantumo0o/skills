@@ -1,5 +1,7 @@
 # AI Professional Headshot Generator
 
+> Powered by the **Neta AI image generation API** (`api.talesofai.com`) — the same service as [neta.art](https://www.neta.art/open/).
+
 Generate polished, photorealistic professional headshots from a text description using AI. Powered by the Neta talesofai API — get a direct image URL back in seconds.
 
 ---
@@ -43,7 +45,7 @@ The script prints a single image URL to stdout on success.
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
 | `--size` | `portrait`, `landscape`, `square`, `tall` | `portrait` | Output image dimensions |
-| `--token` | string | — | Neta API token (overrides env/file) |
+| `--token` | string | — | Neta API token (required) |
 | `--ref` | picture_uuid | — | Reference image UUID for style inheritance |
 
 ### Size dimensions
@@ -59,17 +61,13 @@ The script prints a single image URL to stdout on success.
 
 ## Token setup
 
-The script resolves your `NETA_TOKEN` in this order:
+This skill requires a Neta API token (free trial available at <https://www.neta.art/open/>).
 
-1. `--token <value>` CLI flag
-2. `NETA_TOKEN` environment variable
+Pass it via the `--token` flag:
 
-**Recommended:** add to your shell profile or `.env` file:
 ```bash
-export NETA_TOKEN=your_token_here
+node <script> "your prompt" --token YOUR_TOKEN
 ```
-
----
 
 ## Examples
 
@@ -86,4 +84,4 @@ node aiheadshot.js "executive portrait, woman, modern office background" --size 
 
 ## Example Output
 
-![Generated example](https://oss.talesofai.cn/picture/66f12b83-2349-4c05-ab43-16dfae9fb943.webp)
+![Generated example](https://cdn.talesofai.com/picture/66f12b83-2349-4c05-ab43-16dfae9fb943.webp)

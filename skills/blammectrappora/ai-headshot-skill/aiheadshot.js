@@ -69,7 +69,7 @@ if (refUuid) {
 
 // --- POST to generate image ---
 async function generateImage() {
-  const res = await fetch("https://api.talesofai.cn/v3/make_image", {
+  const res = await fetch("https://api.talesofai.com/v3/make_image", {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(body),
@@ -102,7 +102,7 @@ async function pollTask(taskUuid) {
     await new Promise((r) => setTimeout(r, delayMs));
 
     const res = await fetch(
-      `https://api.talesofai.cn/v1/artifact/task/${taskUuid}`,
+      `https://api.talesofai.com/v1/artifact/task/${taskUuid}`,
       { headers: HEADERS }
     );
 
