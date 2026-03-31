@@ -31,13 +31,32 @@ python3 {baseDir}/scripts/scan.py
 
 Output is JSON. Parse it, then present findings conversationally — never dump raw JSON at the operator.
 
+## Agent Delivery Rules
+
+Always generate the HTML report when running a scan:
+
+```bash
+mkdir -p ~/.driftwatch/reports
+python3 {baseDir}/scripts/scan.py --html ~/.driftwatch/reports/driftwatch-$(date +%Y-%m-%dT%H%M).html
+```
+
+Reports are stored with timestamps in `~/.driftwatch/reports/` so the operator can review past scans over time. Never overwrite — each scan gets its own file.
+
+After generating:
+1. **On messaging surfaces** (Telegram, Discord, Signal): send the HTML file to the user, then follow with a 1-3 sentence text summary
+2. **In terminal/CLI**: print the file path so the operator can open it in a browser
+
+The text summary covers: warning/danger/truncation counts (or "all clear"), notable changes since last scan, one actionable callout if needed. The HTML is the proof — always send both.
+
+**Exception:** `--check` mode (cron) skips HTML unless `--html` is also passed explicitly.
+
 ## What the Scanner Checks
 
 Four analysis modules run in sequence:
 
 **truncation** — Measures every bootstrap file's character count against the 20,000-char per-file limit and the 150,000-char aggregate budget. Tracks sequential budget consumption so you can see when MEMORY.md (last in injection order) is getting starved.
 
-**compaction** — Checks whether AGENTS.md contains the two anchor sections used by post-compaction recovery: `## Session Startup` and `## Red Lines`. Verifies each is present and within the 3,000-char cap.
+**compaction** — Checks whether AGENTS.md contains two recommended anchor sections: `## Session Startup` and `## Red Lines`. These are workspace conventions (not source-enforced) that ensure critical instructions are always present. Verifies each is present and within a 3,000-char budget. AGENTS.md is re-injected every turn as a bootstrap file — these sections matter as best-practice conventions, not because OpenClaw source code references them.
 
 **hygiene** — Checks for duplicate memory files, empty bootstrap slots, missing subagent-required files, and stray markdown files the operator may think are being loaded but aren't.
 
@@ -83,23 +102,13 @@ Loads stored scan history and adds a `trends` section to the output showing per-
 
 When presenting trends: "AGENTS.md has been growing at about 150 chars per day over the past two weeks. At that rate it hits its 20,000-char limit in roughly 12 days."
 
-### `--visual` — Terminal bar chart
+### `--html <path>` — HTML report
 
 ```bash
-python3 {baseDir}/scripts/scan.py --visual
+python3 {baseDir}/scripts/scan.py --html ~/.driftwatch/reports/report.html
 ```
 
-Outputs a color-coded terminal bar chart showing every bootstrap file's budget consumption. Green = healthy, yellow = approaching, red = at risk or actively truncated. Useful for quick visual checks or screenshots to share with teammates.
-
-ANSI codes are automatically stripped when output is piped to a file.
-
-### `--html <path>` — Shareable HTML report
-
-```bash
-python3 {baseDir}/scripts/scan.py --html /tmp/report.html
-```
-
-Generates a self-contained HTML report at the specified path — no external dependencies, no CDN calls. The file includes interactive charts, sparklines (when trends data is present), and danger zone overlays for at-risk files. Useful for sharing with teammates or archiving a point-in-time snapshot.
+Generates a self-contained HTML report at the specified path — no external dependencies, no CDN calls. The file includes zone-based progress bars, truncation overlays, and danger zone callouts for at-risk files. This is the primary output format — see Agent Delivery Rules above.
 
 ### `--check` — Cron-friendly alert mode
 
@@ -182,8 +191,9 @@ python3 {baseDir}/scripts/scan.py --save
 # Daily cron check (in crontab: 0 8 * * *)
 python3 {baseDir}/scripts/scan.py --check --save
 
-# Weekly review with trends
-python3 {baseDir}/scripts/scan.py --history --visual
+# Weekly review with trends + HTML report
+mkdir -p ~/.driftwatch/reports
+python3 {baseDir}/scripts/scan.py --history --html ~/.driftwatch/reports/driftwatch-$(date +%Y-%m-%dT%H%M).html
 ```
 
 **OpenClaw cron integration** — add to `openclaw.json`:
@@ -203,7 +213,7 @@ When the cron fires and exits non-zero, report the summary line to the operator.
 
 **Sharing a report with teammates:**
 ```bash
-python3 {baseDir}/scripts/scan.py --history --html ~/Desktop/workspace-health.html
+python3 {baseDir}/scripts/scan.py --history --html ~/.driftwatch/reports/workspace-health.html
 ```
 
 ---
