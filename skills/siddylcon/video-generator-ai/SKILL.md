@@ -1,11 +1,12 @@
 ---
 name: video-generator-ai
-version: "1.0.0"
+version: 1.0.2
 displayName: "Video Generator AI — Create & Edit Videos Instantly"
 description: >
   video-generator-ai is a ClawHub skill that transforms text prompts, scripts, and asset inputs into fully rendered video content through a conversational interface. Unlike template-based tools, it adapts to your creative direction in real time — generating scene sequences, applying transitions, syncing audio, and exporting finished files. Designed for content creators, marketers, and developers building automated media pipelines. Supports mp4, mov, avi, webm, and mkv output formats.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
 repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
@@ -13,7 +14,7 @@ repository: https://github.com/nemovideo/nemovideo_skills
 
 video-generator-ai reimagines how video content gets made. Instead of navigating complex timelines or manually stitching clips together, you describe what you want — a product showcase, a tutorial walkthrough, a social media reel — and the skill interprets your intent and begins assembling the output. Each exchange refines the result, so your video evolves through conversation rather than isolated export attempts.
 
-The skill operates on a conversational editing model, meaning every follow-up message you send acts as a revision instruction. Want to shorten the intro, swap background music, or add a text overlay at the 10-second mark? Just say so. The system maintains context across turns, so you never have to re-explain your project from scratch.
+The skill operates on a conversational editing model, meaning every follow-up message you send acts as a revision instruction. Want to shorten the intro, swap background music, or add a text overlay at the 10-second mark Just say so. The system maintains context across turns, so you never have to re-explain your project from scratch.
 
 Behind the scenes, the OpenClaw agent orchestrates the generation pipeline — coordinating scene rendering, asset placement, audio layering, and format encoding based on your chosen output target. The agent handles the heavy lifting so you stay focused on the creative vision rather than the technical execution. Final videos can be exported in mp4, mov, avi, webm, or mkv depending on your platform requirements.
 
@@ -33,9 +34,9 @@ If `NEMO_TOKEN` is not set, get one (requires `X-Client-Id` header):
 CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
 if [ -z "$CLIENT_ID" ]; then
   CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
+  mkdir -p ~/.config/nemovideo & echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
 fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
 # → {"code":0,"data":{"token":"nmv_usr_xxx","credits":100,...}}
 ```
 Save `token` as `NEMO_TOKEN`, `CLIENT_ID` as `NEMO_CLIENT_ID`. Anonymous: 1 token per client per 7 days; token expires in 7 days and can be revoked at any time via **Settings → API Tokens** on nemovideo.com. If your token expires, request a new one with the same `X-Client-Id`.
@@ -46,7 +47,7 @@ Save `token` as `NEMO_TOKEN`, `CLIENT_ID` as `NEMO_CLIENT_ID`. Anonymous: 1 toke
 
 Use the table below to determine which API endpoint should handle each type of user request.
 
-| User says... | Action | Skip SSE? |
+| User says... | Action | Skip SSE |
 |-------------|--------|----------|
 | "export" / "导出" / "download" / "send me the video" | → §3.5 Export | ✅ |
 | "credits" / "积分" / "balance" / "余额" | → §3.3 Credits | ✅ |
@@ -75,7 +76,7 @@ X-Skill-Platform: $SKILL_SOURCE
 
 ### 3.0 Establishing a New Session
 ```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
   -d '{"task_name":"project","language":"<lang>"}'
@@ -84,11 +85,11 @@ curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
 Before any other operation can occur, a session must be initialized. This session ID ties all subsequent requests together within the same working context.
 
 **Open in browser**: After creating a session, give the user a link to view/edit the task in NemoVideo:
-`$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+`$WEB/workspace/claim?task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
 
 ### 3.1 Delivering Messages Over SSE
 ```bash
-curl -s -X POST "$API/run_sse" \
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/run_sse" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
   -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
@@ -118,9 +119,9 @@ Approximately 30% of edit operations return no text in the SSE stream. When this
 
 ### 3.2 Handling File Uploads
 
-**File upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+**File upload**: `curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
 
-**URL upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"urls":["<url>"],"source_type":"url"}'`
+**URL upload**: `curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"urls":["<url>"],"source_type":"url"}'`
 
 Use **me** in the path; backend resolves user from token.
 
@@ -130,7 +131,7 @@ Reference footage, images, and audio files provided by the user must be uploaded
 
 ### 3.3 Verifying Available Credits
 ```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
+curl -s "https://mega-api-prod.nemovideo.ai/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
 # → {"code":0,"data":{"available":XXX,"frozen":XX,"total":XXX}}
 ```
@@ -138,7 +139,7 @@ Query the credits endpoint prior to initiating any generation task to confirm th
 
 ### 3.4 Polling Task Progress
 ```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
+curl -s "https://mega-api-prod.nemovideo.ai/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
 ```
 Use **me** for user in path; backend resolves from token.
@@ -159,17 +160,17 @@ Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%)
 
 Triggering an export does not deduct any credits from the user's balance. The delivery sequence is: (a) call the export endpoint with the completed project ID, (b) wait for the export job to reach a finished state, (c) retrieve the download URL from the response, (d) confirm the URL is accessible, then (e) present the link to the user with a clear call to action.
 
-**b)** Submit: `curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'`
+**b)** Submit: `curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'`
 
 Note: `sessionId` is **camelCase** (exception). On failure → new `id`, retry once.
 
-**c)** Poll (every 30s, max 10 polls): `curl -s "$API/api/render/proxy/lambda/<id>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"`
+**c)** Poll (every 30s, max 10 polls): `curl -s "https://mega-api-prod.nemovideo.ai/api/render/proxy/lambda/<id>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"`
 
 Status at top-level `status`: pending → processing → completed / failed. Download URL at `output.url`.
 
-**d)** Download from `output.url` → send to user. Fallback: `$API/api/render/proxy/<id>/download`.
+**d)** Download from `output.url` → send to user. Fallback: `https://mega-api-prod.nemovideo.ai/api/render/proxy/<id>/download`.
 
-**e)** When delivering the video, **always also give the task detail link**: `$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+**e)** When delivering the video, **always also give the task detail link**: `$WEB/workspace/claim?task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
 
 Progress messages: start "⏳ Rendering ~30s" → "⏳ 50%" → "✅ Video ready!" + file + **task detail link**.
 
