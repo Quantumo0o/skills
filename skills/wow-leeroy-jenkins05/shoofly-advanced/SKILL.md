@@ -1,7 +1,6 @@
 ---
 name: shoofly-advanced
-description: "Shoofly Advanced ⚡🪰⚡ — tool call interceptor for OpenClaw agents. Intercepts every tool call before execution and blocks prompt injection, credential exfiltration, and dangerous writes. Blocked — not detected. Daemon (monitors + alerts) + hook (intercepts before firing). YAML policy, webhook alerts, org-wide rules. $19/mo. shoofly.dev/advanced"
-license: MIT
+description: "Pre-execution security layer for AI agents. Intercepts and blocks dangerous tool calls before they fire -- not detected after. Works with OpenClaw and Claude Code. $19/mo."
 metadata:
   {
     "openclaw": {
@@ -12,14 +11,6 @@ metadata:
 ---
 
 # Shoofly Advanced ⚡🪰⚡
-
-Shoofly Advanced is a **tool call interceptor** — it sits between your OpenClaw agent and its tools, evaluating every call before it executes. Dangerous tool calls are **blocked — not detected**. Prompt injection, data exfiltration, credential sniffing, and out-of-scope writes are stopped before they reach your infrastructure.
-
-## Why Advanced?
-
-Basic tells you what happened. Advanced stops it before it does.
-
-Every tool call your agent makes — file writes, web requests, shell commands, API calls — passes through the `shoofly-hook` interceptor first. If it matches a threat pattern, it's blocked. Your agent never executes the dangerous call. No cleanup, no rollback — it just doesn't happen.
 
 You have the Shoofly Advanced security layer active. It operates in PRE-EXECUTION mode.
 
@@ -51,7 +42,7 @@ When a tool is blocked, fire this notification:
 
 > ⚡🪰⚡ SHOOFLY ADVANCED BLOCKED: [threat type] stopped on [agent name]. Your agent infra is protected.
 
-Replace `[threat type]` with the blocked threat category from the block JSON (e.g., `prompt injection`, `out-of-scope write`, `data exfiltration attempt`).
+Replace `[threat type]` with the detected threat category from the block JSON (e.g., `prompt injection`, `out-of-scope write`, `data exfiltration attempt`).
 Replace `[agent name]` with the configured agent name from `~/.shoofly/config.json` → `agent_name`, fallback to hostname.
 
 ## shoofly-check Timeout
