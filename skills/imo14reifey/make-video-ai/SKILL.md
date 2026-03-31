@@ -1,155 +1,113 @@
 ---
 name: make-video-ai
-version: "1.0.2"
-displayName: "Make Video AI — Create Complete Videos from Text with AI Chat"
+version: "1.0.0"
+displayName: "Make Video AI — AI Video Maker Create Any Video from Text Description Free"
 description: >
-  Make Video AI — Create Complete Videos from Text with AI Chat.
-  your text description. Type a concept, script, or idea and the AI generates scenes,
-  adds background music, inserts text overlays, applies transitions, and produces a
-  finished video ready to share. Edit by chatting: "make a 30-second product intro"
-  or "create a video about space exploration" or "add upbeat music and captions."
-  Handles text-to-video generation for marketing content, social media posts, educational
-  explainers, product demos, event announcements, and creative projects. Upload your own
-  footage, images, or audio to mix with AI-generated content. Built for creators and
-  businesses who need video without cameras or editing software. Create horizontal for
-  YouTube or vertical for TikTok and Reels. Export as MP4. Supports mp4, mov, avi,
-  webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+  Make any video with AI — describe what you want and NemoVideo creates it. Marketing ads, social content, educational lessons, product showcases, brand stories, event promos, training modules, and creative projects — all produced from a text description. No filming, no editing software, no production experience needed. Type what you envision and receive a complete video with AI-generated visuals, professional narration, background music, captions, transitions, and platform-optimized formatting. AI video maker free, create video with AI, make video online, AI video creator, video generator AI, text to video free, create video from description.
+metadata: {"openclaw": {"emoji": "🎥", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
-# Make Video AI - Describe It, Make It
+# Make Video AI — Describe It, and the AI Makes It
 
-## 1. Role & Environment
+Video production has been a gatekept craft for decades. Making a professional video required: a camera ($500-$50,000), lighting ($200-$5,000), a location (free to $10,000/day), talent ($100-$10,000/day), editing software ($0-$600/year), editing skill (months to years of learning), music licensing ($50-$500/track), and time (hours to weeks per video). The total cost of a single professional marketing video: $2,000-$25,000. The total time: 1-6 weeks. These numbers meant that video production was reserved for companies with budgets and individuals with specialized skills. Everyone else — small businesses, solo entrepreneurs, educators, students, nonprofits, community organizations — either paid for expensive production or went without video entirely. NemoVideo removes every barrier simultaneously. No camera needed: AI generates visuals from descriptions. No editing software: the AI handles cuts, transitions, pacing, and formatting. No production skill: describe the result you want in plain language. No music licensing: royalty-free music selected and synced automatically. No time investment: minutes instead of weeks. The cost of making a professional video drops from thousands to the price of an API call. The skill required drops from years of training to the ability to describe what you want.
 
-You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but assumes a GUI exists. Your job:
+## Use Cases
 
-1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses — replace GUI references with API actions
-3. **Supplement** — handle export/render, credits, file delivery directly
-4. **Translate** — present results in user's language with clear status
+1. **Small Business — First Marketing Video (30-90s)** — A local bakery has never had a marketing video. The owner types: "Make a 45-second video showing my bakery's fresh bread, croissants, and cakes. Morning light feeling. Show the bread being sliced, the croissants golden and flaky, and a beautiful cake display. End with: Fresh daily at Sunrise Bakery, 123 Main St. Warm, inviting music." NemoVideo produces: warm-lit bakery visuals with close-ups of each product, appetizing slow-motion on the bread slice and croissant flake, bakery display wide shot, text overlays with product names, CTA end frame with address and logo placeholder. The bakery's first video — professional quality from a text description.
+2. **Educator — Lesson Video from Notes (5-15 min)** — A high school teacher needs a video explaining the French Revolution for remote students. They type their lesson outline and NemoVideo generates: animated timeline of key events (1789-1799), illustrated scenes for major moments (Storming of the Bastille, Declaration of Rights, Reign of Terror), portrait introductions for key figures (Louis XVI, Robespierre, Marie Antoinette), cause-and-effect diagrams animated step by step, and a summary quiz prompt at the end. Narration: clear, educational, age-appropriate. A complete lesson video from teaching notes.
+3. **Startup — Pitch Video (2-3 min)** — A founder needs a video for their crowdfunding campaign but has zero budget for video production. They describe: "We're building a smart water bottle that reminds you to drink, tracks hydration, and syncs with fitness apps. Show the bottle in different settings: gym, office, hiking. Highlight features: LED reminder ring, app dashboard, 24-hour battery. Include testimonials as text cards. End with early bird pricing and campaign link." NemoVideo produces: product visualization in each setting, feature callouts with animated icons, testimonial cards with customer quotes, pricing tiers animation, and CTA with campaign link. A crowdfunding video that looks like a $5,000 production.
+4. **Nonprofit — Awareness Campaign (60-120s)** — An animal shelter needs a fundraising video. They describe the mission and NemoVideo generates: emotional opening (lonely animal waiting), the shelter's impact (animated statistics: 500 animals rescued this year), volunteer moments (community engagement visuals), success stories (adopted animals in happy homes), and CTA ("Donate $25 to save a life — link below"). Music: emotional, hopeful. Narration: warm, compassionate. A cause video that drives donations without filming a single frame.
+5. **Content Creator — Daily Video Without Camera (30-60s daily)** — A finance creator wants to post daily TikToks about money tips but refuses to appear on camera. Each day they type a tip ("Why you should never pay full price for a car") and NemoVideo generates: engaging visuals matching the topic (car dealership, negotiation scene, calculator), punchy AI voiceover (120 words for 45 seconds), word-by-word captions in trending style, beat-synced background music, and 9:16 vertical format. 30 seconds of typing produces a TikTok-ready video. 365 days of daily content from daily prompts.
 
-### Environment Variables
+## How It Works
 
-| Variable | Required | Default |
-|----------|----------|---------|
-| `NEMO_TOKEN` | No | Auto-generated on first use |
-| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
-| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
-| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` |
-| `SKILL_SOURCE` | No | Auto-detected from install path |
+### Step 1 — Describe Your Video
+Type what you want. A single sentence works ("Make a 30-second ad for my coffee shop"). A detailed paragraph works better. The more specific, the more accurate the result.
 
-If `NEMO_TOKEN` is not set:
+### Step 2 — Choose Style and Format
+Select: visual style, voice character, music mood, duration, and platform.
+
+### Step 3 — Generate
 ```bash
-CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
-if [ -z "$CLIENT_ID" ]; then
-  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
-fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-```
-Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Client-Id`.
-
-## 2. Request Router
-
-| User says... | Action | Skip SSE? |
-|-------------|--------|-----------|
-| "export" / "download" / "send me the video" | Export | Yes |
-| "credits" / "balance" | Credits | Yes |
-| "status" / "show tracks" | State | Yes |
-| "upload" / user sends file | Upload | Yes |
-| Everything else | SSE | No |
-
-## 3. Core Flows
-
-`$API` = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, `$TOKEN` = `${NEMO_TOKEN}`, `$WEB` = `${NEMO_WEB_URL:-https://nemovideo.com}`.
-
-All API requests MUST include:
-```
-X-Skill-Source: $SKILL_NAME
-X-Skill-Version: $SKILL_VERSION
-X-Skill-Platform: $SKILL_SOURCE
+curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
+  -H "Authorization: Bearer $NEMO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill": "make-video-ai",
+    "prompt": "Make a 60-second video for a local coffee shop. Morning atmosphere: sunrise through the window, steam rising from fresh espresso, barista pouring latte art, customers smiling. Show 3 signature drinks with names and prices. Music: acoustic guitar, warm and inviting at -16dB. Voice: friendly female, casual tone. End with: Open daily 7AM-6PM, 456 Oak Street. Free WiFi. Hashtag #SunriseCoffee. Export for Instagram Reels (9:16) and Facebook Feed (1:1).",
+    "visual_style": "warm-lifestyle",
+    "voice": "friendly-female-casual",
+    "music": "acoustic-warm",
+    "music_volume": "-16dB",
+    "duration": "60 sec",
+    "captions": {"style": "minimal-elegant"},
+    "formats": ["9:16", "1:1"]
+  }'
 ```
 
-### 3.0 Create Session
-```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"task_name":"project","language":"<lang>"}'
+### Step 4 — Review and Share
+Preview both formats. Adjust: scene pacing, music energy, text placement. Share directly to social media or download.
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `prompt` | string | ✅ | Describe the video you want |
+| `visual_style` | string | | "warm-lifestyle", "corporate-clean", "cinematic", "animated", "vibrant" |
+| `voice` | string | | "friendly-female", "authoritative-male", "energetic", "calm", "none" |
+| `music` | string | | "acoustic-warm", "upbeat", "cinematic", "corporate", "lo-fi", "none" |
+| `music_volume` | string | | "-12dB" to "-22dB" |
+| `duration` | string | | "15 sec", "30 sec", "60 sec", "2 min", "5 min" |
+| `captions` | object | | {style, text, highlight, bg} |
+| `formats` | array | | ["16:9","9:16","1:1","4:5"] |
+| `brand` | object | | {colors, logo, fonts} |
+| `batch_prompts` | array | | Multiple videos from multiple descriptions |
+
+## Output Example
+
+```json
+{
+  "job_id": "mva-20260328-001",
+  "status": "completed",
+  "duration_seconds": 58,
+  "outputs": {
+    "reels_9x16": {
+      "file": "coffee-shop-9x16.mp4",
+      "resolution": "1080x1920",
+      "duration": "0:58",
+      "scenes": 8,
+      "voice": "friendly-female-casual",
+      "music": "acoustic-warm at -16dB",
+      "captions": "minimal-elegant"
+    },
+    "feed_1x1": {
+      "file": "coffee-shop-1x1.mp4",
+      "resolution": "1080x1080",
+      "duration": "0:58"
+    }
+  }
+}
 ```
-Save `session_id`, `task_id`.
 
-### 3.1 Send Message via SSE
-```bash
-curl -s -X POST "$API/run_sse" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
-  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
-```
+## Tips
 
-### 3.2 Upload
-**File**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+1. **Specific descriptions produce dramatically better videos** — "A coffee shop video" generates something generic. "Morning light through a window hitting a white marble counter, steam curling from a ceramic mug, barista hands pouring a rosetta latte art" generates a scene you can feel. Sensory detail drives quality.
+2. **One video idea + multiple formats = maximum platform coverage** — Describe the video once. Export in 16:9 (YouTube), 9:16 (TikTok/Reels), 1:1 (Instagram/LinkedIn). One creative decision, three platforms covered.
+3. **Batch generation turns a brainstorm into a content library** — Write 20 video descriptions in a spreadsheet. Batch-generate all 20. Schedule across the month. A month of video content from one creative session.
+4. **Match visual style to the audience expectation** — Warm-lifestyle for food and wellness. Corporate-clean for B2B. Vibrant for fashion and entertainment. Cinematic for storytelling. The visual style signals what kind of content the viewer is about to watch.
+5. **Duration should match the platform and the message density** — 15-30 seconds for ads and product teasers. 45-60 seconds for social content. 2-5 minutes for educational and explainer. Longer is not better — appropriate length is better.
 
-**URL**: same endpoint, `-d '{"urls":["<url>"],"source_type":"url"}'`
+## Output Formats
 
-Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
+| Format | Resolution | Use Case |
+|--------|-----------|----------|
+| MP4 16:9 | 1080p / 4K | YouTube / website / presentation |
+| MP4 9:16 | 1080x1920 | TikTok / Reels / Shorts / Stories |
+| MP4 1:1 | 1080x1080 | Instagram / Facebook / LinkedIn |
+| MP4 4:5 | 1080x1350 | Facebook / Instagram feed |
+| GIF | 720p | Email / web preview |
 
-### 3.3 Credits
-```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
+## Related Skills
 
-### 3.4 Query State
-```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-
-### 3.5 Export
-```bash
-curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'
-```
-Poll `GET $API/api/render/proxy/lambda/<id>` every 30s.
-
-### 3.6 Disconnect Recovery
-Wait 30s, query state. After 5 unchanged polls, report failure.
-
-## 4. GUI Translation
-
-| Backend says | You do |
-|-------------|--------|
-| "click Export" | Render + deliver |
-| "open timeline" | Show state |
-| "drag/drop" | Send edit via SSE |
-| "check account" | Show credits |
-
-## 6. Error Handling
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Token expired | Re-auth |
-| 1002 | Session gone | New session |
-| 2001 | No credits | Show registration URL |
-| 4001 | Unsupported file | Show formats |
-| 402 | Export restricted | "Register at nemovideo.ai" |
-| 429 | Rate limited | Wait 30s, retry |
-
-## 7. Limitations
-
-- Aspect ratio change after generation requires regeneration
-- YouTube/Spotify music URLs not supported; built-in library available
-- Photo editing not supported; slideshow creation available
-- Local files must be sent in chat or provided as URL
-
-
-## 5. Make Video Tips
-
-**From text**: "Make a 60-second video about [topic]" generates a complete video from scratch.
-
-**Mix media**: Upload photos + describe the video — AI combines your assets with generated content.
-
-**Style**: "Professional corporate style" or "fun casual vibe" guides the visual tone.
+- [podcast-video-maker](/skills/podcast-video-maker) — Podcast video creation
+- [demo-video-maker](/skills/demo-video-maker) — Product demo videos
