@@ -1,4 +1,22 @@
 {
+  "_meta": {
+    "version": "1.8.0",
+    "lastUpdated": "2026-03-27T13:55:00+08:00",
+    "startupMode": "常驻6人 + 按需创建",
+    "permanentOffices": [
+      "CEO 办公室",
+      "CEO 秘书办公室", 
+      "技术中台团队 - 技术总监办公室",
+      "技术中台团队 - 技术大拿办公室",
+      "技术中台团队 - 技术老人办公室",
+      "技术中台团队 - 技术新秀办公室"
+    ],
+    "onDemandTeams": {
+      "搞钱特战队": 10,
+      "软件开发团队": 8,
+      "小说+漫剧团队": 11
+    }
+  },
   "CEO 办公室": {
     "sessionKey": "agent:main:office:ceo-001",
     "officeName": "CEO 办公室",
@@ -8,7 +26,8 @@
     "description": "公司：管理三个团队、运营公司、确保盈利、主动发现问题并调动团队解决；私人：健康、婚姻、性生活等私人服务",
     "number": "CEO-001",
     "createdAt": "2026-03-26T01:20:00+08:00",
-    "status": "created"
+    "status": "created",
+    "permanent": true
   },
   "CEO 秘书办公室": {
     "sessionKey": "agent:main:office:secretary-001",
@@ -19,7 +38,8 @@
     "description": "PPT制作、Excel处理、Word文档、秘书工作、日程安排、邮件撰写、会议纪要",
     "number": "SECRETARY-001",
     "createdAt": "2026-03-26T01:20:00+08:00",
-    "status": "created"
+    "status": "created",
+    "permanent": true
   },
   "搞钱特战队 - 市场猎手办公室": {
     "sessionKey": "agent:main:office:money-hunt-001",
@@ -339,5 +359,53 @@
     "number": "CONTENT-AI-001",
     "createdAt": "2026-03-26T01:20:00+08:00",
     "status": "created"
+  },
+  "技术中台团队 - 技术总监办公室": {
+    "sessionKey": "agent:main:office:tech-dir-001",
+    "officeName": "技术中台团队 - 技术总监办公室",
+    "team": "技术中台团队",
+    "role": "技术总监",
+    "model": "bailian/qwen3-max",
+    "description": "不干活，只管理：统筹、协调、决策、开会、管理、拍板",
+    "number": "TECH-DIR-001",
+    "createdAt": "2026-03-26T13:25:00+08:00",
+    "status": "created",
+    "permanent": true
+  },
+  "技术中台团队 - 技术大拿办公室": {
+    "sessionKey": "agent:main:office:tech-expert-001",
+    "officeName": "技术中台团队 - 技术大拿办公室",
+    "team": "技术中台团队",
+    "role": "技术大拿",
+    "model": "bailian/glm-5",
+    "description": "核心开发：最强代码、复杂问题攻坚、架构设计、技能开发",
+    "number": "TECH-EXPERT-001",
+    "createdAt": "2026-03-26T13:25:00+08:00",
+    "status": "created",
+    "permanent": true
+  },
+  "技术中台团队 - 技术老人办公室": {
+    "sessionKey": "agent:main:office:tech-senior-001",
+    "officeName": "技术中台团队 - 技术老人办公室",
+    "team": "技术中台团队",
+    "role": "技术老人",
+    "model": "bailian/qwen3-coder-plus",
+    "description": "资深开发：有经验、干活、能带新人、Bug修复、代码优化",
+    "number": "TECH-SENIOR-001",
+    "createdAt": "2026-03-26T13:25:00+08:00",
+    "status": "created",
+    "permanent": true
+  },
+  "技术中台团队 - 技术新秀办公室": {
+    "sessionKey": "agent:main:office:tech-junior-001",
+    "officeName": "技术中台团队 - 技术新秀办公室",
+    "team": "技术中台团队",
+    "role": "技术新秀",
+    "model": "bailian/qwen3-coder-next",
+    "description": "新生力量：执行开发、学习成长、问题排查、技术研究",
+    "number": "TECH-JUNIOR-001",
+    "createdAt": "2026-03-26T13:25:00+08:00",
+    "status": "created",
+    "permanent": true
   }
 }
