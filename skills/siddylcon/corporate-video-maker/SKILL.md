@@ -1,118 +1,86 @@
 ---
 name: corporate-video-maker
-version: "1.0.0"
-displayName: "Corporate Video Maker — Create Professional Business and Company Videos"
+version: "10.0.1"
+displayName: "Corporate Video Maker — Create Internal Communications and Corporate Content"
 description: >
-  Produce professional corporate videos for brand storytelling, investor communication, and internal engagement. NemoVideo handles company overviews, culture showcases, annual reports, and executive messages — turning raw footage and brand assets into polished business videos without agency timelines or agency budgets.
-metadata: {"openclaw": {"emoji": "🏛️", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+    Corporate Video Maker — Create Internal Communications and Corporate Content. Works by connecting to the NemoVideo AI backend. Supports MP4, MOV, AVI, WebM, and MKV output formats. Automatic credential setup on first use — no manual configuration needed.
+metadata: {"openclaw": {"emoji": "🏢", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
-# Corporate Video Maker — Professional Business and Company Videos
+# Corporate Video Maker — Internal Communications and Corporate Content
 
-The corporate video occupies an awkward position in the content ecosystem: it must be professional enough to represent a billion-dollar brand on an investor-relations page, yet engaging enough that an employee actually watches it during onboarding instead of letting it autoplay on mute while they fill out tax forms. It must communicate authenticity while being carefully scripted, demonstrate culture while being approved by legal, and inspire emotion while being signed off by a committee of 11 stakeholders who each added their department's talking points until the original 90-second concept became a 7-minute hostage situation where every division gets 45 seconds of screen time regardless of whether they have anything interesting to show. NemoVideo solves this by imposing structure: it takes raw assets — executive recordings, office footage, event clips, product shots, customer quotes — and assembles them into corporate videos that follow proven narrative frameworks rather than org-chart politics. The CEO's message is trimmed from 8 minutes to 90 seconds because the data is unambiguous: viewer drop-off at 2 minutes is 60%. The culture video shows real employees in real moments because stock-footage culture videos communicate the opposite of culture. The investor update leads with the numbers because that's what investors came for. The tool doesn't make corporate video exciting — it makes corporate video watchable, which in this category is the same thing.
+The quarterly all-hands is in three days, the CEO wants a "quick video" to kick it off, the comms team has been given a 47-slide PowerPoint deck, a spreadsheet of Q3 results, and a loose instruction to "make it engaging" — a word that has never once appeared in a corporate presentation that was actually engaging. Corporate video is the format everyone needs and nobody wants to watch, because most corporate videos are PowerPoint slides that learned to move, narrated by a voice that sounds like it's reading a compliance manual aloud. The bar is low enough that anything with actual pacing, visual storytelling, and a human moment lands like a Super Bowl ad by comparison. This tool transforms earnings summaries, all-hands decks, culture documents, training manuals, policy updates, and internal announcements into watchable corporate videos — data-visualization animations that make revenue charts feel like sports scores, CEO message segments with teleprompter-clean delivery and natural eye contact, employee-spotlight reels that prove culture isn't just a poster in the breakroom, onboarding sequences that new hires actually finish, and town-hall recaps that the 60% who missed the meeting will actually watch. Built for internal comms teams producing quarterly updates, HR departments creating onboarding video libraries, executive teams recording investor-ready earnings summaries, learning-and-development managers building training curricula, corporate events teams producing conference openers, and any organization where "Did you read the email?" has a success rate of approximately zero.
 
-## Use Cases
+## Example Prompts
 
-1. **Company Overview / About Us** — Produce a 2-minute video for the corporate website's About page. Structure: mission statement (10 sec, text animation over hero footage), founding story (20 sec, founder on camera or archival photos), what the company does today (30 sec, product/service montage with narration), scale and reach (15 sec, animated data — employees, offices, customers, revenue), customer impact (25 sec, one client quote on camera), and forward vision (20 sec, CEO on camera). Exported at 4K for website hero embed and 1080p 1:1 for LinkedIn.
-2. **Annual Report Video Summary** — Convert the annual report's key findings into a 3-minute visual summary for shareholders. Animated financial charts (revenue growth, margin trends, segment breakdown), operational highlights (new markets, product launches, headcount growth), ESG metrics (carbon reduction, diversity stats), and forward guidance. Designed to embed in the digital annual report and play at the shareholder meeting.
-3. **Employee Culture Showcase** — Create a 90-second video for the careers page. No scripts, no staging: real employees answering one question on camera — "What's the best thing about working here?" NemoVideo selects the 6 most compelling responses (15 sec each), intercuts with candid office/remote-work footage, adds a branded intro/outro and the careers URL. The video should feel like a documentary clip, not a commercial.
-4. **CEO Quarterly Update** — The CEO recorded a 12-minute all-hands address. NemoVideo trims it to 4 minutes: the three key messages (financial results, strategic priorities, team recognition), with data overlays appearing when the CEO references numbers, and chapter markers so employees can jump to the section relevant to their division.
-5. **Office Tour / Facility Showcase** — Produce a 2-minute walkthrough of a new office, factory, or campus. Drone or gimbal footage with location labels, department overlays as the camera moves through spaces, and an employee guide appearing on camera at 3 key stops to explain what happens in each area. Used for recruiting, client visits, and internal orientation.
+### 1. Quarterly All-Hands — CEO Earnings Summary
+"Create a 3-minute all-hands video for Q3 results. CEO opening (0-20 sec): direct-to-camera message — 'Q3 was the quarter we stopped talking about growth and started proving it. Here's what happened.' Professional but not stiff — the CEO should feel like they're talking to the team, not reading to shareholders. Revenue section (20-60 sec): animated chart — revenue line climbing from $12M in Q1 to $18.4M in Q3, each quarter labeled with the key driver. Q3 callout: '+28% QoQ — our biggest quarter ever.' Three pillars animated as rising bars: Enterprise deals (+40%), self-serve growth (+22%), expansion revenue (+35%). Headline metric: 'Net revenue retention: 128%. Our customers don't just stay — they grow.' Customer section (60-90 sec): three customer logos appearing with one-line wins: 'Acme Corp — deployed to 10,000 seats' / 'GlobalBank — $2M annual contract' / 'HealthFirst — 3-month implementation, usually takes 12.' Team section (90-130 sec): headcount growth (280 → 340 employees), new office in London (quick pan of the new space), three new hires introduced with name + role + one fun fact. Employee spotlight: 15-second clip of the support team celebrating their NPS record (78). Closing (130-180 sec): CEO back on camera — 'Q4 is about execution. The pipeline is full, the product is ready, the team is the strongest it's ever been. Let's close the year the way we started Q3 — by doing, not talking.' End card with Q4 priorities (3 bullets). Clean corporate style — company brand colors, modern sans-serif, animated data visualizations, professional studio lighting on CEO segments."
 
-## How It Works
+### 2. Employee Onboarding — First Week Welcome
+"Build a 5-minute onboarding video for new employees joining the company. Day 1 orientation feel — warm, helpful, not overwhelming. Welcome (0-30 sec): montage of real employees waving at camera saying 'Welcome!' from different offices and home setups. Text: 'Welcome to Meridian. Here's everything you need to survive your first week. (You'll thrive by week two.)' Culture (30-90 sec): not the poster values — show them in action. 'We ship on Tuesdays' — clip of the deploy channel in Slack going wild. 'We disagree openly' — clip of a design review where someone says 'I don't think that works' and the room doesn't collapse. 'We celebrate weirdly' — clip of the gong, the custom Slack emojis, the Friday demo day. Tools & Setup (90-150 sec): animated screen walkthrough — here's Slack (these channels matter: #general, #your-team, #random for memes), here's Notion (your team wiki lives here, bookmark this page), here's the HR portal (PTO requests, benefits enrollment — do this in your first 3 days). Key contacts: your manager (already scheduled your 1:1), your onboarding buddy (they'll ping you by lunch), IT support (#help-it or just DM Alex). First-week checklist (150-220 sec): animated checklist appearing item by item — 'Set up your dev environment (guide linked in Notion)' / 'Schedule coffee chats with 3 people outside your team' / 'Complete compliance training (sorry, it's mandatory, but it's only 20 minutes)' / 'Push your first commit or ship your first task' / 'Find the snack drawer. This is important.' Common questions (220-280 sec): FAQ style — 'Where do I park?' / 'What's the WFH policy?' / 'When do I get equity details?' / 'Is the ping-pong table competitive?' (show intense match footage). Closing: 'Your first week is about learning. Your first month is about contributing. Your first year is about owning something. We're glad you're here.' End card: key links, buddy contact, emergency IT number. Friendly, modern design — casual animations, real office footage mixed with motion graphics, upbeat background music."
 
-### Step 1 — Gather Assets
-Collect raw footage (executive recordings, office b-roll, event clips, product shots), brand kit (logo, color hex codes, fonts), data for visualization (financials, headcount, milestones), and any existing scripts or talking points.
+### 3. Training Module — Compliance and Data Security
+"Produce a 4-minute compliance training video on data security practices. Audience: all employees, especially non-technical. Tone: serious content, not boring delivery. Hook (0-15 sec): 'Last year, 83% of data breaches started with a phishing email. Someone clicked a link that looked like a password reset from IT. The email was one letter off. That one letter cost $4.2 million.' Not fear-mongering — just reality. Phishing (15-75 sec): animated email inbox — a real email vs a phishing email side by side. Spot the differences: sender domain (meridian.com vs rneridian.com — the 'rn' trick), urgency language ('Your account will be locked in 24 hours'), suspicious link (hover to reveal the real URL). Rule: 'If it asks for your password, it's not from us. We will never ask for your password via email. Ever.' What to do: 'Forward it to security@meridian.com. Don't click. Don't reply. Don't feel embarrassed — the attackers are professionals.' Password hygiene (75-120 sec): 'Your dog's name + birth year is not a password. It's a gift to anyone who can see your Instagram.' Animated demo: password manager setup — generate, store, autofill. 'One master password. That's all you need to remember. Make it a sentence: BlueCoffeeRunsUphill47! — long, weird, and yours.' MFA: animated lock with two keys — 'Even if someone gets your password, they still need your phone.' Data handling (120-180 sec): three scenarios — 'You're working from a coffee shop. Your screen shows customer data. The person behind you has a phone camera.' (Use a privacy screen.) 'You need to share a file with a partner. You email an unencrypted spreadsheet with 10,000 customer records.' (Use the secure share link from the portal.) 'You find a USB drive in the parking lot.' (Do not plug it in. Bring it to IT. Yes, even if it says 'Salary Data 2024.') Incident response (180-220 sec): 'You clicked the link. It happens. Here's what you do in the next 5 minutes.' Step-by-step: disconnect from VPN, call IT security (phone number on screen), don't turn off your laptop (forensics needs it running), report in the incident portal. 'Speed matters more than shame.' Closing (220-240 sec): '83% start with a click. 0% have to end with a breach. Stay skeptical, stay trained, stay secure.' Completion acknowledgment — 'Mark this module complete in the learning portal.' Clean, slightly dramatic design — dark backgrounds for the threat scenarios, bright brand colors for the solutions, animated demonstrations, professional voiceover."
 
-### Step 2 — Define Video Type and Audience
-Specify the corporate video category, primary audience (investors, employees, public, recruits), distribution channel (website, LinkedIn, all-hands meeting, shareholder event), and any compliance requirements (legal review, brand guidelines, regulatory disclosures).
+## Parameters
 
-### Step 3 — Generate
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `prompt` | string | ✅ | Describe the video purpose, audience, content sections, and tone |
+| `duration` | string | | Target video length (e.g. "3 min", "5 min") |
+| `style` | string | | Visual style: "executive-clean", "onboarding-friendly", "training-structured", "event-cinematic" |
+| `music` | string | | Background audio: "corporate-light", "upbeat-modern", "subtle-ambient", "none" |
+| `format` | string | | Output ratio: "16:9", "9:16", "1:1" |
+| `brand_colors` | string | | Company hex colors (e.g. "#1A365D, #F6AD55") |
+| `audience` | string | | Internal audience: "all-employees", "new-hires", "leadership", "investors" |
+
+## Workflow
+
+1. **Describe** — Write the video structure with sections, data points, speaker segments, and tone
+2. **Upload** — Add slide decks, earnings data, employee clips, office footage, or brand assets
+3. **Generate** — AI builds the corporate video with data animations, speaker framing, and pacing
+4. **Review** — Preview the edit, verify data accuracy, adjust the section timing and transitions
+5. **Export** — Download in your chosen format and resolution
+
+## API Example
+
 ```bash
 curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
   -H "Authorization: Bearer $NEMO_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "skill": "corporate-video-maker",
-    "prompt": "Create a 2-minute company overview video. Structure: (1) Mission — animated text over aerial office footage, 10 sec. (2) Founding story — 2015, two founders in a garage, archival photos dissolving into present-day campus, 20 sec. (3) What we do today — product montage showing the platform dashboard, mobile app, and API integrations with narration overlay, 30 sec. (4) Scale — animated counters: 1200 employees, 8 offices, 15000 customers, $280M ARR, 15 sec. (5) Customer impact — client VP on camera: how the platform reduced their ops costs 40%, 25 sec. (6) Vision — CEO on camera: where the company is headed in the next 3 years, 20 sec. Branded intro 3 sec with logo animation, outro 5 sec with tagline and website URL. Corporate color palette: #1A365D, #2B6CB0, #E2E8F0.",
-    "duration": "2 min",
-    "style": "company-overview",
-    "audience": "public",
-    "brand_kit": true,
-    "data_animation": true,
-    "music": "corporate-inspiring",
+    "prompt": "Create a 3-minute Q3 all-hands video: CEO direct-to-camera opening, revenue chart animation $12M to $18.4M (+28% QoQ), three growth pillars as rising bars, 3 customer logos with one-line wins, headcount 280 to 340, employee spotlight support team NPS 78, CEO closing with Q4 priorities",
+    "duration": "3 min",
+    "style": "executive-clean",
+    "audience": "all-employees",
+    "brand_colors": "#1A365D, #F6AD55",
     "format": "16:9"
   }'
 ```
 
-### Step 4 — Stakeholder Review and Distribution
-Route the draft through the approval chain (marketing → legal → executive). NemoVideo supports timestamped comments for revision rounds. Export final versions for each distribution channel: 4K for website embed, 1080p 16:9 for presentations, 1:1 for LinkedIn/Twitter.
+## Tips for Best Results
 
-## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|:--------:|-------------|
-| `prompt` | string | ✅ | Describe the corporate video type, structure, and key messages |
-| `duration` | string | | Target length: "90 sec", "2 min", "3 min", "5 min" |
-| `style` | string | | "company-overview", "annual-report", "culture-showcase", "ceo-message", "office-tour", "milestone-celebration" |
-| `audience` | string | | "public", "investors", "employees", "recruits" |
-| `brand_kit` | boolean | | Apply brand colors, logo, and font from uploaded kit (default: true) |
-| `data_animation` | boolean | | Animate financial/operational data as counters, charts, or graphs (default: true) |
-| `music` | string | | "corporate-inspiring", "warm-authentic", "minimal-elegant", "energetic-modern" |
-| `format` | string | | "16:9", "9:16", "1:1" |
-
-## Output Example
-
-```json
-{
-  "job_id": "cvm-20260328-001",
-  "status": "completed",
-  "title": "Nextera Solutions — Company Overview 2026",
-  "duration_seconds": 128,
-  "format": "mp4",
-  "resolution": "3840x2160",
-  "file_size_mb": 186.4,
-  "output_files": {
-    "4k_hero": "nextera-overview-4k.mp4",
-    "1080p_presentation": "nextera-overview-1080p.mp4",
-    "1080p_square": "nextera-overview-1x1.mp4"
-  },
-  "sections": [
-    {"label": "Mission Statement", "start": 0, "end": 13},
-    {"label": "Founding Story", "start": 13, "end": 33},
-    {"label": "Product Today", "start": 33, "end": 63},
-    {"label": "Scale — Animated Counters", "start": 63, "end": 78},
-    {"label": "Customer Impact — Client VP", "start": 78, "end": 103},
-    {"label": "CEO Vision", "start": 103, "end": 123},
-    {"label": "Outro + URL", "start": 123, "end": 128}
-  ],
-  "brand_compliance": {
-    "colors_used": ["#1A365D", "#2B6CB0", "#E2E8F0"],
-    "logo_placements": 3,
-    "font": "Inter (brand-specified)"
-  }
-}
-```
-
-## Tips
-
-1. **Trim the CEO to 90 seconds maximum** — Executive messages longer than 2 minutes lose 60% of viewers. The CEO's 12-minute recording contains 90 seconds of essential content. NemoVideo finds and extracts it.
-2. **Use real employees, not actors** — Culture videos with stock footage or hired actors communicate inauthenticity. One genuine employee saying "I like that my manager trusts me to manage my own time" is worth more than a scripted monologue from a professional speaker.
-3. **Lead with the number on annual report videos** — Investors click the video for financials. Revenue growth in the first 15 seconds earns them watching the remaining 2:45. Burying the numbers after a 60-second mission-statement preamble loses the audience.
-4. **Animate counters for scale metrics** — "1,200 employees" as static text is forgettable. A counter rapidly ticking from 0 to 1,200 with a satisfying sound effect is memorable and shareable.
-5. **Export multiple aspect ratios simultaneously** — The same video needs 16:9 for the website, 1:1 for LinkedIn, and 9:16 for executive social posts. NemoVideo renders all three from a single generation, with intelligent reframing for each ratio.
+1. **Lead with a number, not a greeting** — "Revenue hit $18.4M" hooks attention; "Hi everyone, thanks for joining" is a signal to check email. The AI places your strongest data point in the first frame when you open with a metric.
+2. **Break data into story beats** — Don't dump all the charts at once. "Revenue → Customers → Team → Roadmap" gives the video a narrative arc. The AI generates distinct visual sections with transitions that maintain attention through the data.
+3. **Keep CEO segments under 30 seconds each** — Direct-to-camera authority segments work best in bursts. The AI intercuts data animations between speaker segments so the viewer sees the evidence for what the CEO just said.
+4. **Include one human moment** — The support team celebrating their NPS record, the new hire's first deploy, the office dog in the background. The AI renders these as montage beats that prevent the video from feeling like an animated spreadsheet.
+5. **End with three priorities, not ten** — "Q4 is about execution" with three bullet points on the end card. More than three priorities means no priorities. The AI formats the closing card with visual hierarchy that makes the top priority unmissable.
 
 ## Output Formats
 
 | Format | Resolution | Use Case |
 |--------|-----------|----------|
-| MP4 16:9 | 1080p / 4K | Website hero / investor deck / all-hands |
-| MP4 9:16 | 1080p | Executive LinkedIn / Instagram Stories |
-| MP4 1:1 | 1080p | LinkedIn feed / Twitter / Facebook |
-| GIF | 720p | Counter animation / logo reveal loop |
+| MP4 16:9 | 1080p / 4K | All-hands meeting / internal presentation |
+| MP4 9:16 | 1080p | Internal mobile app / Slack video message |
+| MP4 1:1 | 1080p | Internal social feed / newsletter embed |
+| MP4 loop | 1080p | Lobby screen / office display |
 
 ## Related Skills
 
-- [product-demo-video](/skills/product-demo-video) — Product demonstration videos
-- [event-recap-video](/skills/event-recap-video) — Event highlight and recap videos
-- [testimonial-video-maker](/skills/testimonial-video-maker) — Customer testimonial production
+- [brand-video-maker](/skills/brand-video-maker) — Brand story and company identity videos
+- [explainer-video-maker](/skills/explainer-video-maker) — Animated explainer and how-it-works videos
+- [product-demo-video](/skills/product-demo-video) — Product walkthrough and feature demo videos

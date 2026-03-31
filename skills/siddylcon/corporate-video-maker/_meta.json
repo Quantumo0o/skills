@@ -3,11 +3,16 @@
   "slug": "corporate-video-maker",
   "displayName": "Corporate Video Maker",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774644179952,
-    "commit": "https://github.com/openclaw/skills/commit/7cc8878166c90a8fccd42522c3007b12fb67afff"
+    "version": "10.0.1",
+    "publishedAt": 1774842000371,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774644179952,
+      "commit": "https://github.com/openclaw/skills/commit/7cc8878166c90a8fccd42522c3007b12fb67afff"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774500442230,
