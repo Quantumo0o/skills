@@ -3,9 +3,15 @@
   "slug": "youtube-video-to-text",
   "displayName": "Youtube Video To Text",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774497666414,
-    "commit": "https://github.com/openclaw/skills/commit/634bd6cf09ec9fe2d7c67d60989de4622391181a"
+    "version": "3.0.0",
+    "publishedAt": 1774662942893,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774497666414,
+      "commit": "https://github.com/openclaw/skills/commit/634bd6cf09ec9fe2d7c67d60989de4622391181a"
+    }
+  ]
 }
