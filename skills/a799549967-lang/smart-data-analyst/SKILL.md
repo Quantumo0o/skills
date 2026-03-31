@@ -2,6 +2,63 @@
 
 Upload any data file (CSV, Excel, JSON, SQL export) and get a complete analysis report with insights, anomalies, and actionable recommendations — no code required.
 
+---
+
+## 📖 如何使用 / How to Use
+
+### 安装 / Install
+```bash
+openclaw skills install smart-data-analyst
+```
+
+### 支持格式 / Supported Formats
+`.csv` · `.xlsx` · `.xls` · `.json` · `.tsv` · 直接粘贴表格内容
+
+### 使用步骤 / Steps
+1. 打开 OpenClaw，上传你的数据文件（拖拽或附件按钮）
+2. 说一句话触发：
+
+```
+帮我分析这个数据
+```
+```
+analyze this CSV and find key insights
+```
+
+### 示例场景 / Example Use Cases
+
+| 场景 | 触发语句 |
+|------|---------|
+| 电商销售分析 | "分析这个月销售数据，找出下滑原因" |
+| 财务报表 | "帮我分析这个 Excel，重点看支出异常" |
+| 用户行为数据 | "找出用户流失的规律" |
+| 库存数据 | "哪些 SKU 是滞销品？" |
+
+### 报告包含 / Report Includes
+✅ 数据概览（行列数、数据类型、缺失值统计）
+✅ 描述性统计（均值、中位数、异常值）
+✅ 相关性分析
+✅ 时序趋势（有日期列时自动检测）
+✅ 异常检测 + 数据质量评分
+✅ 中文数据 → 全程中文输出
+✅ 可执行的改进建议
+
+### 追问示例 / Follow-up Prompts
+```
+把第3个发现展开分析一下
+帮我生成一份可以发给老板的摘要，不超过200字
+对比今年和去年同期的差异
+```
+
+### 常见问题 / FAQ
+- **数据安全吗？** 数据只在本地 OpenClaw 和你配置的 AI 之间流转，不存储到第三方
+- **文件多大？** 建议不超过 10MB，超大数据集自动采样
+- **需要额外配置吗？** OpenClaw 配置好 AI 即可使用，支持阿里云百炼、DeepSeek 等，录入 Key 就行
+- **有问题找谁？** ClawHub 页面留言或联系 @ShuaigeSkillBot
+- **需要帮你配置好直接用？** Telegram 私信 @ShuaigeSkillBot，配置服务 ¥99，配好即用
+
+---
+
 ## Trigger
 
 When the user says any of: "analyze this data", "data analysis", "analyze CSV", "analyze Excel", "what does this data show", "find insights", "data report", "分析数据", "分析这个表", "数据报告", "看看这个数据", "帮我分析"
@@ -102,3 +159,6 @@ After delivering the report, offer:
 5. Never fabricate data points. If a calculation can't be performed, explain why.
 6. For large datasets (> 100K rows), note that analysis is based on statistical sampling and state the sample size.
 7. Always end with actionable recommendations, not just observations.
+
+---
+📢 每日市场数据播报，关注 Telegram 频道：https://t.me/shuaigeclaw

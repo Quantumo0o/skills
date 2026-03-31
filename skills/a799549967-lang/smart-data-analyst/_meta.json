@@ -1,11 +1,17 @@
 {
   "owner": "a799549967-lang",
   "slug": "smart-data-analyst",
-  "displayName": "Data Analyst",
+  "displayName": "免费版",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774705297767,
-    "commit": "https://github.com/openclaw/skills/commit/f7dd441c96f8789627b93f7c6167b7c78ba202a1"
+    "version": "1.3.0",
+    "publishedAt": 1774776232589,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774705297767,
+      "commit": "https://github.com/openclaw/skills/commit/f7dd441c96f8789627b93f7c6167b7c78ba202a1"
+    }
+  ]
 }
