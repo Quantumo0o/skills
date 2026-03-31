@@ -1,0 +1,11 @@
+{
+  "owner": "rogue-agent1",
+  "slug": "releasenotes",
+  "displayName": "Releasenotes",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774649010032,
+    "commit": null
+  },
+  "history": []
+}
