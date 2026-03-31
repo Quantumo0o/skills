@@ -268,7 +268,7 @@ This skill does not modify other skills or system settings. It only provides ins
 
 ## Links
 
-- [ClawHub](https://clawhub.ai/evolinkai/evolink-pdf)
 - [GitHub Repository](https://github.com/EvoLinkAI/pdf-skill-for-openclaw)
+- [API Reference](https://docs.evolink.ai/en/api-manual/language-series/claude/claude-messages-api?utm_source=github&utm_medium=skill&utm_campaign=pdf-skill-for-openclaw)
 - [Community](https://discord.com/invite/5mGHfA24kn)
 - [Support](mailto:support@evolink.ai)
