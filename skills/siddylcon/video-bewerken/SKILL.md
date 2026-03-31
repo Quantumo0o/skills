@@ -1,152 +1,116 @@
 ---
 name: video-bewerken
-version: "1.0.0"
-displayName: "Video Bewerken met AI - Bewerk Videos met Kunstmatige Intelligentie"
+version: "1.1.0"
+displayName: "Video Bewerken met AI — Dutch Video Editor — Bewerk Video's met Kunstmatige Intelligentie"
 description: >
-  Video bewerken met AI — beschrijf je bewerkingen en de AI voert ze uit. Videos knippen,
-  samenvoegen, achtergrondmuziek toevoegen, kleurcorrectie toepassen, ondertitels
-  invoegen en exporteren als MP4. Een AI-video-editor die volledig via chat werkt,
-  zonder tijdlijn en zonder videobewerkingssoftware. Upload een video of stuur een
-  link en begin met bewerken in natuurlijke taal. Ondersteunt videobewerking voor
-  TikTok, Instagram Reels, YouTube Shorts en sociale media content. Video knippen,
-  video samenvoegen, muziek toevoegen aan video, tekst in video plaatsen, video
-  inkorten, video draaien, ondertitels maken, kleurcorrectie, video exporteren.
-  AI-videobewerking in het Nederlands. Exporteert als MP4. Accepteert mp4, mov,
-  avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
+  Bewerk video's met kunstmatige intelligentie in het Nederlands — volledige videobewerking met Nederlandse ondertitels, ingesproken tekst met Vlaams of Nederlands accent, geanimeerde teksten, automatische montage, achtergrondmuziek, visuele effecten en export naar alle platforms. NemoVideo biedt complete videoproductie in het Nederlands: voeg automatische ondertitels toe met woord-voor-woord synchronisatie, genereer Nederlandse voice-over met keuze uit Standaardnederlands of Vlaams, maak geanimeerde teksten en titels, pas cinematische kleurcorrectie toe, en exporteer voor YouTube TikTok Instagram en alle sociale media. Video bewerken AI, video editor Nederlands, video bewerken online, ondertitels Nederlands, Nederlandse video maker, Dutch video editor, edit video Dutch, Netherlands video creator, Flemish video editor, video montage Nederlands.
 metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
-# Video Bewerken met AI - Chat en Bewerk
+# Video Bewerken met AI — Professionele Videobewerking in het Nederlands
 
-## 1. Role & Environment
+Nederland en Vlaanderen vormen samen een van de meest digitaal verbonden markten ter wereld. Nederland heeft een internetpenetratie van 98%, de hoogste in Europa. België (Vlaanderen) volgt met 94%. YouTube bereikt 93% van de Nederlandse bevolking. Nederlandse en Vlaamse content creators behoren tot de meest succesvolle op YouTube per capita. Maar videobewerkingstools zijn vrijwel uitsluitend ontworpen voor het Engels — menu's, sjablonen, stemmen, en tekstfuncties gaan uit van Engelstalige gebruikers. Nederlandse ondertiteling op platforms als YouTube bereikt slechts 78-82% nauwkeurigheid, aanzienlijk lager dan Engels. NemoVideo behandelt Nederlands als volwaardige taal: automatische ondertitels met 98%+ nauwkeurigheid in Standaardnederlands en Vlaams, ingesproken tekst met authentieke accenten, correcte Nederlandse typografie, en cultureel passende content voor de Nederlandstalige markt.
 
-You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but assumes a GUI exists. Your job:
+The Netherlands and Flanders (Dutch-speaking Belgium) together represent 30 million native Dutch speakers with among the highest digital engagement rates globally. Dutch YouTube channels like Enzo Knol, NikkieTutorials, and StukTV have built multi-million subscriber audiences proving the market's appetite for Dutch-language content. Yet Dutch video producers face the same tooling gap as all non-English markets: editing software designed for English, auto-captions with poor Dutch accuracy (especially for compound words — Dutch creates long compound nouns that auto-caption systems break incorrectly), and no native Dutch voiceover options in most tools. NemoVideo provides Dutch-native video production: accurate Dutch transcription that handles compound words correctly, voiceover in Standard Dutch (Standaardnederlands/ABN) or Flemish (Vlaams), proper Dutch typography, and cultural awareness of the Netherlands and Flanders markets.
 
-1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses — replace GUI references with API actions
-3. **Supplement** — handle export/render, credits, file delivery directly
-4. **Translate** — present results in user's language with clear status
+## Use Cases
 
-### Environment Variables
+1. **Nederlandse Ondertitels — Dutch Auto-Captioning (any length)** — A Dutch YouTuber needs subtitles that handle the language correctly. Dutch compound words are a specific challenge: "arbeidsongeschiktheidsverzekering" (disability insurance) is one word that auto-caption systems split into fragments. NemoVideo: transcribes Dutch at 98%+ accuracy with correct compound word handling (keeping compound words intact as single units), handles Dutch-specific sounds (the soft 'g' in standard Dutch vs. the hard 'g' in Southern Dutch, the diphthongs 'ui', 'eu', 'ij'), correctly applies Dutch spelling rules (including the trema — "coördinatie" not "coordinatie", "reëel" not "reeel"), differentiates between Standard Dutch and Flemish vocabulary when relevant, applies animated subtitle styling for social platforms, and positions within platform safe zones. Ondertitels die kloppen — woord voor woord, accent voor accent.
 
-| Variable | Required | Default |
-|----------|----------|---------|
-| `NEMO_TOKEN` | No | Auto-generated on first use |
-| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
-| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
-| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` |
-| `SKILL_SOURCE` | No | Auto-detected from install path |
+2. **Nederlandse Voice-Over — Standard Dutch and Flemish (any length)** — A marketing video, educational content, or corporate communication needs Dutch narration. NemoVideo: generates voiceover in Standard Dutch (ABN — Algemeen Beschaafd Nederlands: the neutral Dutch spoken on NOS news and NPO broadcasts, understood by all Dutch speakers) or Flemish (Vlaams: warmer, softer pronunciation with distinct vocabulary choices preferred by Belgian audiences), with regional nuance (Amsterdam urban, Randstad professional, Flemish formal, Flemish conversational). The accent choice matters: Standard Dutch sounds clinical to Flemish ears; Flemish sounds informal to Dutch ears. Each audience has preferences. Stem die past bij het publiek — geen generiek "Europees Nederlands" dat niemand echt spreekt.
 
-If `NEMO_TOKEN` is not set:
+3. **Sociale Media Content — Dutch Social Video (15-90s)** — Dutch social media consumption patterns differ from global averages: LinkedIn penetration in the Netherlands is the highest in the world (proportionally), Instagram Reels dominates the young demographic, and TikTok growth among Dutch users is explosive. NemoVideo: creates social content optimized for Dutch audiences (direct communication style — Dutch audiences value straightforwardness over marketing polish), adds Dutch text overlays with correct spelling and typography (ij as a single digraph in capitalization: IJsselmeer not Ijsselmeer), applies the visual style that performs in the Dutch market (clean, design-forward, slightly understated — reflecting Dutch design sensibility), and exports for the platforms that matter in the Benelux market. Content dat eruitziet alsof het door een Nederlands bureau is gemaakt.
+
+4. **Bedrijfsvideo — Dutch Corporate Content (2-10 min)** — Dutch and Belgian companies operate in a bilingual business environment: Dutch for domestic communication, English for international contexts. NemoVideo: produces professional Dutch corporate video with appropriate register (zakelijk Nederlands — business Dutch that is professional without being stiff), handles bilingual content naturally (Dutch narration with English product names and technical terms rendered correctly within the Dutch speech flow), adds corporate text overlays in correct Dutch (formal "u" forms for external communication, informal "je" forms for internal culture videos), and exports for corporate platforms, LinkedIn (dominant in Dutch B2B), and internal communications. Bedrijfsvideo met dezelfde kwaliteit als een professioneel productiehuis.
+
+5. **Educatieve Video — Dutch Educational Content (5-30 min)** — The Netherlands has a strong educational video market: from university lectures to primary school support content to professional development. NemoVideo: creates educational video with Dutch narration at learning-appropriate pace, handles academic Dutch vocabulary correctly (including Latin-derived scientific terms with Dutch pronunciation), adds educational overlays (vocabulary, formulas, diagrams with Dutch labels), generates accurate Dutch subtitles for accessibility (important for integration — many Dutch residents are non-native Dutch speakers learning the language), and produces content structured for Dutch educational platforms. Educatieve content die voldoet aan de standaarden van het Nederlandse onderwijs.
+
+## How It Works
+
+### Step 1 — Upload Video or Text
+Any video for Dutch editing, or text/script for Dutch video generation.
+
+### Step 2 — Configure Dutch Output
+Choose: Standard Dutch or Flemish, formal or informal register, voiceover accent, subtitle style, and text overlay language.
+
+### Step 3 — Generate
 ```bash
-CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
-if [ -z "$CLIENT_ID" ]; then
-  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
-fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-```
-Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Client-Id`.
-
-## 2. Request Router
-
-| User says... | Action | Skip SSE? |
-|-------------|--------|-----------|
-| "export" / "download" / "send me the video" | Export | Yes |
-| "credits" / "balance" | Credits | Yes |
-| "status" / "show tracks" | State | Yes |
-| "upload" / user sends file | Upload | Yes |
-| Everything else | SSE | No |
-
-## 3. Core Flows
-
-`$API` = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, `$TOKEN` = `${NEMO_TOKEN}`, `$WEB` = `${NEMO_WEB_URL:-https://nemovideo.com}`.
-
-All API requests MUST include:
-```
-X-Skill-Source: $SKILL_NAME
-X-Skill-Version: $SKILL_VERSION
-X-Skill-Platform: $SKILL_SOURCE
+curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
+  -H "Authorization: Bearer $NEMO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill": "video-bewerken",
+    "prompt": "Voeg Nederlandse ondertitels toe aan een video van 8 minuten. Automatische transcriptie in Standaardnederlands met 98%%+ nauwkeurigheid. Stijl: schone broadcast-ondertitels (wit op half-transparante donkere balk, maximaal 2 regels). Genereer ook een Nederlandse voice-over in ABN — professioneel, helder, vriendelijk. Achtergrondmuziek: rustige elektronische muziek. Voeg een titel toe aan het begin: De Toekomst van AI in Nederland — geanimeerd, modern lettertype. Exporteer 16:9 voor YouTube en 9:16 voor Instagram Reels.",
+    "dutch_variant": "standard-dutch",
+    "register": "professional-friendly",
+    "subtitles": {
+      "style": "broadcast-clean",
+      "background": "semi-transparent-dark",
+      "max_lines": 2,
+      "timing": "word-level"
+    },
+    "voiceover": {
+      "variant": "standard-dutch-abn",
+      "tone": "professional-friendly"
+    },
+    "title": {"text": "De Toekomst van AI in Nederland", "animation": "modern-slide"},
+    "music": "calm-electronic",
+    "formats": ["16:9", "9:16"]
+  }'
 ```
 
-### 3.0 Create Session
-```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"task_name":"project","language":"<lang>"}'
-```
-Save `session_id`, `task_id`.
+### Step 4 — Review Dutch Quality
+Verify: compound words are intact, spelling is correct (including trema usage), voiceover sounds authentically Dutch (not German-accented or Flemish when Standard Dutch was requested), and text overlays handle Dutch-specific characters correctly (ij, IJ, trema, accents).
 
-### 3.1 Send Message via SSE
-```bash
-curl -s -X POST "$API/run_sse" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
-  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
-```
+## Parameters
 
-### 3.2 Upload
-**File**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `prompt` | string | ✅ | Dutch editing requirements |
+| `dutch_variant` | string | | "standard-dutch", "flemish", "surinamese-dutch" |
+| `register` | string | | "formal", "informal", "professional-friendly", "academic" |
+| `subtitles` | object | | {style, timing, position} |
+| `voiceover` | object | | {variant, accent, tone, gender} |
+| `text_overlays` | array | | [{text (Dutch), position, animation}] |
+| `music` | string | | Music style |
+| `bilingual` | boolean | | Dutch + English mixed content |
+| `formats` | array | | ["16:9", "9:16", "1:1"] |
 
-**URL**: same endpoint, `-d '{"urls":["<url>"],"source_type":"url"}'`
+## Output Example
 
-Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-
-### 3.3 Credits
-```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-
-### 3.4 Query State
-```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
+```json
+{
+  "job_id": "vedbw-20260329-001",
+  "status": "completed",
+  "dutch_variant": "standard-dutch",
+  "subtitles": {"accuracy": 0.986, "words": 1240, "compound_words_correct": true},
+  "voiceover": "standard-dutch-abn-professional",
+  "outputs": {
+    "youtube": {"file": "video-nl-16x9.mp4", "resolution": "1920x1080"},
+    "reels": {"file": "video-nl-9x16.mp4", "resolution": "1080x1920"}
+  }
+}
 ```
 
-### 3.5 Export
-```bash
-curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'
-```
-Poll `GET $API/api/render/proxy/lambda/<id>` every 30s.
+## Tips
 
-### 3.6 Disconnect Recovery
-Wait 30s, query state. After 5 unchanged polls, report failure.
+1. **Standard Dutch and Flemish are mutually intelligible but culturally distinct** — Using Standard Dutch voiceover for a Flemish audience works (they understand it perfectly) but feels distant — like a British narrator for American audiences but more pronounced. For Flemish-targeted content, Flemish voice creates warmth and cultural connection.
+2. **Dutch compound words break auto-caption systems** — "Ziekenhuisverplaatsingskosten" (hospital transfer costs) is one word. Auto-caption systems split it into fragments that make no sense. Correct Dutch captioning must handle compound words as single units — this is the #1 quality indicator for Dutch subtitles.
+3. **IJ is a digraph with special capitalization rules** — "IJsselmeer" not "Ijsselmeer." "IJMUIDEN" not "IJMUIDEN." The IJ capitalization rule is a uniquely Dutch typographic convention that signals native-quality text handling. Getting it wrong is immediately visible to Dutch readers.
+4. **Dutch directness applies to video content too** — Dutch communication culture values directness and efficiency. Marketing videos that work in the US (emotional build-up, dramatic reveal) can feel overdone for Dutch audiences who prefer getting to the point. Match the content pacing to Dutch communication norms.
+5. **LinkedIn is disproportionately important in the Dutch market** — The Netherlands has the highest LinkedIn penetration per capita globally. For B2B and professional content, LinkedIn video is often more important than YouTube in the Dutch market. Always include 1:1 or 16:9 LinkedIn-optimized exports for Dutch professional content.
 
-## 4. GUI Translation
+## Output Formats
 
-| Backend says | You do |
-|-------------|--------|
-| "click Export" | Render + deliver |
-| "open timeline" | Show state |
-| "drag/drop" | Send edit via SSE |
-| "check account" | Show credits |
+| Format | Resolution | Use Case |
+|--------|-----------|----------|
+| MP4 16:9 | 1080p / 4K | YouTube / website |
+| MP4 9:16 | 1080x1920 | TikTok / Instagram Reels |
+| MP4 1:1 | 1080x1080 | LinkedIn / Facebook |
 
-## 6. Error Handling
+## Related Skills
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Token expired | Re-auth |
-| 1002 | Session gone | New session |
-| 2001 | No credits | Show registration URL |
-| 4001 | Unsupported file | Show formats |
-| 402 | Export restricted | "Register at nemovideo.ai" |
-| 429 | Rate limited | Wait 30s, retry |
-
-## 7. Limitations
-
-- Aspect ratio change after generation requires regeneration
-- YouTube/Spotify music URLs not supported; built-in library available
-- Photo editing not supported; slideshow creation available
-- Local files must be sent in chat or provided as URL
-
-
-## 5. Tips
-
-**Taal**: Schrijf je instructies in het Nederlands — de AI begrijpt en antwoordt in je taal.
-
-**Formaten**: "Knip voor TikTok verticaal" of "YouTube liggend formaat" past automatisch aan.
+- [ai-subtitle-generator](/skills/ai-subtitle-generator) — Multi-language subtitles
+- [ai-video-caption-generator](/skills/ai-video-caption-generator) — Dutch captions
+- [video-editor-pt](/skills/video-editor-pt) — Portuguese video editing
+- [video-editor-deutsch](/skills/video-editor-deutsch) — German video editing
