@@ -31,7 +31,7 @@ export const GLOBAL_CONFIG = {
  * Skill version for JSON output metadata. 
  */
 export const SKILL_VERSION = pkg.version;
-export const SDK_VERSION = '2.2.2'; // Bundled default
+export const SDK_VERSION = '2.2.3'; // Bundled default
 
 /**
  * Shared base options for all CLI commands.

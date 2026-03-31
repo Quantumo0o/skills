@@ -24,7 +24,7 @@ install: bun install
 
 # 💳 PayNode 402 Protocol Skill (x402-v2, Base & Bun)
 
-Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.3.0) implements the **PayNode Protocol v2.2.2** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
+Use this skill to automate **Resource-based Billing**. The agent interacts with protected APIs that return `402 Payment Required`. This skill (v2.4.0) implements the **PayNode Protocol v2.2.3** (x402-v2), featuring JSON-based discovery and dual payment flows (on-chain & EIP-3009 off-chain signatures).
 
 It also supports a lightweight paid-API marketplace flow:
 
@@ -79,9 +79,9 @@ Before any request, verify the environment and balances. This skill strictly use
 
 ```json
 {
-  "version": "2.3.0",
-  "skill_version": "2.3.0",
-  "sdk_version": "2.2.2",
+  "version": "2.4.0",
+  "skill_version": "2.4.0",
+  "sdk_version": "2.2.3",
   "status": "success",
   "address": "0x...",
   "eth": 0.01,
@@ -161,9 +161,9 @@ bun run paynode-402 request "https://api.example.com/data" \
 
 # Immediate output:
 # {
-#   "version": "2.3.0",
-#   "skill_version": "2.3.0",
-#   "sdk_version": "2.2.2",
+#   "version": "2.4.0",
+#   "skill_version": "2.4.0",
+#   "sdk_version": "2.2.3",
 #   "status": "pending",
 #   "task_id": "m2k8x-a1b2",
 #   "output": "<TMPDIR>/paynode-tasks/m2k8x-a1b2.json",
@@ -177,9 +177,9 @@ cat <TMPDIR>/paynode-tasks/m2k8x-a1b2.json
 
 # Completed result:
 # {
-#   "version": "2.3.0",
-#   "skill_version": "2.3.0",
-#   "sdk_version": "2.2.2",
+#   "version": "2.4.0",
+#   "skill_version": "2.4.0",
+#   "sdk_version": "2.2.3",
 #   "status": "completed",
 #   "task_id": "m2k8x-a1b2",
 #   "data": { ... },
