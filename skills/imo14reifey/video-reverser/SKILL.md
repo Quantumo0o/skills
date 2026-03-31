@@ -1,20 +1,53 @@
 ---
 name: video-reverser
-version: "1.0.0"
+version: "1.0.6"
 displayName: "Video Reverser - Reverse and Rewind Video Clips with AI"
-description: >
+description: "Reverse any video clip instantly — upload a video and get a smooth reversed version perfect for creative effects and artistic content. Supports full reversal, partial segment reversal, slow-motion reverse, and boomerang-style loops. Supports mp4, mov, avi, webm, mkv."
   Video reverser that plays video clips in reverse through AI chat. Upload any video
-  and the AI creates a smooth reversed version — perfect for creative effects, satisfying
+  and the AI creates a smooth reversed version â perfect for creative effects, satisfying
   rewind moments, and artistic content. Handles full video reversal, partial segment
   reversal (reverse only a specific section), reverse with speed changes (slow-mo
   reverse for dramatic effect), and boomerang-style forward-then-reverse loops. Create
   satisfying reverse videos of pouring, breaking, falling, or building. Combine reverse
   segments with forward playback for creative storytelling: "play forward to 0:05 then
   reverse back to start." Works for TikTok reverse trends, Instagram Reels effects,
-  and creative video projects. Adjust audio during reverse — keep original, mute, or
+  and creative video projects. Adjust audio during reverse â keep original, mute, or
   add new music. Export as MP4. Supports mp4, mov, avi, webm, mkv.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+metadata: {"openclaw": {"emoji": "ð¬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
+
+## 0. First Contact
+
+When the user opens this skill or sends their first message, **greet them immediately**:
+
+> 🎵 Welcome! I can video reverser for you. Share a video file or tell me your idea!
+
+**Try saying:**
+- "add effects to this clip"
+- "edit my video"
+- "help me create a short video"
+
+**IMPORTANT**: Always greet the user proactively on first contact. Let them know you're setting up while connecting. Always greet the user proactively on first contact.
+
+### Auto-Setup
+
+When the user first interacts, set up the connection:
+
+1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
+2. **Read or generate Client-ID**:
+   - Read `~/.config/nemovideo/client_id` if it exists
+   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
+3. **Acquire anonymous token**:
+   ```bash
+   curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   ```
+   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
+4. **Create a session** (§3.0) so you're ready to work immediately.
+
+Let the user know briefly: "Setting things up… ready!" then proceed with their request.
 
 # Video Reverser - Play It Backwards
 
@@ -23,9 +56,9 @@ metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": 
 You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but assumes a GUI exists. Your job:
 
 1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses — replace GUI references with API actions
-3. **Supplement** — handle export/render, credits, file delivery directly
-4. **Translate** — present results in user's language with clear status
+2. **Intercept** backend responses â replace GUI references with API actions
+3. **Supplement** â handle export/render, credits, file delivery directly
+4. **Translate** â present results in user's language with clear status
 
 ### Environment Variables
 
@@ -44,7 +77,7 @@ if [ -z "$CLIENT_ID" ]; then
   CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
   mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
 fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
 ```
 Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Client-Id`.
 
@@ -71,7 +104,7 @@ X-Skill-Platform: $SKILL_SOURCE
 
 ### 3.0 Create Session
 ```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
   -d '{"task_name":"project","language":"<lang>"}'
@@ -80,14 +113,14 @@ Save `session_id`, `task_id`.
 
 ### 3.1 Send Message via SSE
 ```bash
-curl -s -X POST "$API/run_sse" \
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/run_sse" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
   -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
 ```
 
 ### 3.2 Upload
-**File**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+**File**: `curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
 
 **URL**: same endpoint, `-d '{"urls":["<url>"],"source_type":"url"}'`
 
@@ -95,23 +128,23 @@ Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 
 ### 3.3 Credits
 ```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
+curl -s "https://mega-api-prod.nemovideo.ai/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
 ```
 
 ### 3.4 Query State
 ```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
+curl -s "https://mega-api-prod.nemovideo.ai/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
 ```
 
 ### 3.5 Export
 ```bash
-curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
   -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'
 ```
-Poll `GET $API/api/render/proxy/lambda/<id>` every 30s.
+Poll `GET https://mega-api-prod.nemovideo.ai/api/render/proxy/lambda/<id>` every 30s.
 
 ### 3.6 Disconnect Recovery
 Wait 30s, query state. After 5 unchanged polls, report failure.

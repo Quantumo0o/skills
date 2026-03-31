@@ -3,9 +3,15 @@
   "slug": "video-reverser",
   "displayName": "Video Reverser",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774330508992,
-    "commit": "https://github.com/openclaw/skills/commit/8c4cc1726601fad2b24b7918a4f0a6a0e69ab377"
+    "version": "1.0.6",
+    "publishedAt": 1774845562781,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774330508992,
+      "commit": "https://github.com/openclaw/skills/commit/8c4cc1726601fad2b24b7918a4f0a6a0e69ab377"
+    }
+  ]
 }
