@@ -3,11 +3,16 @@
   "slug": "instagram-video-editor",
   "displayName": "Instagram Video Editor",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774501063604,
-    "commit": "https://github.com/openclaw/skills/commit/81f995eca47066638c7bd041bfea1de2fbee7007"
+    "version": "1.0.4",
+    "publishedAt": 1774843332871,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774501063604,
+      "commit": "https://github.com/openclaw/skills/commit/81f995eca47066638c7bd041bfea1de2fbee7007"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774441697491,
