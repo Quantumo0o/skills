@@ -3,11 +3,16 @@
   "slug": "clarity-ai",
   "displayName": "Clarity AI",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1774580149589,
-    "commit": "https://github.com/openclaw/skills/commit/a1bc05659eb936974076d014b790e62187af0608"
+    "version": "2.2.0",
+    "publishedAt": 1774602377433,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1774580149589,
+      "commit": "https://github.com/openclaw/skills/commit/a1bc05659eb936974076d014b790e62187af0608"
+    },
     {
       "version": "2.0.2",
       "publishedAt": 1774521826313,
