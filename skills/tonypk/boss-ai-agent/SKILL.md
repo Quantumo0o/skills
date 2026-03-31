@@ -1,8 +1,8 @@
 ---
 name: boss-ai-agent
 title: "Boss AI Agent"
-version: "5.1.0"
-description: "Boss AI Agent — your AI management advisor. 16 mentor philosophies, 9 culture packs, C-Suite board simulation, execution intelligence engine, AI recommendation engine. Works instantly after install. Connect manageaibrain.com MCP for full team automation: auto check-ins, tracking, KPI metrics, task management, risk signals, incentive scoring, AI recommendations, 23+ platform messaging. Integrates with OpenClaw MCP connectors (Notion, Jira, GitHub, Slack, etc.) to build a company context layer — the foundation for all management intelligence."
+version: "6.0.0"
+description: "Boss AI Agent — your AI management advisor. 16 mentor philosophies, 9 culture packs, C-Suite board simulation, execution intelligence engine, AI recommendation engine, bidirectional Notion/Sheets sync. Works instantly after install. Connect manageaibrain.com MCP for full team automation: 33 MCP tools, auto check-ins, tracking, KPI metrics, task management, risk signals, incentive scoring, AI recommendations, data sync to Notion/Sheets, 23+ platform messaging. Integrates with OpenClaw MCP connectors to build a company context layer — the foundation for all management intelligence."
 user-invocable: true
 emoji: "🤖"
 homepage: "https://manageaibrain.com"
@@ -10,10 +10,10 @@ metadata:
   openclaw:
     optional:
       env:
-        - name: "BOSS_AI_AGENT_API_KEY"
-          description: "Optional. Adds read-only GET access to manageaibrain.com/api/v1/ for extended mentor configs and analytics dashboards. Only relevant in Team Operations Mode. API key sent as auth header only."
         - name: "MANAGEMENT_BRAIN_API_KEY"
-          description: "Legacy fallback for BOSS_AI_AGENT_API_KEY. Accepted for backward compatibility."
+          description: "Enables Team Operations Mode — 33 MCP tools, 6 cron jobs, message delivery to employees, bidirectional Notion/Sheets sync. Without this key the skill runs in Advisor Mode only (offline, zero network). Authenticates all MCP calls to manageaibrain.com/mcp. Scoped to one company; each API key maps to exactly one organization. Audit via web dashboard at manageaibrain.com."
+        - name: "BOSS_AI_AGENT_API_KEY"
+          description: "Adds read-only GET access to manageaibrain.com/api/v1/ for extended mentor configs and analytics dashboards. Separate from MCP authentication. Falls back to MANAGEMENT_BRAIN_API_KEY if not set. Only relevant in Team Operations Mode."
       config:
         - "~/.openclaw/skills/boss-ai-agent/config.json"
 ---
@@ -32,29 +32,31 @@ Always respond in the boss's language. Auto-detect from conversation context.
 
 Check if the `get_team_status` MCP tool is available in your tool list.
 
-- **If YES → Team Operations Mode**: Use all 24 MCP tools for real team management — send check-ins, track responses, generate reports, chase non-responders, deliver messages, monitor KPIs, track execution risks, manage incentives. Announce: "Running in Team Operations Mode — connected to your team."
+- **If YES → Team Operations Mode**: Use all 33 MCP tools for real team management — send check-ins, track responses, generate reports, chase non-responders, deliver messages, monitor KPIs, track execution risks, manage incentives, sync data to Notion/Sheets. Announce: "Running in Team Operations Mode — connected to your team."
 - **If NO → Advisor Mode**: Use the embedded mentor frameworks below to answer management questions directly — generate check-in questions, prepare 1:1s, simulate C-Suite discussions, advise on decisions. No cloud connection needed. Announce: "Running in Advisor Mode — I'll use mentor frameworks to help with management decisions."
 
 If MCP becomes available mid-session (user connects it), announce the mode upgrade. If MCP drops, fall back to Advisor Mode gracefully.
 
 ## OpenClaw Integration Architecture
 
-Boss AI Agent is designed as the **brain layer** that sits on top of OpenClaw's MCP connector ecosystem. The skill itself does NOT integrate directly with external tools — OpenClaw handles all tool connections. The skill consumes the data these connectors provide.
+Boss AI Agent is designed as the **brain layer** that sits on top of OpenClaw's MCP connector ecosystem. The skill connects to its own backend (`manageaibrain.com/mcp`) for team data processing, while third-party tool integrations (Notion, Jira, GitHub, etc.) are handled by OpenClaw's MCP connectors — the skill does not store or manage tokens for these external services.
 
 ```
 OpenClaw Runtime (user environment)
   ├── MCP Connectors (user self-installs via OpenClaw)
-  │    ├── Storage: Notion / Jira / Google Sheets
+  │    ├── Storage: Notion / Google Sheets  ←── bidirectional sync targets
   │    ├── Development: GitHub / Linear / Calendar / Gmail
   │    └── Communication: Telegram / Slack / Discord / Lark / Signal
   │
-  └── Boss AI Agent Skill (brain layer)
+  └── Boss AI Agent Skill (brain layer + sync orchestrator)
        └── manageaibrain.com API
+            ├── 33 MCP tools (daily ops + intelligence + sync)
             ├── Company Context Layer  ← foundation for all reasoning
             ├── Execution Intelligence ← signals, risks, working memory
             ├── Communication Parser   ← check-ins → structured events
             ├── Incentive Engine       ← context-aware scoring
-            └── AI Recommendation Engine ← proactive management suggestions
+            ├── AI Recommendation Engine ← memory-driven proactive suggestions
+            └── Sync Service           ← Notion/Sheets bidirectional sync
 ```
 
 ### Company Context Layer
@@ -95,10 +97,10 @@ External tool data flows through the brain in stages:
 
 All Advisor Mode permissions, plus:
 
-- **MCP tools**: All 24 MCP tools are hosted on `manageaibrain.com/mcp`. Tool parameters (e.g. employee name, discussion topic, report period) are sent to the cloud server for processing. 18 tools are read-only queries; 4 write tools (`send_checkin`, `chase_employee`, `send_summary`, `send_message`) actively send messages to employees via Telegram/Slack/Lark/Signal — use with intent; 2 recommendation tools (`get_recommendations`, `execute_recommendation`) manage AI-generated management suggestions.
-- **Cron jobs**: registers up to 5 recurring jobs via OpenClaw's cron API. Solo founder mode (team=0) only registers 2 jobs. See [Cron Job Management](#cron-job-management) for details.
-- **External services** (GitHub, Linear, Jira, Notion): accessed through OpenClaw's configured integrations — the skill does NOT store or manage tokens for these services.
-- **Cloud API** (optional): when `BOSS_AI_AGENT_API_KEY` is set, the skill additionally makes read-only GET requests to `manageaibrain.com/api/v1/` for extended mentor configs and analytics dashboards.
+- **MCP tools** (requires `MANAGEMENT_BRAIN_API_KEY`): All 33 MCP tools are hosted on `manageaibrain.com/mcp`. The API key authenticates all MCP requests. Tool parameters (e.g. employee name, discussion topic, report period) are sent to the cloud server for processing. 21 tools are read-only queries; 4 write tools (`send_checkin`, `chase_employee`, `send_summary`, `send_message`) actively send messages to employees via Telegram/Slack/Lark/Signal — use with intent; 2 recommendation tools (`get_recommendations`, `execute_recommendation`) manage AI-generated management suggestions; 3 brain context tools (`get_company_context`, `create_execution_plan`, `calculate_incentives`) provide deep analytical capabilities; 3 sync tools (`get_sync_manifest`, `report_sync_result`, `configure_sync`) enable bidirectional data sync with Notion/Sheets.
+- **Cron jobs**: registers up to 6 recurring jobs via OpenClaw's cron API. Solo founder mode (team=0) only registers 3 jobs (briefing, signalScan, sync). See [Cron Job Management](#cron-job-management) for details.
+- **Third-party tools** (GitHub, Linear, Jira, Notion): accessed through OpenClaw's MCP connectors that the user installs separately — the skill does NOT store or manage tokens for these services. Data from these connectors enriches the company context layer on `manageaibrain.com`.
+- **Cloud API** (optional): when `BOSS_AI_AGENT_API_KEY` is set, the skill additionally makes read-only GET requests to `manageaibrain.com/api/v1/` for extended mentor configs and analytics dashboards. This is separate from the MCP connection.
 
 ## Data Flow
 
@@ -121,15 +123,15 @@ No network communication. All mentor knowledge is embedded in this skill file.
 | OpenClaw Connectors → Brain | Storage data (Notion pages, Jira tasks, Sheets), dev data (GitHub PRs, commits), messages (Slack, Discord) | Via OpenClaw's MCP connectors → parsed into management events |
 | Skill → Local disk | `config.json` with full team settings | Single file, user-editable |
 
-**What goes to the cloud**: MCP tool parameters (employee names, discussion topics, message content) are processed on `manageaibrain.com`. The server stores team data in PostgreSQL.
+**What goes to the cloud**: MCP tool parameters (employee names, discussion topics, message content) are sent to `manageaibrain.com` for processing. The server stores team data in PostgreSQL. The MCP connection uses the `MANAGEMENT_BRAIN_API_KEY` for authentication — without this key, MCP tools return an error.
 
-**What stays local**: `config.json`, chat history, memory, and any files on your machine.
+**What stays local**: `config.json` (mentor preferences, cron schedules), Claude Code chat history, and memory files. These local files are never transmitted to `manageaibrain.com`.
 
-**Important — persistent behavior** (Team Operations Mode only): This mode registers up to 5 cron jobs that run autonomously. Combined with 4 write tools that can send messages to employees, misconfiguration could result in unintended messages. Review cron schedules in `config.json` before activating. Use `cron list` to audit and `cron remove` to disable.
+**Important — persistent behavior** (Team Operations Mode only): This mode registers up to 6 cron jobs that run autonomously. Combined with 4 write tools that can send messages to employees and 3 sync tools that read/write external storage, misconfiguration could result in unintended messages or data overwrites. Review cron schedules in `config.json` before activating. Use `cron list` to audit and `cron remove` to disable.
 
 ### Cron Job Management
 
-The skill registers up to 5 recurring cron jobs during first run:
+The skill registers up to 6 recurring cron jobs during first run:
 
 | Job | Default Schedule | Solo Mode |
 |-----|-----------------|-----------|
@@ -138,6 +140,7 @@ The skill registers up to 5 recurring cron jobs during first run:
 | summary | `0 19 * * 1-5` (7pm weekdays) | Skipped |
 | briefing | `0 8 * * 1-5` (8am weekdays) | Active |
 | signalScan | `*/30 9-18 * * 1-5` (every 30min work hours) | Active |
+| sync | `*/30 9-18 * * 1-5` (every 30min work hours) | Active |
 
 **View all jobs**: `cron list` — shows job ID, schedule, and next run time.
 
@@ -151,7 +154,7 @@ The skill registers up to 5 recurring cron jobs during first run:
 
 ### MCP Tools
 
-All backend operations use 24 MCP tools (Team Operations Mode only). Use these directly — no manual API calls needed.
+All backend operations use 33 MCP tools (Team Operations Mode only). Use these directly — no manual API calls needed.
 
 ### Read Tools — Daily Operations (9)
 
@@ -181,6 +184,14 @@ All backend operations use 24 MCP tools (Team Operations Mode only). Use these d
 | `get_task_stats` | Task status breakdown: todo, in_progress, in_review, done, blocked |
 | `get_incentive_scores` | Per-employee incentive scores for a period with breakdowns and review flags |
 
+### Read Tools — Brain Context (3)
+
+| Tool | What it does |
+|------|-------------|
+| `get_company_context` | Complete company context: organization profile, strategic priorities, key risks, team composition, HR insights — the foundation for all management reasoning |
+| `get_goal_state` | OKR and KPI progress: goals with linked key results, metric values vs targets, completion percentages, owners |
+| `create_execution_plan` | Generate a prioritized action plan based on current context, goals, signals, and metrics with evidence-based reasoning |
+
 ### Write Tools (4 — sends messages to employees)
 
 | Tool | What it does |
@@ -192,6 +203,13 @@ All backend operations use 24 MCP tools (Team Operations Mode only). Use these d
 
 Write tools actively send messages via Telegram/Slack/Lark/Signal. OpenClaw users can also use `message send` for multi-platform messaging.
 
+### Write Tools — Context (2)
+
+| Tool | What it does |
+|------|-------------|
+| `ingest_metric` | Record a KPI data point from external sources (spreadsheets, reports, dashboards) |
+| `update_context` | Update company context: strategic priorities, key risks, management style weights |
+
 ### AI Recommendations (2)
 
 | Tool | What it does |
@@ -200,6 +218,22 @@ Write tools actively send messages via Telegram/Slack/Lark/Signal. OpenClaw user
 | `execute_recommendation` | Execute a specific action on a recommendation (send message, schedule meeting, etc.) |
 
 The recommendation engine runs a daily scan (10:30 AM) analyzing team data through the active mentor's lens, plus real-time triggers on events like consecutive missed check-ins, sentiment drops, and overdue tasks. Each recommendation includes prioritized suggested actions that can be executed directly.
+
+### Write Tools — Incentives (1)
+
+| Tool | What it does |
+|------|-------------|
+| `calculate_incentives` | Calculate incentive scores for all employees in a given period using execution data, goal attribution, and active rules |
+
+### Sync Tools (3 — bidirectional Notion/Sheets sync)
+
+| Tool | What it does |
+|------|-------------|
+| `get_sync_manifest` | Get data changes since last sync — returns changed tasks, goals, projects, metrics for push to Notion/Sheets |
+| `report_sync_result` | Report sync completion — records stats (items pushed/pulled/conflicts) and writes pulled items back |
+| `configure_sync` | Configure sync settings: storage type (Notion/Sheets), entity types, frequency, storage-specific config |
+
+The sync system enables **bidirectional data synchronization** between manageaibrain.com and user's Notion workspace or Google Sheets. The skill orchestrates the sync flow: get manifest → read external via OpenClaw connector → compare → write changes → report result. Runs automatically every 30 minutes during work hours, or manually via "sync to Notion/Sheets".
 
 ## First Run
 
@@ -232,10 +266,11 @@ When `/boss-ai-agent` is invoked without MCP tools available:
 When `/boss-ai-agent` is invoked with MCP tools available:
 
 1. Greet: "Hi! I'm Boss AI Agent, your AI management middleware. Running in **Team Operations Mode** — connected to your team."
-2. Ask 3 questions (one at a time):
+2. Ask 4 questions (one at a time):
    - "How many people do you manage?" (0 = solo founder mode)
    - "What communication tools does your team use?"
    - "Do you use GitHub, Linear, or Jira for project management?"
+   - "Do you want to sync data with Notion or Google Sheets?" (Notion / Sheets / Both / Neither)
 3. Write full config to `~/.openclaw/skills/boss-ai-agent/config.json`:
 
 ```json
@@ -251,7 +286,8 @@ When `/boss-ai-agent` is invoked with MCP tools available:
     "chase": "30 17 * * 1-5",
     "summary": "0 19 * * 1-5",
     "briefing": "0 8 * * 1-5",
-    "signalScan": "*/30 9-18 * * 1-5"
+    "signalScan": "*/30 9-18 * * 1-5",
+    "sync": "*/30 9-18 * * 1-5"
   },
   "alerts": {
     "consecutiveMisses": 3,
@@ -262,7 +298,8 @@ When `/boss-ai-agent` is invoked with MCP tools available:
 ```
 
 4. Register cron jobs for each schedule entry.
-5. If team size = 0: solo founder mode — skip checkin/chase/summary crons, keep briefing and signalScan.
+5. If user selected sync: check for Notion/Sheets OpenClaw connector → `configure_sync` with selected storage type and entity types.
+6. If team size = 0: solo founder mode — skip checkin/chase/summary crons, keep briefing, signalScan, and sync (if configured).
 6. Recommend a mentor based on team size and style.
 7. Env var fallback: if `BOSS_AI_AGENT_API_KEY` not set, check `MANAGEMENT_BRAIN_API_KEY`.
 
@@ -335,9 +372,9 @@ User: "Switch to Inamori" → update `config.json` mentor field and apply new fr
 
 ## Team Operations Mode
 
-In Team Operations Mode (MCP tools detected), you have access to all Advisor Mode capabilities PLUS 24 MCP tools, 5 cron jobs, and persistent data storage. The sections below (Cron Job Management, MCP Tools, Scenarios) only apply in this mode.
+In Team Operations Mode (MCP tools detected), you have access to all Advisor Mode capabilities PLUS 33 MCP tools, 6 cron jobs, bidirectional Notion/Sheets sync, and persistent data storage. The sections below (Cron Job Management, MCP Tools, Scenarios) only apply in this mode.
 
-### 11 Automated Scenarios
+### 12 Automated Scenarios
 
 | # | Scenario | Trigger | What happens |
 |---|----------|---------|-------------|
@@ -352,6 +389,7 @@ In Team Operations Mode (MCP tools detected), you have access to all Advisor Mod
 | 9 | KPI Health Check | "how are our metrics?" or weekly cron | `get_kpi_dashboard` → metrics vs targets, off-track alerts |
 | 10 | Incentive Review | "show incentive scores for {period}" | `get_incentive_scores` → per-employee breakdown, human review flags |
 | 11 | AI Recommendations | "any recommendations?" or daily 10:30 AM scan | `get_recommendations` → show pending AI suggestions with priority, evidence, and one-click actions |
+| 12 | Data Sync | Cron (every 30min) or "sync to Notion" | `get_sync_manifest` → read Notion/Sheets via OpenClaw connector → compare and merge → write changes → `report_sync_result` |
 
 Use MCP tools to power these scenarios. Read tools for monitoring: `get_team_status`, `get_report`, `get_alerts`, `get_employee_profile` for people; `get_company_state`, `get_execution_signals`, `get_top_risks` for operations; `get_kpi_dashboard`, `get_task_stats` for metrics. Write tools (`send_checkin`, `chase_employee`, `send_summary`, `send_message`) for proactive outreach. The mentor and culture settings shape how each scenario communicates.
 
@@ -449,24 +487,26 @@ Boss AI Agent 是老板的 AI 管理中间件。安装后立即可用（Advisor 
 
 **两种模式：**
 - **顾问模式**（零依赖）— 16 位导师哲学框架（稻盛和夫、马云、马斯克等）、9 套文化包（中国、菲律宾、新加坡等）、C-Suite 董事会模拟、1:1 准备、管理决策建议。装了就能用，不联网。
-- **团队运营模式**（连接 MCP）— 24 个 MCP 工具实现自动签到、追踪、报表、消息推送、执行力分析、KPI 仪表盘、任务管理、激励评分、AI 推荐引擎，6 个定时任务，23+ 平台支持。
+- **团队运营模式**（连接 MCP）— 33 个 MCP 工具实现自动签到、追踪、报表、消息推送、执行力分析、KPI 仪表盘、任务管理、激励评分、AI 推荐引擎、Notion/Sheets 双向同步，6 个定时任务，23+ 平台支持。
 
-**OpenClaw 集成架构（v5.1 新增）：** Boss AI Agent 作为"大脑层"，与 OpenClaw 的 MCP 连接器生态配合使用：
-- **储存工具**（Notion / Jira / Google Sheets）→ 项目更新、任务状态、文档变更自动汇入公司上下文
+**OpenClaw 集成架构：** Boss AI Agent 作为"大脑层 + 同步编排器"，与 OpenClaw 的 MCP 连接器生态配合使用：
+- **储存工具**（Notion / Google Sheets）→ 双向同步目标，任务/目标/项目/指标自动同步
 - **开发工具**（GitHub / Linear / Calendar）→ PR 活动、提交模式、CI 状态转化为执行力信号
-- **沟通工具**（Telegram / Slack / Discord / Lark / Signal）→ 员工消息被解析为结构化管理事件（阻塞上报、任务完成、承诺、延迟等）
+- **沟通工具**（Telegram / Slack / Discord / Lark / Signal）→ 员工消息被解析为结构化管理事件
 
-**公司上下文层**是所有智能引擎的地基 — 执行力分析、AI 推荐、激励评分都依赖它。上下文包括：组织架构、战略重点、员工负载、目标 KPI、项目状态。OpenClaw 连接器自动丰富上下文数据。
+**公司上下文层**是所有智能引擎的地基 — 执行力分析、AI 推荐、激励评分都依赖它。
 
-**AI 推荐引擎（v5.0 新增）：** 每日 10:30 自动扫描团队数据，结合导师视角生成管理建议（如：连续缺勤提醒、情绪下降预警、任务逾期跟进）。支持一键执行建议动作，也可通过实时触发器即时生成。
+**双向数据同步（v6.0 新增）：** 支持与 Notion 和 Google Sheets 双向同步任务、目标、项目、指标数据。工作时间每 30 分钟自动同步，也可手动触发。冲突策略：Last-write-wins（时间差 ≥ 5min），近距离冲突生成 AI 建议让老板决定。
 
-**数据说明：** 顾问模式不发送任何数据到云端。团队运营模式中，MCP 工具参数发送至 `manageaibrain.com` 处理，本地文件不上传。外部工具（Notion、GitHub 等）通过 OpenClaw 连接器访问，Skill 不直接管理这些工具的令牌。
+**AI 推荐引擎：** 每日 10:30 自动扫描团队数据，结合导师视角生成管理建议（如：连续缺勤提醒、情绪下降预警、任务逾期跟进）。支持一键执行建议动作。
+
+**数据说明：** 顾问模式不发送任何数据到云端。团队运营模式中，MCP 工具参数发送至 `manageaibrain.com` 处理，本地文件不上传。同步工具通过 OpenClaw 连接器读写 Notion/Sheets，Skill 不直接管理这些工具的令牌。
 
 安装：`clawhub install boss-ai-agent`
 
 ## Links
 
 - Website: https://manageaibrain.com
-- MCP Server (Team Operations Mode): `https://manageaibrain.com/mcp` — cloud-hosted MCP endpoint where all 24 tools are processed. Claude Code connects via stdio; ChatGPT/Gemini connect via MCP HTTP to this URL.
+- MCP Server (Team Operations Mode): `https://manageaibrain.com/mcp` — cloud-hosted MCP endpoint where all 33 tools are processed. Claude Code connects via stdio; ChatGPT/Gemini connect via MCP HTTP to this URL.
 - GitHub: https://github.com/tonypk/ai-management-brain
 - ClawHub: https://clawhub.ai/tonypk/boss-ai-agent

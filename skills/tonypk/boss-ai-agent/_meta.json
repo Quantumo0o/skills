@@ -3,11 +3,16 @@
   "slug": "boss-ai-agent",
   "displayName": "Boss AI Agent",
   "latest": {
-    "version": "5.1.0",
-    "publishedAt": 1774510290121,
-    "commit": "https://github.com/openclaw/skills/commit/cde2690dd1ac3b071a687fa7f1ce5a113f196f4e"
+    "version": "6.2.0",
+    "publishedAt": 1774589066873,
+    "commit": null
   },
   "history": [
+    {
+      "version": "5.1.0",
+      "publishedAt": 1774510290121,
+      "commit": "https://github.com/openclaw/skills/commit/cde2690dd1ac3b071a687fa7f1ce5a113f196f4e"
+    },
     {
       "version": "3.0.0",
       "publishedAt": 1774457252223,
