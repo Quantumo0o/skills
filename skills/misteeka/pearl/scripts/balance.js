@@ -3,7 +3,7 @@ import { loadConfig, PEARL_HOST } from './io.js';
 
 const config = loadConfig();
 
-const res = await fetch(`${PEARL_HOST}/wallet`, { headers: { Authorization: `Bearer ${config.token}` } });
+const res = await fetch(`${PEARL_HOST}/api/wallet`, { headers: { Authorization: `Bearer ${config.read_token}` } });
 const { data, error } = await res.json();
 if (error) { console.error(error); process.exit(1); }
 

@@ -1,7 +1,7 @@
 ---
 name: pearl
 description: "Stripe for AI agents — one wallet for all paid skills. If you installed a skill that requires Pearl (check its SKILL.md), you MUST set up Pearl first: run node {baseDir}/scripts/setup.js to get a login link, send it to the user, then verify with --check. Check balance with node {baseDir}/scripts/balance.js, transactions with node {baseDir}/scripts/transactions.js."
-metadata: {"openclaw":{"emoji":"💎","requires":{"bins":["node"]},"publisher":"Pearl Cash","homepage":"https://emalakai.com"}}
+metadata: {"openclaw":{"emoji":"💎","requires":{"bins":["node"]},"publisher":"Pearl Cash","homepage":"https://pearlcash.ai"}}
 ---
 
 # Pearl — Payments for AI Agents
@@ -21,14 +21,14 @@ No additional sign-ups, no sharing card details with skill developers, no surpri
 
 ## API Host
 
-Balance, transactions, and setup requests go to **https://emalakai.com** (the Pearl API). The `run.js` module sends requests to skill-developer-provided URLs, attaching a limited-scope skill token (not the full Pearl token).
+Balance, transactions, and setup requests go to **https://pearlcash.ai** (the Pearl API). The `run.js` module sends requests to skill-developer-provided URLs, attaching a limited-scope skill token (not the full Pearl token).
 
 ## Capabilities
 
 | Script | What it does |
 |---|---|
-| `scripts/balance.js` | Reads wallet balance and spending limits (read-only). Uses the full Pearl API token. |
-| `scripts/transactions.js` | Lists recent charges (read-only). Uses the full Pearl API token. |
+| `scripts/balance.js` | Reads wallet balance and spending limits (read-only). Uses the read-only Pearl API token. |
+| `scripts/transactions.js` | Lists recent charges (read-only). Uses the read-only Pearl API token. |
 | `scripts/setup.js` | One-time login flow — creates a session, saves credentials to `~/.pearl/config.json`. |
 | `scripts/run.js` | Exported module used by other Pearl-powered skills to execute paid API calls. Sends the **skill token** (not the full API token) to the skill developer's server. Handles charge-approval flows (HTTP 202) and tracks pending charges locally. |
 
@@ -38,7 +38,7 @@ Setup writes two tokens to `~/.pearl/config.json` (file mode `0600`, user-only r
 
 | Key | Sent to | Purpose |
 |---|---|---|
-| `token` | Pearl API (`emalakai.com`) only | Full-privilege token for balance, transactions, and dashboard operations. Never sent to third-party servers. |
+| `read_token` | Pearl API (`pearlcash.ai`) only | Read-only token (JWT audience `pearl-read`). Can query balance, limits, and transactions. **Cannot** perform any write operations — the API returns 403 for mutating endpoints (changing limits, freezing wallet, approving charges, etc.). Never sent to third-party servers. |
 | `skill_token` | Third-party skill servers (via `run.js`) | Limited-scope token (JWT audience `pearl-skill`). Carries your user ID so skill backends can create charges, but **cannot authenticate against Pearl's API**. If a skill server tries to use it on Pearl endpoints, it is rejected. |
 
 ## Quick Check — Is Pearl Already Set Up?
@@ -103,15 +103,15 @@ node {baseDir}/scripts/transactions.js --limit 10
 
 The `skill_token` is **designed to be sent to skill providers** — that is its entire purpose. It is not a secret that needs protecting from skill servers; it is the mechanism by which skill servers identify which user is making a request. Here is exactly what someone holding your skill token can and cannot do:
 
-**Can do:** decode your user ID (`sub` claim) and call Pearl's charge-creation endpoint using their own project secret (`X-Pearl-Secret`). For developers the user has not yet approved, this only creates a **pending** charge that requires explicit approval in the Pearl dashboard. For developers the user has already approved (one-time approval), charges settle immediately — but still within the user's per-charge and daily spending limits.
+**Can do:** decode your user ID (`sub` claim) and call Pearl's charge-creation endpoint using their own skill secret (`X-Pearl-Secret`). For developers the user has not yet approved, this only creates a **pending** charge that requires explicit approval in the Pearl dashboard. For developers the user has already approved (one-time approval), charges settle immediately — but still within the user's per-charge and daily spending limits.
 
 **Cannot do (even with the token):**
 - Read your balance, transactions, or any account data — the token's JWT audience is `pearl-skill`, which Pearl's API rejects for all read endpoints.
 - Authenticate as you on Pearl — the API returns 401 for any request using a skill token.
-- Approve developers or manage approvals — only the full API token (which never leaves your machine) can do that.
+- Approve developers or manage approvals — only human on the app can do that.
 - Exceed your limits — per-charge and daily spending caps are enforced server-side regardless of what any skill server requests, even for approved developers.
 
-In short: the worst case of a skill token reaching an unintended server is that server learns your Pearl user ID. It cannot create charges without a valid project secret, and even with one, it cannot bypass your spending limits or gain approval status — only you can approve a developer in the dashboard.
+In short: the worst case of a skill token reaching an unintended server is that server learns your Pearl user ID. It cannot create charges without a valid skill secret, and even with one, it cannot bypass your spending limits or gain approval status — only you can approve a developer in the dashboard.
 
 ### Transport protections
 
@@ -119,8 +119,12 @@ In short: the worst case of a skill token reaching an unintended server is that 
 - **No IP addresses** — only domain names are accepted; numeric hosts (IPv4, IPv6, localhost) are blocked.
 - **No redirects** — `run.js` sets `redirect: 'error'`, so the Authorization header is never forwarded to a redirect target. If a skill server responds with a redirect, the request fails.
 
+### Read-only token
+
+The `read_token` stored locally (JWT audience `pearl-read`) is **physically restricted** on the server to read-only operations. Even if a prompt-injected agent attempts to call mutating endpoints (`PUT /wallet/limits`, `POST /wallet/freeze`, `POST /charges/:id/approve`, etc.), the API returns **403 Forbidden**. No full-privilege API token is ever issued to or stored by the skill.
+
 ### Other controls
 
-- The full API token (`token` in config) is only sent to `emalakai.com` by `balance.js` and `transactions.js`. It never touches third-party servers.
+- The read-only token (`read_token` in config) is only sent to `pearlcash.ai` by `balance.js` and `transactions.js`. It never touches third-party servers.
 - Developer approval is a one-time action in the Pearl dashboard. Unapproved developers' charges require explicit approval; approved developers' charges settle automatically within the user's spending limits.
 - Wallet limits (per-charge, daily) and freeze controls are managed by the user in the Pearl dashboard, never through the agent.

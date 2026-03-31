@@ -5,7 +5,7 @@ import { join } from 'node:path';
 const dir = join(homedir(), '.pearl');
 const configPath = join(dir, 'config.json');
 
-export const PEARL_HOST = 'https://emalakai.com';
+export const PEARL_HOST = 'https://pearlcash.ai';
 
 export function ensureDir() {
   mkdirSync(dir, { recursive: true, mode: 0o700 });
