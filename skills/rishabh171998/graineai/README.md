@@ -55,6 +55,12 @@ Auth: `Authorization: Bearer <API_KEY>` (keys start with `gat_`), plus `org_id` 
 
 ---
 
-## 4. Note
+## 4. ClawHub "suspicious" / OpenClaw security flag
+
+Automated review may flag **telephony** skills because they describe powerful APIs. `SKILL.md` now states explicitly: **no credentials in the package**, user-supplied secrets only, confirmation before calls/transfers/deletes, and session-scoped ID retention.
+
+If the flag persists after you publish an updated version, open an issue on [openclaw/clawhub](https://github.com/openclaw/clawhub) and ask for a **manual review** or breakdown; link your skill page and mention the updated `Security, credentials, and user consent` section.
+
+## 5. Note
 
 ClawHub is distribution. Your API still works with public docs and `curl`; this skill is one packaging format on top.
