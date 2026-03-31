@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
 """
 MBTI Guru - OpenClaw Skill Interface
-提供与OpenClaw集成的接口
+支持所有 OpenClaw 渠道: Telegram, Discord, 飞书, 微信等
 """
 
-from lib.telegram_handler import (
-    handle_message,
-    handle_callback,
-    handle_start,
-    handle_resume,
-    handle_history,
-    handle_status,
-    handle_cancel,
-    get_version_selection_message,
-    get_version_selection_inline,
+from lib.mbti_core import (
+    process_message,
+    process_start,
+    process_resume,
+    process_history,
+    process_status,
+    process_cancel,
+    get_version_selection_text,
     get_progress_bar,
-    get_history_message,
+    get_history_text,
     VERSIONS
 )
 
 __all__ = [
-    'handle_message',
-    'handle_callback', 
-    'handle_start',
-    'handle_resume',
-    'handle_history',
-    'handle_status',
-    'handle_cancel',
-    'get_version_selection_message',
-    'get_version_selection_inline',
+    'process_message',
+    'process_start',
+    'process_resume',
+    'process_history',
+    'process_status',
+    'process_cancel',
+    'get_version_selection_text',
     'get_progress_bar',
-    'get_history_message',
+    'get_history_text',
     'VERSIONS'
 ]

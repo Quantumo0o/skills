@@ -196,16 +196,17 @@ B) 只和一两个熟悉的人深聊
 ```
 mbti-guru/
 ├── SKILL.md              # 本文档 / This file
+├── CLAWHUB.md           # ClawHub元数据
 ├── mbti.py              # CLI主入口 / Main entry
-├── bot.py               # Telegram Bot入口 / Bot entry
+├── bot.py               # OpenClaw集成入口
 ├── lib/
 │   ├── __init__.py       # OpenClaw接口
-│   ├── telegram_handler.py # Telegram处理程序
+│   ├── mbti_core.py      # 核心逻辑（平台无关）
+│   ├── telegram_handler.py # Telegram适配器
 │   ├── mbti_types.py     # 16种人格数据
 │   ├── questions.py      # 题库
 │   ├── question_pool.py  # 题库池
 │   ├── scorer.py         # 评分算法
-│   ├── reports.py        # 终端报告生成
 │   ├── session.py        # 进度保存/恢复
 │   ├── history.py        # 历史记录
 │   ├── pdf_generator.py # PDF报告生成
@@ -225,12 +226,45 @@ mbti-guru/
 
 | 项目 | 说明 |
 |------|------|
-| **编程语言** | Python 3 |
+| **编程语言** | Python 3.8+ |
 | **题库容量** | 200+ 题目 |
 | **报告格式** | Markdown + PDF |
 | **语言支持** | 中文 / English |
 | **评分算法** | 标准MBTI计分系统 |
 | **PDF生成** | Matplotlib + ReportLab |
+
+## 环境依赖 / Dependencies
+
+```
+matplotlib>=3.5.0
+reportlab>=4.0.0
+numpy>=1.20.0
+```
+
+## 数据存储 / Data Storage
+
+| 数据类型 | 存储位置 | 说明 |
+|----------|----------|------|
+| 测试进度 | `data/sessions/` | JSON文件，仅存储当前测试进度 |
+| 测试历史 | `data/history/` | JSON文件，仅存储已完成结果 |
+| 答题数据 | 会话目录 | 用户ID与答题答案分离存储 |
+
+**隐私说明**：
+- 所有数据存储在用户本地服务器
+- 不上传任何数据到外部服务器
+- 用户可随时删除 `data/` 目录清除所有数据
+- 数据文件命名使用匿名会话ID，不关联用户身份
+
+## 渠道配置 / Channel Configuration
+
+### Telegram Bot (可选)
+```
+TELEGRAM_BOT_TOKEN=your_bot_token
+```
+在 OpenClaw 配置文件中设置 `channels.telegram.botToken`
+
+### 其他渠道
+OpenClaw 自动支持：Discord, 飞书, 微信, Slack 等
 
 ---
 
@@ -267,8 +301,11 @@ MBTI使用偏好选择计分法：
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
-| v1.4 | 2026-03-27 | 正式版 - 全部功能完成、PDF定版、测试通过 |
-| v1.0.3 | 2026-03-27 | PDF文件名优化 |
+| v1.5.2 | 2026-03-27 | 修复ClawHub元数据，完善依赖和隐私说明 |
+| v1.5.1 | 2026-03-27 | 补充Python依赖和数据存储说明 |
+| v1.5.0 | 2026-03-27 | 平台无关架构重构，支持所有OpenClaw渠道 |
+| v1.4.1 | 2026-03-27 | 修复跨进程session恢复bug |
+| v1.4.0 | 2026-03-27 | 正式版 - 全部功能完成、PDF定版、测试通过 |
 | v1.0.0 | 2026-03-26 | 初始版本 |
 
 ---
@@ -282,5 +319,5 @@ Apache License 2.0
 ## 联系方式 / Contact
 
 **作者**: MBTI Guru Team  
-**版本**: v1.4 (正式版)  
+**版本**: v1.5.2 (正式版)  
 **更新**: 2026-03-27
