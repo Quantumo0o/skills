@@ -7,6 +7,10 @@ metadata:
   version: "1.0.0"
   displayName: 24h Sports Line Curve Trader
   difficulty: advanced
+  requires_env: "SIMMER_API_KEY"
+  requires_pip: "simmer-sdk"
+  default_mode: "paper"
+  live_flag: "--live"
 ---
 
 # 24h Sports Line Curve Trader
