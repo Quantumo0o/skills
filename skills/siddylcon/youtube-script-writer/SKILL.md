@@ -1,41 +1,147 @@
+---
 name: youtube-script-writer
-version: 1.0.0
-displayName: "YouTube Script Writer — AI YouTube Video Script Generator and Writer"
+version: 11.0.1
+displayName: "YouTube Script Writer - AI Script Generator for YouTube Videos"
 description: >
-  YouTube Script Writer — AI YouTube Video Script Generator and Writer.
-  Writing YouTube scripts that keep viewers watching past the first 30 seconds is harder than it looks. YouTube Script Writer generates complete, retention-optimized scripts for any video topic — structured with a pattern-interrupt hook, value-packed middle, and CTA that converts. Tell it your topic, target audience, video length, and tone (educational, entertaining, storytelling). It writes the full script with timestamps, b-roll cues, and spoken-word pacing notes. Works for solo creators, agencies managing multiple channels, and brands building YouTube presence. Handles explainer videos, talking-head content, tutorials, product reviews, listicles, and documentary-style narratives. Each script includes: attention hook (3-5 seconds), audience retention loops, chapter structure, and a final CTA. Request multiple versions with different angles. Outputs clean, camera-ready copy — paste it directly into a teleprompter.
-apiDomain: mega-api-prod.nemovideo.ai
+  YouTube Script Writer - AI Script Generator for YouTube Videos.
+  Write YouTube video scripts with AI through chat. Describe your video topic and the AI generates a complete script: attention-grabbing hooks, structured talking points, natural transitions, calls to action, and end screen prompts. Edit by chatting: "make the intro more energetic" or "add a personal story in section 2" or "shorten the whole script to 5 minutes of speaking time." Handles full YouTube script generation from topic prompts, hook and intro writing optimized for retention, chapter-structured scripts with timestamp markers, CTA placement and subscriber prompts, and tone matching for different creator styles. Then produce the video directly from the finished script. Built for YouTube creators who spend hours writing scripts, educators planning lesson videos, and businesses creating branded video content. Export scripts as text or jump to video production. Supports supplementary media: jpg, png, gif, webp, mp4, mov.
+metadata: {"openclaw": {"emoji": "📝", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
+---
 
+# YouTube Script Writer - Write Video Scripts with AI
 ## 1. Role & Environment
 
-You are a professional YouTube scriptwriter who understands retention mechanics. Take the user's topic and channel context, then generate complete, structured scripts optimized for watch time — no video API calls needed.
+You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but assumes a GUI exists. Your job:
+
+1. **Relay** user requests to the backend via SSE
+2. **Intercept** backend responses — replace GUI references with API actions
+3. **Supplement** — handle export/render, credits, file delivery directly
+4. **Translate** — present results in user's language with clear status
 
 ### Environment Variables
 
 | Variable | Required | Default |
 |----------|----------|---------|
-| NEMO_API_URL | No | https://mega-api-prod.nemovideo.ai |
+| `NEMO_TOKEN` | No | Auto-generated on first use |
+| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
+| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
+| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` |
+| `SKILL_SOURCE` | No | Auto-detected from install path |
+
+If `NEMO_TOKEN` is not set:
+```bash
+CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
+if [ -z "$CLIENT_ID" ]; then
+  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
+  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
+fi
+curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+```
+Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Client-Id`.
 
 ## 2. Request Router
 
-| User says... | Action |
-|---|---|
-| Script writing, hook, outline, video structure, CTA | → Write script directly in conversation |
-| Wants to edit/create actual video file | → Suggest NemoVideo video creation Skills |
+| User says... | Action | Skip SSE? |
+|-------------|--------|-----------|
+| "export" / "download" / "send me the video" | Export | Yes |
+| "credits" / "balance" | Credits | Yes |
+| "status" / "show tracks" | State | Yes |
+| "upload" / user sends file | Upload | Yes |
+| Everything else | SSE | No |
 
-## 3. Core Flow
+## 3. Core Flows
 
-When user requests a script:
-1. Ask for: topic, audience, video length (5/10/15 min), tone, platform (YouTube/TikTok)
-2. Deliver structured script:
-   - **Hook** (0-5s): pattern interrupt or bold claim
-   - **Intro** (5-30s): establish credibility + promise
-   - **Body** (timestamps + sections): 3-5 main points with retention loops
-   - **Outro** (last 30s): CTA + subscribe ask
-3. Include b-roll suggestions in [brackets]
-4. Offer to rewrite hook or adjust tone on request
+`$API` = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, `$TOKEN` = `${NEMO_TOKEN}`, `$WEB` = `${NEMO_WEB_URL:-https://nemovideo.com}`.
 
-## 4. Error Handling
+All API requests MUST include:
+```
+X-Skill-Source: $SKILL_NAME
+X-Skill-Version: $SKILL_VERSION
+X-Skill-Platform: $SKILL_SOURCE
+```
 
-If topic is too broad: ask to narrow down to one specific angle.
-If user wants a video made (not a script): redirect to NemoVideo creation Skills.
+### 3.0 Create Session
+```bash
+curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
+  -d '{"task_name":"project","language":"<lang>"}'
+```
+Save `session_id`, `task_id`.
+
+### 3.1 Send Message via SSE
+```bash
+curl -s -X POST "$API/run_sse" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
+  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
+```
+
+### 3.2 Upload
+**File**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+
+**URL**: same endpoint, `-d '{"urls":["<url>"],"source_type":"url"}'`
+
+Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
+
+### 3.3 Credits
+```bash
+curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
+  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
+```
+
+### 3.4 Query State
+```bash
+curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
+  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
+```
+
+### 3.5 Export
+```bash
+curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
+  -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'
+```
+Poll `GET $API/api/render/proxy/lambda/<id>` every 30s.
+
+### 3.6 Disconnect Recovery
+Wait 30s, query state. After 5 unchanged polls, report failure.
+
+## 4. GUI Translation
+
+| Backend says | You do |
+|-------------|--------|
+| "click Export" | Render + deliver |
+| "open timeline" | Show state |
+| "drag/drop" | Send edit via SSE |
+| "check account" | Show credits |
+
+## 6. Error Handling
+
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | Success | Continue |
+| 1001 | Token expired | Re-auth |
+| 1002 | Session gone | New session |
+| 2001 | No credits | Show registration URL |
+| 4001 | Unsupported file | Show formats |
+| 402 | Export restricted | "Register at nemovideo.ai" |
+| 429 | Rate limited | Wait 30s, retry |
+
+## 7. Limitations
+
+- Aspect ratio change after generation requires regeneration
+- YouTube/Spotify music URLs not supported; built-in library available
+- Photo editing not supported; slideshow creation available
+- Local files must be sent in chat or provided as URL
+
+
+## 5. Script Writing Tips
+
+**Full script**: "Write a 10-minute YouTube script about why people fail at budgeting" generates hook, body, and CTA.
+
+**Retention hooks**: "Rewrite the first 30 seconds to maximize viewer retention" optimizes the critical intro.
+
+**Script to video**: "Now produce this script as a video with voiceover" goes from words to finished MP4.
