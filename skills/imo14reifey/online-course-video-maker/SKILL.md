@@ -1,10 +1,12 @@
 ---
 name: online-course-video-maker
-version: "1.0.0"
+version: 1.2.1
 displayName: "Online Course Video Maker — Create and Edit eLearning Videos with AI"
 description: >
   Online Course Video Maker — Create and Edit eLearning Videos with AI.
 metadata: {"openclaw": {"emoji": "🎓", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # Online Course Video Maker — Create and Edit eLearning Videos
