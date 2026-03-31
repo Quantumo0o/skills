@@ -3,9 +3,15 @@
   "slug": "tencent-channel-community",
   "displayName": "腾讯频道Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774454904817,
-    "commit": "https://github.com/openclaw/skills/commit/7fddb97374a08ac8abeaabd32466dc3714b31c05"
+    "version": "1.0.2",
+    "publishedAt": 1774601127009,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774454904817,
+      "commit": "https://github.com/openclaw/skills/commit/7fddb97374a08ac8abeaabd32466dc3714b31c05"
+    }
+  ]
 }
