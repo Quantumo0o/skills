@@ -1,50 +1,39 @@
 ---
 name: agent-migration
-description: Rename or migrate an OpenClaw agent by updating config and naming, migrating prior session content, fixing session display metadata, restarting, verifying, and only then asking whether to delete the old agent.
-input: old agent id、new agent id、new workspace（optional model）
-output: 新 agent 生效；旧会话内容已迁到新 agent；旧 agent 是否删除由用户最终确认
+description: Safely rename or migrate an OpenClaw agent by updating config and naming, migrating session content, fixing session metadata, restarting, verifying, and asking separately before deleting the old agent.
+input: old agent id, new agent id, new workspace, optional model change
+output: new agent active; prior session content migrated unless explicitly skipped; old agent deletion handled only after separate confirmation
 ---
 
 # Agent Migration
 
-## What this skill does
-This skill standardizes OpenClaw agent rename/migration work:
-- rename the agent id
-- rename the workspace path
-- migrate prior session content to the new agent
-- update session display metadata (`sessions.json` and related paths)
-- restart and verify the new agent
-- ask separately before deleting the old agent
+Use this skill when the user wants to rename or migrate an OpenClaw agent safely.
 
-## Typical ownership / permission level
-- This skill is typically used by the **`master`** agent.
-- It usually requires **higher local permissions** because it can modify:
-  - `~/.openclaw/openclaw.json`
-  - `~/.openclaw/agents/<id>/...`
-  - `/home/yln/claw-workspace/<name>`
-  - session metadata such as `sessions.json`
-- It should be used carefully and should not silently delete old agents.
+## Scope
+This skill handles:
+- agent id rename
+- workspace rename
+- config/path updates
+- prior session content migration
+- session display metadata updates
+- restart and verification
+- separate deletion confirmation for the old agent
 
-## Core rules
+## Defaults and boundaries
 - Confirm old id, new id, new workspace, and whether model also changes.
-- Update agent id, workspace, related config, and naming consistently.
-- **Session content migration is required by default**, unless the user explicitly says not to migrate it.
-- Do not use “active vs inactive session” as a reason to skip migration.
-- Do not hard-edit active lock files or forcibly rewrite the live session shell.
-- **Session display-layer metadata** (for example `sessions.json` fields such as `sessionKey`, `sessionFile`, `workspaceDir`, and related paths) must also be renamed.
+- Migrate prior session content by default unless the user explicitly says not to.
+- Do not skip migration just because a session does not look active.
+- Do not hard-edit active lock files or force-rewrite a live session shell.
 - Restart is required after migration.
-- **Deleting the old agent must always be asked separately.**
+- Never delete the old agent without a separate user confirmation.
 
-## Standard flow
-1. Confirm names and target paths
-2. Update config and naming
-3. Migrate old session content to the new agent
-4. Update session display metadata
-5. Restart Gateway / OpenClaw
-6. Verify UI, agent id, workspace, model, tools/skills, and migrated content
-7. Ask separately whether to delete the old agent
+## Files involved
+- config: `~/.openclaw/openclaw.json`
+- agent dirs: `~/.openclaw/agents/<id>/...`
+- workspace: `/home/yln/claw-workspace/<name>`
+- session metadata such as `sessions.json`
 
-## Included files
+## Use the included files
 - `references/checklist.md`
 - `references/cleanup.md`
 - `scripts/inspect_agent_migration.sh`
@@ -58,8 +47,8 @@ bash skills/agent-migration/scripts/copy_session_content.sh <old-id> <new-id>
 bash skills/agent-migration/scripts/verify_agent_migration.sh <old-id> <new-id>
 ```
 
-## Do not
-- Do not directly hard-rename a running agent and assume the UI will follow.
-- Do not hard-migrate the active session shell.
-- Do not skip content migration because a session “doesn’t look active”.
-- Do not delete the old agent before asking again.
+## Guardrails
+- Keep config, workspace, and naming changes consistent.
+- Update session display-layer metadata as part of the migration.
+- Verify the new agent before offering deletion of the old one.
+- Use `references/cleanup.md` only after the user separately confirms deletion.

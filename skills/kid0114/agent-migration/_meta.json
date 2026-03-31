@@ -3,9 +3,15 @@
   "slug": "agent-migration",
   "displayName": "Agent Migration",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774546321050,
-    "commit": "https://github.com/openclaw/skills/commit/240480074bcf66e6a6667d18ad1d54f5bc61104b"
+    "version": "1.0.1",
+    "publishedAt": 1774844209569,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774546321050,
+      "commit": "https://github.com/openclaw/skills/commit/240480074bcf66e6a6667d18ad1d54f5bc61104b"
+    }
+  ]
 }
