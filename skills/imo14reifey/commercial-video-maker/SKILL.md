@@ -1,10 +1,12 @@
 ---
 name: commercial-video-maker
-version: "1.0.0"
+version: 1.0.5
 displayName: "Commercial Video Maker — Create TV Commercials and Brand Campaign Videos"
 description: >
   Commercial Video Maker — Create TV Commercials and Brand Campaign Videos.
 metadata: {"openclaw": {"emoji": "🎥", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # Commercial Video Maker — TV Commercials and Brand Campaign Videos
