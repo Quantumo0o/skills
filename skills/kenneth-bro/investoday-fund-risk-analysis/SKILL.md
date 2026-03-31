@@ -1,7 +1,7 @@
 ---
 name: investoday-fund-risk-analysis
 title: "基金风险分析"
-version: 1.1.0
+version: 1.3.0
 description: 面向公募基金量化风险分析，聚焦回撤、波动率、下行风险、VaR、Beta、夏普与风险收益匹配度。基于今日投资金融数据接口，自动识别基金代码并输出结构化基金风险分析报告。触发词：基金风险、回撤、波动率、下行风险、VaR、Beta、夏普、风险收益比。
 tags:
   - fund-risk-analysis
@@ -17,9 +17,7 @@ metadata:
     emoji: "🛡️"
     category: "finance"
     requires:
-      env: ["INVESTODAY_API_KEY"]
       skills: ["investoday-finance-data"]
-    primaryEnv: "INVESTODAY_API_KEY"
 ---
 
 # 🛡️ 基金风险分析
@@ -54,13 +52,13 @@ metadata:
 
 ## 前置依赖
 
-本 Skill 依赖 `investoday-finance-data`（今日投资金融数据）Skill 获取实时金融数据，调用方式以该 Skill 为准。
+本 Skill 依赖 `investoday-finance-data`（今日投资金融数据）Skill 获取实时金融数据。
 
-确保 `INVESTODAY_API_KEY` 已配置为环境变量。
+基础 API 调用与底层执行方式统一以该 Skill 为准，业务 Skill 不重复展开底层接入细节。
 
 ## 工具说明
 
-以下为本 Skill 使用的数据接口。在 System Prompt 中以 `工具ID` 标识调用。
+以下为本 Skill 通过 `investoday-finance-data` 使用的数据接口。在 System Prompt 中以 `工具ID` 标识调用。
 
 ### 标的识别工具
 
@@ -239,7 +237,3 @@ Agent 获取数据后，按以下 5 步框架进行结构化分析：
 - 仅通过今日投资 API 查询公开市场数据
 - 不记录、不存储用户的查询记录
 - 分析结论仅供参考，不构成投资建议
-
-## Keywords
-
-基金风险分析, 最大回撤, 波动率, 下行风险, VaR, Beta, 夏普, 风险收益比, fund risk analysis, drawdown analysis
