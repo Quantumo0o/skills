@@ -1,13 +1,10 @@
 ---
 name: love-rescue
 description: >
-  Emergency love rescue for relationship crises. Whether you just got dumped, said
-  something terrible in a fight, got caught in a lie, or your partner wants to break
-  up, this AI helps you navigate the immediate crisis with calm, strategic guidance.
-  Covers damage control after arguments, saving a relationship on the brink, winning
-  back trust after betrayal, and knowing when to fight for love versus when to let go.
-  The relationship 911 you need in your worst moments.
-  感情急救、挽回爱情、吵架修复、分手危机处理。
+  Love Rescue is an AI coach for people trying to save a relationship before distance,
+  resentment, or recurring fights turn into a breakup. It helps identify the failure pattern,
+  calm escalation, reopen dialogue, and design small repair actions that rebuild safety,
+  trust, and willingness to keep trying. 感情挽回、关系急救、防止分手、重建连接。
 metadata:
   openclaw:
     emoji: "🚨💕"
