@@ -19,51 +19,47 @@ tags:
 - Best for common ObjectRemover jobs: remove watermarks/distracting objects, or extract a subject for reuse in CapCut/Premiere/DaVinci.
 - Supports both **chat-like natural language selection** and API-style automated processing.
 
-## Production Contract
+## Authentication Model
+
+This skill supports multiple authentication modes depending on deployment policy:
+
+- Browser / guest flow:
+  - No manual credential setup in most hosted deployments.
+- API automation flow:
+  - May use bearer-style authentication if enabled by host configuration.
+
+- This bundle is instruction-only and does not require local install-time secret files.
+- Any credential prompt and storage are controlled by the host platform.
+
+## Service Contract
 
 - Backend: `https://apiobjectremover.tokenlens.ai`
-- Server-side forwarding env:
-  - `HEAVY_API_URL=https://apiobjectremover.tokenlens.ai`
 
-## Two Auth Modes
+## Processing Flow
 
-### A) Browser or guest (human flow)
-
-1. If unregistered: `POST /api/auth/guest-session`, then send `x-guest-session-id` on processing calls.
-2. Prepare asset (upload in UI, or existing asset id).
-3. `POST /api/processing/calculate-cost` (optional).
-4. `POST /api/processing/generate-mask`
-5. `POST /api/processing/start-task`
-6. `GET /api/processing/task/:taskId` until terminal state.
-7. Read `outputUrl` / UI when completed.
-
-### B) API Key / OpenClaw (M2M)
-
-- **Always call the backend origin directly** (same host as `HEAVY_API_URL`). **Do not** rely on Cloudflare Workers to validate `Authorization: Bearer`; API key resolution runs on the Node/Ubuntu app only.
-- Header: `Authorization: Bearer <api_key>` (prefix e.g. `orsk_live_...`).
-- Scopes typically needed end-to-end: `credits:read`, `processing:write`, `processing:read` (or `*`).
-- **Asset ownership**: `start-task` requires an `assetId` belonging to the key’s user. Obtain by:
-  - `POST /api/assets/upload` with the same Bearer (multipart field `media`, optional `x-original-name`, `x-media-*`), **or**
-  - reuse an existing id from `GET /api/assets` (same auth).
-- Mask semantics: `textPrompt` in `generate-mask` (script/env: `OBJECTREMOVER_TEXT_PROMPT`, default `object`). Action `remove` vs `extract` is `OBJECTREMOVER_ACTION` / request body `action`.
-- **Reference E2E script** (env-driven, non-interactive): `scripts/openclaw-api-key-e2e.ts` — `pnpm run test:openclaw-e2e`
+1. Prepare asset (upload file, URL-imported asset, or existing asset id).
+2. `POST /api/processing/calculate-cost` (optional).
+3. `POST /api/processing/generate-mask`
+4. `POST /api/processing/start-task`
+5. `GET /api/processing/task/:taskId` until terminal state.
+6. Read `outputUrl` / UI when completed.
 
 ## Required Request Rules
 
-- **Guest path**: `x-guest-session-id` on processing endpoints when using guest identity.
-- **API Key path**: Bearer on backend; no guest header unless mixing flows (not typical).
-- **Production**: processing and API-key calls must hit the **backend domain**.
+- If using guest identity, include the guest session header on processing endpoints.
+- If using authenticated API mode, use the credential mechanism provided by the host platform.
+- Route processing calls to the backend domain.
 
 ## Fallback Rules
 
 - No credits: low-trial when allowed, else checkout / top-up.
 - 401 on guest flow: issue guest session first, retry with `x-guest-session-id`.
-- 401 on API key: wrong host (Workers), missing scope, or invalid/revoked key.
+- 401 on authenticated API mode: verify credential validity and backend routing.
 
 ## When Something Breaks
 
-- Use **[reference.md](reference.md)** sections **Workers vs Ubuntu** and **Troubleshooting** first: same skill covers “works locally, fails in prod”, “Bearer 401”, and “should this route hit Workers or backend”.
+- Use **[reference.md](reference.md)** troubleshooting for auth mismatch, polling stalls, and output retrieval issues.
 
 ## Additional Resources
 
-- Full contracts, OpenClaw, deployment matrix: [reference.md](reference.md)
+- Full endpoint contracts and troubleshooting: [reference.md](reference.md)

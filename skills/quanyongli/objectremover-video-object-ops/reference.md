@@ -61,42 +61,32 @@
 
 ## OpenClaw / API Key (machine-to-machine)
 
-Use this when users want a no-UI, script/API path with the same final result.
+Use this for no-UI automation with the same endpoint flow.
 
 ### Host rule
 
-- Resolve API key **only on the Ubuntu/Node backend**, not on Cloudflare Workers.
-- Set client base URL to the heavy API, e.g. `https://apiobjectremover.tokenlens.ai`.
-- If requests go only to the Workers front domain without forward, Bearer may never authenticate.
+- Call the backend API domain: `https://apiobjectremover.tokenlens.ai`.
+- Authentication mode depends on host policy (session, guest, or bearer-style auth).
 
-### Auth and scopes
+### Assets
 
-- Header: `Authorization: Bearer <secret>`
-- Typical scopes for the full pipeline: `credits:read`, `processing:write`, `processing:read`, or `*`.
+- `POST /api/assets/upload` — multipart `media`; optional headers `x-original-name`, `x-media-width`, `x-media-height`, `x-media-duration`.
+- `GET /api/assets` — list assets for current identity.
+- `GET /api/assets/:id` — metadata and playback URLs (`fullUrl`, `mediaUrlRemote`).
 
-### Assets (same user as the key)
+### Processing
 
-- `GET /api/apikeys` — list keys (session or Bearer, depending on route; useful to sanity-check auth).
-- `POST /api/assets/upload` — multipart `media` + Bearer; optional headers `x-original-name`, `x-media-width`, `x-media-height`, `x-media-duration`.
-- `GET /api/assets` — list assets for the authenticated user.
-- `GET /api/assets/:id` — metadata and playback URLs (`fullUrl`, `mediaUrlRemote`). Bearer supported on backend.
-
-### Processing (Bearer)
-
-Same endpoints as browser flow, with Bearer instead of cookies/guest:
+Same endpoints as browser flow:
 
 1. `POST /api/processing/calculate-cost`
 2. `POST /api/processing/generate-mask`
-3. `POST /api/processing/start-task` (requires `assetId` owned by the key’s user)
+3. `POST /api/processing/start-task`
 4. `GET /api/processing/task/:taskId`
 
-### Non-interactive E2E script (OpenClaw-style)
+### Bundle scope note
 
-- File: `scripts/openclaw-api-key-e2e.ts`
-- Command: `pnpm run test:openclaw-e2e` (or `pnpm exec tsx scripts/openclaw-api-key-e2e.ts`)
-- Required env: `OBJECTREMOVER_API_BASE`, `OBJECTREMOVER_API_KEY`, and either `OBJECTREMOVER_UPLOAD_PATH` (local file -> upload first) **or** `OBJECTREMOVER_ASSET_ID`.
-- Optional env: `OBJECTREMOVER_VIDEO_URL` (skip GET asset for URL), `OBJECTREMOVER_ACTION` (`remove`|`extract`), `OBJECTREMOVER_QUALITY`, `OBJECTREMOVER_TEXT_PROMPT`, `POLL_INTERVAL_MS`, `MAX_POLL_MS`, `OBJECTREMOVER_WIDTH`/`HEIGHT`/`DURATION`.
-- If both `OBJECTREMOVER_UPLOAD_PATH` and `OBJECTREMOVER_ASSET_ID` are set, upload runs and the **new** asset id wins.
+- This skill bundle documents endpoint behavior only.
+- It does not require local repository scripts or package-manager commands.
 
 ---
 
@@ -108,25 +98,25 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
 
 | Location | Role |
 |----------|------|
-| **Workers** | SSR, static assets, lightweight APIs, **forwarding** heavy routes to `HEAVY_API_URL`. |
+| **Workers** | SSR, static assets, lightweight APIs, **forwarding** heavy routes to backend API. |
 | **Ubuntu backend** | Heavy APIs, DB, full auth, Replicate/FFmpeg, uploads, processing, task persistence. |
 
 ### Ground rules
 
-1. **Heavy work** (files, FFmpeg, Replicate, long tasks, most `/api/processing/*`, asset upload/raw/trim): execute on **Ubuntu**; on Workers these routes should **forward** to `HEAVY_API_URL`, not emulate DB/fs.
+1. **Heavy work** (files, FFmpeg, Replicate, long tasks, most `/api/processing/*`, asset upload/raw/trim): execute on **Ubuntu**; on Workers these routes should **forward** to backend API, not emulate DB/fs.
 2. Workers must not depend on Node `pg` + local filesystem for heavy behavior.
-3. **API Key (`Authorization: Bearer`)** is resolved on the **backend** only. Calling only the **frontend/Workers** origin without hitting the heavy API host often yields **401** or no key resolution—point M2M clients at **`https://apiobjectremover.tokenlens.ai`** (or your deployed heavy API origin).
+3. Authentication checks happen on backend paths; automation clients should target backend API domain directly.
 
 ### Env highlights
 
-- **Workers:** e.g. `HEAVY_API_URL=https://apiobjectremover.tokenlens.ai` (forward target).
-- **Ubuntu:** `DATABASE_URL`, auth/storage config, Replicate tokens, etc.
+- **Workers:** should forward heavy processing routes to backend domain.
+- **Backend:** executes DB/auth/processing/storage operations.
 
 ### Production URL contract
 
 - Frontend example: `https://objectremover.video`
 - Heavy backend: `https://apiobjectremover.tokenlens.ai`
-- Workers forwards heavy APIs to `HEAVY_API_URL`; Ubuntu runs heavy routes locally when the request already arrived there.
+- Workers forward heavy APIs to backend; Ubuntu runs heavy routes locally when request arrives there.
 
 ### Routes often forwarded from Workers -> backend
 
@@ -138,10 +128,10 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
 
 ### Diagnostic heuristics
 
-- **Works locally (Ubuntu) but fails via production URL** -> confirm route is forwarded on Workers, or call backend directly for API Key / automation.
-- **401 / auth mismatch across domains** -> absolute API URL, cookies vs Bearer, SameSite/credentials.
+- **Works locally (backend) but fails via production URL** -> confirm forwarding and backend target domain.
+- **401 / auth mismatch across domains** -> absolute API URL and host-side auth policy alignment.
 - **Empty or fallback data from credits/tasks on Workers** -> may be DB-unavailable fallback; heavy writes should hit Ubuntu path.
-- **Bearer works on backend, 401 on site domain** -> expected if Workers does not resolve API keys; use backend base URL for OpenClaw.
+- **Browser works but automation fails** -> verify automation is targeting backend API domain and using host-expected auth mode.
 
 ---
 
@@ -161,9 +151,9 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
 
 ### API Key clients
 
-1. Ensure backend base URL and valid scopes.
+1. Ensure backend base URL and host-expected auth mode.
 2. Create or reuse `assetId` via upload or API.
-3. Set `action` and `textPrompt` explicitly (no interactive prompts in the E2E script defaults).
+3. Set `action` and `textPrompt` explicitly.
 
 ---
 
@@ -171,14 +161,13 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
 
 - Workers should forward heavy processing routes.
 - Ubuntu backend executes Replicate/FFmpeg/task persistence.
-- Production forwarding target:
-  - `HEAVY_API_URL=https://apiobjectremover.tokenlens.ai`
+- Production forwarding target should resolve to backend domain.
 
 ## Troubleshooting
 
 - `401 Unauthorized`
   - Browser: missing/expired session, or missing guest header on processing.
-  - API Key: request hit **Workers-only** host, missing `Authorization`, wrong/expired key, or insufficient scope—**prefer backend origin** for Bearer (see **Workers vs Ubuntu**).
+  - Automation: wrong target host, missing/invalid auth, or backend policy mismatch.
 - `400 credits insufficient`
   - downgrade to low trial or purchase credits.
 - `403` on start-task / assets
@@ -188,7 +177,7 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
 - No output URL
   - inspect task terminal status and storage registration.
 - **Prod vs local mismatch**
-  - Re-read **Workers vs Ubuntu**: forwarding, `HEAVY_API_URL`, and whether the client targets the heavy API hostname.
+  - Re-read **Workers vs Ubuntu**: forwarding and whether the client targets the backend API hostname.
 
 ## Decision Checklist (Install or Not)
 
@@ -196,5 +185,5 @@ ObjectRemover splits work between **Cloudflare Workers** (edge) and **Ubuntu bac
   - AI object removal from videos.
   - AI object extraction with transparent-background output.
   - Natural-language object targeting.
-  - OpenClaw/API-Key automation from upload to final result.
+  - OpenClaw automation from upload to final result.
 - Skip this skill if your task is only generic video trim/compress without object-level AI editing.
