@@ -1,6 +1,6 @@
 ---
 name: wechat-article-crawler
-version: "2.0.1"
+version: "2.0.4"
 description: WeChat Official Account article crawler with x402 micropayments. Requires Chrome browser and interactive WeChat QR login on first use. Harvest articles for research and analysis with pay-as-you-go Base USDC pricing.
 allowed-tools: Bash(python3:*) Read Write Edit
 metadata:
@@ -10,12 +10,12 @@ metadata:
       anyBins: ["python3", "google-chrome"]
       env: ["USER_ID"]
       localFiles:
-        - "~/.wechat_article_crawler/weixin_credentials.py"
-        - "~/.wechat_article_crawler/data/"
+        - "./weixin_credentials.py"
+        - "./data/users/"
+        - "./data/queue/"
     os: ["linux", "darwin", "win32"]
   openclaw:
     skillKey: wechat-article-crawler
-    homepage: https://github.com/klin-h/wechat_articles_spider
     x402:
       enabled: true
       chain: base
@@ -332,7 +332,7 @@ export BASE_API_KEY=your_basescan_api_key
 
 ## Data Storage Locations
 
-The skill stores data in the following locations:
+The skill stores data in the following locations (relative to skill directory):
 
 ```
 ~/.wechat_article_crawler/
