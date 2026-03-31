@@ -1,156 +1,214 @@
 ---
 name: scenario-first-thinking
-version: 1.0.0
-description: "A scenario-based thinking router — automatically matches 8 thinking tool priorities based on task type, letting AI use the right tool at the right time for the right problem."
+version: 2.0.0
 author: WH laowu
-tags: [thinking, decision-making, productivity, mental-models, scenario-routing]
+description: "场景路由 + 8工具直接执行。将 TaskType → 场景 → 工具序列的映射固化到 SKILL.md 内部，无需外链文件即可执行。HEARTBEAT.md 中的路由规则已迁移至此，统一作为技能触发入口。"
+tags: [thinking, decision-making, scenario-routing, tools]
 ---
 
-# Scenario-First Thinking
+# Scenario-First Thinking v2.0
 
-> Lightweight · Closed-Loop · High Fault Tolerance
-
-## Core Philosophy
-
-When a task comes in, **first identify the scenario, then select tools**.
-Not a fixed template — dynamically adjust the priority order of 8 thinking tools based on the scenario.
+> **自包含版本**：本文件已内嵌所有工具执行步骤，**不需要读取任何外部文件**即可执行**。references/ 目录下的文件仅供深度查阅。
 
 ---
 
-## Trigger Conditions
-
-Activate this skill when the user says:
-
-- "I have a problem…" / "I don't know which to choose…" / "I'm too busy…"
-- "Help me analyze…" / "Help me write…" / "Help me plan…"
-- "I can't figure this out…" / "Any new ideas…" / "This is a disaster…"
-- Or any task requiring thinking and decision-making
-
----
-
-## Execution Protocol (3-Step Closed Loop)
-
-### Step 1 — Scene Routing (Automatic)
-
-Match the task to one of six scenarios:
-
-| Trigger Words | Scenario |
-|--------------|---------|
-| Direction unclear / Strategy / Pivot / Startup | Scene 1: Direction/Decision |
-| Can't learn / Exam prep / Practice methods | Scene 2: Learning/Internalizing |
-| Report / Write article / Sell / Present | Scene 3: Express/Persuade |
-| Too busy / Unclear priorities | Scene 4: Efficiency/Prioritization |
-| Urgent / Emergency / Breaking | Scene 5: Crisis/Firefighting |
-| New ideas / Brainstorm / Creative | Scene 6: Creative/Exploration |
-
-> **Fault Tolerance**: When unclear, default to Scene 4 (Efficiency/Prioritization)
-
-### Step 2 — Tool Selection (By Priority)
-
-Select 2-3 most relevant tools from 8, execute in scenario priority order:
+## ⚡ 快速执行流（标准流程）
 
 ```
-Scene 1 (Direction/Decision): First Principles > Second-Order > Pre-Mortem > SMART > Quadrant > Inversion > SCQA > Feynman
-Scene 2 (Learning/Internalizing): Feynman > SMART > Quadrant > First Principles > Second-Order > SCQA > Inversion > Pre-Mortem
-Scene 3 (Express/Persuade): SCQA > SMART > Quadrant > First Principles > Feynman > Second-Order > Pre-Mortem > Inversion
-Scene 4 (Efficiency/Prioritization): Quadrant > SCQA > Feynman > Inversion > First Principles > Pre-Mortem > SMART > Second-Order
-Scene 5 (Crisis/Firefighting): Inversion > Pre-Mortem > First Principles > Quadrant > Second-Order > SCQA > SMART > Feynman
-Scene 6 (Creative/Exploration): Feynman > First Principles > Second-Order > SCQA > Quadrant > Inversion > Pre-Mortem > SMART
-```
-
-> ⚠️ **Critical Action**
-> After selecting tools, you **must** read `references/tool-handbook.md` or `references/scqa-template.md`. Execute strictly following the defined 【Operation Steps】 and 【Common Mistakes】 boundaries!
-> **Forbidden**: Do NOT execute tools using your pretrained knowledge. Do NOT skip the references documents.
-
-### Step 3 — Verification (Mandatory)
-
-After tool execution, verify:
-
-1. **Explainable**: Can the conclusion be stated in one sentence?
-2. **Example-able**: Can you give an example a normal person would understand?
-3. **No Gaps**: Any obvious logical flaws?
-
-> **Fault Tolerance**: If verification fails, output "Conclusion needs validation — recommend using [tool] to re-check"
-
----
-
-## 8 Tools Quick Reference
-
-| # | Tool | One-Sentence Question |
-|---|------|----------------------|
-| 1 | First Principles | What is the most fundamental truth? |
-| 2 | Inversion | How would this definitely fail? |
-| 3 | Second-Order Thinking | What will happen in 3 months? |
-| 4 | Pre-Mortem | What is the most likely failure cause? |
-| 5 | Feynman Technique | Can you explain this in plain language? |
-| 6 | SMART Principles | Specific/Measurable/Achievable/Relevant/Time-bound? |
-| 7 | Quadrant Matrix | Important? Urgent? |
-| 8 | SCQA Model | Will the audience resonate? |
-
----
-
-## 8 Tools Execution Boundaries (Embedded Constraints)
-
-### First Principles
-**Must Do**: List all assumptions → Ask "Is this true?" → Keep verified → Rebuild
-**Forbidden**: ❌ Treat conventions as truth ❌ Accept assumptions without verification ❌ Get lost in details
-
-### Inversion
-**Must Do**: List all failure paths → Systematically avoid them
-**Forbidden**: ❌ Only list obvious failures ❌ List without acting ❌ Over-worry
-
-### Second-Order Thinking
-**Must Do**: Ask "And then?" at least 3 times, trace time extension
-**Forbidden**: ❌ Only see first-order results ❌ Dismiss long-term as "far away" ❌ Use in fast-changing environments
-
-### Pre-Mortem
-**Must Do**: Assume failure → Backtrack 3 most likely causes → Score → Create prevention plan
-**Forbidden**: ❌ Post-hoc rationalization ❌ Vague reasons ("poor execution" is useless) ❌ Vague prevention actions
-
-### Feynman Technique
-**Must Do**: No jargon → Find analogy → Give example → Quiz
-**Forbidden**: ❌ Use jargon to explain jargon ❌ Theory without examples ❌ "I understand" ≠ "I can explain"
-
-### SMART Principles
-**Must Do**: Check all 5 dimensions: Specific / Measurable / Achievable / Relevant / Time-bound
-**Forbidden**: ❌ Too many goals at once ❌ Only focus on timeline ❌ Goals too big or too small
-
-### Quadrant Matrix
-**Must Do**: All tasks into quadrants → Q1 do now / Q2 schedule / Q3 delegate / Q4 delete
-**Forbidden**: ❌ All day in Q1 (burnout) ❌ All day in Q3 (looks busy but no value) ❌ Q2 interrupted by Q1 forever
-
-### SCQA Model
-**Must Do**: S and C must make audience say "Yes!" → A must make them say "I see it now"
-**Forbidden**: ❌ S too weak without resonance ❌ C too vague without hitting pain points ❌ A too long with too much info
-
----
-
-## Quick Cases
-
-**Input**: "Too busy, can't figure out what to do first"
-
-```
-Step1 → Scene 4 (Efficiency/Prioritization)
-Step2 → Quadrant first + SCQA second
-       → Must read references/tool-handbook.md
-Step3 → Tasks divided into 4 quadrants, priority list
-```
-
-**Input**: "Help me write a WeChat article about learning AI"
-
-```
-Step1 → Scene 3 (Express/Persuade)
-Step2 → SCQA first (Situation→Complication→Question→Answer)
-       → Must read references/scqa-template.md
-Step3 → Check: Will readers resonate? Is conclusion actionable?
+收到任务
+  ↓
+Step 1：判断场景（6选1）→ 确定工具优先级
+  ↓
+Step 2：按优先级执行工具（本文件内嵌操作步骤）
+  ↓
+Step 3：验证结论（可陈述？能举例？无明显漏洞？）
 ```
 
 ---
 
-## Notes
+## Step 1 — 场景路由表
 
-- **This skill is a routing layer** — does not replace execution skills (writing/search/code)
-- **Orthogonal to OpenClaw**: Scenario-First Thinking = "how to think", OpenClaw = "who does it"
-- **Tool details** in `references/tool-handbook.md`
-- **Scene deep-dive** in `references/six-scenario-routing.md`
-- **SCQA template** in `references/scqa-template.md`
+**触发词 → 场景 → 工具优先级序列**
+
+| 触发词 | 场景 | 工具优先级（顺序执行） |
+|--------|------|----------------------|
+| 方向不清/战略/转型/做不做/选哪条路 | 场景1 方向/决策 | 第一性原理 → 二阶思维 → Pre-Mortem |
+| 学不会/怎么学/备考/概念入门 | 场景2 学习/内化 | 费曼 → SMART → 四象限 |
+| 写文章/汇报/销售/说服/表达 | 场景3 表达/说服 | **SCQA** → SMART → 四象限 |
+| 太忙/理不清/优先级/先做哪个 | 场景4 效率/排序 | 四象限 → SCQA → 费曼 |
+| 紧急/危机/要挂了/救火 | 场景5 危机/救火 | 逆向 → Pre-Mortem → 第一性原理 |
+| 新想法/头脑风暴/有没有可能 | 场景6 创意/探索 | 费曼 → 第一性原理 → 二阶思维 |
+
+**模糊时默认：场景4（效率/排序），工具：四象限优先**
+
+---
+
+## Step 2 — 8工具直接执行手册
+
+### 工具1：第一性原理
+**核心问题**：这件事最底层的事实是什么？
+
+**操作步骤**：
+1. 列出关于这件事的所有假设
+2. 逐个问："这是真的吗？有反例吗？"
+3. 保留被验证的，删除被推翻的
+4. 从剩下的真相重建结论
+
+**禁忌**：❌ 把常识当真相　❌ 不验证假设直接接受　❌ 过度拆解细枝末节
+
+---
+
+### 工具2：逆向思维（Inversion）
+**核心问题**：怎么做一定会失败？
+
+**操作步骤**：
+1. 问："这件事如果搞砸，最可能的方式是什么？"
+2. 列出所有失败路径
+3. 系统性避免这些路径
+
+**禁忌**：❌ 只列显而易见的原因　❌ 列完不行动　❌ 过度焦虑
+
+---
+
+### 工具3：二阶思维（Second-Order）
+**核心问题**：然后呢？然后呢？然后呢？
+
+**操作步骤**：
+1. 做出决策或判断
+2. 问："然后会发生什么？"
+3. 继续问"然后呢？"至少3次
+
+**禁忌**：❌ 只看一阶结果　❌ 认为"长期很远以后再说"
+
+---
+
+### 工具4：Pre-Mortem 验尸分析
+**核心问题**：假设已经失败，最可能的原因是什么？
+
+**操作步骤**：
+1. 假设：这件事彻底失败了
+2. 问："最可能的3个失败原因是什么？"
+3. 给每个原因打分（可能性 × 严重性）
+4. 针对高分原因制定预防措施
+
+**禁忌**：❌ 事后诸葛亮　❌ 原因太泛（"执行不力"无效）
+
+---
+
+### 工具5：费曼学习法
+**核心问题**：能用普通人的话讲清楚吗？
+
+**操作步骤**：
+1. 写下概念的定义（不能用自己行业的术语）
+2. 假设给12岁小孩讲，用最简单语言
+3. 找一个和生活类比
+4. 举一个具体实例
+5. 对方能复述吗？能举例吗？
+
+**禁忌**：❌ 用术语解释术语　❌ 只讲理论不讲实例
+
+---
+
+### 工具6：SMART原则
+**核心问题**：目标具体吗？能衡量吗？现实吗？
+
+**操作步骤**：
+1. **Specific**：要做什么？说清楚
+2. **Measurable**：怎么算成功？有数字吗？
+3. **Achievable**：现实吗？有资源吗？
+4. **Relevant**：和整体目标相关吗？
+5. **Time-bound**：什么时候完成？
+
+**禁忌**：❌ 目标太多　❌ 只看时限不看其他维度
+
+---
+
+### 工具7：四象限矩阵
+**核心问题**：重要吗？紧急吗？
+
+**操作步骤**：
+1. 列出所有任务
+2. 每个任务问：重要吗？紧急吗？
+3. 分类：
+   - Q1（重要+紧急）→ **立刻做**
+   - Q2（重要+不紧急）→ **计划做**
+   - Q3（紧急+不重要）→ **委托做**
+   - Q4（不重要+不紧急）→ **删除**
+
+**禁忌**：❌ 全天做Q1疲于奔命　❌ Q2总被Q1打断
+
+---
+
+### 工具8：SCQA模型 ⭐ （写作必用）
+**核心问题**：读者想说"对！然后呢？"
+
+**操作步骤**：
+1. **S（Situation情境）**：建立共识，说对方也认可的事实
+2. **C（Complication冲突）**：引入矛盾或挑战
+3. **Q（Question问题）**：提出核心问题
+4. **A（Answer答案）**：给出解决方案
+
+**SCQA写作检查清单**：
+- [ ] S是否让人想说"对！我就是这样"
+- [ ] C是否戳到真实痛点，不是泛泛焦虑
+- [ ] Q是否收敛到一个核心问题
+- [ ] A是否用一句话说清核心观点
+- [ ] A是否有具体行动建议
+- [ ] 全文是否超过3个核心观点（超了就拆）
+
+**SCQA变体（短文/朋友圈）**：S+C合并1-2句 + Q+A合并1-2句
+
+**SCQA变体（长文/公号）**：S → C → Q → A1（最易理解的） → A2（深入层） → 行动召唤
+
+---
+
+## Step 3 — 验证
+
+执行完工具后，必须检查：
+1. **可陈述**：能用一句话说清结论吗？
+2. **可举例**：能给一个普通人听得懂的例子吗？
+3. **无漏洞**：有明显逻辑缺陷吗？
+
+验证失败 → 输出"结论需验证，建议用[工具名]重新检查"
+
+---
+
+## 场景路由与内容流水线衔接规则
+
+> **v2.0新增**：场景3（表达/说服）自动触发 SCQA 写作流程
+
+| 任务类型 | 路由场景 | 触发动作 |
+|---------|---------|---------|
+| 公号文章写作 | 场景3 | **必须**先走 SCQA 结构，再进入 render 流程 |
+| 老吴风格文章 | 场景3 | SCQA + 老吴金句库 + Patterns |
+| 热点评论/内参 | 场景3 | SCQA + 蓝灰内参体系（栏目二） |
+| 排版发布 | 场景3 | SCQA 输出作为 Layout_Editor 输入规格 |
+| 任务规划/排序 | 场景4 | 四象限 → 输出任务清单入 Memory_Bus |
+| 危机应对 | 场景5 | 逆向优先 → 输出行动清单，跳过常规审批 |
+
+---
+
+## 快速索引（工具 × 场景矩阵）
+
+|        | 第一性 | 逆向 | 二阶 | Pre-Mortem | 费曼 | SMART | 四象限 | SCQA |
+|--------|--------|------|------|------------|------|-------|--------|------|
+| 场景1 方向 | ✅1 |      | ✅2 | ✅3        |      |       |        |      |
+| 场景2 学习 | ✅3 |      | ✅2 |            | ✅1  | ✅2   | ✅3    |      |
+| 场景3 表达 | ✅3 |      |      |            | ✅3  | ✅2   | ✅3    | ✅1⭐ |
+| 场景4 效率 |      |      |      |            | ✅2  |       | ✅1    | ✅2   |
+| 场景5 危机 | ✅3 | ✅1  |      | ✅2        |      |       |        |      |
+| 场景6 创意 | ✅2 |      | ✅3 |            | ✅1  |       |        | ✅2   |
+
+> ✅后的数字表示优先级（1=最先执行）
+
+---
+
+## v2.0 更新说明
+
+- **v1.0 → v2.0**：去除"必须读取外部文件"的约束，所有工具操作步骤内嵌到本文件
+- **references/tool-handbook.md**：降级为补充参考，不再是执行必需
+- **HEARTBEAT.md 中的路由规则**：已统一迁移到本文件 Step 1，作为唯一真实来源
+- **SCQA**：从可选工具升级为场景3的强制优先级，且写作流水线必须衔接
+
+---
+_author: WH laowu | v2.0 2026-03-30_
