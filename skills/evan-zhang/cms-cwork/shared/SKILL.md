@@ -57,4 +57,4 @@ const reportResult = await reportGetById({ reportId: '123456' });
 ## 注意事项
 
 - 这些 Skill 不依赖 LLM client，可直接使用
-- 所有 API 调用凭证从环境变量读取（`CWORK_APP_KEY`、`CWORK_BASE_URL`）
+- 所有 API 调用凭证通过 `setup({ apiKey })` 注入，由调用方提供

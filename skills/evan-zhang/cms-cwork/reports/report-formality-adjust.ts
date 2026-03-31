@@ -34,7 +34,7 @@ export async function reportFormalityAdjust(input: ReportFormalityAdjustInput, _
 1. 保持核心信息不变
 2. 只调整语言风格和表达方式
 3. 确保逻辑连贯
-4. 直接返回调整后的内容，不要包含其他说明`;
+4. 输出调整后的内容，不含额外说明`;
 
     const userPrompt = `请将以下${reportType}汇报调整为${formalityMap[targetFormality]}风格：
 

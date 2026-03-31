@@ -45,7 +45,7 @@ export async function taskAdjustmentSuggest(input: TaskAdjustmentSuggestInput, _
   "priorityChange": "raise/lower/maintain"
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请为以下任务提供调整建议：\n\n${context}`;
 

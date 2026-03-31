@@ -42,7 +42,7 @@ export async function reminderTip(input: ReminderTipInput, _context?: { llmClien
 
 催办风格：${styleMap[reminderStyle]}
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请生成以下事项的催办提示：\n\n${promptContext}`;
 

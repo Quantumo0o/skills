@@ -34,7 +34,7 @@ ${instruction ? `额外要求：${instruction}` : ''}
   "changes": ["改动点1", "改动点2"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请优化以下汇报内容：\n\n${draftContent}`;
 

@@ -36,7 +36,7 @@ export async function outlineGen(input: OutlineGenInput, _context?: { llmClient?
   ]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请为以下内容生成${reportType}大纲：
 

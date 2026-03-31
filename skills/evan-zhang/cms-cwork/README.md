@@ -1,8 +1,19 @@
 # CWork Skill 包使用说明
 
-> 版本：1.0.0  
+> 版本：1.5.1  
 > 名称：cms-cwork  
 > 用途：工作协同系统 AI 能力接入包
+
+## 🔒 安全与隐私声明
+
+本 Skill **不收集、不存储、不传递用户凭证**。
+
+- `CWORK_APP_KEY` 是用户自己的玄关工作协同 AppKey，通过 `setup({ apiKey })` 注入
+- 该 Key 仅在运行时由用户的本地 Agent 直接调用玄关 API，数据不经过任何第三方服务器
+- Skill 代码开源，用户可自行审查：所有 API 调用均指向 `sg-al-cwork-web.mediportal.com.cn`
+- 获取方式：玄关工作台 → 系统设置 → 开放平台 → AppKey（用户自己的 Key，仅本人可见）
+
+这与其他需要用户身份的 Skill（如 GitHub、Gmail 等）的工作方式完全相同。
 
 ---
 

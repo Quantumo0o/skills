@@ -941,3 +941,40 @@ export interface WorkSummary {
   recommendations: string[];
 }
 export type MultiSourceAggOutput = SkillResult<WorkSummary>;
+
+// ===== contacts 联系人分组 =====
+export interface ContactGroup {
+  groupId: number;
+  groupName: string;
+  memberCount?: number;
+  members?: ContactGroupMember[];
+}
+
+export interface ContactGroupMember {
+  empId: number;
+  name: string;
+  deptName?: string;
+}
+
+export interface ContactGroupListInput {
+  checkEmpId?: number;
+}
+export type ContactGroupListOutput = SkillResult<{ groups: ContactGroup[] }>;
+
+export interface ContactGroupCreateInput {
+  name: string;
+}
+export type ContactGroupCreateOutput = SkillResult<{ groupId?: number }>;
+
+export interface ContactGroupRenameInput {
+  groupName: string;   // 原分组名（用于查找 groupId）
+  newName: string;
+}
+export type ContactGroupRenameOutput = SkillResult<{}>;
+
+export interface ContactGroupMembersInput {
+  groupName: string;   // 分组名（用于查找 groupId）
+  addNames?: string[]; // 新增成员姓名列表
+  removeNames?: string[]; // 移除成员姓名列表
+}
+export type ContactGroupMembersOutput = SkillResult<{}>;

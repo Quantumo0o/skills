@@ -32,7 +32,7 @@ export async function reportComplete(input: ReportCompleteInput, _context?: { ll
   "risks": ["风险1"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请补全以下汇报内容（需补全字段：${fieldsToComplete.join('、')}）：
 

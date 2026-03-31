@@ -130,7 +130,7 @@ export async function multiSourceAgg(
   "recommendations": ["建议1"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请基于以下多源数据生成工作总结：\n\n${context}`;
 

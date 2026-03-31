@@ -35,7 +35,7 @@ export async function reportToneAdapt(input: ReportToneAdaptInput, _context?: { 
   "explanation": "改动说明"
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请将以下汇报适配${audience}：\n\n${draftContent}`;
 

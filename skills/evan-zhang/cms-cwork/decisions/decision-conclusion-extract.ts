@@ -46,7 +46,7 @@ export async function decisionConclusionExtract(input: DecisionConclusionExtract
 要求：
 1. 只提炼已经明确的结论性陈述
 2. 结论应该是可执行的决定或共识
-3. 直接返回 JSON，不要包含其他说明`;
+3. 输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请从以下待办及相关讨论中提炼结论：\n\n${context}`;
 

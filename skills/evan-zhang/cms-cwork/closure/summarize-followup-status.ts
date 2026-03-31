@@ -48,7 +48,7 @@ export async function summarizeFollowupStatus(input: SummarizeFollowupStatusInpu
   "estimatedCompletion": 1234567890000（可选）
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请总结以下事项的跟进状态：\n\n${context}`;
 

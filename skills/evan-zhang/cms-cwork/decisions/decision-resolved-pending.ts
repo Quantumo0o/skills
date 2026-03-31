@@ -26,7 +26,7 @@ export async function decisionResolvedPending(input: DecisionResolvedPendingInpu
   "summary": "总体状态说明"
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const conclusionsText = conclusions.map((c, i) => `${i + 1}. ${c.content}（确信度：${c.confidence}）`).join('\n');
     const userPrompt = `请区分以下结论的已决/待决状态：\n\n待办状态：${todoStatus}\n\n结论列表：\n${conclusionsText}`;

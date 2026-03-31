@@ -47,7 +47,7 @@ export async function judgeClosureStatus(input: JudgeClosureStatusInput, _contex
   "confidence": "高/中/低"
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请判断以下事项是否已闭环：\n\n${context}`;
 

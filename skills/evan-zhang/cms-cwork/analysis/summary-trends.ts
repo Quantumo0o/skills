@@ -39,7 +39,7 @@ export async function summaryTrends(input: SummaryTrendsInput, _context?: { llmC
   "recommendations": ["建议1", "建议2"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请分析以下多期汇报的趋势变化：\n\n${context}`;
 

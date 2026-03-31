@@ -34,7 +34,7 @@ export async function taskBlockerTip(input: TaskBlockerTipInput, _context?: { ll
   "priority": "紧急/高/中/低"
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请为以下卡点任务提供解决建议：\n\n${context}`;
 

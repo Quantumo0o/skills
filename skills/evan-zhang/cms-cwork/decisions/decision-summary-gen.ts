@@ -39,7 +39,7 @@ export async function decisionSummaryGen(input: DecisionSummaryGenInput, _contex
   "actionItems": ["行动项1", "行动项2"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请生成以下事项的决策摘要：\n\n${context}`;
 

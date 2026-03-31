@@ -1,9 +1,10 @@
 /**
  * CWork API 客户端
  * 统一封装 CWork 平台 API 调用
- * 懒加载：首次调用时才从环境变量读取配置
+ * 懒加载：首次调用时从运行时配置读取（不依赖 process.env）
  */
 
+import { getRuntimeConfig } from './runtime.js';
 import type {
   ApiResult,
   EmpSearchResponse,
@@ -20,17 +21,15 @@ import type {
 
 /**
  * CWork API 客户端类
- * 懒加载，首次调用时从环境变量读取配置
+ * 懒加载，首次调用时从运行时配置读取（由调用方通过 setup() 注入）
  */
 export class CWorkClient {
   private get baseUrl(): string {
-    return process.env['CWORK_BASE_URL'] ?? 'https://sg-al-cwork-web.mediportal.com.cn';
+    return getRuntimeConfig().baseUrl;
   }
 
   private get appKey(): string {
-    const key = process.env['CWORK_APP_KEY'];
-    if (!key) throw new Error('[cwork] 请先调用 setup({ appKey: "xxx" }) 初始化');
-    return key;
+    return getRuntimeConfig().apiKey;
   }
 
   private buildUrl(path: string): string {
@@ -183,6 +182,30 @@ export class CWorkClient {
       body: JSON.stringify(templateIds),
     });
     return this.handleResponse<Array<{ templateId: number; main: string }>>(response);
+  }
+
+  // 联系人分组：查询所有分组
+  async queryContactGroups(checkEmpId?: number): Promise<any[]> {
+    const payload: Record<string, unknown> = {};
+    if (checkEmpId !== undefined) payload['checkEmpId'] = checkEmpId;
+    const result = await this.post<any>('/open-api/cwork-user/group/queryTargetUserGroups', payload);
+    return Array.isArray(result) ? result : [];
+  }
+
+  // 联系人分组：创建或更新分组（id为空=创建，有id=重命名）
+  async saveOrUpdateContactGroup(name: string, id?: number): Promise<any> {
+    const payload: Record<string, unknown> = { name };
+    if (id !== undefined) payload['id'] = id;
+    return this.post<any>('/open-api/cwork-user/group/saveOrUpdatePersonalGroup', payload);
+  }
+
+  // 联系人分组：增删成员
+  async manageGroupMembers(groupId: number, addEmpIds: number[], removeEmpIds: number[]): Promise<any> {
+    return this.post<any>('/open-api/cwork-user/group/manageGroupMembers', {
+      groupId,
+      addEmpIds,
+      removeEmpIds,
+    });
   }
 }
 

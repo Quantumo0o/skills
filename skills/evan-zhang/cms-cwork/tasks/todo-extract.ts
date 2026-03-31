@@ -33,7 +33,7 @@ export async function todoExtract(input: TodoExtractInput, _context?: { llmClien
 要求：
 1. 识别明确的行动项（动词开头的内容）
 2. 描述要具体、可执行
-3. 直接返回 JSON，不要包含其他说明`;
+3. 输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请从以下${sourceType === 'report' ? '汇报' : '讨论'}内容中提取待办事项：
 

@@ -34,7 +34,7 @@ export async function discussionThread(input: DiscussionThreadInput, _context?: 
   "openQuestions": ["未决问题1", "未决问题2"]
 }
 
-要求：直接返回 JSON，不要包含其他说明`;
+输出格式：JSON 对象，无其他内容`;
 
     const userPrompt = `请整理以下讨论串：\n\n${context}`;
 
