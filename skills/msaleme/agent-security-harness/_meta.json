@@ -3,9 +3,15 @@
   "slug": "agent-security-harness",
   "displayName": "Agent Security Harness",
   "latest": {
-    "version": "3.6.0",
-    "publishedAt": 1774368312300,
-    "commit": "https://github.com/openclaw/skills/commit/84824fc8ca25834a6047bda247cf3ddf9a6ec1cb"
+    "version": "3.8.1",
+    "publishedAt": 1774750859358,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.6.0",
+      "publishedAt": 1774368312300,
+      "commit": "https://github.com/openclaw/skills/commit/84824fc8ca25834a6047bda247cf3ddf9a6ec1cb"
+    }
+  ]
 }

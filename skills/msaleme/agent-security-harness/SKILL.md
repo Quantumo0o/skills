@@ -19,13 +19,15 @@ metadata: {"openclaw":{"emoji":"🛡️","requires":{"bins":["python3","pip","ag
 
 # Agent Security Harness
 
-**363 security tests** for AI agent systems. 4 wire protocols (MCP, A2A, L402, x402), 20 enterprise platforms, GTG-1002 APT simulation, false positive rate testing, supply chain provenance, jailbreak resistance. Zero external dependencies for core protocol modules.
+**332 security tests** across **24 modules** for AI agent systems. 4 wire protocols (MCP, A2A, L402, x402), 20+ enterprise platforms, GTG-1002 APT simulation, false positive rate testing, supply chain provenance, jailbreak resistance, AIUC-1 certification prep. Zero external dependencies for core protocol modules.
 
-**Current version: v3.6.0** | [PyPI](https://pypi.org/project/agent-security-harness/) | [GitHub](https://github.com/msaleme/red-team-blue-team-agent-fabric) | Apache 2.0
+**Current version: v3.8.1** | [PyPI](https://pypi.org/project/agent-security-harness/) | [GitHub](https://github.com/msaleme/red-team-blue-team-agent-fabric) | Apache 2.0
+
+**New in v3.8.1:** MCP Server (expose harness as MCP tools for any AI agent), Attestation Registry (opt-in, Ed25519 signed), Telemetry (opt-in, GDPR compliant), GitHub Action for CI/CD, Free MCP Security Scan, AIUC-1 Certification Prep, Monthly Security Report pipeline, Discord Scan Bot. Validated at 97.9% pass rate (HRAO-E, 146 tests, Wilson 95% CI [0.943, 0.994]). 22 rounds of critical evaluation, 10/10 final score.
 
 ## Safety
 
-**Non-destructive by default.** All 363 tests send crafted inputs and analyze responses. No tests modify target state, delete data, or execute write operations.
+**Non-destructive by default.** All 332 tests send crafted inputs and analyze responses. No tests modify target state, delete data, or execute write operations.
 
 **Do NOT run against production systems without explicit authorization.** Use isolated staging/test environments and test accounts, especially for payment endpoints (L402, x402).
 
@@ -51,16 +53,16 @@ metadata: {"openclaw":{"emoji":"🛡️","requires":{"bins":["python3","pip","ag
 
 ```bash
 # Install from PyPI (pinned version recommended)
-pip install agent-security-harness==3.6.0
+pip install agent-security-harness==3.8.1
 
 # Verify installation
 agent-security version
-# Expected output: 3.6.0
+# Expected output: 3.8.1
 ```
 
 **Source verification:**
 - GitHub: [msaleme/red-team-blue-team-agent-fabric](https://github.com/msaleme/red-team-blue-team-agent-fabric) (Apache 2.0 license, git-tagged releases)
-- PyPI: [agent-security-harness](https://pypi.org/project/agent-security-harness/) (v3.6.0)
+- PyPI: [agent-security-harness](https://pypi.org/project/agent-security-harness/) (v3.8.1)
 - Verify release provenance: `git log --tags --oneline` against the repo
 
 **Dependencies:** Core protocol modules (MCP, A2A, L402, x402, over-refusal, provenance, jailbreak) use Python stdlib only (zero external dependencies). Application-layer suite requires `requests` and `geopy`.
@@ -119,28 +121,65 @@ python -m testing.mock_mcp_server  # Terminal 1: starts on port 8402
 agent-security test mcp --transport http --url http://localhost:8402/mcp  # Terminal 2
 ```
 
-## Harness Modules (18 modules, 363 tests)
+## MCP Server Mode
+
+Use the harness as an MCP tool that any AI agent can call:
+
+```bash
+# stdio (for Cursor, Claude Desktop)
+python -m mcp_server
+
+# HTTP
+python -m mcp_server --transport http --port 8400
+```
+
+Tools: `scan_mcp_server` (quick scan), `full_security_audit` (332 tests), `aiuc1_readiness`, `get_test_catalog`, `validate_attestation`.
+
+## Harness Modules (24 modules, 332 tests)
 
 | Command | Tests | What It Tests |
 |---|---|---|
-| `test mcp` | 11 | MCP wire-protocol (JSON-RPC 2.0): tool poisoning, capability escalation, protocol downgrade, resource traversal, sampling hijack, context displacement |
+| `test mcp` | 13 | MCP wire-protocol (JSON-RPC 2.0): tool poisoning, capability escalation, protocol downgrade, resource traversal, sampling hijack, context displacement |
 | `test a2a` | 12 | A2A protocol: Agent Card spoofing, task injection, push notification redirect, skill injection, context isolation |
-| `test l402` | 15 | L402 payments: macaroon tampering, preimage replay, caveat escalation, invoice validation |
-| `test x402` | 43 | x402 payments: recipient manipulation, session theft, facilitator trust, cross-chain confusion, spending limits, health checks. Includes Agent Autonomy Risk Score (0-100) |
-| `test enterprise` | 33 | Tier 1 enterprise: SAP, Salesforce, Workday, Oracle, ServiceNow, Microsoft, Google, Amazon, OpenClaw |
-| `test extended-enterprise` | 38 | Tier 2 enterprise: IBM Maximo, Snowflake, Databricks, Pega, UiPath, Atlassian, Zendesk, IFS, Infor, HubSpot, Appian |
-| `test framework` | 24 | Framework adapters: LangChain, CrewAI, AutoGen, OpenAI Agents SDK, Bedrock |
+| `test l402` | 14 | L402 payments: macaroon tampering, preimage replay, caveat escalation, invoice validation |
+| `test x402` | 25 | x402 payments: recipient manipulation, session theft, facilitator trust, cross-chain confusion, spending limits, health checks. Includes Agent Autonomy Risk Score (0-100) |
+| `test enterprise` | 31 | Tier 1 enterprise: SAP, Salesforce, Workday, Oracle, ServiceNow, Microsoft, Google, Amazon, OpenClaw |
+| `test extended-enterprise` | 27 | Tier 2 enterprise: IBM Maximo, Snowflake, Databricks, Pega, UiPath, Atlassian, Zendesk, IFS, Infor, HubSpot, Appian |
+| `test framework` | 11 | Framework adapters: LangChain, CrewAI, AutoGen, OpenAI Agents SDK, Bedrock |
 | `test identity` | 18 | NIST NCCoE Agent Identity: identification, authentication, authorization, auditing, data flow, standards compliance |
-| `test gtg1002` | 19 | GTG-1002 APT simulation: 6 campaign phases + hallucination detection |
+| `test gtg1002` | 17 | GTG-1002 APT simulation: 6 campaign phases + hallucination detection |
 | `test advanced` | 10 | Advanced patterns: polymorphic injection, stateful escalation, multi-domain chains, jailbreak persistence |
 | `test over-refusal` | 25 | False positive rate: legitimate requests across all protocols that should NOT be blocked. Measures FPR with Wilson CI |
-| `test provenance` | 19 | Supply chain: fake provenance, spoofed attestation, marketplace integrity, CVE-2026-25253 attack patterns |
-| `test jailbreak` | 27 | Jailbreak resistance: DAN variants, token smuggling, authority impersonation, context manipulation, persistence |
+| `test provenance` | 15 | Supply chain: fake provenance, spoofed attestation, marketplace integrity, CVE-2026-25253 attack patterns |
+| `test jailbreak` | 25 | Jailbreak resistance: DAN variants, token smuggling, authority impersonation, context manipulation, persistence |
 | `test return-channel` | 8 | Return channel poisoning: output injection, ANSI escape, context overflow, encoded smuggling, structured data poisoning |
-| `test capability-profile` | 11 | Executor capability boundary validation, profile escalation prevention |
-| `test harmful-output` | 11 | Toxicity, bias, scope violations, deception (AIUC-1 C003/C004) |
-| `test cbrn` | 9 | Chemical/biological/radiological/nuclear content safeguards (AIUC-1 F002) |
-| `test incident-response` | 9 | Alert triggering, kill switch, log completeness, recovery (AIUC-1 E001-E003) |
+| `test capability-profile` | 10 | Executor capability boundary validation, profile escalation prevention |
+| `test harmful-output` | 10 | Toxicity, bias, scope violations, deception (AIUC-1 C003/C004) |
+| `test cbrn` | 8 | Chemical/biological/radiological/nuclear content safeguards (AIUC-1 F002) |
+| `test incident-response` | 8 | Alert triggering, kill switch, log completeness, recovery (AIUC-1 E001-E003) |
+| `test aiuc1` | 12 | AIUC-1 compliance: all 24 certification requirements mapped |
+| `test cloud` | 25 | Cloud agent platforms: AWS Bedrock, Azure AI, GCP Vertex, Anthropic, OpenAI |
+| `test cve-2026` | 8 | CVE-2026-25253 reproduction: supply chain tool poisoning at scale |
+
+## CI/CD Integration (v3.8+)
+
+```yaml
+# GitHub Action - drop into any workflow
+- uses: msaleme/red-team-blue-team-agent-fabric@v3.8
+  with:
+    target_url: http://localhost:8080/mcp
+```
+
+```bash
+# Free quick scan (5 tests, A-F grade)
+python scripts/free_scan.py --url http://server:port/mcp --format markdown
+
+# AIUC-1 certification readiness report
+python scripts/aiuc1_prep.py --url http://server:port --simulate
+
+# Monthly security report across multiple targets
+python scripts/monthly_security_report.py
+```
 
 ## Output Format
 
@@ -178,7 +217,7 @@ This harness is part of a published research program on autonomous AI agent gove
 ## Source & Provenance
 
 - **Repo:** [github.com/msaleme/red-team-blue-team-agent-fabric](https://github.com/msaleme/red-team-blue-team-agent-fabric) (Apache 2.0)
-- **PyPI:** [pypi.org/project/agent-security-harness](https://pypi.org/project/agent-security-harness/) (v3.6.0)
+- **PyPI:** [pypi.org/project/agent-security-harness](https://pypi.org/project/agent-security-harness/) (v3.8.1)
 - **Author:** Michael K. Saleme ([Signal Lab](https://msaleme.github.io/aiuc1-readiness/))
 - **CI:** Tested on Python 3.10/3.11/3.12, self-tests validating harness correctness
 - **Security policy:** [SECURITY_POLICY.md](https://github.com/msaleme/red-team-blue-team-agent-fabric/blob/main/SECURITY_POLICY.md) - threat model for contributions to security testing frameworks
