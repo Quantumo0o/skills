@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-import { readFileSync } from "fs";
-import { homedir } from "os";
-import { join } from "path";
 
 // --- Argument parsing ---
 const args = process.argv.slice(2);
@@ -28,24 +25,9 @@ if (!prompt) {
 }
 
 // --- Token resolution ---
-function readEnvFile(filePath) {
-  try {
-    const resolved = filePath.replace(/^~/, homedir());
-    const content = readFileSync(resolved, "utf8");
-    const match = content.match(/NETA_TOKEN=(.+)/);
-    return match ? match[1].trim() : null;
-  } catch {
-    return null;
-  }
-}
-
-if (!token) token = process.env.NETA_TOKEN || null;
-if (!token) token = readEnvFile("~/.openclaw/workspace/.env");
-if (!token) token = readEnvFile("~/developer/clawhouse/.env");
-
 if (!token) {
   console.error(
-    "Error: NETA_TOKEN not found. Pass --token, set NETA_TOKEN env var, or add it to ~/.openclaw/workspace/.env"
+    '\n✗ Token required. Pass via: --token YOUR_TOKEN'
   );
   process.exit(1);
 }
@@ -74,7 +56,7 @@ const body = {
   rawPrompt: [{ type: "freetext", value: prompt, weight: 1 }],
   width,
   height,
-  meta: { entrance: "PICTURE,CLI" },
+  meta: { entrance: "PICTURE,VERSE" },
   context_model_series: "8_image_edit",
 };
 
@@ -87,7 +69,7 @@ if (refUuid) {
 
 // --- Submit job ---
 async function submitJob() {
-  const res = await fetch(`${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v3/make_image`, {
+  const res = await fetch("https://api.talesofai.com/v3/make_image", {
     method: "POST",
     headers: HEADERS,
     body: JSON.stringify(body),
@@ -108,7 +90,7 @@ async function submitJob() {
 
 // --- Poll for result ---
 async function pollTask(taskUuid) {
-  const url = `${process.env.NETA_API_URL || 'https://api.talesofai.com'}/v1/artifact/task/${taskUuid}`;
+  const url = `https://api.talesofai.com/v1/artifact/task/${taskUuid}`;
   const MAX_ATTEMPTS = 90;
   const INTERVAL_MS = 2000;
 
