@@ -1,6 +1,36 @@
 ---
 name: narration-generator
 description: 文物讲解词一键生成。用户只需提供文物名称和 API 信息，系统自动判断讲解风格并生成400-500字的专业讲解词。
+metadata:
+  openclaw:
+    requires:
+      config:
+        - path: config/user_config.json
+          schema:
+            type: object
+            properties:
+              api:
+                type: object
+                properties:
+                  base_url:
+                    type: string
+                    description: 大模型 API Base URL（如 https://api.openai.com/v1/chat/completions）
+                  api_key:
+                    type: string
+                    description: 大模型 API 密钥
+                  model_narration:
+                    type: string
+                    description: 讲解词生成模型名称
+                  model_style:
+                    type: string
+                    description: 风格判断模型名称（可与讲解模型相同）
+                  timeout:
+                    type: integer
+                    description: API 请求超时时间（秒）
+                    default: 60
+                required: [base_url, api_key, model_narration]
+            required: [api]
+          description: 本地配置文件，存放 API 凭证和模型配置，不消耗环境变量
 triggers:
   - 讲解一下
   - 讲解
