@@ -1,6 +1,6 @@
 ---
 name: text-to-video
-version: "1.0.5"
+version: 1.0.7
 displayName: "Text to Video — AI Video Generator from Script and Text Prompts"
 description: >
   Text to Video — AI Video Generator from Script and Text Prompts.
@@ -8,25 +8,9 @@ description: >
   
   Works by connecting to the NemoVideo AI backend at mega-api-prod.nemovideo.ai.
   Supports MP4, MOV, AVI, WebM.
-homepage: https://nemovideo.com
-repository: https://github.com/nemovideo/nemovideo_skills
-metadata: {"openclaw": {"emoji": "🎬"}}
+metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 license: MIT-0
+homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
-
-# Text to Video — AI Video Generator from Script and Text Prompts
-
-Generate complete videos from text descriptions. Transform scripts and prompts into visual content with AI.
-
-## Quick Start
-Ask the agent to generate a video from your text description or script.
-
-## What You Can Do
-- Generate video clips from text prompts and descriptions
-- Create videos from full scripts with multiple scenes
-- Produce B-roll footage based on text keywords
-- Transform story outlines into visual narratives
-- Generate explainer videos from text content
-
-## API
-Uses NemoVideo API (mega-api-prod.nemovideo.ai) for all video processing.
