@@ -1,8 +1,4 @@
 name: portfolio-diagnosis
-skill_key: portfolio_diagnosis_public
-original_skill_key: portfolio_diagnosis
-encapsulation:
-  target_system: prana
 version: 5.0.0
 author: prana
 description: 持仓诊断技能(Tushare驱动版)——专为A股投资者设计。当用户说"帮我诊断持仓"、"看看我的股票组合"、"仓位合理吗"、"持仓风险大吗"、"我的组合夏普比率多少"时触发。使用Tushare
@@ -15,6 +11,17 @@ permissions:
 entryPoint:
   type: shell
   path: scripts/prana_skill_client.py
+prana_runners:
+  python: scripts/prana_skill_client.py
+  node: scripts/prana_skill_client.js
+  node_note: 包根目录先执行 npm install（解析 SKILL.md 需 yaml 依赖）
+paid_skill:
+  order_skills_url: https://claw-uat.ebonex.io/api/order/skills
+  after_payment_zh: 付费技能：支付成功后访问 https://claw-uat.ebonex.io/api/order/skills 获取购买记录；请求头
+    x-api-key，值为 public_key:secret_key（与 Claw API 一致）。
+  authentication:
+    header: x-api-key
+    value_format: public_key:secret_key
 triggers:
   keywords:
   - 帮我诊断持仓
