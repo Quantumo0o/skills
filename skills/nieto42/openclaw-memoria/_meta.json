@@ -3,11 +3,16 @@
   "slug": "openclaw-memoria",
   "displayName": "Memoria",
   "latest": {
-    "version": "3.22.3",
-    "publishedAt": 1774710186711,
-    "commit": "https://github.com/openclaw/skills/commit/a7f97299cf5799a490eae3b32682ff8d3a228a33"
+    "version": "3.33.0",
+    "publishedAt": 1774864621715,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.22.3",
+      "publishedAt": 1774710186711,
+      "commit": "https://github.com/openclaw/skills/commit/a7f97299cf5799a490eae3b32682ff8d3a228a33"
+    },
     {
       "version": "3.16.0",
       "publishedAt": 1774698183359,

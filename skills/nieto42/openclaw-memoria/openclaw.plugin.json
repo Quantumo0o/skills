@@ -1,6 +1,6 @@
 {
   "id": "memoria",
-  "version": "3.3.0",
+  "version": "3.25.1",
   "configSchema": {
     "type": "object",
     "additionalProperties": true,
@@ -386,6 +386,60 @@
           }
         }
       },
+      "continuous": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Layer 21: Continuous Learning. Real-time capture from message_received + llm_output hooks.",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable continuous learning (real-time extraction between turns)"
+          },
+          "interval": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 20,
+            "default": 4,
+            "description": "Extract every N turns (periodic mode)"
+          },
+          "cooldownMs": {
+            "type": "number",
+            "minimum": 10000,
+            "maximum": 300000,
+            "default": 45000,
+            "description": "Minimum ms between extractions"
+          },
+          "maxExtractionsPerSession": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10,
+            "description": "Max extractions per session (budget control)"
+          }
+        }
+      },
+      "patterns": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Layer 20: Behavioral pattern detection. Consolidates repeated similar facts.",
+        "properties": {
+          "minOccurrences": {
+            "type": "number",
+            "minimum": 2,
+            "maximum": 20,
+            "default": 3,
+            "description": "Min similar facts to form a pattern"
+          },
+          "similarityThreshold": {
+            "type": "number",
+            "minimum": 0.3,
+            "maximum": 0.95,
+            "default": 0.7,
+            "description": "Cosine similarity threshold for grouping"
+          }
+        }
+      },
       "observations": {
         "type": "object",
         "additionalProperties": true,
@@ -466,10 +520,41 @@
       "help": "Bounded .md file regeneration settings",
       "advanced": true
     },
+    "continuous": {
+      "label": "Continuous Learning",
+      "help": "Layer 21: Real-time fact capture between turns. Detects urgent signals (errors, frustration) for immediate extraction.",
+      "advanced": true
+    },
+    "patterns": {
+      "label": "Pattern Detection",
+      "help": "Layer 20: Auto-consolidate repeated similar facts into behavioral patterns.",
+      "advanced": true
+    },
     "observations": {
       "label": "Observations",
       "help": "Living multi-fact syntheses. emergenceThreshold=min facts to create, matchThreshold=cosine sim to update",
       "advanced": true
     }
-  }
+  },
+  "description": "The most advanced memory system for AI agents. 21 cognitive layers, knowledge graph, procedural learning, vector search. 100% local-first, zero cloud cost.",
+  "keywords": [
+    "memory",
+    "ai-agent",
+    "persistent-memory",
+    "long-term-memory",
+    "knowledge-graph",
+    "procedural",
+    "vector-search",
+    "sqlite",
+    "ollama",
+    "local-first",
+    "cognitive",
+    "claude",
+    "cursor",
+    "copilot",
+    "openclaw",
+    "wal",
+    "developer-tools",
+    "typescript"
+  ]
 }
