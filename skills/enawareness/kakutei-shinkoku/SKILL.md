@@ -1,6 +1,7 @@
 ---
 name: kakutei-shinkoku
-description: Japan freelancer tax filing assistant (確定申告). Helps organize income, expenses, and deductions for annual tax returns. Knowledge-based — no API connections, no My Number handling.
+description: フリーランス・個人事業主のための確定申告サポート。所得分類、経費整理、控除確認、消費税・インボイス制度の知識アシスタント。API接続なし、マイナンバー取扱なし。
+homepage: https://github.com/ENAwareness/kakutei-shinkoku
 metadata:
   openclaw:
     emoji: 🇯🇵
@@ -16,169 +17,171 @@ metadata:
 
 # 確定申告アシスタント 🇯🇵
 
-Japan freelancer tax filing assistant. Helps you understand, organize, and prepare your annual tax return (確定申告) — without touching your My Number or connecting to any government API.
+フリーランス・個人事業主のための確定申告サポートスキル。所得の分類、経費の整理、控除の確認、消費税・インボイス制度の理解をサポートします。
 
-This is a **knowledge assistant**, not a tax filing tool. It helps you prepare everything so your accountant (税理士) can file efficiently, or so you can file via e-Tax yourself with confidence.
+**知識アシスタント**であり、申告ツールではありません。税理士に渡す資料の準備や、e-Taxでの自己申告を自信を持って行えるようサポートします。
 
-## ⚠️ Legal Disclaimer
+e-Tax接続なし。マイナンバー取扱なし。安全に使えます。
 
-This skill provides general tax knowledge based on Japanese tax law. It is NOT a licensed tax advisor (税理士). Tax calculations are estimates. Always verify with a certified tax accountant before filing. Tax laws change annually — confirm current rates and rules with the National Tax Agency (国税庁) website.
+## ⚠️ 免責事項
 
-## Who this is for
+本スキルは日本の税法に基づく一般的な税務知識を提供するものであり、税理士資格に基づく税務相談ではありません。計算結果は概算です。申告前に必ず税理士または国税庁ウェブサイトでご確認ください。税法は毎年改正されます。
 
-- Freelancers (個人事業主) filing 確定申告 for the first time
-- Side-job workers (副業) who need to report miscellaneous income
-- Foreign residents in Japan navigating the tax system in English
-- Anyone preparing documents before meeting their tax accountant
+## 対象ユーザー
 
-## What it does
+- 初めて確定申告をするフリーランスの方
+- 副業で雑所得の申告が必要な方
+- 税理士に相談する前に書類を整理したい方
+- インボイス制度の対応に悩んでいる方
 
-### Income Classification (所得区分)
-Help categorize your income correctly:
+## 機能
 
-| Type | Japanese | When to use |
-|------|----------|-------------|
-| Business income | 事業所得 | Full-time freelancer with 開業届 filed |
-| Miscellaneous income | 雑所得 | Side jobs, occasional freelance work |
-| Employment income | 給与所得 | Regular salary (W-2 equivalent) |
-| Capital gains | 譲渡所得 | Stock sales, crypto, property |
-| Dividend income | 配当所得 | Stock dividends |
-| Rental income | 不動産所得 | Property rental |
+### 所得区分
 
-### Expense Tracking (経費管理)
-Organize deductible business expenses:
+| 区分 | 対象 |
+|------|------|
+| 事業所得 | 開業届を出したフリーランス |
+| 雑所得 | 副業、単発の業務委託 |
+| 給与所得 | 会社員の給料 |
+| 譲渡所得 | 株式・暗号資産・不動産の売却益 |
+| 配当所得 | 株式の配当金 |
+| 不動産所得 | 賃貸収入 |
 
-| Category | Japanese | Examples |
-|----------|----------|---------|
-| Office supplies | 消耗品費 | Pens, paper, small equipment under ¥100,000 |
-| Communication | 通信費 | Phone, internet (business portion) |
-| Transportation | 旅費交通費 | Train, taxi, flights for business |
-| Equipment | 減価償却費 | PC, camera, furniture over ¥100,000 (depreciated) |
-| Rent | 地代家賃 | Office rent, home office portion |
-| Utilities | 水道光熱費 | Electric, gas, water (business portion) |
-| Outsourcing | 外注費 | Subcontractor payments |
-| Entertainment | 接待交際費 | Client meals, gifts (with records) |
-| Insurance | 保険料 | Business insurance |
-| Books/Training | 新聞図書費 | Professional books, courses, subscriptions |
-| Advertising | 広告宣伝費 | Website, ads, marketing materials |
+### 経費管理
 
-### Home Office Deduction (家事按分)
-Calculate the business-use percentage of home expenses:
-- Floor area method: (workspace sqm / total sqm) × expense
-- Time method: (business hours / total hours) × expense
-- Keep records of your calculation method for audit defense
+| 勘定科目 | 具体例 |
+|----------|--------|
+| 消耗品費 | 文房具、10万円未満の備品 |
+| 通信費 | 携帯電話、インターネット（事業分） |
+| 旅費交通費 | 電車、タクシー、出張の航空券 |
+| 減価償却費 | PC、カメラ、10万円以上の設備 |
+| 地代家賃 | オフィス賃料、自宅オフィス分 |
+| 水道光熱費 | 電気・ガス・水道（事業分） |
+| 外注費 | 外部委託の支払い |
+| 接待交際費 | 取引先との食事、贈答品（記録必須） |
+| 保険料 | 事業用保険 |
+| 新聞図書費 | 専門書、研修、サブスクリプション |
+| 広告宣伝費 | ウェブサイト、広告、販促物 |
 
-### Deductions & Credits (控除)
+### 家事按分
 
-**Income deductions (所得控除):**
-- Basic deduction (基礎控除): ¥480,000 (income ≤ ¥24M)
-- Blue return deduction (青色申告特別控除): ¥650,000 (e-Tax + double-entry bookkeeping)
-- Social insurance (社会保険料控除): Full amount deductible
-- National pension (国民年金): Full amount deductible
-- National health insurance (国民健康保険): Full amount deductible
-- Small business mutual aid (小規模企業共済): Up to ¥840,000/year
-- iDeCo (個人型確定拠出年金): Up to ¥816,000/year (category 1)
-- Spouse deduction (配偶者控除): Up to ¥380,000
-- Dependent deduction (扶養控除): ¥380,000-¥630,000 per dependent
-- Medical expense deduction (医療費控除): Amount exceeding ¥100,000 or 5% of income
-- Life insurance deduction (生命保険料控除): Up to ¥120,000
-- Earthquake insurance (地震保険料控除): Up to ¥50,000
-- Hometown tax (ふるさと納税/寄附金控除): Amount - ¥2,000
+自宅兼オフィスの経費を事業分と生活分に按分する方法：
+- **面積按分**: （作業スペース㎡ ÷ 総面積㎡）× 経費
+- **時間按分**: （事業使用時間 ÷ 総時間）× 経費
+- 按分方法の根拠を記録しておくこと（税務調査対策）
 
-### Consumption Tax & Invoice System (消費税・インボイス制度)
+### 控除一覧
 
-**Who needs to file consumption tax:**
-- Revenue > ¥10M in base period (基準期間) → mandatory
-- Registered as Invoice issuer (適格請求書発行事業者) → mandatory
-- Voluntary registration → optional
+| 控除 | 上限額 |
+|------|--------|
+| 基礎控除 | 48万円（所得2,400万円以下） |
+| 青色申告特別控除 | 65万円（e-Tax＋複式簿記） |
+| 社会保険料控除 | 全額 |
+| 国民年金 | 全額 |
+| 国民健康保険 | 全額 |
+| 小規模企業共済 | 年間84万円まで |
+| iDeCo（個人型確定拠出年金） | 年間81.6万円まで（第1号） |
+| 配偶者控除 | 38万円まで |
+| 扶養控除 | 38万〜63万円（扶養親族1人あたり） |
+| 医療費控除 | 10万円超過分（または所得の5%超過分） |
+| 生命保険料控除 | 12万円まで |
+| 地震保険料控除 | 5万円まで |
+| ふるさと納税（寄附金控除） | 寄附額 − 2,000円 |
 
-**Invoice System (インボイス制度) key points:**
-- Registration number format: T + 13 digits
-- Must issue qualified invoices to allow client's input tax credit
-- Small business special measure (2割特例): Pay only 20% of collected consumption tax (available through 2029 for new registrants)
-- Simplified tax calculation (簡易課税): Available if revenue ≤ ¥50M
+### 消費税・インボイス制度
 
-### Tax Calendar (税務カレンダー)
+**消費税の申告義務：**
+- 基準期間の課税売上高 > 1,000万円 → 課税事業者（義務）
+- 適格請求書発行事業者に登録済み → 課税事業者（義務）
+- 任意登録 → 選択可能
 
-| Date | Event | Action |
-|------|-------|--------|
-| Jan 1 | Tax year starts | — |
-| Jan-Feb | Prepare documents | Gather receipts, organize income records |
-| Feb 16 | 確定申告 filing opens | Can submit via e-Tax, mail, or in person |
-| Mar 15 | **Filing deadline** | Income tax + consumption tax due |
-| Mar 15 | **Payment deadline** | Pay or set up installment plan (振替納税) |
-| Mar 31 |振替納税 debit date | Auto-debit for income tax (approx.) |
-| Apr 30 |振替納税 debit date | Auto-debit for consumption tax (approx.) |
-| Jun | Residence tax notice | Based on filed return |
-| Jul 1-31 | 届出 deadline for blue return | Submit 青色申告承認申請書 (first year) |
+**インボイス制度のポイント：**
+- 登録番号の形式: T + 13桁
+- 適格請求書を発行しないと取引先が仕入税額控除を受けられない
+- **2割特例**: 納税額を売上税額の20%に軽減（2029年まで、新規登録者対象）
+- **簡易課税**: 課税売上高5,000万円以下で選択可能
 
-### Filing Methods
+### 税務カレンダー
 
-| Method | Pros | Cons |
-|--------|------|------|
-| **e-Tax (web)** | ¥650,000 blue deduction, 24/7, instant | Needs My Number card + reader |
-| **e-Tax (ID/PW)** | No card reader needed | Must register at tax office first |
-| **Paper (郵送)** | No tech required | Blue deduction limited to ¥550,000 |
-| **In person (税務署)** | Staff help available | Long queues in Feb-Mar |
+| 日付 | イベント | アクション |
+|------|---------|-----------|
+| 1月1日 | 課税年度開始 | — |
+| 1〜2月 | 書類準備 | 領収書整理、収入記録の確認 |
+| 2月16日 | **確定申告受付開始** | e-Tax・郵送・窓口で提出可能 |
+| 3月15日 | **所得税の申告・納付期限** | 所得税の申告・納税（日曜の場合は翌月曜） |
+| 3月31日 | **消費税の申告・納付期限** | 個人事業主の消費税申告・納税 |
+| 4月中旬〜下旬 | 振替納税（所得税） | 口座引き落とし（例：4月23日頃） |
+| 4月末 | 振替納税（消費税） | 口座引き落とし（例：4月30日頃） |
+| 6月 | 住民税通知 | 確定申告に基づく税額通知 |
 
-### Blue vs White Return (青色 vs 白色申告)
+**青色申告承認申請書の提出期限：**
+- 既存事業者が青色に切り替える場合 → **その年の3月15日まで**
+- 1月1日〜1月15日に新規開業 → **その年の3月15日まで**
+- 1月16日以降に新規開業 → **開業日から2ヶ月以内**
 
-| Feature | Blue (青色) | White (白色) |
-|---------|-----------|------------|
-| Special deduction | ¥100,000-¥650,000 | ¥0 |
-| Loss carryforward | 3 years | No |
-| Depreciation special | 30万円 instant write-off | No |
-| Family salary deduction | Yes (届出 required) | Limited |
-| Required bookkeeping | Double-entry (for ¥650K) | Simple record |
-| Registration | 開業届 + 青色申告承認申請書 | Just 開業届 |
+※ 振替納税で残高不足により引き落としできなかった場合、延滞税は**元の申告期限の翌日**から発生します（振替日からではありません）。
 
-## How to use
+### 申告方法の比較
 
-```
-I'm a freelance developer in Japan. Help me prepare my 確定申告.
-```
+| 方法 | メリット | デメリット |
+|------|---------|-----------|
+| **e-Tax（Web版）** | 青色65万円控除、24時間、即時送信 | マイナンバーカード＋リーダー必要 |
+| **e-Tax（ID/PW方式）** | カードリーダー不要 | 税務署で事前登録が必要 |
+| **郵送** | 技術不要 | 青色控除が55万円に制限 |
+| **税務署窓口** | 職員のサポートあり | 2〜3月は混雑 |
 
-```
-What expenses can I deduct for my home office?
-```
+### 青色申告 vs 白色申告
 
-```
-Should I register for the Invoice system?
-```
+| 項目 | 青色申告 | 白色申告 |
+|------|---------|---------|
+| 特別控除 | 10万〜65万円 | なし |
+| 損失繰越 | 3年間 | 不可 |
+| 少額減価償却 | 30万円まで一括経費 | 不可 |
+| 専従者給与 | 可（届出必要） | 制限あり |
+| 記帳義務 | 複式簿記（65万円の場合） | 簡易帳簿 |
+| 届出 | 開業届 + 青色申告承認申請書 | 開業届のみ |
+
+## 使い方
 
 ```
-Calculate my estimated income tax on ¥8M business income with ¥2M expenses.
+フリーランスの確定申告を手伝ってください
 ```
 
 ```
-I just started freelancing. What forms do I need to file?
+自宅オフィスの家事按分はどう計算しますか？
 ```
 
-## Tax Calculation Guide
+```
+インボイス制度に登録すべきですか？
+```
 
-**Income tax brackets (所得税率) 2026:**
+```
+事業所得800万円、経費200万円での所得税を概算してください
+```
 
-| Taxable income | Rate | Deduction |
-|---------------|------|-----------|
-| ¥1 - ¥1,949,000 | 5% | ¥0 |
-| ¥1,950,000 - ¥3,299,000 | 10% | ¥97,500 |
-| ¥3,300,000 - ¥6,949,000 | 20% | ¥427,500 |
-| ¥6,950,000 - ¥8,999,000 | 23% | ¥636,000 |
-| ¥9,000,000 - ¥17,999,000 | 33% | ¥1,536,000 |
-| ¥18,000,000 - ¥39,999,000 | 40% | ¥2,796,000 |
-| ¥40,000,000+ | 45% | ¥4,796,000 |
+```
+開業したばかりです。どの届出が必要ですか？
+```
 
-**Plus:** Reconstruction special tax (復興特別所得税) = 2.1% of income tax
-**Plus:** Residence tax (住民税) = approximately 10% of taxable income
+## 所得税率（2026年）
 
-## Limitations
+| 課税所得 | 税率 | 控除額 |
+|---------|------|--------|
+| 〜194.9万円 | 5% | 0円 |
+| 195万〜329.9万円 | 10% | 97,500円 |
+| 330万〜694.9万円 | 20% | 427,500円 |
+| 695万〜899.9万円 | 23% | 636,000円 |
+| 900万〜1,799.9万円 | 33% | 1,536,000円 |
+| 1,800万〜3,999.9万円 | 40% | 2,796,000円 |
+| 4,000万円〜 | 45% | 4,796,000円 |
 
-- Tax rates and rules shown are based on 2026 tax law — verify annually
-- This skill does not connect to e-Tax or any government system
-- This skill does not handle or store My Number (マイナンバー)
-- Complex cases (international income, inheritance, real estate) should consult a 税理士
-- Consumption tax calculations are simplified — edge cases exist
+**加算:** 復興特別所得税 = 所得税額 × 2.1%
+**加算:** 住民税 = 課税所得 × 約10%
 
-## About
+## 制限事項
 
-Built by [ENAwareness](https://github.com/ENAwareness). As a foreign freelancer in Japan, navigating 確定申告 was one of the most confusing experiences. This skill is what I wish I had.
+- 表示されている税率・ルールは2026年税法に基づいています。毎年ご確認ください
+- 本スキルはe-Taxや政府システムに接続しません
+- 本スキルはマイナンバーを取り扱い・保存しません
+- 複雑なケース（海外所得、相続、不動産）は税理士にご相談ください
+- 消費税の計算は簡略化されています

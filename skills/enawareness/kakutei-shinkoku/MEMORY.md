@@ -1,32 +1,28 @@
-# 確定申告 Memory
+# 確定申告メモリー
 
-## User Tax Profile
+## ユーザー税務プロフィール
 
-Store user's tax-relevant information here:
+| 項目 | 内容 |
+|------|------|
+| 申告種類 | 青色 / 白色 |
+| 所得区分 | 事業所得 / 雑所得 / 混合 |
+| インボイス登録 | あり / なし |
+| 対象年度 | |
+| 税理士利用 | あり / なし |
 
-| Field | Value |
-|-------|-------|
-| Filing type | Blue / White |
-| Income type | 事業所得 / 雑所得 / Mixed |
-| Invoice registered | Yes / No |
-| Fiscal year | |
-| Tax accountant | Yes / No |
+## 経費ログ
 
-## Expense Log
-
-Track categorized expenses for the current tax year:
-
-| Date | Category | Amount | Description | Receipt |
-|------|----------|--------|-------------|---------|
+| 日付 | 勘定科目 | 金額 | 内容 | 領収書 |
+|------|----------|------|------|--------|
 | | | | | |
 
-## Annual Summary
+## 年次サマリー
 
-| Item | Amount |
-|------|--------|
-| Total revenue (売上) | |
-| Total expenses (経費) | |
-| Net income (所得) | |
-| Deductions (控除) | |
-| Taxable income (課税所得) | |
-| Estimated tax (税額) | |
+| 項目 | 金額 |
+|------|------|
+| 売上合計 | |
+| 経費合計 | |
+| 所得（売上−経費） | |
+| 控除合計 | |
+| 課税所得 | |
+| 所得税概算 | |
