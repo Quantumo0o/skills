@@ -1,11 +1,17 @@
 {
   "owner": "e2e5g",
   "slug": "wall-street-quant-team",
-  "displayName": "华尔街AI量化投资团队",
+  "displayName": "Wall Street Quant Team",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774328795181,
-    "commit": "https://github.com/openclaw/skills/commit/1acd0cc23b815793a2ebc59741876d29847788c3"
+    "version": "1.0.1",
+    "publishedAt": 1774513665871,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774328795181,
+      "commit": "https://github.com/openclaw/skills/commit/1acd0cc23b815793a2ebc59741876d29847788c3"
+    }
+  ]
 }
