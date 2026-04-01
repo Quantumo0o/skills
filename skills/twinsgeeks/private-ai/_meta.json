@@ -1,0 +1,11 @@
+{
+  "owner": "twinsgeeks",
+  "slug": "private-ai",
+  "displayName": "Private AI — Offline LLM, Image Gen, STT with Zero Cloud Dependencies",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774928625127,
+    "commit": null
+  },
+  "history": []
+}
