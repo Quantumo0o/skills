@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-bmap",
+  "slug": "mapv-three",
+  "displayName": "MapV Three",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774924600094,
+    "commit": null
+  },
+  "history": []
+}
