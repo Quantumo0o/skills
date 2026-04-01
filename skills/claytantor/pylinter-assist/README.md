@@ -7,24 +7,31 @@ A soft PR reviewer that combines Pylint with custom pattern checks to catch hard
 ## Quick Start
 
 ```bash
-# Install dependencies
-uv sync
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-# Install CLI for direct command usage
-uv pip install -e .
+# Install the CLI and dependencies
+pip install -e .
 
 # Lint your project
 lint-pr files src/ --format markdown
 ```
 
+Requires Python 3.11+. Install via [pyenv](https://github.com/pyenv/pyenv) (`brew install pyenv` on macOS, `git clone` on Linux) or any system Python 3.11+.
+
 ## GitHub Actions (Recommended for PRs)
 
-Automatically lint PRs by adding the workflow to your repository:
+Automatically lint PRs by adding the workflow to your repository. **Review the file before committing** — it runs with repository permissions.
 
 ```bash
+# Clone to a temp location and inspect the workflow
+git clone https://github.com/claytantor/pylinter-assist.git /tmp/pylinter-assist
+cat /tmp/pylinter-assist/.github/workflows/lint-pr.yml
+
+# Copy only after reviewing
 mkdir -p .github/workflows
-curl -o .github/workflows/lint-pr.yml \
-  https://raw.githubusercontent.com/claytantor/pylinter-assist/main/.github/workflows/lint-pr.yml
+cp /tmp/pylinter-assist/.github/workflows/lint-pr.yml .github/workflows/
 ```
 
 See [GitHub Actions Integration](#github-actions-integration) for full setup instructions.
@@ -45,46 +52,26 @@ See [GitHub Actions Integration](#github-actions-integration) for full setup ins
 
 ## Installation
 
-### Option A: Install via pip (recommended for CLI access)
-
-First, sync dependencies:
-
 ```bash
-uv sync
-```
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-Then install the CLI for direct command usage:
+# Install CLI and runtime dependencies
+pip install -e .
 
-```bash
-uv pip install -e .
-```
-
-After installation, `lint-pr` is available as a direct command.
-
-### Option B: Use uv scripts (no installation required)
-
-```bash
-uv sync
-uv lint-pr [TARGET] [OPTIONS]
-```
-
-### Option C: Run via wrapper script
-
-```bash
-uv sync
-./scripts/lint-pr [TARGET] [OPTIONS]
+# For development (includes pytest, ruff)
+pip install -e .[dev]
 ```
 
 ## Usage
 
 ```bash
+# Activate venv first
+source .venv/bin/activate
+
 lint-pr [TARGET] [OPTIONS]
 ```
-
-> **Note:** All three installation options provide the same `lint-pr` command. Choose based on your needs:
-> - Option A: Best for production use, CLI available system-wide
-> - Option B: Best for development, no installation needed
-> - Option C: Best when working directly from source
 
 ### Targets
 
@@ -151,8 +138,8 @@ github:
 ## Publishing to ClawHub
 
 ```bash
-# Install dependencies
-uv sync
+# Activate venv
+source .venv/bin/activate
 
 # Publish the skill
 make publish
@@ -167,14 +154,18 @@ make publish-dry-run
 ## Development
 
 ```bash
+# Activate venv and install dev dependencies
+source .venv/bin/activate
+pip install -e .[dev]
+
 # Run tests
-uv run pytest
+pytest
 
 # Format code
-uv run ruff format .
+ruff format .
 
 # Lint code
-uv run pylint pylinter_assist
+pylint pylinter_assist
 ```
 
 ## GitHub Actions Integration
@@ -183,23 +174,19 @@ Automatically lint PRs in your project using the provided GitHub Actions workflo
 
 ### Setup
 
-1. **Clone or download the workflow file**
-
-   Copy `.github/workflows/lint-pr.yml` to your project:
+1. **Clone and review the workflow file** (do not use `curl` from the `main` branch)
 
    ```bash
+   git clone https://github.com/claytantor/pylinter-assist.git /tmp/pylinter-assist
+   cat /tmp/pylinter-assist/.github/workflows/lint-pr.yml   # review before copying
    mkdir -p .github/workflows
-   curl -o .github/workflows/lint-pr.yml \
-     https://raw.githubusercontent.com/claytantor/pylinter-assist/main/.github/workflows/lint-pr.yml
+   cp /tmp/pylinter-assist/.github/workflows/lint-pr.yml .github/workflows/
    ```
 
 2. **Add configuration file** (optional)
 
-   Copy `.linting-rules.yml` to your project root and customize:
-
    ```bash
-   curl -o .linting-rules.yml \
-     https://raw.githubusercontent.com/claytantor/pylinter-assist/main/.linting-rules.yml
+   cp /tmp/pylinter-assist/.linting-rules.yml .linting-rules.yml
    ```
 
 3. **Commit and push**
@@ -213,17 +200,6 @@ Automatically lint PRs in your project using the provided GitHub Actions workflo
 | `pull_request` | Auto-lints all files changed in a PR |
 | `workflow_dispatch` | Manual trigger via GitHub UI or API |
 
-### Manual Trigger via GitHub UI
-
-1. Go to your repository's **Actions** tab
-2. Select **Pylint Assist** workflow
-3. Click **Run workflow**
-4. Choose branch and optional inputs:
-   - PR number (leave empty for current branch)
-   - Output format (markdown, text, json)
-   - Config path
-   - Post comment (true/false)
-
 ### Manual Trigger via GitHub CLI
 
 ```bash
@@ -234,6 +210,8 @@ gh workflow run lint-pr.yml \
 ```
 
 ### Manual Trigger via API
+
+> Never hard-code the token value — always expand it from an environment variable.
 
 ```bash
 curl -X POST \

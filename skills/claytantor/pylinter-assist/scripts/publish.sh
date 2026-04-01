@@ -125,7 +125,10 @@ Context-aware Python linting with smart pattern heuristics for PR review.
 ## Usage
 
 ```bash
-uv run lint-pr [TARGET] [OPTIONS]
+# Activate your virtual environment first
+source .venv/bin/activate
+
+lint-pr [TARGET] [OPTIONS]
 ```
 
 ## Targets
@@ -147,7 +150,9 @@ uv run lint-pr [TARGET] [OPTIONS]
 ## Installation
 
 ```bash
-uv sync
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 ```
 
 EOF
@@ -171,23 +176,21 @@ bump_version() {
         if [ "$BUMP_PART" = "minor" ]; then
             minor=$((minor + 1))
             patch=0
-            build=0
         elif [ "$BUMP_PART" = "patch" ]; then
             patch=$((patch + 1))
-            build=0
         fi
 
-        local new_version="${major}.${minor}.${patch}+${build}"
+        local new_version="${major}.${minor}.${patch}"
         print_info "Bumping version from $current_version to $new_version"
 
         # Update pyproject.toml
         sed -i "s/^version = \"\(.*\)\"$/version = \"$new_version\"/" "$PROJECT_ROOT/pyproject.toml"
         print_success "Version updated in pyproject.toml"
 
-        # Update SKILL.md if it exists
+        # Update SKILL.md if it exists — pattern matches X.Y.Z and X.Y.Z+N variants
         if [ -f "$PROJECT_ROOT/SKILL.md" ]; then
-            sed -i '' "s/version: [0-9]*\.[0-9]*\.[0-9]*/version: $new_version/" "$PROJECT_ROOT/SKILL.md" 2>/dev/null || \
-                sed -i "s/version: [0-9]*\.[0-9]*\.[0-9]*/version: $new_version/" "$PROJECT_ROOT/SKILL.md"
+            sed -i '' "s/version: [0-9][0-9.+]*/version: $new_version/" "$PROJECT_ROOT/SKILL.md" 2>/dev/null || \
+                sed -i "s/version: [0-9][0-9.+]*/version: $new_version/" "$PROJECT_ROOT/SKILL.md"
             print_success "Version updated in SKILL.md"
         fi
 

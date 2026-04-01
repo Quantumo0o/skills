@@ -49,9 +49,10 @@ the user.
 ### Usage examples
 
 ```bash
-# Install dependencies and CLI
-uv sync
-uv pip install -e .
+# Create venv, install dependencies and CLI
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .
 
 # Lint PR #42 and post a comment
 lint-pr pr 42 --post-comment
@@ -67,9 +68,6 @@ lint-pr files src/ tests/
 
 # Use custom rules
 lint-pr files src/ --config .linting-rules.yml
-
-# Development mode (without installing CLI):
-uv run lint-pr pr 42
 ```
 
 ---
@@ -115,6 +113,10 @@ gh workflow run lint-pr.yml \
 ```
 
 **Via REST API:**
+
+> **Security note:** Never hard-code the token value; always expand it from an environment
+> variable. The token must be scoped to `actions:write` for the target repository.
+
 ```bash
 curl -X POST \
   -H "Authorization: token $GITHUB_TOKEN" \
@@ -125,7 +127,9 @@ curl -X POST \
 
 ### Enabling a new project for support
 
-To enable a new project for pylinter-assist support, run these commands on the `dev` branch:
+To enable a new project for pylinter-assist support, follow these steps on the `dev` branch.
+**Review each downloaded file before committing** — GitHub Actions workflows run with
+repository permissions and can access secrets.
 
 ```bash
 cd <your-project-root>
@@ -133,12 +137,19 @@ git checkout dev
 git pull origin dev
 
 mkdir -p .github/workflows
+
+# 1. Download files
 curl -o .github/workflows/lint-pr.yml \
   https://raw.githubusercontent.com/claytantor/pylinter-assist/main/.github/workflows/lint-pr.yml
 
 curl -o .linting-rules.yml \
   https://raw.githubusercontent.com/claytantor/pylinter-assist/main/.linting-rules.yml
 
+# 2. Review before committing (required — do not skip)
+cat .github/workflows/lint-pr.yml
+cat .linting-rules.yml
+
+# 3. Commit only after review
 git add .github/workflows/lint-pr.yml .linting-rules.yml
 git commit -m "ci: add pylinter-assist workflow for PRs targeting dev"
 git push origin dev
@@ -158,9 +169,14 @@ permissions:
 
 The skill can monitor workflow runs and notify when lint results are ready:
 
+> **Security note:** Avoid embedding secret values (bot tokens, webhook URLs) directly in
+> `--callback` arguments — they appear in process listings. Use environment variables
+> in the argument value (e.g. `$TELEGRAM_BOT_TOKEN`) or configure channels in
+> `.linting-rules.yml` instead.
+
 ```bash
 # Monitor a repository's workflow runs
-lint-pr monitor owner/repo --token $GITHUB_TOKEN --callback telegram:TOKEN:CHAT_ID
+lint-pr monitor owner/repo --token $GITHUB_TOKEN --callback telegram:$TELEGRAM_BOT_TOKEN:$TELEGRAM_CHAT_ID
 
 # Configuration in .linting-rules.yml:
 github_actions:
@@ -217,10 +233,11 @@ pylinter-assist/
 │   ├── config.py            # .linting-rules.yml loader with defaults
 │   └── cli.py               # Click CLI (pr / staged / diff / files)
 ├── scripts/
-│   └── lint_pr.py           # uv script shebang — runnable without install
+│   └── lint_pr.py           # convenience entry point (activate venv first)
 ├── .github/workflows/
-│   └── lint-pr.yml          # GitHub Actions using astral-sh/setup-uv
+│   └── lint-pr.yml          # GitHub Actions using actions/setup-python
+├── .python-version          # Python version pin for pyenv / actions/setup-python
 ├── .linting-rules.yml       # Default configuration
 ├── .gitignore
-└── pyproject.toml           # uv-managed (dev deps in [tool.uv])
+└── pyproject.toml           # standard pyproject (pip-installable)
 ```

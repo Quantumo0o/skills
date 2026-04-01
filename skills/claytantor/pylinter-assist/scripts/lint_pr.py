@@ -1,26 +1,16 @@
-#!/usr/bin/env -S uv run
-# /// script
-# requires-python = ">=3.10"
-# dependencies = [
-#   "pylint>=3.0",
-#   "pyyaml>=6.0",
-#   "pygithub>=2.1",
-#   "requests>=2.31",
-#   "click>=8.1",
-#   "rich>=13.0",
-# ]
-# ///
+#!/usr/bin/env python3
 """
-Convenience entry point — runnable directly via uv or python.
+Convenience entry point — runnable directly after activating the project venv.
 
-Usage with uv (no install required):
-  uv run scripts/lint_pr.py pr 42
-  uv run scripts/lint_pr.py staged --format text
-  uv run scripts/lint_pr.py files src/ --format markdown
-  uv run scripts/lint_pr.py diff changes.patch --config .linting-rules.yml
+Usage (activate venv first):
+  source .venv/bin/activate
+  python scripts/lint_pr.py pr 42
+  python scripts/lint_pr.py staged --format text
+  python scripts/lint_pr.py files src/ --format markdown
+  python scripts/lint_pr.py diff changes.patch --config .linting-rules.yml
 
-Usage after `uv sync`:
-  uv run lint-pr pr 42
+Or after `pip install -e .`:
+  lint-pr pr 42
 """
 
 import sys
