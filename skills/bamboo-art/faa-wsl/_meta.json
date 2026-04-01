@@ -1,0 +1,11 @@
+{
+  "owner": "bamboo-art",
+  "slug": "faa-wsl",
+  "displayName": "FastapiAdmin WSL 自动部署",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774940673000,
+    "commit": null
+  },
+  "history": []
+}
