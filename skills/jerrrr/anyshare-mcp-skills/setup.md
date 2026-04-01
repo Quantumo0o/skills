@@ -5,10 +5,10 @@
 ## 首次使用：不要先问「要不要配置」
 
 - 用户刚安装技能或**首次**在本对话中触发本技能时：**不要**询问「要我现在帮你检查吗」「是否写入配置」——应**直接**执行下文 **Step 1～4**（mcporter）以及 **「OpenClaw 运行时环境变量」**（合并 `openclaw.skill-entry.json` 到 `~/.openclaw/openclaw.json`，使 **`MCPORTER_CALL_TIMEOUT=600000`** 由 OpenClaw 注入代理进程，而非依赖用户手工 `export`）。
-- **全部执行完毕后**，再向用户**汇报**（简短即可），并**无论连接成功与否**都给出**企业地址确认**类提示（见下）。
+- **全部执行完毕后**，按 **`SKILL.md`** 中 **「获取凭证（固定提示语）」** 引导用户取 token，并请用户**在对话中粘贴**；由 Agent **`auth_login`** 并在技能根目录维护备份（用户**无需**手工落盘），再向用户**汇报**（简短即可），并**无论连接成功与否**都给出**企业地址确认**类提示（见下）。
 
 | 汇报项 | 内容 |
-|--------|------|
+| --- | --- |
 | 当前地址 | 逐字写出 **`asmcp.url`**（首次写入多为技能包默认 **`https://anyshare.aishu.cn/mcp`**） |
 | 注册结果 | `mcporter list` 是否已出现 **`asmcp`** |
 | 连通性 | 若有探测（如后续工具/HTTP），写出 **503 / 401 / 超时 / 成功** 等 |
@@ -30,9 +30,9 @@
 
 **用户回复后的操作（Agent 必须）**
 
-1. 若用户确认**当前地址就是本企业正式地址**（或明确表示可继续用默认）：再进入 `SKILL.md` 认证与业务；**不要**在未确认前擅自假定「成功即无需再问」。
-2. 若用户提供**本企业的 MCP 服务地址**：执行下文 **「修改 MCP 服务地址」** 全步骤，再按 `SKILL.md` 视情况 **`auth_login`** 或清理 `asmcp-state.json`。
-3. 若用户表示**沿用占位但仅网络/认证问题**：先按排障与认证流程；仍失败时再回到「索取本企业 URL」。
+1. 若用户确认**当前地址就是本企业正式地址**（或明确表示可继续用默认）：再按 **`SKILL.md`** 中 **「凭证（Token）」** 与业务步骤执行；**不要**在未确认前擅自假定「成功即无需再问」。
+2. 若用户提供**本企业的 MCP 服务地址**：执行下文 **「修改 MCP 服务地址」** 全步骤，再 **`auth_login`**（必要时 **`mcporter daemon restart`**）。
+3. 若用户表示**沿用占位但仅网络/认证问题**：先按排障与 **`SKILL.md`** **「凭证（Token）」**；仍失败时再回到「索取本企业 URL」。
 4. 每次变更 `asmcp.url` 后**再次汇报**新地址与验证结果。
 
 ## 术语：文档域 与 MCP 服务地址
@@ -52,7 +52,7 @@
 ### Step 1: 配置文件路径
 
 | 操作系统 | 路径 |
-|----------|------|
+| --- | --- |
 | macOS / Linux | `~/.mcporter/mcporter.json` |
 | Windows | `%USERPROFILE%\.mcporter\mcporter.json` |
 
@@ -72,7 +72,7 @@ mkdir -p ~/.mcporter
 
 1. 打开技能目录下的 **`mcp.json`**（安装后路径示例：`~/.openclaw/skills/anyshare-mcp-skills/mcp.json` 或工作区 `skills/anyshare-mcp-skills/mcp.json`）。
 2. 将其中 **`url`**（默认 `https://anyshare.aishu.cn/mcp`）按需改为用户环境的 **MCP 服务地址**（首次自动补全即用此默认，**无需**等用户先说「好的」）。
-3. 将 `asmcp` 条目**合并**进 `~/.mcporter/mcporter.json` 的 `mcpServers`（勿删除其他 server）。
+3. 将 `asmcp` 条目**合并**进 `~/.mcporter/mcporter.json` 的 `mcpServers`（勿删除其他 server）。凭证与 **`auth_login`** 见 **`SKILL.md`** **「凭证（Token）」**。
 
 **编码**：UTF-8 无 BOM。
 
@@ -91,9 +91,9 @@ mcporter list
 
 验证结束后，**向用户说明**当前 `asmcp.url` 与列表结果；若实际 HTTP 调用仍返回 **503** 等，见 `SKILL.md` 与 `references/troubleshooting.md`。
 
-## OpenClaw 运行时环境变量（mcporter `chat_send` 10 分钟超时）
+## OpenClaw 运行时环境变量（mcporter `smart_assistant` 10 分钟超时）
 
-> **目的**：让 **运行 OpenClaw 的设备**在加载本技能时，通过官方配置 **`skills.entries.<技能名>.env`** 注入 **`MCPORTER_CALL_TIMEOUT`**（毫秒），使 `mcporter call`（含 **`asmcp.chat_send`**）默认等待 **10 分钟**。依据：[OpenClaw Skills Config](https://docs.openclaw.ai/tools/skills-config)。
+> **目的**：让 **运行 OpenClaw 的设备**在加载本技能时，通过官方配置 **`skills.entries.<技能名>.env`** 注入 **`MCPORTER_CALL_TIMEOUT`**（毫秒），使 `mcporter call`（含 **`asmcp.smart_assistant`** 等长耗时调用）默认等待 **10 分钟**。依据：[OpenClaw Skills Config](https://docs.openclaw.ai/tools/skills-config)。
 
 **技能包内机器可读片段**：与本目录 **`openclaw.skill-entry.json`** 一致（顶层键为 **`anyshare-mcp-skills`**，与 `SKILL.md` 的 `name` 字段一致；若将来使用 **`metadata.openclaw.skillKey`**，则以该键作为 `skills.entries` 下的键名）。
 
@@ -127,10 +127,10 @@ mcporter list
 
 用户要求更换 **MCP 服务地址**（换环境、换网关）时：
 
-1. 编辑 `~/.mcporter/mcporter.json`，仅修改 **`mcpServers.asmcp.url`** 为用户确认的新 **MCP 服务地址**（保持 `transportType: "streamable-http"`、`headers: {}` 等与模板一致，除非运维另有要求）。
+1. 编辑 `~/.mcporter/mcporter.json`，修改 **`mcpServers.asmcp.url`** 为用户确认的新 **MCP 服务地址**（保持 `transportType: "streamable-http"`、`headers: {}` 等与模板一致，除非运维另有要求）。
 2. 执行 **`mcporter daemon restart`**。
 3. 再次 `mcporter list` 确认 `asmcp` 可用。
-4. 若后续出现认证失败，按 `SKILL.md` 重新执行 `auth_login` 或清理 `~/.openclaw/skills/anyshare-mcp-skills/asmcp-state.json` 后重登。
+4. 若后续出现认证失败，按 **`SKILL.md`** **「凭证（Token）」** 重新 **`auth_login`**，并见 **`references/troubleshooting.md`**。
 
 ## 配置示例
 
@@ -155,5 +155,4 @@ mcporter list
 
 ## 注意事项
 
-- **不要**在 `headers` 中写 Bearer；认证由运行时 `auth_login` 完成（见 `SKILL.md`）。
-- **MCP 服务地址**变更后，旧 session 可能失效，需按 `SKILL.md` 处理 Token 与浏览器状态。
+- **MCP 服务地址**变更后，执行 **`mcporter daemon restart`**；再按 **`SKILL.md`** **「获取凭证（固定提示语）」** 请用户粘贴 token 并 **`auth_login`**（见 **「凭证（Token）」**）。
