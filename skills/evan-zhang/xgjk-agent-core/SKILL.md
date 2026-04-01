@@ -4,6 +4,7 @@ description: Core behavior framework for all XGJK Agent Factory agents. Install 
 metadata:
   requires:
     env: []
+homepage: https://github.com/evan-zhang/agent-factory/issues
 ---
 
 # XGJK Agent Core

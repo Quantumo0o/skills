@@ -3,9 +3,15 @@
   "slug": "xgjk-agent-core",
   "displayName": "XGJK Agent Core",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774977626127,
-    "commit": "https://github.com/openclaw/skills/commit/a7a898b3cac75cd09ef5252db9a3adfe4887bac1"
+    "version": "1.0.1",
+    "publishedAt": 1774978017406,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774977626127,
+      "commit": "https://github.com/openclaw/skills/commit/a7a898b3cac75cd09ef5252db9a3adfe4887bac1"
+    }
+  ]
 }
