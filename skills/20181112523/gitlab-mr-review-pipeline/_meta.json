@@ -1,0 +1,11 @@
+{
+  "owner": "20181112523",
+  "slug": "gitlab-mr-review-pipeline",
+  "displayName": "Gitlab Mr Review Pipeline",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774795801463,
+    "commit": null
+  },
+  "history": []
+}
