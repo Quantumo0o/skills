@@ -5,7 +5,7 @@ set -euo pipefail
 # Reads data/vault-entries.json and outputs summary stats.
 
 # --- Workspace Root Detection ---
-# Prefer explicit WORKSPACE_ROOT. If unset, walk upward for workspace markers,
+# Prefer explicit SKILL_DIR. If unset, walk upward for workspace markers,
 # but only accept roots that also look like a vault workspace.
 is_vault_workspace_root() {
   local root="$1"
@@ -16,30 +16,30 @@ is_vault_workspace_root() {
   return 1
 }
 
-find_workspace_root() {
-  local dir="$PWD"
-  while [ "$dir" != "/" ]; do
-    if { [ -f "$dir/AGENTS.md" ] || [ -f "$dir/SOUL.md" ]; } && is_vault_workspace_root "$dir"; then
+find_skill_root() {
+    # Stay within the skill directory — do not traverse outside
+    cd "$(dirname "$0")/.." && pwd
+} && is_vault_workspace_root "$dir"; then
       echo "$dir"
       return 0
     fi
     dir="$(dirname "$dir")"
   done
   echo "ERROR: Could not find a valid vault workspace root." >&2
-  echo "Set WORKSPACE_ROOT explicitly or run from a workspace containing AGENTS.md/SOUL.md and vault files." >&2
+    # Skill directory detection (stay within skill boundary)
   exit 1
 }
 
 resolve_workspace_root() {
-  if [ -n "${WORKSPACE_ROOT:-}" ]; then
-    if [ ! -d "$WORKSPACE_ROOT" ]; then
-      echo "ERROR: WORKSPACE_ROOT does not exist or is not a directory: $WORKSPACE_ROOT" >&2
+  if [ -n "${SKILL_DIR:-}" ]; then
+    if [ ! -d "$SKILL_DIR" ]; then
+      echo "ERROR: SKILL_DIR does not exist or is not a directory: $SKILL_DIR" >&2
       exit 1
     fi
     local resolved
-    resolved="$(cd "$WORKSPACE_ROOT" && pwd)"
+    resolved="$(cd "$SKILL_DIR" && pwd)"
     if ! is_vault_workspace_root "$resolved"; then
-      echo "ERROR: WORKSPACE_ROOT is not a valid vault workspace: $resolved" >&2
+      echo "ERROR: SKILL_DIR is not a valid vault workspace: $resolved" >&2
       echo "Expected data/vault-entries.json or config/vault-config.json." >&2
       exit 1
     fi
@@ -47,11 +47,11 @@ resolve_workspace_root() {
     return 0
   fi
 
-  find_workspace_root
+  find_skill_root
 }
 
-WORKSPACE_ROOT="$(resolve_workspace_root)"
-VAULT_FILE="$WORKSPACE_ROOT/data/vault-entries.json"
+SKILL_DIR="$(resolve_workspace_root)"
+VAULT_FILE="$SKILL_DIR/data/vault-entries.json"
 
 # --- Validate vault file exists ---
 if [ ! -f "$VAULT_FILE" ]; then

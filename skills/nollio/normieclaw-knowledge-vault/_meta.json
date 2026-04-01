@@ -3,9 +3,15 @@
   "slug": "normieclaw-knowledge-vault",
   "displayName": "Knowledge Vault",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774808987958,
-    "commit": "https://github.com/openclaw/skills/commit/6f6dc86d4d82fcbd4e4c858335874ca725415af5"
+    "version": "1.0.3",
+    "publishedAt": 1774993210932,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774808987958,
+      "commit": "https://github.com/openclaw/skills/commit/6f6dc86d4d82fcbd4e4c858335874ca725415af5"
+    }
+  ]
 }

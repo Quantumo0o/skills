@@ -1,9 +1,3 @@
----
-name: Knowledge Vault
-description: >
-  You have 200 bookmarks you'll never revisit and a 'Read Later' list that's basically a graveyard. Knowledge Vault changes the game: paste any URL — article, YouTube video, podcast, tweet thread, PDF — and OpenClaw instantly digests it, extracts the key takeaways, and stores everything in a searchable personal vault. The magic? OpenClaw actually learns the content. Ask it about a stat from a report you saved three months ago, and it pulls it up instantly.
----
-
 # Skill: Knowledge Vault
 
 **Description:** Your personal research library that builds itself. Send any URL — article, YouTube video, podcast, PDF, tweet thread, GitHub repo — and your agent instantly digests the content, extracts key takeaways, and stores everything in a searchable vault wired to long-term memory. The agent doesn't just bookmark it — it *learns* it.
