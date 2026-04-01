@@ -1,10 +1,10 @@
-# 腾讯云资源管理 - 快速参考
+# Tencent Cloud Resource Management - Quick Reference
 
 ---
 
-## 🚀 快速开始
+## Quick Start
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
 ```bash
 pip3 install --break-system-packages \
@@ -13,16 +13,16 @@ pip3 install --break-system-packages \
   python-dotenv
 ```
 
-### 2. 配置凭证
+### 2. Configure Credentials
 
 ```bash
 cp skills/tencentcloud-manager/config/.env.example \
    skills/tencentcloud-manager/config/.env
 ```
 
-编辑 `.env` 文件，填入 SecretId 和 SecretKey。
+Edit `.env` file and fill in SecretId and SecretKey.
 
-### 3. 验证配置
+### 3. Verify Configuration
 
 ```bash
 cd skills/tencentcloud-manager/src
@@ -31,9 +31,9 @@ python3 tencentcloud_manager.py verify
 
 ---
 
-## 📋 常用命令
+## Common Commands
 
-### 查询促销
+### Query Promotions
 
 ```python
 from tencentcloud_manager import TencentCloudManager
@@ -43,10 +43,10 @@ tcm.show_promotions(service='lighthouse')
 tcm.show_promotions(service='cvm')
 ```
 
-### 创建资源
+### Create Resources
 
 ```python
-# 创建 Lighthouse 实例
+# Create Lighthouse instance
 instance = tcm.create_resource(
     service='lighthouse',
     plan_id='new-2c4g',
@@ -54,7 +54,7 @@ instance = tcm.create_resource(
     instance_name='my-server'
 )
 
-# 创建 COS 存储桶
+# Create COS bucket
 bucket = tcm.create_resource(
     service='cos',
     bucket_name='my-bucket',
@@ -62,32 +62,32 @@ bucket = tcm.create_resource(
 )
 ```
 
-### 管理实例
+### Manage Instances
 
 ```python
-# 列出所有实例
+# List all instances
 instances = tcm.list_all_instances()
 
-# 查询实例状态
+# Query instance status
 status = tcm.get_resource_status('lighthouse', instance_id)
 
-# 启动/停止/重启
+# Start/Stop/Restart
 tcm.start_resource('lighthouse', instance_id)
 tcm.stop_resource('lighthouse', instance_id)
 tcm.restart_resource('lighthouse', instance_id)
 ```
 
-### COS 操作
+### COS Operations
 
 ```python
-# 上传文件
+# Upload file
 tcm.upload_to_cos(
     bucket='bucket.cos.ap-singapore.myqcloud.com',
     local_path='/tmp/file.txt',
     key='path/file.txt'
 )
 
-# 设置生命周期
+# Set lifecycle
 tcm.set_cos_lifecycle('bucket', [
     {
         'id': 'rule1',
@@ -102,28 +102,28 @@ tcm.set_cos_lifecycle('bucket', [
 
 ---
 
-## 💰 促销方案
+## Promotion Plans
 
-### Lighthouse 新人特惠
+### Lighthouse New User Special
 
-| 方案 ID | 配置 | 价格 | 适合场景 |
-|--------|------|------|---------|
-| new-1c1g | 1 核 1G/30G/30M | ¥60/年 | 个人博客 |
-| new-2c2g | 2 核 2G/50G/30M | ¥95/年 | 小型网站 |
-| new-2c4g | 2 核 4G/60G/30M | ¥168/年 | 数据采集 |
-| new-4c8g | 4 核 8G/80G/30M | ¥338/年 | 大型应用 |
+| Plan ID | Config | Price | Use Case |
+|---------|--------|-------|----------|
+| new-1c1g | 1 vCPU 1GB/30GB/30M | ¥60/year | Personal blog |
+| new-2c2g | 2 vCPU 2GB/50GB/30M | ¥95/year | Small website |
+| new-2c4g | 2 vCPU 4GB/60GB/30M | ¥168/year | Data collection |
+| new-4c8g | 4 vCPU 8GB/80GB/30M | ¥338/year | Large application |
 
-### CVM 按量付费
+### CVM Pay-As-You-Go
 
-| 方案 ID | 配置 | 月成本 | 适合场景 |
-|--------|------|--------|---------|
-| payg-2c2g | 2 核 2G | ~¥86/月 | 测试环境 |
-| payg-2c4g | 2 核 4G | ~¥130/月 | 开发环境 |
-| payg-4c8g | 4 核 8G | ~¥259/月 | 生产环境 |
+| Plan ID | Config | Monthly Cost | Use Case |
+|---------|--------|--------------|----------|
+| payg-2c2g | 2 vCPU 2GB | ~¥86/month | Test environment |
+| payg-2c4g | 2 vCPU 4GB | ~¥130/month | Development environment |
+| payg-4c8g | 4 vCPU 8GB | ~¥259/month | Production environment |
 
 ---
 
-## 📚 完整文档
+## Documentation
 
-- [技能说明](../SKILL.md)
-- [权限配置](permission-policy.md)
+- [Skill Description](../SKILL.md)
+- [Permission Config](permission-policy.md)

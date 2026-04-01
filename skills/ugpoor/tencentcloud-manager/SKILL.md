@@ -4,6 +4,17 @@
 
 **腾讯云资源统一管理入口**，提供 CVM 云服务器、Lighthouse 轻量应用服务器、COS 对象存储的创建、配置和运维管理。
 
+### 入口组件
+
+本技能是腾讯云管理的**统一入口**。你也可以直接使用各分支技能：
+
+| 技能 | 说明 | 引用 |
+|------|------|------|
+| tencentcloud-cvm | CVM 云服务器管理 | `from tencentcloud_cvm import CVMManager` |
+| tencentcloud-lighthouse | Lighthouse 轻量服务器管理 | `from tencentcloud_lighthouse import LighthouseManager` |
+| tencentcloud-cos | COS 对象存储管理 | `from tencentcloud_cos import COSManager` |
+| tencentcloud-ops | CVM + COS 运维工具包 | `from tencentcloud_ops import CVMManager, COSManager` |
+
 ### 核心功能
 
 ✅ **资源创建与配置**

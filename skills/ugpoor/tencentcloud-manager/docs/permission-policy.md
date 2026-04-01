@@ -1,14 +1,14 @@
-# 腾讯云子用户权限配置指南
+# Tencent Cloud Sub-User Permission Configuration Guide
 
-**重要**: 为安全起见，请使用子用户凭证而非主账号密钥。
+**Important**: For security, use sub-user credentials instead of master account keys.
 
 ---
 
-## 📋 权限策略模板
+## Permission Policy Templates
 
-### 策略 1: 资源管理员（推荐）
+### Policy 1: Resource Administrator (Recommended)
 
-此策略授予 CVM、Lighthouse、COS 的完整管理权限（不包括删除和财务权限）。
+This policy grants full management permissions for CVM, Lighthouse, and COS (excluding delete and finance permissions).
 
 ```json
 {
@@ -35,9 +35,9 @@
 
 ---
 
-### 策略 2: 只读访客
+### Policy 2: Read-Only Viewer
 
-仅授予查询权限，适合监控和审计用途。
+Query permissions only, suitable for monitoring and auditing purposes.
 
 ```json
 {
@@ -57,9 +57,9 @@
 
 ---
 
-### 策略 3: CVM 专员
+### Policy 3: CVM Specialist
 
-仅管理 CVM 云服务器。
+CVM cloud server management only.
 
 ```json
 {
@@ -80,9 +80,9 @@
 
 ---
 
-### 策略 4: Lighthouse 专员
+### Policy 4: Lighthouse Specialist
 
-仅管理轻量应用服务器。
+Lightweight application server management only.
 
 ```json
 {
@@ -104,9 +104,9 @@
 
 ---
 
-### 策略 5: COS 专员
+### Policy 5: COS Specialist
 
-仅管理对象存储。
+Object storage management only.
 
 ```json
 {
@@ -127,30 +127,30 @@
 
 ---
 
-## 🔧 配置步骤
+## Configuration Steps
 
-1. 访问 https://console.cloud.tencent.com/cam/policy
-2. 点击「新建自定义策略」
-3. 粘贴上述策略模板
-4. 填写策略名称，点击「确定」
-5. 访问 https://console.cloud.tencent.com/cam/user 创建子用户
-6. 关联策略到子用户
-7. 复制 SecretId 和 SecretKey 到 .env 文件
-
----
-
-## 🔒 安全最佳实践
-
-- ✅ 使用子用户密钥，不用主账号
-- ✅ .env 文件加入 .gitignore
-- ✅ 定期轮换密钥（90 天）
-- ✅ 设置最小权限
-- ❌ 不要提交密钥到 Git
-- ❌ 不要授予财务权限
+1. Visit https://console.cloud.tencent.com/cam/policy
+2. Click "Create Custom Policy"
+3. Paste the policy template above
+4. Enter policy name, click "OK"
+5. Visit https://console.cloud.tencent.com/cam/user to create sub-user
+6. Associate policy to sub-user
+7. Copy SecretId and SecretKey to .env file
 
 ---
 
-## 📚 相关文档
+## Security Best Practices
 
-- [技能说明](../SKILL.md)
-- [CAM 用户管理](https://cloud.tencent.com/document/product/598)
+- Use sub-user keys, not master account
+- Add .env to .gitignore
+- Rotate keys regularly (90 days)
+- Set minimum permissions
+- Do not commit keys to Git
+- Do not grant finance permissions
+
+---
+
+## Documentation
+
+- [Skill Description](../SKILL.md)
+- [CAM User Management](https://cloud.tencent.com/document/product/598)
