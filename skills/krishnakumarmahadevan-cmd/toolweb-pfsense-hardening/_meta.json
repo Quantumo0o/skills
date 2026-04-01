@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "toolweb-pfsense-hardening",
+  "displayName": "pfSense Hardening",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774890854819,
+    "commit": null
+  },
+  "history": []
+}
