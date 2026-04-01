@@ -1,0 +1,11 @@
+{
+  "owner": "kgapol",
+  "slug": "proof-of-work",
+  "displayName": "Proof of Work",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774844376222,
+    "commit": null
+  },
+  "history": []
+}
