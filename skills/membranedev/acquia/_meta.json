@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "acquia",
+  "displayName": "Acquia",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774746165618,
+    "commit": null
+  },
+  "history": []
+}
