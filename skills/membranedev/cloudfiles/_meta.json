@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "cloudfiles",
+  "displayName": "Cloudfiles",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774828968499,
+    "commit": null
+  },
+  "history": []
+}
