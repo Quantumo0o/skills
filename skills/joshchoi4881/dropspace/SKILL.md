@@ -1,6 +1,6 @@
 ---
 name: dropspace
-description: Create and publish social media launches via the Dropspace API. Use when user wants to post to social media, create launches, manage personas, generate media, track post analytics, schedule content, or anything Dropspace-related. Supports 10 platforms (Twitter, LinkedIn, Reddit, Instagram, TikTok, Facebook, YouTube, Substack, Product Hunt, Hacker News) with per-post analytics and AI content generation.
+description: Create and publish social media launches via the Dropspace API. Use when user wants to post to social media, create launches, manage personas, track post analytics, schedule content, or anything Dropspace-related. Supports 10 platforms (Twitter, LinkedIn, Reddit, Instagram, TikTok, Facebook, YouTube, Substack, Product Hunt, Hacker News) with per-post analytics and AI content generation.
 homepage: https://www.dropspace.dev/docs
 source: https://github.com/joshchoi4881/dropspace-agents
 metadata:
@@ -15,14 +15,16 @@ metadata:
 
 # Dropspace API Skill
 
-Multi-platform social media publishing with AI-generated content, media generation, per-post analytics, and persona-based writing styles.
+Multi-platform social media publishing with AI-generated content, per-post analytics, and persona-based writing styles.
 
 ## Setup
 
-Set your API key:
+Set your API key with **least-privilege scopes** (only grant what you need):
 ```bash
 export DROPSPACE_API_KEY="ds_live_..."  # from dropspace.dev/settings/api
 ```
+
+**Recommended:** Create a key with only `read`, `write`, `generate` scopes. Do not grant `publish`, `admin`, or `delete` unless you explicitly need autonomous publishing or account management. You can always create a separate key with broader scopes later.
 
 Base URL: `https://api.dropspace.dev`
 Auth header: `-H "Authorization: Bearer $DROPSPACE_API_KEY"`
@@ -32,11 +34,21 @@ Machine-readable docs: [llms.txt](https://www.dropspace.dev/llms.txt) | [OpenAPI
 
 ## API Key Scopes
 
-Keys can be scoped: `read`, `write`, `delete`, `publish`, `generate`, `admin`.
+Keys can be scoped to limit what they're allowed to do. **Use least-privilege — only grant scopes your workflow requires.**
+
+| Scope | What it allows |
+|-------|---------------|
+| `read` | View launches, personas, connections, analytics, usage |
+| `write` | Create and update launches and personas |
+| `generate` | AI content generation (text from descriptions) |
+| `publish` | Publish launches to connected social accounts |
+| `delete` | Delete launches and personas |
+| `admin` | Manage API keys and webhooks |
 
 | Use Case | Recommended Scopes |
 |----------|-------------------|
-| AI agents / MCP | read, write, generate |
+| AI agents / MCP (draft + review) | read, write, generate |
+| AI agents / MCP (auto-publish) | read, write, generate, publish |
 | CI/CD publishing | read, publish |
 | Monitoring / dashboards | read |
 | Full access (admin tools) | all scopes |
@@ -91,7 +103,6 @@ curl -s -X POST https://api.dropspace.dev/launches \
     ],
     "media_attach_platforms": ["twitter", "linkedin"],
     "media_mode": "images|video",
-    "generate_ai_videos": ["instagram", "tiktok"],
     "custom_content": "single text for all platforms (validated against lowest char limit)",
     "custom_content_reddit_title": "reddit title when using custom_content (max 300 chars)",
     "platform_contents": {
@@ -144,7 +155,6 @@ Media limits: Instagram/Facebook 10, Reddit 20, TikTok 35.
 
 **Publish validation (LAUNCH_007):** When publishing fails validation, the response includes a `details` array listing all blocking issues. Checks include: char limits (all platforms), Reddit title ≤300 chars, Reddit video needs video+thumbnail, Reddit images need images, Instagram reel needs video, Instagram carousel needs ≥2 images, TikTok requires `tiktok_settings.privacy_level`, TikTok video needs video, TikTok photo needs images.
 Instagram requires media. TikTok requires video or photos.
-`generate_ai_videos`: subset of `["instagram", "tiktok"]` — generates video scripts and starts async rendering.
 `media_mode`: `"images"` or `"video"` (auto-inferred when using `media`).
 
 Upload errors: `UPLOAD_001` (unsupported type), `UPLOAD_002` (too large), `UPLOAD_003` (storage upload failed).
@@ -161,7 +171,7 @@ curl -s -X PATCH https://api.dropspace.dev/launches/LAUNCH_ID \
 curl -s -X POST https://api.dropspace.dev/launches/LAUNCH_ID/generate-content \
   -H "Authorization: Bearer $DROPSPACE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"platforms": ["twitter"], "generate_video_scripts": ["instagram"]}'
+  -d '{"platforms": ["twitter"]}'
 ```
 
 ### 4. Publish
@@ -249,7 +259,7 @@ AND signup_utm_source IS NOT NULL;
 | POST | /launches/:id/publish | Publish (async, 202) |
 | POST | /launches/:id/retry | Retry failed platforms only |
 | POST | /launches/:id/retry-content | Retry content generation for failed platforms (optional `platforms` filter) |
-| POST | /launches/:id/generate-content | Regenerate AI content (optional `platforms`, `generate_video_scripts`) |
+| POST | /launches/:id/generate-content | Regenerate AI content (optional `platforms`) |
 | GET | /launches/:id/status | Detailed posting logs |
 | GET | /launches/:id/analytics | Per-post engagement metrics (live refresh, 5-min cache) |
 | DELETE | /launches/:id/posts/:logId | Delete a single published post from platform (logId from /status) |
@@ -285,6 +295,8 @@ Statuses in lifecycle order: `draft` → `manual` → `trigger` → `scheduled` 
 
 PATCH fields: `name` (1-200 chars), `scheduled_date` (ISO 8601 | null to unschedule), `status`, `platforms`, `product_description` (max 10,000 chars), `product_url` (empty string to clear), `persona_id` (null to clear), `platform_contents` (deep-merged per platform — existing platforms preserved, within a platform included fields replace old values), `user_platform_accounts`, `dropspace_platforms`, `media`/`media_assets` (replaces entirely), `media_attach_platforms`, `media_mode`. All optional but ≥1 required. Running launch can only be `cancelled`. TikTok `tiktok_settings` is deep-merged (can update individual fields without overwriting others).
 
+> **Note:** Media generation (AI image/video via fal.ai) is not available through the public API. Media upload (attaching existing images/videos) is supported.
+
 ### Deleting Published Posts
 - Requires `delete` scope on API key (enabled)
 - **Works on:** Twitter, Facebook, LinkedIn, Reddit
@@ -306,25 +318,6 @@ PATCH fields: `name` (1-200 chars), `scheduled_date` (ISO 8601 | null to unsched
 | POST | /personas/:id/analyze | Trigger AI analysis (async, 202). Optional: `platforms`, `include_custom_samples` |
 
 Build statuses: `idle`, `building`, `complete`, `error`
-
-## Media Generation
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /media/generate | Submit job |
-| GET | /media/:jobId | Poll status (processing/completed/failed) |
-
-Request body for `/media/generate`:
-- `type`: `"image"` | `"video"` | `"script_video"` (required)
-- `launch_id`: UUID (required)
-- `platform`: string (required for `script_video`: "instagram" or "tiktok")
-- `prompt`: string 10-2000 chars (required for `script_video`)
-- `product_description`: optional context
-- `options.aspect_ratio`: image supports all 10 (`"1:1"`, `"16:9"`, `"9:16"`, `"4:3"`, `"3:4"`, `"3:2"`, `"2:3"`, `"5:4"`, `"4:5"`, `"21:9"`); video/script_video only `"16:9"` and `"9:16"`
-- `options.duration_seconds`: 4 | 6 | 8 (default 8, video only)
-- `reference_image_url`: URL of a reference image for style/composition guidance (image type only, uses edit endpoint)
-
-`script_video` generates video from text script (requires `platform` and `prompt`). `video` generates from visual/cinematic prompt.
 
 ## Connections
 
@@ -375,7 +368,6 @@ Default scopes: read, write, publish, generate. Available: read, write, delete, 
 | launch.failed | All platforms failed |
 | launch.partial | Some succeeded, some failed |
 | post.deleted | Post detected as deleted from platform (`deletion_reason`: not_found, gone, creator_deleted, moderation_removed, account_deleted, spam_filtered) |
-| media.ready | Image/video generation completed |
 | persona.analyzed | AI persona analysis finished |
 
 ### Webhook Delivery
@@ -394,7 +386,7 @@ Retries: up to 3 with exponential backoff (QStash), 30s timeout. Return 2xx to a
 curl -s https://api.dropspace.dev/usage \
   -H "Authorization: Bearer $DROPSPACE_API_KEY"
 ```
-Returns: plan name, billing period, limits (launches/month, AI images/month, AI videos/month, personas, analyses/persona, regenerations/launch), and features (can_connect_own_accounts, can_post_to_official_accounts, allowed_platforms). Limit/remaining can be `"unlimited"` (string) for higher-tier plans. Personas is a lifetime limit.
+Returns: plan name, billing period, limits (launches/month, personas, analyses/persona, regenerations/launch), and features (can_connect_own_accounts, can_post_to_official_accounts, allowed_platforms). Limit/remaining can be `"unlimited"` (string) for higher-tier plans. Personas is a lifetime limit.
 
 ## Agent Payments (x402 + MPP)
 
@@ -416,8 +408,6 @@ Autonomous agents can use the API without accounts or subscriptions via two paym
 |-------|-------|
 | General API | 60 req/min per API key |
 | Content generation | 30 req/min per user |
-| Media generation | 5 req/min per user |
-| Video concurrency | 2 per user / 20 global |
 
 On 429: check `Retry-After` header (seconds). Rate limit headers: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` (Unix timestamp in milliseconds, not seconds).
 
@@ -436,7 +426,6 @@ On 429: check `Retry-After` header (seconds). Rate limit headers: `X-RateLimit-L
 | PERSONA_001 | 429 | Persona creation limit |
 | PERSONA_002 | 404 | Persona not found |
 | PERSONA_003 | 429 | Persona build limit |
-| MEDIA_001 | 429 | Monthly media limit |
 | UPLOAD_001 | 400 | Unsupported media type (allowed: jpeg, png, webp, gif, mp4, mov) |
 | UPLOAD_002 | 400 | Media file too large (images: 5MB, videos: 512MB URL / 4MB base64) |
 | UPLOAD_003 | 400 | Media storage upload failed |
