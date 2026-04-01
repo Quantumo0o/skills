@@ -1,0 +1,11 @@
+{
+  "owner": "scavio-ai",
+  "slug": "scavio-amazon",
+  "displayName": "Scavio Amazon",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775039384275,
+    "commit": null
+  },
+  "history": []
+}
