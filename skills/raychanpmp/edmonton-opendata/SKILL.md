@@ -1,15 +1,14 @@
 ---
 name: City of Edmonton Open Data
-description: "Access 2,179+ datasets from the City of Edmonton open data portal. Search, fetch, and analyze city data on transit, traffic, environment, census, and more. The skills contain API information licensed under the Open Government Licence – City of Edmonton."
+description: "Access 2,179+ datasets from the City of Edmonton open data portal. Search, fetch, and analyze city data on transit, traffic, environment, census, and more. Data licensed under the Open Government Licence – City of Edmonton."
 permissions: Bash
 triggers:
   - edmonton open data
   - city of edmonton data
   - edmonton dataset
   - data.edmonton.ca
-  - edmonton transit data
-  - edmonton environment data
-  - edmonton census data
+  - edmonton transit
+  - edmonton census
 ---
 
 # City of Edmonton Open Data
@@ -79,4 +78,10 @@ Dataset IDs are 9-character alphanumeric codes (e.g., `24uj-dj8v`). Find them vi
 
 ## Data Sources
 
-All data is sourced from the City of Edmonton's Open Data Portal (data.edmonton.ca) and is provided under the Open Government Licence – City of Edmonton. See [references/datasets.md](references/datasets.md) for a curated list of popular datasets.
+All data sourced from the City of Edmonton's Open Data Portal (data.edmonton.ca) under the Open Government Licence – City of Edmonton. See [references/datasets.md](references/datasets.md) for a curated list of popular datasets.
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SOCRATA_APP_TOKEN` | No | Optional Socrata app token to reduce rate limits. Works without it. |

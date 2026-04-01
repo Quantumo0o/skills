@@ -16,16 +16,12 @@ Commands:
   geojson <dataset-id> [--limit N]            Export geocoded data as GeoJSON
 """
 
-import json
-import sys
-import os
-import urllib.request
-import urllib.parse
-import urllib.error
+import json, sys, os, urllib.request, urllib.parse, urllib.error
 from datetime import datetime
+from pathlib import Path
 
 BASE_URL = "https://data.edmonton.ca"
-APP_TOKEN = os.environ.get("EDMONTON_OPENDATA_TOKEN", "")
+APP_TOKEN = os.environ.get("SOCRATA_APP_TOKEN", "")  # Optional: reduces rate limits
 
 def api_request(path, params=None):
     """Make a request to the Socrata API."""
@@ -50,10 +46,10 @@ def api_request(path, params=None):
         sys.exit(1)
 
 def load_all_datasets():
-    """Fetch the full dataset catalogue (cached locally for 1 hour)."""
-    cache_dir = os.path.expanduser("~/.openclaw/workspace/data/edmonton-opendata")
+    """Fetch the full dataset catalogue (cached in /tmp for 1 hour)."""
+    cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache")
     os.makedirs(cache_dir, exist_ok=True)
-    cache_file = os.path.join(cache_dir, "catalog_cache.json")
+    cache_file = os.path.join(cache_dir, "catalog.json")
     
     # Check cache age
     if os.path.exists(cache_file):
