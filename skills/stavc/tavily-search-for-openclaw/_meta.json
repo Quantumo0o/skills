@@ -1,0 +1,11 @@
+{
+  "owner": "stavc",
+  "slug": "tavily-search-for-openclaw",
+  "displayName": "tavily",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1774960372455,
+    "commit": null
+  },
+  "history": []
+}
