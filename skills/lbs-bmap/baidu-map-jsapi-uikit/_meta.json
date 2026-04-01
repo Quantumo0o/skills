@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-bmap",
+  "slug": "baidu-map-jsapi-uikit",
+  "displayName": "Baidu Map JSAPI UI Kit",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774937387082,
+    "commit": null
+  },
+  "history": []
+}
