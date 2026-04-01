@@ -1,0 +1,11 @@
+{
+  "owner": "stavc",
+  "slug": "life-feed",
+  "displayName": "My Life Feed V2",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1774947952483,
+    "commit": null
+  },
+  "history": []
+}
