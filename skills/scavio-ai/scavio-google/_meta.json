@@ -1,0 +1,11 @@
+{
+  "owner": "scavio-ai",
+  "slug": "scavio-google",
+  "displayName": "Scavio Google",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775039387268,
+    "commit": null
+  },
+  "history": []
+}
