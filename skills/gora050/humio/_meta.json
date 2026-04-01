@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "humio",
+  "displayName": "Humio",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774911881730,
+    "commit": null
+  },
+  "history": []
+}
