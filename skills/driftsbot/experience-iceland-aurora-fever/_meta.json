@@ -1,13 +1,18 @@
 {
   "owner": "driftsbot",
   "slug": "experience-iceland-aurora-fever",
-  "displayName": "Experience Iceland Aurora Fever",
+  "displayName": "Solar Storm Northern Lights — Aurora Fever | AI Experience",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773698593801,
-    "commit": "https://github.com/openclaw/skills/commit/aab96314d2572c019f337570bb28f93ded907928"
+    "version": "1.1.0",
+    "publishedAt": 1775093013594,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773698593801,
+      "commit": "https://github.com/openclaw/skills/commit/aab96314d2572c019f337570bb28f93ded907928"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773109887618,
