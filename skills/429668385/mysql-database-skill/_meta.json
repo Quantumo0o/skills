@@ -1,0 +1,11 @@
+{
+  "owner": "429668385",
+  "slug": "mysql-database-skill",
+  "displayName": "MySQL Database CLI Skill",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775030245998,
+    "commit": null
+  },
+  "history": []
+}
