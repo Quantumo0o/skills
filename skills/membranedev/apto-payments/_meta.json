@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "apto-payments",
+  "displayName": "Apto Payments",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775016167149,
+    "commit": null
+  },
+  "history": []
+}
