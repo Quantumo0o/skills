@@ -1,0 +1,11 @@
+{
+  "owner": "mackding",
+  "slug": "agent-gateway",
+  "displayName": "Agent Gateway",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775028287203,
+    "commit": null
+  },
+  "history": []
+}
