@@ -3,9 +3,15 @@
   "slug": "infant-blanket-kick-monitoring-analysis",
   "displayName": "Baby Blanket Kick Monitoring Skill | 婴儿蹬被监测技能",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775112467832,
-    "commit": "https://github.com/openclaw/skills/commit/bcb72bcfb7756202a388afc42dffb07e9cc1b242"
+    "version": "1.0.2",
+    "publishedAt": 1775112513601,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775112467832,
+      "commit": "https://github.com/openclaw/skills/commit/bcb72bcfb7756202a388afc42dffb07e9cc1b242"
+    }
+  ]
 }
