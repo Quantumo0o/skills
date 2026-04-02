@@ -1,0 +1,11 @@
+{
+  "owner": "hanxiao-bot",
+  "slug": "openclaw-audit-log-hook",
+  "displayName": "OpenClaw Audit Log Hook",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775059599286,
+    "commit": null
+  },
+  "history": []
+}
