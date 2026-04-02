@@ -1,0 +1,11 @@
+{
+  "owner": "minerva-care",
+  "slug": "minerva-lidarr",
+  "displayName": "Lidarr",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775144559691,
+    "commit": null
+  },
+  "history": []
+}
