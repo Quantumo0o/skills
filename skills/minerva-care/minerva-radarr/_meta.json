@@ -1,0 +1,11 @@
+{
+  "owner": "minerva-care",
+  "slug": "minerva-radarr",
+  "displayName": "Radarr",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775144563995,
+    "commit": null
+  },
+  "history": []
+}
