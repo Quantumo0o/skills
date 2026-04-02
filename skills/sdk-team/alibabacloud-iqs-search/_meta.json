@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-iqs-search",
+  "displayName": "Alibabacloud Iqs Search",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775125567563,
+    "commit": null
+  },
+  "history": []
+}
