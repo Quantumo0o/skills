@@ -1,0 +1,11 @@
+{
+  "owner": "wimi321",
+  "slug": "claude-code-batch-migration-orchestrator",
+  "displayName": "Batch Migration Orchestrator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775060247866,
+    "commit": null
+  },
+  "history": []
+}
