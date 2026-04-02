@@ -3,9 +3,15 @@
   "slug": "oracle-field-service",
   "displayName": "Oracle Field Service",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775048680494,
-    "commit": "https://github.com/openclaw/skills/commit/5a7aa8adc9306fea781edd82045d58410d9bdfde"
+    "version": "1.0.1",
+    "publishedAt": 1775170583504,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775048680494,
+      "commit": "https://github.com/openclaw/skills/commit/5a7aa8adc9306fea781edd82045d58410d9bdfde"
+    }
+  ]
 }
