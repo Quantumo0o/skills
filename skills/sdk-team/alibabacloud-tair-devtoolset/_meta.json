@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-tair-devtoolset",
+  "displayName": "Alibabacloud Tair Devtoolset",
+  "latest": {
+    "version": "0.0.2",
+    "publishedAt": 1775095080378,
+    "commit": null
+  },
+  "history": []
+}
