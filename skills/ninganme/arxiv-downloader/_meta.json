@@ -1,0 +1,11 @@
+{
+  "owner": "ninganme",
+  "slug": "arxiv-downloader",
+  "displayName": "arXiv Downloader",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775113314624,
+    "commit": null
+  },
+  "history": []
+}
