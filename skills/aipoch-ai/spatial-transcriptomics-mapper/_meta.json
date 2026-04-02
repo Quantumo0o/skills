@@ -1,0 +1,11 @@
+{
+  "owner": "aipoch-ai",
+  "slug": "spatial-transcriptomics-mapper",
+  "displayName": "Spatial Transcriptomics Mapper",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775024240602,
+    "commit": null
+  },
+  "history": []
+}
