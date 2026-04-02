@@ -1,0 +1,11 @@
+{
+  "owner": "michealxie001",
+  "slug": "oc-multi-llm",
+  "displayName": "OpenClaw Multi-LLM Adapter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775129026725,
+    "commit": null
+  },
+  "history": []
+}
