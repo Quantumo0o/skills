@@ -1,0 +1,11 @@
+{
+  "owner": "chaimengphp",
+  "slug": "openclaw-aisa-prediction-market-arbitrage",
+  "displayName": "Find and analyze arbitrage opportunities across prediction markets like Polymarket and Kalshi",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775102851562,
+    "commit": null
+  },
+  "history": []
+}
