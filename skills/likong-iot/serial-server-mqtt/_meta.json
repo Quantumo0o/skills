@@ -1,0 +1,11 @@
+{
+  "owner": "likong-iot",
+  "slug": "serial-server-mqtt",
+  "displayName": "Sp501lw Mqtt",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775092671968,
+    "commit": null
+  },
+  "history": []
+}
