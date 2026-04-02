@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "toolweb-azure-aks-hardening",
+  "displayName": "Azure AKS Hardening",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774989964114,
+    "commit": null
+  },
+  "history": []
+}
