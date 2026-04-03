@@ -3,7 +3,7 @@ name: sheet-cog
 description: "AI spreadsheet and Excel generation powered by CellCog. Create financial models, budget templates, data trackers, projections, pivot tables, and complex formulas — XLSX output with full Python access. Data manipulation, analysis, charts, and professional formatting. Engineering-grade spreadsheets."
 metadata:
   openclaw:
-    emoji: "📈"
+    emoji: "📋"
     os: [darwin, linux, windows]
 author: CellCog
 homepage: https://cellcog.ai
