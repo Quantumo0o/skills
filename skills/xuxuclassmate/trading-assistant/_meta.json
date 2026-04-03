@@ -3,11 +3,16 @@
   "slug": "trading-assistant",
   "displayName": "Trading Assistant",
   "latest": {
-    "version": "8.2.0",
-    "publishedAt": 1775178768510,
-    "commit": "https://github.com/openclaw/skills/commit/e1a87fa7d5f1ef8cc226a73220f07d658f6167a6"
+    "version": "9.0.0",
+    "publishedAt": 1775179075190,
+    "commit": null
   },
   "history": [
+    {
+      "version": "8.2.0",
+      "publishedAt": 1775178768510,
+      "commit": "https://github.com/openclaw/skills/commit/e1a87fa7d5f1ef8cc226a73220f07d658f6167a6"
+    },
     {
       "version": "1.5.1",
       "publishedAt": 1774706028927,

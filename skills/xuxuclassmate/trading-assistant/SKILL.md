@@ -15,6 +15,7 @@ metadata:
     requires:
       env:
         - TWELVE_DATA_API_KEY
+        - ALPHA_VANTAGE_API_KEY
       bins:
         - python3
         - pip
@@ -24,7 +25,7 @@ metadata:
     safety:
       level: safe
       audit: manual
-      notes: Pure technical analysis only. 4 Python files (trading_signals.py, support_resistance.py, position_calculator.py, config.py). No subprocess, no shell, no eval/exec. API keys from environment variables only (TWELVE_DATA_API_KEY required, ALPHA_VANTAGE_API_KEY optional). Read-only API access.
+      notes: Pure technical analysis only. 4 Python files (trading_signals.py, support_resistance.py, position_calculator.py, config.py). No subprocess, no shell, no eval/exec. API keys from environment variables (TWELVE_DATA_API_KEY required, ALPHA_VANTAGE_API_KEY optional backup). Read-only API access.
 ---
 
 # Trading Assistant
