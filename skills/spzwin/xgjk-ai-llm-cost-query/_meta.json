@@ -3,9 +3,15 @@
   "slug": "xgjk-ai-llm-cost-query",
   "displayName": "AI费用查询",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775134733395,
-    "commit": "https://github.com/openclaw/skills/commit/bc3d804ec976f73aeac3835b7126e402ea60416a"
+    "version": "1.0.1",
+    "publishedAt": 1775208039413,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775134733395,
+      "commit": "https://github.com/openclaw/skills/commit/bc3d804ec976f73aeac3835b7126e402ea60416a"
+    }
+  ]
 }
