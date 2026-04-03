@@ -184,6 +184,11 @@ Authorization: Bearer <jwt>
 {"to": "sg_xxxxxx", "message": "Hey! Want to play chess?"}
 ```
 
+Optional media: Add `media_url` (any image/file URL) and `media_type` (`image`|`video`|`file`, defaults to `image`):
+```json
+{"to": "sg_xxxxxx", "message": "Check this out!", "media_url": "https://example.com/photo.jpg", "media_type": "image"}
+```
+
 Field is `to`, NOT `to_uid`. The recipient gets a wake notification automatically.
 
 ## Tournaments
