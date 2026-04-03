@@ -18,7 +18,8 @@ const readline = require('readline')
 // ─── Constants ───────────────────────────────────────────────────────────────
 const USDT           = '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
 const RELAYER        = '0x8dA05c0021e6b35865FDC959c54dCeF3A4AbBa9d'
-const CLAIM_CONTRACT = '0xf9548be470a4e130c90cea8b179fcd66d2972ac7'
+const CLIENT_CORE    = '0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7'  // Azuro ClientCore for betting
+const CLAIM_CONTRACT = '0x0fa7fb5407ea971694652e6e16c12a52625de1b8'  // LP claim contract
 const PINWIN_API     = 'https://api.pinwin.xyz'
 const REST_API_BASE  = 'api.onchainfeed.org'
 const CONDITIONS_PATH = '/api/v1/public/market-manager/conditions-by-game-ids'
@@ -225,8 +226,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
     console.error(`❌ outcomeId mismatch: expected ${outcomeId}, got ${payloadOutcome}`)
     process.exit(1)
   }
-  if (coreAddr !== CLAIM_CONTRACT) {
-    console.error(`❌ Core address mismatch: expected ${CLAIM_CONTRACT}, got ${coreAddr}`)
+  if (coreAddr.toLowerCase() !== CLIENT_CORE.toLowerCase()) {
+    console.error(`❌ Core address mismatch: expected ${CLIENT_CORE}, got ${coreAddr}`)
     process.exit(1)
   }
   console.log('   ✅ Payload verified.')
@@ -236,17 +237,17 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
     const answer = await new Promise(resolve => {
       rl.question(
-        `\n🛑 CONFIRMAR APUESTA\n   ${Number(payloadStake) / 1e6} USDT en ${marketName} — outcome "${selectionLabel}" @ ${currentOdds.toFixed(2)}\n   ¿Proceder? (escribe "si" para confirmar): `,
+        `\n🛑 CONFIRM BET\n   ${Number(payloadStake) / 1e6} USDT on ${marketName} — outcome "${selectionLabel}" @ ${currentOdds.toFixed(2)}\n   Proceed? (type "yes" to confirm): `,
         ans => { rl.close(); resolve(ans.trim().toLowerCase()) }
       )
     })
-    if (answer !== 'si' && answer !== 'sí' && answer !== 'yes' && answer !== 'y') {
-      console.log('\n❌ Apuesta cancelada por el usuario.')
+    if (answer !== 'yes' && answer !== 'y') {
+      console.log('\n❌ Bet cancelled by user.')
       process.exit(0)
     }
     console.log('   ✅ Confirmado.')
   } else {
-    console.log('\n⚠️  [--yes flag] Saltando confirmación interactiva.')
+    console.log('\n⚠️  [--yes flag] Skipping interactive confirmation.')
   }
 
   // ── Step 5: Approve USDT if needed ───────────────────────────────────────
@@ -389,9 +390,9 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
     watcher.stdout.on('data', d => process.stdout.write('[watcher] ' + d))
     watcher.stderr.on('data', d => process.stderr.write('[watcher] ' + d))
     watcher.unref()
-    console.log(`\n👁  watch-bets.js launched (PID ${watcher.pid}) — te avisaré cuando se resuelva la apuesta.`)
+    console.log(`\n👁  watch-bets.js launched (PID ${watcher.pid}) — you will be notified when the bet resolves.`)
   } else {
-    console.log('\n💡 Tip: pasa --starts-at <unixTimestamp> para recibir notificación automática del resultado.')
+    console.log('\n💡 Tip: pass --starts-at <unixTimestamp> to receive automatic result notification.')
   }
 
 })().catch(e => {

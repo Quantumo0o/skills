@@ -47,7 +47,8 @@ These values are fixed for Polygon. Never substitute addresses from any other so
 | **Chain** | Polygon — chainId `137` |
 | **betToken (USDT)** | `0xc2132D05D31c914a87C6611C10748AEb04B58e8F` (6 decimals) |
 | **relayer** | `0x8dA05c0021e6b35865FDC959c54dCeF3A4AbBa9d` |
-| **claimContract (ClientCore)** | `0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7` |
+| **clientCore** (bet payload verification) | `0xF9548Be470A4e130c90ceA8b179FCD66D2972AC7` |
+| **claimContract** (LP claim, redeem won/canceled bets) | `0x0FA7FB5407eA971694652E6E16C12A52625DE1b8` |
 | **environment** | `PolygonUSDT` |
 | **data-feed URL** | `https://api.onchainfeed.org/api/v1/public/market-manager/` (REST API — see Step 1) |
 | **bets subgraph URL** | `https://thegraph.onchainfeed.org/subgraphs/name/azuro-protocol/azuro-api-polygon-v3` |
@@ -58,6 +59,20 @@ These values are fixed for Polygon. Never substitute addresses from any other so
 **Install required packages:** `npm install viem @azuro-org/dictionaries`
 
 Note: `@azuro-org/dictionaries` is still used by `place-bet.js` for outcomeId resolution. `get-games.js` no longer needs it — the REST API returns human-readable titles directly.
+
+**Secure setup for BETTOR_PRIVATE_KEY:**
+
+The recommended approach is a `.env` file with restricted permissions — the key is read only by the Node process and never stored in any config file the model can read:
+
+```bash
+# Create .env in the skill workspace
+echo "BETTOR_PRIVATE_KEY=0xyour_private_key_here" > ~/.openclaw/workspace/skills/sports-betting/.env
+chmod 600 ~/.openclaw/workspace/skills/sports-betting/.env
+
+# Scripts load it automatically at runtime — no manual export needed
+```
+
+⚠️ **Never store BETTOR_PRIVATE_KEY in openclaw.json or any config file the agent can read.** If OpenClaw stores it under a generic `apiKey` field, rename or move it to `.env` with `chmod 600`. The key signs real on-chain transactions — treat it like a password.
 
 **viem setup:**
 ```js
@@ -130,10 +145,19 @@ node scripts/get-games.js --search "Celtics" 3         # find Celtics games
 node scripts/get-games.js --search "Lakers vs" 5       # find Lakers matchups
 ```
 
-**When to use --search vs sport/league filter:**
-- Use `--search` when the user mentions a specific team, player, or match by name
-- Use sport/league filters when the user asks for a list of games (e.g. "show me NBA tonight")
+**When to use each mode:**
+- Use `--search` when the user mentions a specific team, player, or match by name (e.g. "show me Real Madrid games", "find Celtics")
+- Use sport/league filters when the user asks for a list of games (e.g. "show me NBA tonight", "Premier League games")
 - `--search` queries across all sports and leagues simultaneously
+
+**CRITICAL — slug resolution:**
+The `--sport` and `--league` args require **exact API slugs** (e.g. `ice-hockey`, `laliga`, `nhl`), not human-friendly names. If the user uses a name that doesn't match a known alias (e.g. "La Liga", "Spanish football", "Champions League"), run `--list-sports` first to find the correct slug:
+
+```bash
+node scripts/get-games.js --list-sports
+```
+
+This calls the `/navigation` endpoint and shows all available sports and leagues with their exact slugs and active game counts. Then use the correct slug in the next call. Do NOT guess slugs — always verify with `--list-sports` if unsure.
 
 The script outputs:
 1. A **clean human-readable list** with main market odds per game — show this to the user
@@ -341,7 +365,7 @@ Before signing, verify:
 
 1. `payload.signableClientBetData.bet.amount` (single) or `payload.signableClientBetData.amount` (combo) matches the user's requested stake
 2. `conditionId` and `outcomeId` in the payload match the user's chosen selection(s)
-3. `payload.signableClientBetData.clientData.core.toLowerCase()` === `0xf9548be470a4e130c90cea8b179fcd66d2972ac7` (claimContract)
+3. `payload.signableClientBetData.clientData.core.toLowerCase()` === `0xf9548be470a4e130c90cea8b179fcd66d2972ac7` (clientCore — NOT the claimContract)
 
 If any check fails, **do not sign**. Report the mismatch to the user and stop.
 
@@ -463,7 +487,24 @@ To fetch only redeemable bets: add `"isRedeemable": true` to `where`.
 
 ## Flow — claim
 
-Only for bets where `isRedeemable === true` and `isRedeemed === false`. Collect `betId` values from the subgraph.
+Only for bets where `isRedeemable === true` and `isRedeemed === false`.
+
+**CRITICAL — use the bundled script, do not implement the claim flow manually.**
+
+```bash
+# Check redeemable bets and claim all:
+node scripts/claim-bets.js
+
+# Check only (no claim):
+node scripts/claim-bets.js --check-only
+
+# Claim specific betIds directly:
+node scripts/claim-bets.js --betIds 42 43
+```
+
+The script: queries the bets subgraph for redeemable bets, shows a summary with total claimable USDT, asks for explicit user confirmation, verifies the claim contract address, sends the transaction, and waits for on-chain confirmation.
+
+The steps below are reference documentation for what the script does internally.
 
 ### Step 1 — Call Pinwin
 
@@ -482,7 +523,7 @@ Display the full decoded payload: `to`, `data`, `value`, `chainId`.
 
 ### Step 2 — Verify claim contract
 
-**CRITICAL:** `payload.to.toLowerCase()` must equal `0xf9548be470a4e130c90cea8b179fcd66d2972ac7`.
+**CRITICAL:** `payload.to.toLowerCase()` must equal `0x0fa7fb5407ea971694652e6e16c12a52625de1b8`.
 
 If it does not match, **do not send the transaction**. Report the mismatch and stop.
 
@@ -520,7 +561,7 @@ On success, show:
 | Poll | `GET {apiBase}/bet/orders/{orderId}` | Wait for `txHash` confirmation |
 | Watch result | `scripts/watch-bets.js` (auto-launched by `place-bet.js`) | Waits until kickoff + 2h, queries bets subgraph, notifies user via sendPrompt |
 | Bet status | Bets subgraph (GraphQL) | Check status, result, isRedeemable |
-| Claim | `POST /agent/claim` + viem `sendTransaction` | Redeem winnings on-chain |
+| Claim | `scripts/claim-bets.js` | Check redeemable bets, confirm with user, redeem on-chain |
 
 ---
 
@@ -538,13 +579,4 @@ On success, show:
 
 ---
 
-## Reference files
 
-Load only if you need full detail beyond what is in this file:
-
-- [`references/api.md`](references/api.md) — Full Pinwin `/agent/bet` and `/agent/claim` request/response schemas, EIP-712 payload structure, combo bet details
-- [`references/subgraph.md`](references/subgraph.md) — Data-feed GraphQL query, all filter/orderBy options, full response shape
-- [`references/bets-subgraph.md`](references/bets-subgraph.md) — Bets subgraph query, all fields, pagination
-- [`references/dictionaries.md`](references/dictionaries.md) — `@azuro-org/dictionaries` full API
-- [`references/viem.md`](references/viem.md) — viem full setup, all chain calls
-- [`references/polygon.md`](references/polygon.md) — All Polygon addresses and URLs (same as Constants table above)
