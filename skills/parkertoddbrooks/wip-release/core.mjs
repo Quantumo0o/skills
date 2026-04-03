@@ -35,6 +35,37 @@ export function bumpSemver(version, level) {
 }
 
 /**
+ * Bump a version string for prerelease tracks (alpha, beta).
+ *
+ * If the current version already has the same prerelease prefix,
+ * increment the counter: 1.2.3-alpha.1 -> 1.2.3-alpha.2
+ *
+ * If the current version is a clean release or a different prerelease,
+ * bump patch and start at .1: 1.2.3 -> 1.2.4-alpha.1
+ */
+export function bumpPrerelease(version, track) {
+  // Check if current version already has this prerelease prefix
+  const preMatch = version.match(new RegExp(`^(\\d+\\.\\d+\\.\\d+)-${track}\\.(\\d+)$`));
+  if (preMatch) {
+    // Same track: increment the counter
+    const base = preMatch[1];
+    const counter = parseInt(preMatch[2], 10);
+    return `${base}-${track}.${counter + 1}`;
+  }
+
+  // Strip any existing prerelease suffix to get the base version
+  const baseMatch = version.match(/^(\d+)\.(\d+)\.(\d+)/);
+  if (!baseMatch) throw new Error(`Cannot parse version: ${version}`);
+
+  const major = parseInt(baseMatch[1], 10);
+  const minor = parseInt(baseMatch[2], 10);
+  const patch = parseInt(baseMatch[3], 10);
+
+  // Bump patch and start prerelease at .1
+  return `${major}.${minor}.${patch + 1}-${track}.1`;
+}
+
+/**
  * Write new version to package.json.
  */
 function writePackageVersion(repoPath, newVersion) {
@@ -196,6 +227,18 @@ export function publishNpm(repoPath) {
   const token = getNpmToken();
   execFileSync('npm', [
     'publish', '--access', 'public',
+    `--//registry.npmjs.org/:_authToken=${token}`
+  ], { cwd: repoPath, stdio: 'inherit' });
+}
+
+/**
+ * Publish to npm with a specific dist-tag (alpha, beta, latest).
+ */
+export function publishNpmWithTag(repoPath, tag) {
+  const token = getNpmToken();
+  execFileSync('npm', [
+    'publish', '--access', 'public',
+    '--tag', tag,
     `--//registry.npmjs.org/:_authToken=${token}`
   ], { cwd: repoPath, stdio: 'inherit' });
 }
@@ -366,6 +409,161 @@ ${issueRefs || '- #XX (replace with actual issue numbers)'}
 
   writeFileSync(notesPath, template);
   return notesPath;
+}
+
+/**
+ * Collect release notes from merged PRs since the last tag.
+ *
+ * When multiple PRs are batched into a single release, each PR may have
+ * committed its own RELEASE-NOTES-v*.md file. This function finds those
+ * notes in git history and combines them into one document.
+ *
+ * Steps:
+ *   1. git log v{prev}..HEAD --merges --oneline to find merge commits
+ *   2. Extract PR number from "Merge pull request #XX from ..."
+ *   3. Check each merge commit's diff for RELEASE-NOTES*.md files
+ *   4. Read content via git show {sha}:{path}
+ *   5. Combine into a single document (newest first)
+ *
+ * Returns { notes, notesSource, prCount } or null if nothing found.
+ */
+export function collectMergedPRNotes(repoPath, currentVersion, newVersion) {
+  let lastTag;
+  try {
+    lastTag = execFileSync('git', ['describe', '--tags', '--abbrev=0'],
+      { cwd: repoPath, encoding: 'utf8' }).trim();
+  } catch {
+    return null; // No tags yet
+  }
+
+  // Find merge commits since last tag
+  let mergeLog;
+  try {
+    mergeLog = execFileSync('git', [
+      'log', `${lastTag}..HEAD`, '--merges', '--oneline'
+    ], { cwd: repoPath, encoding: 'utf8' }).trim();
+  } catch {
+    return null;
+  }
+
+  if (!mergeLog) return null;
+
+  const mergeLines = mergeLog.split('\n').filter(Boolean);
+  const prNotes = [];
+
+  for (const line of mergeLines) {
+    // Format: "abc1234 Merge pull request #XX from org/branch"
+    const prMatch = line.match(/^([a-f0-9]+)\s+Merge pull request #(\d+)\s+from\s+(.+)$/);
+    if (!prMatch) continue;
+
+    const [, shortHash, prNum, branchRef] = prMatch;
+
+    // Get the full hash for this merge commit
+    let fullHash;
+    try {
+      fullHash = execFileSync('git', ['rev-parse', shortHash],
+        { cwd: repoPath, encoding: 'utf8' }).trim();
+    } catch {
+      continue;
+    }
+
+    // List files changed in this merge commit.
+    // For merge commits, diff against first parent to see what the PR brought in.
+    // Plain diff-tree on a merge commit shows nothing without -m or -c.
+    let changedFiles;
+    try {
+      changedFiles = execFileSync('git', [
+        'diff', '--name-only', `${fullHash}^1`, fullHash
+      ], { cwd: repoPath, encoding: 'utf8' }).trim();
+    } catch {
+      continue;
+    }
+
+    // Look for RELEASE-NOTES*.md files
+    const noteFiles = changedFiles.split('\n')
+      .filter(f => /^RELEASE-NOTES.*\.md$/i.test(f.trim()));
+
+    if (noteFiles.length === 0) continue;
+
+    // Read the content of each release notes file from that commit
+    for (const noteFile of noteFiles) {
+      try {
+        const content = execFileSync('git', [
+          'show', `${fullHash}:${noteFile.trim()}`
+        ], { cwd: repoPath, encoding: 'utf8' }).trim();
+
+        if (content) {
+          prNotes.push({
+            prNum,
+            branch: branchRef,
+            content,
+            hash: shortHash,
+          });
+        }
+      } catch {
+        // File might have been deleted in the merge. Skip.
+      }
+    }
+  }
+
+  if (prNotes.length === 0) return null;
+
+  // If only one PR had notes, return it directly (no wrapping)
+  if (prNotes.length === 1) {
+    return {
+      notes: prNotes[0].content,
+      notesSource: 'file',
+      prCount: 1,
+    };
+  }
+
+  // Multiple PRs: combine into one document (newest first, already in log order)
+  const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
+  const name = pkg.name?.replace(/^@[^/]+\//, '') || basename(repoPath);
+
+  const sections = [];
+  sections.push(`# Release Notes: ${name} v${newVersion}`);
+  sections.push('');
+  sections.push(`This release combines ${prNotes.length} merged pull requests.`);
+  sections.push('');
+
+  // Collect all issue refs for a combined summary
+  const allIssueRefs = new Set();
+
+  for (const pr of prNotes) {
+    sections.push(`---`);
+    sections.push('');
+    sections.push(`### PR #${pr.prNum}`);
+    sections.push('');
+
+    // Strip the top-level heading from individual notes to avoid duplicate titles
+    let body = pr.content;
+    body = body.replace(/^#\s+.*\n+/, '');
+    sections.push(body);
+    sections.push('');
+
+    // Collect issue references
+    const refs = body.match(/#\d+/g) || [];
+    for (const ref of refs) allIssueRefs.add(ref);
+  }
+
+  // Add combined issue references at the end
+  if (allIssueRefs.size > 0) {
+    sections.push('---');
+    sections.push('');
+    sections.push('## All issues referenced');
+    sections.push('');
+    for (const ref of allIssueRefs) {
+      sections.push(`- ${ref}`);
+    }
+    sections.push('');
+  }
+
+  return {
+    notes: sections.join('\n'),
+    notesSource: 'file',
+    prCount: prNotes.length,
+  };
 }
 
 /**
@@ -858,6 +1056,61 @@ export function createGitHubRelease(repoPath, newVersion, notes, currentVersion)
         // Issue doesn't exist on public repo or already closed. Fine.
       }
     }
+  } finally {
+    try { execFileSync('rm', ['-f', tmpFile]); } catch {}
+  }
+}
+
+/**
+ * Create a GitHub prerelease on the PUBLIC repo (no code sync).
+ * Used by alpha (opt-in) and beta (default) tracks.
+ */
+export function createGitHubPrerelease(repoPath, newVersion, notes) {
+  const repoSlug = detectRepoSlug(repoPath);
+  if (!repoSlug) throw new Error('Cannot detect repo slug from git remote');
+
+  // Target the public repo (strip -private suffix)
+  const publicSlug = repoSlug.replace(/-private$/, '');
+  const body = notes || `Prerelease ${newVersion}`;
+
+  const tmpFile = join(repoPath, '.release-notes-tmp.md');
+  writeFileSync(tmpFile, body);
+
+  try {
+    execFileSync('gh', [
+      'release', 'create', `v${newVersion}`,
+      '--title', `v${newVersion}`,
+      '--notes-file', '.release-notes-tmp.md',
+      '--prerelease',
+      '--repo', publicSlug
+    ], { cwd: repoPath, stdio: 'inherit' });
+  } finally {
+    try { execFileSync('rm', ['-f', tmpFile]); } catch {}
+  }
+}
+
+/**
+ * Create a GitHub release on the PUBLIC repo (no code sync).
+ * Used by the hotfix track.
+ */
+export function createGitHubReleaseOnPublic(repoPath, newVersion, notes, currentVersion) {
+  const repoSlug = detectRepoSlug(repoPath);
+  if (!repoSlug) throw new Error('Cannot detect repo slug from git remote');
+
+  // Target the public repo (strip -private suffix)
+  const publicSlug = repoSlug.replace(/-private$/, '');
+  const body = buildReleaseNotes(repoPath, currentVersion, newVersion, notes);
+
+  const tmpFile = join(repoPath, '.release-notes-tmp.md');
+  writeFileSync(tmpFile, body);
+
+  try {
+    execFileSync('gh', [
+      'release', 'create', `v${newVersion}`,
+      '--title', `v${newVersion}`,
+      '--notes-file', '.release-notes-tmp.md',
+      '--repo', publicSlug
+    ], { cwd: repoPath, stdio: 'inherit' });
   } finally {
     try { execFileSync('rm', ['-f', tmpFile]); } catch {}
   }
@@ -1741,6 +1994,374 @@ export async function release({ repoPath, level, notes, notesSource, dryRun, noP
 
   console.log('');
   console.log(`  Done. ${repoName} v${newVersion} released.`);
+  console.log('');
+
+  return { currentVersion, newVersion, dryRun: false };
+}
+
+// ── Prerelease Track (Alpha / Beta) ────────────────────────────────
+
+/**
+ * Release an alpha or beta prerelease.
+ *
+ * Alpha: npm @alpha, no public release notes by default (opt in with publishReleaseNotes).
+ * Beta:  npm @beta, prerelease notes on public repo by default (opt out with publishReleaseNotes=false).
+ *
+ * No deploy-public. No code sync. No CHANGELOG gate. No product docs gate.
+ * Lightweight: bump version, npm publish with tag, optional GitHub prerelease.
+ */
+export async function releasePrerelease({ repoPath, track, notes, dryRun, noPublish, publishReleaseNotes }) {
+  repoPath = repoPath || process.cwd();
+  const currentVersion = detectCurrentVersion(repoPath);
+  const newVersion = bumpPrerelease(currentVersion, track);
+  const repoName = basename(repoPath);
+
+  console.log('');
+  console.log(`  ${repoName}: ${currentVersion} -> ${newVersion} (${track})`);
+  console.log(`  ${'─'.repeat(40)}`);
+
+  if (dryRun) {
+    console.log(`  [dry run] Would bump package.json to ${newVersion}`);
+    if (!noPublish) {
+      console.log(`  [dry run] Would npm publish with --tag ${track}`);
+      if (publishReleaseNotes) {
+        console.log(`  [dry run] Would create GitHub prerelease v${newVersion} on public repo`);
+      } else {
+        console.log(`  [dry run] No GitHub prerelease (silent)`);
+      }
+    }
+    console.log('');
+    console.log(`  Dry run complete. No changes made.`);
+    console.log('');
+    return { currentVersion, newVersion, dryRun: true };
+  }
+
+  // 1. Bump package.json
+  writePackageVersion(repoPath, newVersion);
+  console.log(`  \u2713 package.json -> ${newVersion}`);
+
+  // 2. Update CHANGELOG.md (lightweight entry)
+  updateChangelog(repoPath, newVersion, notes || `${track} prerelease`);
+  console.log(`  \u2713 CHANGELOG.md updated`);
+
+  // 3. Git commit + tag
+  const msg = `v${newVersion}: ${track} prerelease`;
+  for (const f of ['package.json', 'CHANGELOG.md']) {
+    if (existsSync(join(repoPath, f))) {
+      execFileSync('git', ['add', f], { cwd: repoPath, stdio: 'pipe' });
+    }
+  }
+  execFileSync('git', ['commit', '--no-verify', '-m', msg], { cwd: repoPath, stdio: 'pipe' });
+  execFileSync('git', ['tag', `v${newVersion}`], { cwd: repoPath, stdio: 'pipe' });
+  console.log(`  \u2713 Committed and tagged v${newVersion}`);
+
+  // 4. Push commit + tag
+  try {
+    execSync('git push && git push --tags', { cwd: repoPath, stdio: 'pipe' });
+    console.log(`  \u2713 Pushed to remote`);
+  } catch {
+    console.log(`  ! Push failed. Push manually.`);
+  }
+
+  const distResults = [];
+
+  if (!noPublish) {
+    // 5. npm publish with dist-tag
+    try {
+      publishNpmWithTag(repoPath, track);
+      const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
+      distResults.push({ target: 'npm', status: 'ok', detail: `${pkg.name}@${newVersion} (tag: ${track})` });
+      console.log(`  \u2713 Published to npm @${track}`);
+    } catch (e) {
+      distResults.push({ target: 'npm', status: 'failed', detail: e.message });
+      console.log(`  \u2717 npm publish failed: ${e.message}`);
+    }
+
+    // 6. GitHub prerelease on public repo (if opted in)
+    if (publishReleaseNotes) {
+      try {
+        createGitHubPrerelease(repoPath, newVersion, notes || `${track} prerelease`);
+        distResults.push({ target: 'GitHub', status: 'ok', detail: `v${newVersion} (prerelease)` });
+        console.log(`  \u2713 GitHub prerelease v${newVersion} created on public repo`);
+      } catch (e) {
+        distResults.push({ target: 'GitHub', status: 'failed', detail: e.message });
+        console.log(`  \u2717 GitHub prerelease failed: ${e.message}`);
+      }
+    } else {
+      console.log(`  - GitHub prerelease: skipped (silent ${track})`);
+    }
+  }
+
+  // Distribution summary
+  if (distResults.length > 0) {
+    console.log('');
+    console.log('  Distribution:');
+    for (const r of distResults) {
+      const icon = r.status === 'ok' ? '\u2713' : '\u2717';
+      console.log(`    ${icon} ${r.target}: ${r.detail}`);
+    }
+  }
+
+  console.log('');
+  console.log(`  Done. ${repoName} v${newVersion} (${track}) released.`);
+  console.log('');
+
+  return { currentVersion, newVersion, dryRun: false };
+}
+
+// ── Hotfix Track ────────────────────────────────────────────────────
+
+/**
+ * Release a hotfix.
+ *
+ * Same as stable patch but: no deploy-public, no code sync.
+ * Publishes to npm @latest, creates GitHub release on public repo (opt out with publishReleaseNotes=false).
+ *
+ * Lighter gates than stable: no product docs check, no stale branch check.
+ * Still runs: worktree guard, license compliance, tests.
+ */
+export async function releaseHotfix({ repoPath, notes, notesSource, dryRun, noPublish, publishReleaseNotes, skipWorktreeCheck }) {
+  repoPath = repoPath || process.cwd();
+  const currentVersion = detectCurrentVersion(repoPath);
+  const newVersion = bumpSemver(currentVersion, 'patch');
+  const repoName = basename(repoPath);
+
+  console.log('');
+  console.log(`  ${repoName}: ${currentVersion} -> ${newVersion} (hotfix)`);
+  console.log(`  ${'─'.repeat(40)}`);
+
+  // Worktree guard
+  if (!skipWorktreeCheck) {
+    try {
+      const gitDir = execFileSync('git', ['rev-parse', '--git-dir'], {
+        cwd: repoPath, encoding: 'utf8'
+      }).trim();
+      if (gitDir.includes('/worktrees/')) {
+        const worktreeList = execFileSync('git', ['worktree', 'list', '--porcelain'], {
+          cwd: repoPath, encoding: 'utf8'
+        });
+        const mainWorktree = worktreeList.split('\n')
+          .find(line => line.startsWith('worktree '));
+        const mainPath = mainWorktree ? mainWorktree.replace('worktree ', '') : '(unknown)';
+        console.log(`  \u2717 wip-release must run from the main working tree, not a worktree.`);
+        console.log(`    Current: ${repoPath}`);
+        console.log(`    Main working tree: ${mainPath}`);
+        console.log('');
+        return { currentVersion, newVersion, dryRun: false, failed: true };
+      }
+      console.log('  \u2713 Running from main working tree');
+    } catch {}
+  }
+
+  // License compliance gate
+  const configPath = join(repoPath, '.license-guard.json');
+  if (existsSync(configPath)) {
+    const config = JSON.parse(readFileSync(configPath, 'utf8'));
+    const licenseIssues = [];
+    const licensePath = join(repoPath, 'LICENSE');
+    if (!existsSync(licensePath)) {
+      licenseIssues.push('LICENSE file is missing');
+    } else {
+      const licenseText = readFileSync(licensePath, 'utf8');
+      if (!licenseText.includes(config.copyright)) {
+        licenseIssues.push(`LICENSE copyright does not match "${config.copyright}"`);
+      }
+    }
+    if (licenseIssues.length > 0) {
+      console.log(`  \u2717 License compliance failed:`);
+      for (const issue of licenseIssues) console.log(`    - ${issue}`);
+      console.log('');
+      return { currentVersion, newVersion, dryRun: false, failed: true };
+    }
+    console.log(`  \u2713 License compliance passed`);
+  }
+
+  // Release notes: hotfix accepts --notes flag as convenience (no file-only gate)
+  if (!notes) {
+    console.log(`  ! No release notes provided. Hotfix will have minimal notes.`);
+    notes = 'Hotfix release.';
+  }
+
+  // Run tests if they exist
+  {
+    const toolsDir = join(repoPath, 'tools');
+    const testFiles = [];
+    if (existsSync(toolsDir)) {
+      for (const sub of readdirSync(toolsDir)) {
+        const testPath = join(toolsDir, sub, 'test.sh');
+        if (existsSync(testPath)) testFiles.push({ tool: sub, path: testPath });
+      }
+    }
+    const rootTest = join(repoPath, 'test.sh');
+    if (existsSync(rootTest)) testFiles.push({ tool: '(root)', path: rootTest });
+
+    if (testFiles.length > 0) {
+      let allPassed = true;
+      for (const { tool, path } of testFiles) {
+        try {
+          execFileSync('bash', [path], { cwd: dirname(path), stdio: 'pipe', timeout: 30000 });
+          console.log(`  \u2713 Tests passed: ${tool}`);
+        } catch (e) {
+          allPassed = false;
+          console.log(`  \u2717 Tests FAILED: ${tool}`);
+          const output = (e.stdout || '').toString().trim();
+          if (output) {
+            for (const line of output.split('\n').slice(-5)) console.log(`    ${line}`);
+          }
+        }
+      }
+      if (!allPassed) {
+        console.log('');
+        console.log('  Fix failing tests before releasing.');
+        console.log('');
+        return { currentVersion, newVersion, dryRun: false, failed: true };
+      }
+    }
+  }
+
+  if (dryRun) {
+    console.log(`  [dry run] Would bump package.json to ${newVersion}`);
+    console.log(`  [dry run] Would update CHANGELOG.md`);
+    if (!noPublish) {
+      console.log(`  [dry run] Would npm publish with --tag latest`);
+      if (publishReleaseNotes) {
+        console.log(`  [dry run] Would create GitHub release v${newVersion} on public repo`);
+      } else {
+        console.log(`  [dry run] No GitHub release (--no-release-notes)`);
+      }
+      console.log(`  [dry run] No deploy-public (hotfix)`);
+    }
+    console.log('');
+    console.log(`  Dry run complete. No changes made.`);
+    console.log('');
+    return { currentVersion, newVersion, dryRun: true };
+  }
+
+  // 1. Bump package.json
+  writePackageVersion(repoPath, newVersion);
+  console.log(`  \u2713 package.json -> ${newVersion}`);
+
+  // 1.5. Bump sub-tool versions
+  const toolsDir = join(repoPath, 'tools');
+  if (existsSync(toolsDir)) {
+    let subBumped = 0;
+    try {
+      const entries = readdirSync(toolsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const subPkgPath = join(toolsDir, entry.name, 'package.json');
+        if (existsSync(subPkgPath)) {
+          try {
+            const subPkg = JSON.parse(readFileSync(subPkgPath, 'utf8'));
+            subPkg.version = newVersion;
+            writeFileSync(subPkgPath, JSON.stringify(subPkg, null, 2) + '\n');
+            subBumped++;
+          } catch {}
+        }
+      }
+    } catch {}
+    if (subBumped > 0) {
+      console.log(`  \u2713 ${subBumped} sub-tool(s) -> ${newVersion}`);
+    }
+  }
+
+  // 2. Sync SKILL.md
+  if (syncSkillVersion(repoPath, newVersion)) {
+    console.log(`  \u2713 SKILL.md -> ${newVersion}`);
+  }
+
+  // 3. Update CHANGELOG.md
+  updateChangelog(repoPath, newVersion, notes);
+  console.log(`  \u2713 CHANGELOG.md updated`);
+
+  // 3.5. Move RELEASE-NOTES-v*.md to _trash/
+  const trashed = trashReleaseNotes(repoPath);
+  if (trashed > 0) {
+    console.log(`  \u2713 Moved ${trashed} RELEASE-NOTES file(s) to _trash/`);
+  }
+
+  // 4. Git commit + tag
+  gitCommitAndTag(repoPath, newVersion, notes);
+  console.log(`  \u2713 Committed and tagged v${newVersion}`);
+
+  // 5. Push commit + tag
+  try {
+    execSync('git push && git push --tags', { cwd: repoPath, stdio: 'pipe' });
+    console.log(`  \u2713 Pushed to remote`);
+  } catch {
+    console.log(`  ! Push failed. Push manually.`);
+  }
+
+  const distResults = [];
+
+  if (!noPublish) {
+    // 6. npm publish with @latest tag
+    try {
+      publishNpmWithTag(repoPath, 'latest');
+      const pkg = JSON.parse(readFileSync(join(repoPath, 'package.json'), 'utf8'));
+      distResults.push({ target: 'npm', status: 'ok', detail: `${pkg.name}@${newVersion}` });
+      console.log(`  \u2713 Published to npm @latest`);
+    } catch (e) {
+      distResults.push({ target: 'npm', status: 'failed', detail: e.message });
+      console.log(`  \u2717 npm publish failed: ${e.message}`);
+    }
+
+    // 7. GitHub release on public repo (not prerelease)
+    if (publishReleaseNotes) {
+      try {
+        createGitHubReleaseOnPublic(repoPath, newVersion, notes, currentVersion);
+        distResults.push({ target: 'GitHub', status: 'ok', detail: `v${newVersion}` });
+        console.log(`  \u2713 GitHub release v${newVersion} created on public repo`);
+      } catch (e) {
+        distResults.push({ target: 'GitHub', status: 'failed', detail: e.message });
+        console.log(`  \u2717 GitHub release failed: ${e.message}`);
+      }
+    } else {
+      console.log(`  - GitHub release: skipped (--no-release-notes)`);
+    }
+
+    // No deploy-public for hotfix
+    console.log(`  - deploy-public: skipped (hotfix)`);
+
+    // 8. ClawHub skill publish
+    const rootSkill = join(repoPath, 'SKILL.md');
+    if (existsSync(rootSkill)) {
+      try {
+        publishClawHub(repoPath, newVersion, notes);
+        const slug = detectSkillSlug(repoPath);
+        distResults.push({ target: 'ClawHub', status: 'ok', detail: `${slug}@${newVersion}` });
+        console.log(`  \u2713 Published to ClawHub: ${slug}`);
+      } catch (e) {
+        distResults.push({ target: 'ClawHub', status: 'failed', detail: e.message });
+        console.log(`  \u2717 ClawHub publish failed: ${e.message}`);
+      }
+    }
+  }
+
+  // Distribution summary
+  if (distResults.length > 0) {
+    console.log('');
+    console.log('  Distribution:');
+    for (const r of distResults) {
+      const icon = r.status === 'ok' ? '\u2713' : '\u2717';
+      console.log(`    ${icon} ${r.target}: ${r.detail}`);
+    }
+  }
+
+  // Write release marker
+  try {
+    const markerDir = join(process.env.HOME || '', '.ldm', 'state');
+    mkdirSync(markerDir, { recursive: true });
+    writeFileSync(join(markerDir, '.last-release'), JSON.stringify({
+      repo: repoName,
+      version: newVersion,
+      timestamp: new Date().toISOString(),
+      track: 'hotfix',
+    }) + '\n');
+  } catch {}
+
+  console.log('');
+  console.log(`  Done. ${repoName} v${newVersion} (hotfix) released.`);
   console.log('');
 
   return { currentVersion, newVersion, dryRun: false };
