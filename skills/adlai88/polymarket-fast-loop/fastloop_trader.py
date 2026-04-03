@@ -599,9 +599,10 @@ def get_portfolio():
 
 
 def get_positions():
-    """Get current positions as list of dicts."""
+    """Get current positions as list of dicts, filtered by venue."""
     try:
-        positions = get_client().get_positions()
+        client = get_client()
+        positions = client.get_positions(venue=client.venue)
         from dataclasses import asdict
         return [asdict(p) for p in positions]
     except Exception:
@@ -688,6 +689,15 @@ def run_fast_market_strategy(dry_run=True, positions_only=False, show_config=Fal
 
     # Initialize client early to validate API key (paper mode when not live)
     client = get_client(live=not dry_run)
+
+    # Redeem any winning positions before starting the cycle
+    try:
+        redeemed = client.auto_redeem()
+        for r in redeemed:
+            if r.get("success"):
+                log(f"  💰 Redeemed {r['market_id'][:8]}... ({r.get('side', '?')})")
+    except Exception:
+        pass  # Non-critical — don't block trading
 
     # GTC stale order cleanup: cancel any open GTC orders from previous cycles.
     # GTC orders sit on the CLOB indefinitely — if a previous cycle's order wasn't
