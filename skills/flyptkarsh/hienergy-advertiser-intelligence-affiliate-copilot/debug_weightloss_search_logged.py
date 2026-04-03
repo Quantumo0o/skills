@@ -1,7 +1,11 @@
 import os
 import sys
-# Ensure the skill directory is in sys.path
-sys.path.insert(0, '/Users/patrickkarsh/.openclaw/workspace/skills/open_claw_skill')
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parent
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
 from scripts.hienergy_skill import HiEnergySkill
 
 try:

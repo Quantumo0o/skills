@@ -71,7 +71,7 @@ answer = skill.answer_question("Research top affiliate programs for supplements"
 - Agency/client management → `get_agencies` (supports agency_id filter if applicable)
 - Tag/Category search → `search_tags`
 - Advertisers by Tag → `get_tag_advertisers` (supports sort by sales/commissions)
-- Contact discovery → `find_contact_on_web` (searches web/LinkedIn if API misses, then adds to API)
+- Contact discovery (API search only) → `get_contacts` (filters by name/email/advertiser_id that already exist in HiEnergy)
 
 ## Response rules
 

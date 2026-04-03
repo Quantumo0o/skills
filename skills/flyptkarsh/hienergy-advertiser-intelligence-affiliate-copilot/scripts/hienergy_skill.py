@@ -1335,7 +1335,7 @@ class HiEnergySkill:
             if contacts:
                 return f"{preface}\n{self._format_contacts_answer(contacts, question)}"
             return (f"{preface}\nI couldn't find any contacts matching your query.\n"
-                    "Tip: You can ask me to 'find contact on web for [Advertiser]' to search LinkedIn and add them.")
+                    "Tip: Refine the name/email or provide advertiser_id so I can search existing HiEnergy contacts.")
 
         if intent == 'status_changes':
             changes = self.get_status_changes(q=search_term)

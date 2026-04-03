@@ -8,7 +8,7 @@ if not api_key:
     print("Error: HIENERGY_API_KEY not found in environment")
     sys.exit(1)
 
-print(f"Using API key: {api_key[:4]}...{api_key[-4:]}")
+print("Using HIENERGY_API_KEY from environment.")
 
 try:
     url = "https://app.hienergy.ai/api/v1/advertisers"
