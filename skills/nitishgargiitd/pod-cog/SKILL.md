@@ -1,6 +1,6 @@
 ---
 name: pod-cog
-description: "AI podcast production powered by CellCog. Create full podcast episodes from a single prompt — multi-voice dialogue, intro/outro music, and automatic editing to finished MP3. Episode scripts, show notes, interview prep, audiograms. Frontier voice quality with natural delivery. #1 on DeepResearch Bench (Feb 2026)."
+description: "AI podcast production powered by CellCog. Create full podcast episodes from a single prompt — multi-voice dialogue, intro/outro music, and automatic editing to finished MP3. Episode scripts, show notes, interview prep, audiograms. Frontier voice quality with natural delivery. #1 on DeepResearch Bench (Apr 2026)."
 metadata:
   openclaw:
     emoji: "🎙️"
@@ -14,7 +14,7 @@ dependencies: [cellcog]
 
 **A great podcast needs three things: compelling content, natural-sounding voices, and polished production.** CellCog delivers all three.
 
-- **Content quality:** #1 on DeepResearch Bench (Feb 2026) — scripts built on deep reasoning, not surface-level takes
+- **Content quality:** #1 on DeepResearch Bench (Apr 2026) — scripts built on deep reasoning, not surface-level takes
 - **Voice quality:** Frontier multi-voice dialogue with natural delivery, emotion, and pacing across distinct speakers
 - **Production quality:** Automatic intro/outro music generation, mixing, and final MP3 delivery — all from a single prompt
 
@@ -30,17 +30,26 @@ clawhub install cellcog
 
 **Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
 
-**Quick pattern (v1.0+):**
+**OpenClaw agents (fire-and-forget — recommended for long tasks):**
 ```python
-# Fire-and-forget - returns immediately
 result = client.create_chat(
-    prompt="[your podcast request]",
-    notify_session_key="agent:main:main",
-    task_label="podcast-task",
-    chat_mode="agent"  # Agent mode for most podcast content
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    task_label="my-task",
+    chat_mode="agent",  # See cellcog skill for all modes
 )
-# Daemon notifies you when complete - do NOT poll
 ```
+
+**All other agents (blocks until done):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+```
+
+See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
 
 ---
 
