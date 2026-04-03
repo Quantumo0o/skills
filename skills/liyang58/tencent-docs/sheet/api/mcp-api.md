@@ -19,6 +19,51 @@
 
 ## 工具调用示例
 
+## insert_image
+
+### 功能说明
+在在线表格指定单元格插入一张图片，图片内容可通过 base64 或 image_id 传入（SHEET）。
+
+### 调用示例
+```json
+{
+  "file_id": "sheet_1234567890",
+  "file_url": "https://docs.qq.com/sheet/xxxxxxxx",
+  "sheet_id": "sub_sheet_001",
+  "row_index": 0,
+  "col_index": 0,
+  "content": "iVBORw0KGgoAAAANSUhEUgAA..."
+}
+```
+
+### 参数说明
+- `file_id` (string, 可选): 文档 ID，与 `file_url` 二选一
+- `file_url` (string, 可选): 在线表格的URL链接，与 `file_id` 二选一
+- `sheet_id` (string, 必填): 子表 ID
+- `row_index` (int64, 必填): 目标行索引（0-based）
+- `col_index` (int64, 必填): 目标列索引（0-based）
+- `content` (string, 可选): 图片的 base64 内容，与 `image_id` 二选一，适合图片体积较小的场景；若图片过大导致 base64 内容超出传输限制，请改用 `image_id` 方式
+- `image_id` (string, 可选): 图片的 image_id，本质是对图片信息加密后的字符串，与 `content` 二选一，适合图片体积较大的场景。获取方式：
+  - 通过 `upload_image` MCP 接口上传图片后获取
+  - 通过[腾讯文档开放平台 OpenAPI](https://docs.qq.com/open/developers/?nlc=1#/login) 图片上传接口获取（需先完成 OAuth 授权流程获取 `Access-Token`），示例命令：
+
+```bash
+curl --location --request POST 'https://docs.qq.com/openapi/resources/v2/images' \
+  --header 'Access-Token: ACCESS_TOKEN' \
+  --header 'Client-Id: CLIENT_ID' \
+  --header 'Open-Id: OPEN_ID' \
+  --form 'image=@"/path/to/your/image.png"'
+```
+
+上传成功后，取返回结果中的 `imageID` 字段值传入此参数
+
+### 返回值说明
+```json
+{}
+```
+
+---
+
 ## 1. set_cell_value
 
 ### 功能说明
@@ -764,6 +809,92 @@
   - `index` (int64, 必填): 行或列的索引（0-based）
   - `size` (number, 可选): 行高或列宽的值（行高单位为pt，列宽单位为像素），`is_clear` 为 `true` 时该字段将被忽略
   - `is_clear` (bool, 可选): 是否清除自定义行高/列宽并恢复默认值，为 `true` 时 `size` 字段将被忽略
+
+### 返回值说明
+```json
+{}
+```
+
+---
+
+## 21. add_sheet
+
+### 功能说明
+在在线表格中添加一个新的子表，支持指定子表名称和位置（SHEET）。
+
+### 调用示例
+```json
+{
+  "file_id": "sheet_1234567890",
+  "name": "新子表",
+  "index": 0,
+  "append_index": false
+}
+```
+
+### 参数说明
+- `file_id` (string, 可选): 文档 ID，与 `file_url` 二选一
+- `file_url` (string, 可选): 在线表格的URL链接，与 `file_id` 二选一
+- `name` (string, 可选): 子表名称，长度限制为 31 个字符，不传则使用默认名称
+- `index` (int64, 可选): 子表位置索引（0-based），不传或 `append_index` 为 `true` 时追加到末尾
+- `append_index` (bool, 可选): 是否追加到末尾，为 `true` 时 `index` 字段将被忽略
+
+> 注意：此工具不需要 `sheet_id` 参数，用于创建新的子表。
+
+### 返回值说明
+```json
+{
+  "sheet_id": "new_sheet_001"
+}
+```
+- `sheet_id` (string): 新创建的子表 ID
+
+---
+
+## 22. delete_sheet
+
+### 功能说明
+删除在线表格中指定的子表（SHEET）。
+
+### 调用示例
+```json
+{
+  "file_id": "sheet_1234567890",
+  "sheet_id": "sub_sheet_001"
+}
+```
+
+### 参数说明
+- `file_id` (string, 可选): 文档 ID，与 `file_url` 二选一
+- `file_url` (string, 可选): 在线表格的URL链接，与 `file_id` 二选一
+- `sheet_id` (string, 必填): 要删除的子表 ID
+
+### 返回值说明
+```json
+{}
+```
+
+---
+
+## 23. rename_sheet
+
+### 功能说明
+重命名在线表格中指定的子表（SHEET）。
+
+### 调用示例
+```json
+{
+  "file_id": "sheet_1234567890",
+  "sheet_id": "sub_sheet_001",
+  "name": "新名称"
+}
+```
+
+### 参数说明
+- `file_id` (string, 可选): 文档 ID，与 `file_url` 二选一
+- `file_url` (string, 可选): 在线表格的URL链接，与 `file_id` 二选一
+- `sheet_id` (string, 必填): 子表 ID
+- `name` (string, 必填): 新的子表名称，长度限制为 31 个字符
 
 ### 返回值说明
 ```json

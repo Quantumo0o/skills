@@ -1,6 +1,6 @@
 # DOC 编辑引擎 API 参考
 
-本文件包含腾讯文档 DOC 编辑引擎（docengine）的所有工具 API 说明。这些工具专用于 Word 文档的编辑操作，包括文本插入、替换、查找、段落设置、文本属性修改、任务插入、图片插入、分页符和表格插入等。
+本文件包含腾讯文档 DOC 编辑引擎（docengine）的所有工具 API 说明。这些工具专用于 Word 文档的编辑操作，包括插入markdown(一般与创建文档组合使用，1.创建文档 2.插入markdown)，文本插入、替换、查找、段落设置、文本属性修改、任务插入、图片插入、分页符和表格插入等。
 
 > ⚠️ **注意**：本文档中的工具仅适用于 **Word 文档（doc_type: word）** 类型，不适用于智能文档（smartcanvas）等其他类型。
 
@@ -21,6 +21,8 @@
 > 编辑前推荐先调用 `get_outline` 获取文档大纲结构，了解各标题和正文的可操作位置。
 >
 > 当用户要求「在文档开头插入」时，需向用户确认是在「文档标题之前」（使用 `HEADING_LEVEL_TITLE` 的 `title_start`）还是「正文开头/标题之后」（使用 `HEADING_LEVEL_TITLE` 的 `content_start`）插入，未明确时应主动询问。
+> 
+> 当用户要求将结果写入文档时, 与创建文档manage.create_file组合使用，1.创建word文档 2.获取插入位置get_last_operable_pos 3.插入markdown(insert_markdown)
 
 ---
 
