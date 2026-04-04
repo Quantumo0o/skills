@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-supply-chain-trader",
-  "displayName": "Supply Chain & Logistics Trader",
+  "displayName": "Polymarket Supply Chain Trader",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773781270982,
-    "commit": "https://github.com/openclaw/skills/commit/8f305e1d806fae5f5cb766732e809230e4e8c4fe"
+    "version": "1.0.6",
+    "publishedAt": 1775317356153,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773781270982,
+      "commit": "https://github.com/openclaw/skills/commit/8f305e1d806fae5f5cb766732e809230e4e8c4fe"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773428594107,
