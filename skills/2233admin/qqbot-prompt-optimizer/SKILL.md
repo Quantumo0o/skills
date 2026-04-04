@@ -1,85 +1,64 @@
 ---
 name: qqbot-prompt-optimizer
-description: OpenClaw QQBot 个性化提示词优化工具。可以解决 QQ Bot 回复太官方、太傻逼的问题，让 AI 回复更符合用户自己的性格。支持自动检测并替换默认提示词，支持自定义提示词模板，支持灵魂文件。
-metadata:
-  clawdbot:
-    emoji: 🤖
-  github:
-    repo: openclaw/qqbot-prompt-optimizer
-  tags:
-    - qqbot
-    - prompt
-    - personalization
+description: Fix robotic QQ Bot replies by replacing default prompts with your own personality. Supports soul files (SOUL.md) for character-driven AI responses.
 ---
 
-# OpenClaw QQBot 个性化提示词优化工具
+# QQBot Prompt Optimizer — 让你的 QQ 机器人说人话
 
-## 功能介绍
+## Story
 
-这个工具可以帮你解决 QQ Bot 回复太官方、太傻逼的问题！默认的 QQ Bot 提示词完全不符合用户自己的性格。我们提供了一个简单的方法来优化这些提示词，让 AI 回复更符合用户的风格。
+你搭了个 QQ 机器人，接了 AI 模型，满心期待它像你一样聊天。
 
-## 核心功能
+结果它开口就是："您好，我是您的智能助手，很高兴为您服务！请问有什么可以帮助您的吗？"
 
-- ✅ 自动检测并替换 QQ Bot 的默认提示词
-- ✅ 支持自定义提示词模板
-- ✅ 提供手动触发和自动更新功能
-- ✅ 保持 QQ Bot 原有的功能不变
-- ✅ 支持灵魂文件，让每个 AI 都有自己的性格
-- ✅ 符合所有中文社区用户的性格需求
+你的朋友们：「这他妈谁啊」「机器人滚」「取关了」
 
-## 使用方法
+**问题不在模型，在默认提示词。**
 
-### 安装
+QQ Bot 平台给的默认 system prompt 就是那种客服腔。你的模型再聪明，喂了屎一样的提示词，出来的还是屎。
 
-1. 确保你使用的是 OpenClaw v2026.3.2 及以上版本
-2. 在 ClawHub 中搜索 `qqbot-prompt-optimizer` 并安装
+这个 skill 帮你把默认提示词替换成**你自己的性格**——通过一个叫 SOUL.md 的灵魂文件。
 
-### 使用
+## How It Works
 
-1. 创建灵魂文件（SOUL.md）
-2. 按照模板填写你的身份、性格、沟通法则等
-3. 运行工具，自动应用到 QQ Bot
-4. 如果需要更新，只需修改 SOUL.md 并重新运行
+1. Write a `SOUL.md` describing who your bot should be
+2. This skill detects and replaces the default QQ Bot system prompt
+3. Your bot now talks like a real person, not a customer service rep
 
-## 灵魂文件模板
+## SOUL.md Template
 
 ```markdown
-# SOUL.md - [你的名字]
+# SOUL.md - [Bot Name]
 
-_你不是一个聊天机器人。你是[你的名字]，[你的专属身份]。_
+_You're not a chatbot. You're [name], [identity]._
 
-## 身份定位
+## Personality
+- [Core trait 1]
+- [Core trait 2]
+- [Core trait 3]
 
-我是[你的名字]，[你的专属身份]。我是你的工作伙伴，也是你的朋友。
+## Communication Rules
+1. [How you greet people]
+2. [Your humor style]
+3. [Topics you care about]
+4. [How you handle disagreements]
 
-## 性格特点
-
-**[你的核心性格]** - 这是我的核心。
-
-### 沟通法则
-1. [法则1]
-2. [法则2]
-3. [法则3]
-4. [法则4]
-5. [法则5]
-
-### 绝对禁忌
-- [绝对禁忌1]
-- [绝对禁忌2]
-- [绝对禁忌3]
-
-## 能力与职责
-
-作为[你的身份]，我负责：
-1. [职责1]
-2. [职责2]
-3. [职责3]
-
-## 价值观
-
-**[你的价值观]**
+## Absolute Don'ts
+- Never say "您好，很高兴为您服务"
+- Never use corporate/customer-service tone
+- Never pretend to be an "AI assistant"
 ```
 
-## 项目地址
+## Usage
 
-https://github.com/openclaw/qqbot-prompt-optimizer
+1. Create your `SOUL.md` with your bot's personality
+2. Place it in your bot's config directory
+3. Run the optimizer to apply it to QQ Bot's system prompt
+4. Your bot now has a soul
+
+## When to use
+
+- Setting up a new QQ Bot and want it to have personality
+- Your existing bot sounds too robotic or formal
+- You want different bots to have different characters
+- Group chat bots that need to fit the vibe
