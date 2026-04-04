@@ -3,11 +3,16 @@
   "slug": "keap-integration",
   "displayName": "Keap",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775162322498,
-    "commit": "https://github.com/openclaw/skills/commit/6126104d92adcb373e9ce7417e8f2cc4f3f01e52"
+    "version": "1.0.2",
+    "publishedAt": 1775162324161,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775162322498,
+      "commit": "https://github.com/openclaw/skills/commit/6126104d92adcb373e9ce7417e8f2cc4f3f01e52"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772622148679,
