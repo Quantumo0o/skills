@@ -79,19 +79,19 @@ def resolve_prompt(cli_prompt_raw, cli_prompt_was_set):
 
 
 def get_api_key():
-    api_key = os.getenv("VITA_API_KEY")
+    api_key = os.getenv("TENCENTCLOUD_VITA_API_KEY")
     if not api_key:
         error_msg = {
             "error": "API_KEY_NOT_CONFIGURED",
             "message": (
                 "VITA API key not found in environment variables. "
-                "Please set VITA_API_KEY."
+                "Please set TENCENTCLOUD_VITA_API_KEY."
             ),
             "guide": {
                 "step1": "登录图像分析与处理控制台: https://console.cloud.tencent.com/",
                 "step2": "单击 VITA 图像理解 --> 服务管理，创建 API KEY",
-                "step3_linux": 'export VITA_API_KEY="your_api_key"',
-                "step3_windows": '$env:VITA_API_KEY="your_api_key"',
+                "step3_linux": 'export TENCENTCLOUD_VITA_API_KEY="your_api_key"',
+                "step3_windows": '$env:TENCENTCLOUD_VITA_API_KEY="your_api_key"',
             },
         }
         print(json.dumps(error_msg, ensure_ascii=False, indent=2))
@@ -424,7 +424,7 @@ def main():
         print(json.dumps({
             "error": "AUTHENTICATION_ERROR",
             "message": f"Invalid API key: {err}",
-            "guide": "Please check your VITA_API_KEY environment variable.",
+            "guide": "Please check your TENCENTCLOUD_VITA_API_KEY environment variable.",
         }, ensure_ascii=False, indent=2))
         sys.exit(1)
 
