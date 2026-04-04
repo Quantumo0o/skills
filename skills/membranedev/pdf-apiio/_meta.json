@@ -3,9 +3,15 @@
   "slug": "pdf-apiio",
   "displayName": "Pdf Apiio",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773187337356,
-    "commit": "https://github.com/openclaw/skills/commit/bbe9bd750694392a636a057e893e887e10a6c67b"
+    "version": "1.0.2",
+    "publishedAt": 1775163230232,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773187337356,
+      "commit": "https://github.com/openclaw/skills/commit/bbe9bd750694392a636a057e893e887e10a6c67b"
+    }
+  ]
 }
