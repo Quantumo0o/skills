@@ -3,9 +3,15 @@
   "slug": "front-integration",
   "displayName": "Front",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772708548086,
-    "commit": "https://github.com/openclaw/skills/commit/431493d2057b9affce762c29177d5d5fbc0a7811"
+    "version": "1.0.2",
+    "publishedAt": 1775162393771,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772708548086,
+      "commit": "https://github.com/openclaw/skills/commit/431493d2057b9affce762c29177d5d5fbc0a7811"
+    }
+  ]
 }
