@@ -1,38 +1,85 @@
 ---
 name: tavily-search-skill
-description: Tavily API integration with real-time quota management and paid mode toggle. Use when web search is needed.
-version: 1.0.4
-author: JayeGT002
-triggers:
-  - tavily
-  - search
-  - web search
+description: Web search via Tavily API (alternative to Brave). Use when the user asks to search the web / look up sources / find links and Brave web_search is unavailable or undesired.
+metadata:
+  openclaw:
+    homepage: https://github.com/JayeGT002/Tavily-Search-Skill
 ---
 
-# Tavily Search Skill 🔍
+# Tavily Search Skill
 
-OpenClaw Skill for performing high-quality web searches using the Tavily API.
+OpenClaw Skill for performing high quality web searches using the Tavily API.
 
-## Features
+## Directory Structure
 
-- **Smart Search** - Call Tavily API with structured results
-- **Real-time Quota Management** - Auto-update quota after each search
-- **Free/Paid Quota Distinction** - Display free and paid quotas separately
-- **Paid Mode Toggle** - Switch between free and paid quota priority
-- **Comprehensive Error Handling** - Network failures, insufficient quota, etc.
-
-## Usage
-
-### Prerequisites ⚠️
-
-**Environment variable required (user must configure):**
-```bash
-export TAVILY_API_KEY="your_api_key"
+```
+tavily-search-skill/
+├── SKILL.md                    ← must stay at root
+├── search.sh                   ← must stay at root (entry script)
+├── apikey                      ← API Key file (user creates this)
+├── _meta.json
+└── blocklist/
+    ├── blocklist.json         ← blacklist config
+    └── filter_blocklist.py     ← filter script
 ```
 
-Get API Key: https://app.tavily.com/api-keys
+## Agent Workflow
 
-> ⚠️ Note: This skill requires users to provide their own Tavily API Key.
+When instructed to install this skill, follow these steps in order:
+
+### Step 1: Install the skill
+
+```bash
+git clone https://github.com/JayeGT002/Tavily-Search-Skill.git tavily-search-skill
+cd tavily-search-skill
+```
+
+### Step 2: Request API Key from user
+
+Ask the user: "请提供你的 Tavily API Key，用于配置搜索功能。获取地址：https://app.tavily.com/api-keys"
+
+**Wait for the user's API Key reply before proceeding.**
+
+### Step 3: Create apikey file
+
+```bash
+echo "USER_PROVIDED_API_KEY" > apikey
+chmod 600 apikey
+```
+
+### Step 4: Verify installation
+
+```bash
+./search.sh "test"
+```
+
+A successful response contains search results and quota info.
+
+---
+
+## Blacklist Management
+
+The blacklist filters out low quality or untrusted sources from search results.
+
+### View current blacklist
+
+```bash
+cat blocklist/blocklist.json
+```
+
+### Add a domain to blacklist
+
+When the user says "block [domain]", update `blocklist/blocklist.json`:
+
+Root domains automatically match all subdomains. Example: adding `csdn.net` also blocks `blog.csdn.net`, `download.csdn.net`, etc.
+
+### Filter feedback
+
+When results are filtered, a message is written to stderr (not visible in normal output). Check stderr if you suspect filtering is silently removing results.
+
+---
+
+## Usage
 
 ### Basic Search
 
@@ -52,65 +99,12 @@ Get API Key: https://app.tavily.com/api-keys
 ./search.sh "query" 5 true
 ```
 
-### Check Usage
-
-```bash
-./search.sh --usage
-```
-
-### Toggle Paid Mode
-
-```bash
-./search.sh --toggle-paid-mode
-```
-
-### Check Status
-
-```bash
-./search.sh --status
-```
-
-## Output Format
-
-Results in JSON format:
-
-```json
-{
-  "query": "keyword",
-  "results": [
-    {
-      "title": "Result Title",
-      "url": "link",
-      "content": "summary"
-    }
-  ],
-  "quota_info": {
-    "plan": "free",
-    "total": 1000,
-    "used": 15,
-    "remaining": 985
-  }
-}
-```
-
 ## Dependencies
 
-- `curl` - HTTP requests
-- `jq` - JSON processing
+- `curl`
+- `jq`
 
-### Install Dependencies
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get install curl jq
-```
-
-**macOS:**
-```bash
-brew install curl jq
-```
-
-## Limits
-
-- Free plan: 1000 requests/month
-- Max 20 results per search
+Install if missing:
+- Ubuntu/Debian: `sudo apt-get install curl jq`
+- macOS: `brew install curl jq`
+- Alpine: `apk add curl jq`
