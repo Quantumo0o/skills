@@ -3,9 +3,15 @@
   "slug": "aws-s3",
   "displayName": "Aws S3",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772708560750,
-    "commit": "https://github.com/openclaw/skills/commit/62978cd72cc14b184d4e0e2dd6f61f9a5e9f9d84"
+    "version": "1.0.2",
+    "publishedAt": 1775162404213,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772708560750,
+      "commit": "https://github.com/openclaw/skills/commit/62978cd72cc14b184d4e0e2dd6f61f9a5e9f9d84"
+    }
+  ]
 }
