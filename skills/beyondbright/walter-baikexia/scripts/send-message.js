@@ -8,36 +8,85 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const os = require('os');
+const https = require('https');
+const { URL } = require('url');
 
 const SKILL_DIR = path.join(__dirname, '..');
-const CONFIG_FILE = path.join(SKILL_DIR, 'config', 'app.json');
-const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-const APP_ID = config.app_id;
-const APP_SECRET = config.app_secret;
 const FEISHU_BASE = 'https://open.feishu.cn/open-apis';
 
+// 从 openclaw.json 读取飞书凭证
+function loadFeishuConfig() {
+    const homeDir = os.homedir();
+    const possiblePaths = [
+        path.join(homeDir, '.openclaw', 'openclaw.json'),
+        path.join(homeDir, '.openclaw', 'openclaw.local.json'),
+    ];
+    
+    for (const configPath of possiblePaths) {
+        if (fs.existsSync(configPath)) {
+            const openclawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            const feishuAccounts = openclawConfig?.channels?.feishu?.accounts;
+            // 尝试找到 baikexia 或默认的飞书账号
+            const agentName = process.env.OPENCLAW_AGENT_NAME || 'baikexia';
+            if (feishuAccounts?.[agentName]) {
+                return feishuAccounts[agentName];
+            }
+            // 尝试第一个可用的账号
+            const firstAccount = Object.values(feishuAccounts || {})[0];
+            if (firstAccount) return firstAccount;
+        }
+    }
+    throw new Error('找不到飞书凭证，请检查 openclaw.json 配置');
+}
+
+const feishuConfig = loadFeishuConfig();
+const APP_ID = feishuConfig.appId;
+const APP_SECRET = feishuConfig.appSecret;
+
+// 使用 Node.js https 模块发送请求
+function fetchJson(url, options = {}) {
+    return new Promise((resolve, reject) => {
+        const urlObj = new URL(url);
+        const opts = {
+            hostname: urlObj.hostname,
+            path: urlObj.pathname + urlObj.search,
+            method: options.method || 'GET',
+            headers: options.headers || {}
+        };
+
+        const req = https.request(opts, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try { resolve(JSON.parse(data)); }
+                catch(e) { resolve(data); }
+            });
+        });
+
+        req.on('error', reject);
+        if (options.body) {
+            req.write(typeof options.body === 'string' ? options.body : JSON.stringify(options.body));
+        }
+        req.end();
+    });
+}
+
 // 获取 token
-function getToken() {
-    const cmd = `curl -s -X POST '${FEISHU_BASE}/auth/v3/tenant_access_token/internal' \\
-        -H 'Content-Type: application/json' \\
-        -d '{"app_id":"${APP_ID}","app_secret":"${APP_SECRET}"}'`;
-    const result = execSync(cmd, { encoding: 'utf8' });
-    const data = JSON.parse(result);
-    if (!data.tenant_access_token) throw new Error('获取token失败');
-    return data.tenant_access_token;
+async function getToken() {
+    const resp = await fetchJson(`${FEISHU_BASE}/auth/v3/tenant_access_token/internal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: { app_id: APP_ID, app_secret: APP_SECRET }
+    });
+    if (!resp.tenant_access_token) throw new Error(`获取token失败: ${resp.msg}`);
+    return resp.tenant_access_token;
 }
 
 // 发送 HTTP 请求
 function sendRequest(url, method, headers, body) {
-    let cmd = `curl -s -X ${method} '${url}'`;
-    for (const [k, v] of Object.entries(headers)) {
-        cmd += ` -H '${k}: ${v}'`;
-    }
-    if (body) {
-        cmd += ` -d '${body.replace(/'/g, "'\\''")}'`;
-    }
-    return execSync(cmd, { encoding: 'utf8' });
+    // body 可能是字符串（已序列化）或对象，自动处理
+    return fetchJson(url, { method, headers, body });
 }
 
 // 从文本中提取所有 mention 信息
@@ -66,25 +115,91 @@ function stripAtTags(text) {
     return text;
 }
 
-// 上传图片获取 image_key（使用 curl）
-function uploadImage(token, imagePath) {
-    const cmd = `curl -s -X POST '${FEISHU_BASE}/im/v1/images' \\
-        -H 'Authorization: Bearer ${token}' \\
-        -F 'image=@${imagePath};type=image/jpeg' \\
-        -F 'image_type=message'`;
-    const result = execSync(cmd, { encoding: 'utf8' });
-    const data = JSON.parse(result);
-    if (data.code !== 0) throw new Error(data.msg || '图片上传失败');
-    return data.data.image_key;
+// 上传图片获取 image_key（使用 Node.js https）
+async function uploadImage(token, imagePath) {
+    const url = `${FEISHU_BASE}/im/v1/images`;
+    const urlObj = new URL(url);
+    
+    const boundary = '----FormBoundary' + Math.random().toString(36).substring(2);
+    const fileContent = fs.readFileSync(imagePath);
+    const fileName = path.basename(imagePath);
+    
+    const postData = `
+--${boundary}
+Content-Disposition: form-data; name="image"; filename="${fileName}"
+Content-Type: image/jpeg
+
+${fileContent.toString('binary')}
+--${boundary}
+Content-Disposition: form-data; name="image_type"
+
+message
+--${boundary}--
+`;
+    
+    return new Promise((resolve, reject) => {
+        const opts = {
+            hostname: urlObj.hostname,
+            path: urlObj.pathname,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': `multipart/form-data; boundary=${boundary}`,
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+        
+        const req = https.request(opts, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const json = JSON.parse(data);
+                    if (json.code !== 0) throw new Error(json.msg || '图片上传失败');
+                    resolve(json.data.image_key);
+                } catch (e) {
+                    reject(e);
+                }
+            });
+        });
+        
+        req.on('error', reject);
+        req.write(postData);
+        req.end();
+    });
 }
 
 // 发送文本消息
-function sendTextMessage(token, receiveId, receiveIdType, text, mentions) {
+async function sendTextMessage(token, receiveId, receiveIdType, text, mentions) {
     let processedText = text;
-    for (const m of mentions) {
+    
+    // 如果有 mentions（从占位符『AT:...』提取），替换为飞书原生 at 标签
+    if (mentions && mentions.length > 0) {
+        for (const m of mentions) {
+            processedText = processedText.replace(
+                `『AT:${m.userId}:${m.name}』`,
+                `<at user_id="${m.userId}">${m.name}</at>`
+            );
+        }
+    } else {
+        // 如果没有 mentions（可能文本中直接是 <at> 标签而不是占位符）
+        // 提取 <at user_id="...">...</at> 格式的标签并确保它们被正确发送
+        const atPattern = /<at user_id="([^"]+)">([^<]*)<\/at>/g;
+        let match;
+        const foundMentions = [];
+        while ((match = atPattern.exec(processedText)) !== null) {
+            foundMentions.push({ userId: match[1], name: match[2] || match[1] });
+        }
+        // 不需要额外处理，因为飞书 API 原生支持 <at> 标签格式
+        // 确保 at 标签的 name 部分不为空
         processedText = processedText.replace(
-            `『AT:${m.userId}:${m.name}』`,
-            `<at user_id="${m.userId}">${m.name}</at>`
+            /<at user_id="([^"]+)">([^<]*)<\/at>/g,
+            (fullMatch, userId, name) => {
+                if (name && name.trim()) {
+                    return fullMatch;
+                }
+                return `<at user_id="${userId}">${userId}</at>`;
+            }
         );
     }
     
@@ -94,7 +209,7 @@ function sendTextMessage(token, receiveId, receiveIdType, text, mentions) {
         content: JSON.stringify({ text: processedText })
     };
     
-    const result = sendRequest(
+    const result = await sendRequest(
         `${FEISHU_BASE}/im/v1/messages?receive_id_type=${receiveIdType}`,
         'POST',
         {
@@ -103,18 +218,18 @@ function sendTextMessage(token, receiveId, receiveIdType, text, mentions) {
         },
         JSON.stringify(payload)
     );
-    return JSON.parse(result);
+    return result;
 }
 
 // 发送图片消息
-function sendImageMessage(token, receiveId, receiveIdType, imageKey) {
+async function sendImageMessage(token, receiveId, receiveIdType, imageKey) {
     const payload = {
         receive_id: receiveId,
         msg_type: 'image',
         content: JSON.stringify({ image_key: imageKey })
     };
     
-    const result = sendRequest(
+    const result = await sendRequest(
         `${FEISHU_BASE}/im/v1/messages?receive_id_type=${receiveIdType}`,
         'POST',
         {
@@ -123,7 +238,7 @@ function sendImageMessage(token, receiveId, receiveIdType, imageKey) {
         },
         JSON.stringify(payload)
     );
-    return JSON.parse(result);
+    return result;
 }
 
 async function main() {
@@ -162,26 +277,26 @@ async function main() {
     console.log('Image match:', imageMatch);
     console.log('Media match:', mediaMatch);
     
-    const token = getToken();
+    const token = await getToken();
     let result;
     
     if (imageMatch) {
         // 发送图片消息
         const imagePath = imageMatch[1];
         console.log('检测到图片:', imagePath);
-        const imageKey = uploadImage(token, imagePath);
+        const imageKey = await uploadImage(token, imagePath);
         console.log('image_key:', imageKey);
-        result = sendImageMessage(token, receiveId, receiveIdType, imageKey);
+        result = await sendImageMessage(token, receiveId, receiveIdType, imageKey);
     } else if (mediaMatch) {
         // 发送 MEDIA 格式图片
         const imagePath = mediaMatch[1].trim();
         console.log('检测到 MEDIA 图片:', imagePath);
-        const imageKey = uploadImage(token, imagePath);
+        const imageKey = await uploadImage(token, imagePath);
         console.log('image_key:', imageKey);
-        result = sendImageMessage(token, receiveId, receiveIdType, imageKey);
+        result = await sendImageMessage(token, receiveId, receiveIdType, imageKey);
     } else {
         // 发送文本消息
-        result = sendTextMessage(token, receiveId, receiveIdType, text, mentions);
+        result = await sendTextMessage(token, receiveId, receiveIdType, text, mentions);
     }
     
     if (result.code === 0) {

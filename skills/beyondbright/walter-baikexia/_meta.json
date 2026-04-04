@@ -1,11 +1,17 @@
 {
   "owner": "beyondbright",
   "slug": "walter-baikexia",
-  "displayName": "baikexia",
+  "displayName": "Walter Baikexia",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775127436600,
-    "commit": "https://github.com/openclaw/skills/commit/534600164766166c02525f766c77caefbe3517f7"
+    "version": "1.4.3",
+    "publishedAt": 1775279108644,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775127436600,
+      "commit": "https://github.com/openclaw/skills/commit/534600164766166c02525f766c77caefbe3517f7"
+    }
+  ]
 }

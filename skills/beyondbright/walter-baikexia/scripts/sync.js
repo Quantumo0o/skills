@@ -1,36 +1,83 @@
 #!/usr/bin/env node
-// 百科虾知识库同步脚本 v14
+// 百科虾知识库同步脚本 v16
 // 支持更多飞书文档block类型：bullet, ordered, callout, code, grid, grid_column, view, board
+// v16: 凭证从 openclaw.json 读取，不再用单独配置文件
 
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const crypto = require('crypto');
 const { URL } = require('url');
+const os = require('os');
 
 // 路径基于 skill 目录（不接受外部硬编码路径）
 const SKILL_DIR = path.join(__dirname, '..');
-const CONFIG_FILE = path.join(SKILL_DIR, 'config', 'app.json');
-const CACHE_DIR = path.join(SKILL_DIR, 'cache');
+
+// Agent name：从命令行 --agent=<name> 传入
+const agentArg = process.argv.find(arg => arg.startsWith('--agent='));
+const AGENT_NAME = agentArg ? agentArg.split('=')[1] : null;
+
+if (!AGENT_NAME) {
+    console.error('错误：需要通过 --agent=<name> 指定 agent 名称');
+    console.error('示例：node sync.js --agent=baikexia');
+    process.exit(1);
+}
+
+// Agent workspace 下的缓存目录
+const WORKSPACE_DIR = path.join(SKILL_DIR, '..', '..', '..', `workspace-${AGENT_NAME}`);
+const CACHE_DIR = path.join(WORKSPACE_DIR, 'cache');
 const IMAGES_DIR = path.join(CACHE_DIR, 'images');
 const FILES_DIR = path.join(CACHE_DIR, 'files');
 const BOARDS_DIR = path.join(CACHE_DIR, 'boards');
+
+// 全局累积的用户名映射（从 block 数据直接提取，不调 API）
+let globalUserIdToName = new Map();
+
+// 凭证从 openclaw.json 读取
+function loadFeishuConfig() {
+    // 尝试多个可能的 openclaw.json 位置
+    const homeDir = os.homedir();
+    const possiblePaths = [
+        path.join(homeDir, '.openclaw', 'openclaw.json'),
+        path.join(homeDir, '.openclaw', 'openclaw.local.json'),
+    ];
+
+    let openclawConfig = null;
+    for (const configPath of possiblePaths) {
+        if (fs.existsSync(configPath)) {
+            try {
+                openclawConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+                break;
+            } catch (e) {
+                // continue
+            }
+        }
+    }
+
+    if (!openclawConfig) {
+        throw new Error(`找不到 openclaw.json，请确认 OpenClaw 已正确配置`);
+    }
+
+    // 从 channels.feishu.accounts[agentName] 获取凭证
+    const feishuAccounts = openclawConfig?.channels?.feishu?.accounts;
+    if (!feishuAccounts || !feishuAccounts[AGENT_NAME]) {
+        throw new Error(`openclaw.json 中未找到 agent '${AGENT_NAME}' 的飞书凭证`);
+    }
+
+    const account = feishuAccounts[AGENT_NAME];
+    if (!account.appId || !account.appSecret) {
+        throw new Error(`agent '${AGENT_NAME}' 的飞书凭证不完整（缺少 appId 或 appSecret）`);
+    }
+
+    return { appId: account.appId, appSecret: account.appSecret };
+}
 
 const WIKI_TOKEN = 'VGRRw7s4BiStank4GnpczxnGn44';
 const SPACE_ID = '7077748012209946625';
 
 const FEISHU_BASE = 'https://open.feishu.cn/open-apis';
 
-let config;
-try {
-    config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-} catch (e) {
-    console.error(`错误：找不到配置文件 ${CONFIG_FILE}，请先创建 config/app.json`);
-    process.exit(1);
-}
-
-const APP_ID = config.app_id;
-const APP_SECRET = config.app_secret;
+const { appId: APP_ID, appSecret: APP_SECRET } = loadFeishuConfig();
 
 let accessToken = '';
 
@@ -112,15 +159,21 @@ async function getToken() {
     return resp.tenant_access_token;
 }
 
-// 收集文档中所有 mention_user 的 user_id
-function collectUserIds(blocksData) {
-    const userIds = new Set();
+// 收集文档中所有 mention_user 的 user_id 和 name（直接从 block 数据取，不调 API）
+function collectUserIdsAndNames(blocksData) {
+    const userIds = [];  // 改为数组，保持顺序
+    const userIdToName = new Map();
     const blocks = blocksData.data?.items || [];
 
     function traverse(obj) {
         if (typeof obj !== 'object' || obj === null) return;
         if (obj.mention_user && obj.mention_user.user_id) {
-            userIds.add(obj.mention_user.user_id);
+            const userId = obj.mention_user.user_id;
+            const name = obj.mention_user.name || userId;
+            if (!userIdToName.has(userId)) {
+                userIds.push(userId);
+                userIdToName.set(userId, name);
+            }
         }
         for (const key of Object.keys(obj)) {
             traverse(obj[key]);
@@ -128,7 +181,7 @@ function collectUserIds(blocksData) {
     }
 
     traverse(blocks);
-    return Array.from(userIds);
+    return { userIds, userIdToName };
 }
 
 // 批量获取用户信息
@@ -141,12 +194,23 @@ async function fetchUserNames(userIds, token) {
             const resp = await fetchJson(url, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            log(`获取用户 ${userId} API响应: ${JSON.stringify(resp)}`);
             if (resp.data?.user?.name) {
                 userMap.set(userId, resp.data.user.name);
                 log(`获取用户: ${resp.data.user.name} (${userId})`);
             }
         } catch (err) {
             log(`获取用户 ${userId} 失败: ${err.message}`);
+            // 调试：打印完整响应
+            try {
+                const debugUrl = `${FEISHU_BASE}/contact/v3/users/${userId}?user_id_type=open_id`;
+                const debugResp = await fetchJson(debugUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                log(`调试响应: ${JSON.stringify(debugResp)}`);
+            } catch (e) {
+                log(`调试请求也失败: ${e.message}`);
+            }
         }
     }
 
@@ -600,8 +664,11 @@ async function collectDocs(token) {
         const blocksResp = await readDocBlocks(token, rootNode.obj_token);
         const imageMap = await processImagesInBlocks(blocksResp, rootNode.obj_token, token);
         await processBoardBlocks(blocksResp, rootNode.obj_token, token);
-        const userIds = collectUserIds(blocksResp);
+        const { userIds, userIdToName } = collectUserIdsAndNames(blocksResp);
         allUserIds.push(...userIds);
+        for (const [uid, name] of userIdToName) {
+            globalUserIdToName.set(uid, name);
+        }
         const text = extractTextFromBlocks(blocksResp, imageMap, rootNode.obj_token, rootNode.title);
         if (text) allContent.push(`===== ${rootNode.title} =====\n${text}`);
     }
@@ -617,8 +684,11 @@ async function collectDocs(token) {
                 const blocksResp = await readDocBlocks(token, item.obj_token);
                 const imageMap = await processImagesInBlocks(blocksResp, item.obj_token, token);
                 await processBoardBlocks(blocksResp, item.obj_token, token);
-                const userIds = collectUserIds(blocksResp);
+                const { userIds, userIdToName } = collectUserIdsAndNames(blocksResp);
                 allUserIds.push(...userIds);
+                for (const [uid, name] of userIdToName) {
+                    globalUserIdToName.set(uid, name);
+                }
                 const text = extractTextFromBlocks(blocksResp, imageMap, item.obj_token, item.title);
                 if (text) allContent.push(`===== ${item.title} =====\n${text}`);
             }
@@ -669,8 +739,11 @@ async function syncWikiPageByToken(token, wikiToken, allContent, allUserIds, syn
             log(`[Wiki链接] 读取文档: ${node.title}`);
             const blocksResp = await readDocBlocks(token, node.obj_token);
             const imageMap = await processImagesInBlocks(blocksResp, node.obj_token, token);
-            const userIds = collectUserIds(blocksResp);
+            const { userIds, userIdToName } = collectUserIdsAndNames(blocksResp);
             allUserIds.push(...userIds);
+            for (const [uid, name] of userIdToName) {
+                globalUserIdToName.set(uid, name);
+            }
             const text = extractTextFromBlocks(blocksResp, imageMap, node.obj_token, node.title);
             if (text) {
                 allContent.push(`===== ${node.title} =====\n${text}`);
@@ -699,8 +772,11 @@ async function collectChildNodes(token, parentToken, allContent, allUserIds) {
             const blocksResp = await readDocBlocks(token, item.obj_token);
             const imageMap = await processImagesInBlocks(blocksResp, item.obj_token, token);
             await processBoardBlocks(blocksResp, item.obj_token, token);
-            const userIds = collectUserIds(blocksResp);
+            const { userIds, userIdToName } = collectUserIdsAndNames(blocksResp);
             allUserIds.push(...userIds);
+            for (const [uid, name] of userIdToName) {
+                globalUserIdToName.set(uid, name);
+            }
             const text = extractTextFromBlocks(blocksResp, imageMap, item.obj_token, item.title);
             if (text) allContent.push(`===== ${item.title} =====\n${text}`);
         }
@@ -734,11 +810,10 @@ async function main() {
         let finalContent = allContent;
         finalContent = enhanceQAContent(finalContent);
 
-        if (userIds.length > 0) {
-            log(`发现 ${userIds.length} 个用户提及，开始获取用户名...`);
-            const userMap = await fetchUserNames(userIds, accessToken);
-            finalContent = replaceMentionUsers(finalContent, userMap);
-            log(`用户名替换完成，成功获取 ${userMap.size} 个用户信息`);
+        if (globalUserIdToName.size > 0) {
+            log(`发现 ${globalUserIdToName.size} 个用户提及，直接使用文档中的用户名...`);
+            finalContent = replaceMentionUsers(finalContent, globalUserIdToName);
+            log(`用户名替换完成`);
         }
 
         log(`获取到内容长度: ${finalContent.length} 字符`);
