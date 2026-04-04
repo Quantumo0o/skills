@@ -1,6 +1,6 @@
 ---
-name: jisu-weather2
-description: 使用极速数据历史天气 API，按城市与日期查询历史天气（最高最低温、风级、湿度、气压、日出日落、AQI 等）。
+name: "Historical Weather - 历史天气"
+description: 按城市与日期查询历史天气（温湿度、风、气压、AQI 等）。当用户说：去年今天北京多少度？查一下 2023 年 7 月上海历史天气，或类似历史气温问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🌤", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 

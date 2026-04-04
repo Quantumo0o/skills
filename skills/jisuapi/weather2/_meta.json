@@ -3,11 +3,16 @@
   "slug": "weather2",
   "displayName": "Historical Weather - 历史天气",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1774592453855,
-    "commit": "https://github.com/openclaw/skills/commit/c77f112915a28c25fdeb09fb30730ee999e08ba0"
+    "version": "1.0.5",
+    "publishedAt": 1775209341821,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1774592453855,
+      "commit": "https://github.com/openclaw/skills/commit/c77f112915a28c25fdeb09fb30730ee999e08ba0"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1773728518331,
