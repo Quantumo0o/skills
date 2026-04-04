@@ -3,9 +3,15 @@
   "slug": "ticket-tailor",
   "displayName": "Ticket Tailor",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773083267463,
-    "commit": "https://github.com/openclaw/skills/commit/f00ef9537d80137b23deef9ae6c158183e7f0a9f"
+    "version": "1.0.2",
+    "publishedAt": 1775162923330,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773083267463,
+      "commit": "https://github.com/openclaw/skills/commit/f00ef9537d80137b23deef9ae6c158183e7f0a9f"
+    }
+  ]
 }
