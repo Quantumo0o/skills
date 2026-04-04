@@ -3,9 +3,15 @@
   "slug": "isolved",
   "displayName": "Isolved",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772877746027,
-    "commit": "https://github.com/openclaw/skills/commit/e6102682a48a484e50576c8f14c6efe27e8e572d"
+    "version": "1.0.2",
+    "publishedAt": 1775162648063,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772877746027,
+      "commit": "https://github.com/openclaw/skills/commit/e6102682a48a484e50576c8f14c6efe27e8e572d"
+    }
+  ]
 }
