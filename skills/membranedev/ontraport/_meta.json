@@ -3,9 +3,15 @@
   "slug": "ontraport",
   "displayName": "Ontraport",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772845328160,
-    "commit": "https://github.com/openclaw/skills/commit/4115956c0d43ea2b52420e08b0e45dd2f5d47082"
+    "version": "1.0.2",
+    "publishedAt": 1775162565161,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772845328160,
+      "commit": "https://github.com/openclaw/skills/commit/4115956c0d43ea2b52420e08b0e45dd2f5d47082"
+    }
+  ]
 }
