@@ -3,11 +3,16 @@
   "slug": "persona-project-manager",
   "displayName": "Persona Project Manager",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1774551088440,
-    "commit": "https://github.com/openclaw/skills/commit/4e61aa195bd7db31b406a751a48ad0161332a93d"
+    "version": "1.0.12",
+    "publishedAt": 1774982129911,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1774551088440,
+      "commit": "https://github.com/openclaw/skills/commit/4e61aa195bd7db31b406a751a48ad0161332a93d"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300544864,
