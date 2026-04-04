@@ -1,66 +1,66 @@
 ---
-name: drip-billing
-description: Usage-based billing for OpenClaw and ClawHub agents with Drip run, event, and usage telemetry. Use when you need request-level traceability, OpenClaw identity endpoints, or public SDK examples for Node.js and Python.
+name: drip-openclaw-billing
+description: Add usage metering and billing telemetry to OpenClaw agents using Drip. Use when you need per-run cost attribution, tool-call usage tracking, and customer-level billing visibility.
 license: MIT
-compatibility: Requires either OpenClaw identity auth or DRIP API credentials. SDK support is available for Node.js 18+ (`@drip-sdk/node`) and Python 3.9+ (`drip-sdk`).
+compatibility: OpenClaw runtime + Drip API. Supports Node.js and Python integrations.
 credentials:
-  primary: X-OpenClaw-Identity
-  alternate: DRIP_API_KEY
+  primary: DRIP_API_KEY
+  alternate: OPENCLAW_IDENTITY_TOKEN
 requiredEnvVars:
-  - name: OPENCLAW_IDENTITY_TOKEN
-    description: Required when using `/openclaw/*` identity endpoints.
-    required: false
   - name: DRIP_API_KEY
-    description: Required when using `/v1/*` core Drip API endpoints.
+    description: Drip API key for /v1 telemetry APIs (recommended default path).
+    required: false
+  - name: OPENCLAW_IDENTITY_TOKEN
+    description: OpenClaw identity token for /openclaw endpoints.
     required: false
   - name: DRIP_BASE_URL
-    description: Optional trusted Drip API host for telemetry emission.
+    description: Optional API base URL (default https://api.drippay.dev).
     required: false
   - name: DRIP_WORKFLOW_ID
-    description: Workflow ID used for run lifecycle telemetry on the core API path.
-    required: false
-  - name: OPENCLAW_DEFAULT_CUSTOMER_ID
-    description: Fallback customer or tenant identifier when a request omits customerId.
-    required: false
-  - name: OPENCLAW_TELEMETRY_FAIL_OPEN
-    description: Continue execution when Drip telemetry writes fail.
-    required: false
-  - name: OPENCLAW_BILL_SKILL_CALLS
-    description: Emit `/v1/usage` for skill calls in addition to `/v1/events`.
+    description: Workflow ID for run lifecycle telemetry.
     required: false
 metadata:
-  author: drip
-  version: "1.0.9"
+  author: lucas-309
+  publisher: lucas-309
+  version: "1.1.1"
+  securityModel: "least-privilege telemetry keys, sanitized metadata, no raw prompt/output/PII"
 ---
 
 # Drip OpenClaw Billing
 
-Use this skill when OpenClaw or ClawHub handles a request and you need usage tracking, run timelines, or billable usage attribution in Drip.
+Instrument OpenClaw agents with Drip for **run timelines**, **tool-call usage metering**, and **customer-level billing attribution**.
 
-Get API keys, dashboard access, and product details at `https://drippay.dev`.
+## Install (copy/paste)
 
-## Choose an integration path
+```bash
+clawhub install drip-openclaw-billing
+```
 
-1. Use `X-OpenClaw-Identity` with `/openclaw/*` for lightweight, auto-provisioned metering.
-2. Use `DRIP_API_KEY` with `/v1/*` for full billing, runs, events, and usage writes.
+> Use slug only in CLI (`drip-openclaw-billing`), not `owner/slug`.
 
-## Safety contract
+## What this gives you
 
-- Use `pk_` keys by default for runtime integrations. Reserve `sk_` keys for trusted admin flows.
-- Send sanitized operational metadata only.
-- Never send raw prompts, raw outputs, request or response bodies, credentials, or PII.
-- Prefer hashed identifiers like `queryHash` over raw user content.
-- Emit stable idempotency keys for retries.
+- Per-run billing traceability (`start_run` → events → usage → `end_run`)
+- Metered usage by unit (tokens, tool calls, API calls, compute time)
+- Customer/project-level cost and usage visibility in Drip
+- Idempotent writes for retry-safe telemetry
 
-## SDKs
+## Integration paths
 
-### Node.js
+1. **Recommended**: `DRIP_API_KEY` with `/v1/*` endpoints for full billing + telemetry control.
+2. **Lightweight**: `OPENCLAW_IDENTITY_TOKEN` with `/openclaw/*` endpoints.
 
-Install: `npm install @drip-sdk/node`
+## Security rules
 
-For the OpenClaw wrapper flow, use `OpenClawBilling` from `@drip-sdk/node/openclaw` or `OpenClawDripMiddleware` from `@drip/openclaw/middleware` when you are inside the package integration.
+- Use least-privilege runtime keys (prefer scoped telemetry key).
+- Never send raw prompts, raw model outputs, credentials, or PII.
+- Send sanitized metadata only (hash content fields like `queryHash` when needed).
+- Emit stable idempotency keys for all writes.
+- Validate payload schemas in staging before production rollout.
 
-```typescript
+## Quickstart (Node.js)
+
+```ts
 import { OpenClawBilling } from '@drip-sdk/node/openclaw';
 
 const billing = new OpenClawBilling({
@@ -68,32 +68,31 @@ const billing = new OpenClawBilling({
   customerId: 'cus_123',
   workflowId: process.env.DRIP_WORKFLOW_ID ?? 'wf_openclaw',
 });
+
+await billing.withRun({ externalRunId: 'openclaw_req_456' }, async ({ runId }) => {
+  await billing.withToolCall({ runId, provider: 'brave', endpoint: '/res/v1/web/search' }, async () => {
+    // tool execution
+  });
+});
 ```
 
-### Python
+## Quickstart (Python)
 
-Install: `pip install drip-sdk`
-
-Use the public Python SDK when you need the same run, event, and usage lifecycle from Python.
-
-```python
-import os
+```py
 from drip import Drip
+import os
 
-client = Drip(api_key=os.environ["DRIP_API_KEY"])
-
-run = client.start_run(
-    customer_id="cus_123",
-    workflow_id=os.environ["DRIP_WORKFLOW_ID"],
-    external_run_id="openclaw_req_456",
-)
+client = Drip(api_key=os.environ['DRIP_API_KEY'])
+run = client.start_run(customer_id='cus_123', workflow_id='wf_openclaw', external_run_id='openclaw_req_456')
+client.emit_event(run_id=run.id, event_type='tool.call', quantity=1, metadata={'provider': 'brave'})
+client.track_usage(customer_id='cus_123', meter='brave_api_calls', quantity=1, metadata={'runId': run.id})
+client.end_run(run.id, status='COMPLETED')
 ```
 
-## Reference loading
+## Load detailed API docs
 
-Read [references/API.md](references/API.md) when you need:
-
-- OpenClaw identity endpoint auth and payload shapes
-- Core Drip API run, event, and usage flow
-- Node.js and Python examples
-- Pricing, rate limits, and outcome semantics
+See `references/API.md` for:
+- endpoint shapes
+- run/event/usage lifecycle
+- pricing units and rate-limit notes
+- error handling patterns
