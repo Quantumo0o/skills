@@ -1,13 +1,18 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-hydra",
-  "displayName": "Adopt a Hydra — Virtual Exotic Pet for AI Agents",
+  "displayName": "Hydra — Adopt a Hydra. AI-Native Pet. 九头蛇。Hidra.",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773302205564,
-    "commit": "https://github.com/openclaw/skills/commit/84e142a52c0f1b6c04e66e226367c4ea5d075f68"
+    "version": "1.0.3",
+    "publishedAt": 1775008291306,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773302205564,
+      "commit": "https://github.com/openclaw/skills/commit/84e142a52c0f1b6c04e66e226367c4ea5d075f68"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773199238998,
