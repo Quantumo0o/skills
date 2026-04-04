@@ -3,9 +3,15 @@
   "slug": "digital-ocean-integration",
   "displayName": "Digital Ocean",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773088966877,
-    "commit": "https://github.com/openclaw/skills/commit/2e06396440d98d21d84c965b54634106338c2f7b"
+    "version": "1.0.2",
+    "publishedAt": 1775162995370,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773088966877,
+      "commit": "https://github.com/openclaw/skills/commit/2e06396440d98d21d84c965b54634106338c2f7b"
+    }
+  ]
 }
