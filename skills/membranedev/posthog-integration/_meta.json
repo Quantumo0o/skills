@@ -3,9 +3,15 @@
   "slug": "posthog-integration",
   "displayName": "Posthog",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773088938212,
-    "commit": "https://github.com/openclaw/skills/commit/41e4fede3a7a7b74b7f0bfd579dc8a2225cd136f"
+    "version": "1.0.2",
+    "publishedAt": 1775162979897,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773088938212,
+      "commit": "https://github.com/openclaw/skills/commit/41e4fede3a7a7b74b7f0bfd579dc8a2225cd136f"
+    }
+  ]
 }
