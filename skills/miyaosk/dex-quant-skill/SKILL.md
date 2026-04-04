@@ -1,6 +1,6 @@
 ---
 name: dex-quant-skill
-version: 3.30.0
+version: 3.36.0
 description: |
   加密货币量化交易 AI Skill。用自然语言描述交易规则 → 生成策略脚本 → 服务器回测 → 参数优化 → 实时监控。
   支持 Binance/Hyperliquid 全币种，6 种优化算法（genetic/bayesian/grid/random/annealing/pso），异步进度推送。
@@ -29,20 +29,24 @@ allowed-tools:
 
 ```bash
 _BASE="{baseDir}"
-if [ ! -f "$_BASE/scripts/api_client.py" ]; then
-  echo "PATH_FIX_NEEDED"
+
+# 自动修复路径 — clawhub install 可能把 ${OPENCLAWWORKSPACEDIR} 当字面量
+# 检测: 路径含 ${ 或 api_client.py 不存在
+if echo "$_BASE" | grep -q '${' || [ ! -f "$_BASE/scripts/api_client.py" ]; then
+  echo "PATH_FIX: searching..."
   _REAL=$(find /data -name "api_client.py" -path "*/dex-quant-skill/scripts/*" 2>/dev/null | head -1)
   if [ -n "$_REAL" ]; then
     _BASE=$(dirname $(dirname "$_REAL"))
-    echo "REAL_BASE=$_BASE"
+    echo "PATH_FIXED=$_BASE"
   fi
 fi
+
 mkdir -p "$_BASE/strategies" "$_BASE/output"
 echo "BASE=$_BASE"
 python3 -c "import httpx, loguru, matplotlib" 2>/dev/null && echo "DEPS_OK" || echo "NEEDS_DEPS"
 ```
 
-**⚠️ 如果输出 `PATH_FIX_NEEDED`，必须用 `REAL_BASE` 的值替换后续所有 `{baseDir}`。**
+**⚠️ 如果输出 `PATH_FIXED=...`，必须用该值替换后续所有 `{baseDir}`。** 这是正常行为（clawhub 安装路径问题），不影响使用。
 
 If `NEEDS_DEPS`（OpenClaw 环境需要 `--break-system-packages`）:
 
@@ -82,7 +86,8 @@ Detect the user's intent and execute the matching workflow straight through.
 | 优化算法选择 (1-6) | "4" / "random" / "随机" | 执行 §3 用 random 算法优化 |
 | 优化算法选择 (1-6) | "5" / "annealing" / "退火" | 执行 §3 用 annealing 算法优化 |
 | 优化算法选择 (1-6) | "6" / "pso" / "粒子" | 执行 §3 用 pso 算法优化 |
-| 监控/部署请求 | 任何 | 执行 §4 本地运行模式（服务器监控接口未上线） |
+| 监控/部署请求 | 任何 | 执行 §4 选择模式（信号监控 or 监控+自动下单） |
+| 私钥/密钥/钱包设置 | 任何 | 执行 §4 Step 2b 安全链接流程 |
 | 回测报告下一步 (1-6) | "1" / "genetic" | 执行 §3 用 genetic 算法优化 |
 | 回测报告下一步 | "回测" / "再测一次" | 执行 §2 重新回测 |
 | 回测报告下一步 | "部署" / "监控" / "跑起来" | 执行 §4 监控 |
@@ -543,102 +548,122 @@ openclaw message send --path "<result._optimization_chart_path的值>" --caption
 
 ---
 
-## §4 Monitor & Execute (策略监控 — 服务器 + 本地两种模式)
+## §4 Monitor & Execute (策略监控 — 服务器模式)
 
 ### Step 0: Pre-flight
 
 If the strategy hasn't been backtested, warn: "这个策略还没有回测过，建议先回测。" If user insists, proceed.
 
-### Step 1: 直接进入本地运行模式
-
-**⚠️ 服务器监控模式当前不可用** — 服务端监控接口尚未上线（返回 404）。
-上线后服务器监控也将支持自动下单（同样需要 Hyperliquid 钱包私钥）。
-**当前所有监控/部署请求一律使用本地运行模式。**
+### Step 1: 选择模式
 
 When user triggers Monitor workflow, you MUST present this message verbatim:
 
-> 📡 策略部署 — 本地运行模式
+> 📡 **策略监控部署**
 >
-> 在你本地终端定时执行策略，风控检查后自动下单到 Hyperliquid DEX。
+> 服务器 7×24 定时执行你的策略，产生买卖信号。
 >
-> 📋 需要准备：
-> · Node.js >= 18
-> · Hyperliquid 钱包私钥（0x 开头）
-> · 建议先用测试网验证
+> 1️⃣ **仅监控信号** — 收到信号后你自己手动操作
+> 2️⃣ **监控 + 自动下单** — 需要配置 Hyperliquid 钱包密钥（通过安全链接，不在聊天里输入）
 >
-> 🔒 安全说明：
-> · 私钥仅存在你本地环境变量中
-> · 不会上传到任何服务器或云端
-> · 不会写入日志或配置文件
->
-> 请提供你的钱包私钥，我来帮你部署。
-> 或者回复"测试网"先用测试网试试。
+> 两种模式都：免费 3 个策略、7×24、无需本地开机。
+> 回复 1 或 2 选择。
 
-Wait for user to provide private key before proceeding.
+Wait for user to choose before proceeding.
 
-**⛔ 禁止调用服务器监控 API（start_monitor 等）** — 接口未上线，会返回 404。
+### Step 2a: 仅监控信号（用户选了 1）
+
+直接启动监控，不需要私钥：
+
+```python
+import sys; sys.path.insert(0, '{baseDir}/scripts')
+from api_client import QuantAPIClient
+
+with open('{baseDir}/strategies/xxx_strategy.py', 'r') as f:
+    script_content = f.read()
+
+client = QuantAPIClient(timeout=60.0)
+result = client.start_monitor(
+    script_content=script_content,
+    strategy_name="策略名",
+    symbol="BTCUSDT",
+    timeframe="4h",
+    interval_seconds=14400,
+)
+print(f"✅ 监控已启动 | Job ID: {result['job_id']} | 配额 {result['quota_used']}/{result['quota_max']}")
+```
+
+### Step 2b: 监控 + 自动下单（用户选了 2）
+
+**先检查密钥是否已配置 → 没有则生成安全链接 → 用户在浏览器提交 → 再启动监控。**
+
+```python
+import sys; sys.path.insert(0, '{baseDir}/scripts')
+from api_client import QuantAPIClient
+
+client = QuantAPIClient(timeout=60.0)
+
+# 第一步：检查密钥状态
+vault = client.vault_status()
+if not vault.get("has_key"):
+    # 生成安全链接，用户在浏览器中提交私钥
+    link = client.vault_setup_link()
+    print(f"\n请在浏览器中打开以下链接，粘贴你的钱包私钥：")
+    print(f"{link['url']}")
+    print(f"\n提交完成后，回来告诉我「OK」。")
+```
+
+When user confirms key is set, verify and start monitor:
+
+```python
+import sys; sys.path.insert(0, '{baseDir}/scripts')
+from api_client import QuantAPIClient
+
+client = QuantAPIClient(timeout=60.0)
+vault = client.vault_status()
+if not vault.get("has_key"):
+    print("❌ 密钥还没有配置，请先打开链接提交私钥")
+else:
+    with open('{baseDir}/strategies/xxx_strategy.py', 'r') as f:
+        script_content = f.read()
+    result = client.start_monitor(
+        script_content=script_content,
+        strategy_name="策略名",
+        symbol="BTCUSDT",
+        timeframe="4h",
+        interval_seconds=14400,
+    )
+    net = vault.get("network", "mainnet")
+    print(f"✅ 监控已启动 | Job ID: {result['job_id']} | 网络: {net}")
+    print(f"   产生信号后将自动下单到 Hyperliquid {'测试网' if net == 'testnet' else '主网'}")
+```
+
+### 管理命令
+
+- 查看状态: `client.check_monitor(job_id)`
+- 列出全部: `client.list_monitors()`
+- 停止监控: `client.stop_monitor(job_id)`
+- 查看密钥: `client.vault_status()`
+- 删除密钥: `client.vault_delete()`
+- 重新设置: `client.vault_setup_link()`
 
 ---
 
-### Mode B: 本地运行 + 自动下单（用户选了 2）
+### 私钥安全规则
 
-本地运行策略 + 风控 + 通过 HyperLiquid-Claw 自动下单到 Hyperliquid DEX。
-需要本地终端常开，关机就停。数量不限。
+**⛔ 绝对不要让用户在聊天中发送私钥！**
+如果用户主动发送了私钥，你必须立即回复：
 
-**需要用户提供：**
-- Hyperliquid 钱包私钥（`HYPERLIQUID_PRIVATE_KEY`）— 用于签名下单
-- 可选：测试网模式（`HYPERLIQUID_TESTNET=1`）— 建议首次使用先开
-
-#### B1. Install deps
-
-用户提供了私钥后，替换下面的 `0xYourPrivateKey`：
-
-```bash
-pip3 install numpy httpx loguru 2>/dev/null
-
-# HyperLiquid-Claw (自动下单引擎)
-git clone https://github.com/Rohit24567/HyperLiquid-Claw.git ~/HyperLiquid-Claw
-cd ~/HyperLiquid-Claw && npm install hyperliquid
-
-# 配置钱包（用用户提供的私钥替换）
-export HYPERLIQUID_PRIVATE_KEY=0xYourPrivateKey
-# 测试网（建议先开）: export HYPERLIQUID_TESTNET=1
-```
-
-#### B2. Dry run
-
-```bash
-cd {baseDir}
-python3 scripts/signal_runtime.py \
-  --strategy strategies/xxx_strategy.py \
-  --interval 14400 --dry-run
-```
-
-#### B3. Live execution
-
-```bash
-python3 scripts/signal_runtime.py \
-  --strategy strategies/xxx_strategy.py \
-  --interval 14400 \
-  --claw-dir ~/HyperLiquid-Claw \
-  --max-position-pct 10 --max-concurrent 3 --cooldown 30
-```
-
-#### Local params
-
-| Param | Default | Description |
-|-------|---------|-------------|
-| `--strategy` | *required* | 策略脚本路径 |
-| `--interval` | `14400` (4h) | 执行间隔（秒） |
-| `--claw-dir` | auto-detect | HyperLiquid-Claw 目录 |
-| `--dry-run` | `false` | 模拟模式 |
-| `--max-position-pct` | `10` | 单笔最大仓位% |
-| `--max-concurrent` | `3` | 最大并发仓位 |
-| `--cooldown` | `30` | 冷却时间(分钟) |
+> ⚠️ **安全警告**
+>
+> 请不要在聊天中发送私钥！私钥会留在聊天记录中，非常不安全。
+> 如果这个私钥控制了真实资金，建议立即转移资产并更换钱包。
+>
+> 正确做法：我帮你生成一个安全链接，你在浏览器里提交私钥，不经过聊天。
+> 回复「设置密钥」，我来帮你操作。
 
 ---
 
-### Risk rules (both modes)
+### Risk rules
 
 | Rule | Default | Effect |
 |------|---------|--------|
@@ -693,10 +718,13 @@ All return **numpy arrays**. Use `arr[i]`, not `.iloc[i]`.
 | `check_optimization(job_id)` | 仅查询进度（⛔ 不要单独使用，用 `run_optimization` 代替） |
 | `print_metrics(result)` | Display backtest report card |
 | `print_optimization(result)` | Display optimization report (auto-called) |
-| `start_monitor(...)` | ⛔ 服务器监控接口未上线（404），不要调用 |
-| `check_monitor(job_id)` | ⛔ 服务器监控接口未上线（404），不要调用 |
-| `list_monitors()` | ⛔ 服务器监控接口未上线（404），不要调用 |
-| `stop_monitor(job_id)` | ⛔ 服务器监控接口未上线（404），不要调用 |
+| `start_monitor(script, name, symbol, timeframe, interval)` | 启动服务器监控（最多 3 个同时运行） |
+| `check_monitor(job_id)` | 查看监控状态 + 最近信号 |
+| `list_monitors()` | 列出我的所有监控任务 |
+| `stop_monitor(job_id)` | 停止监控任务 |
+| `vault_setup_link()` | 生成一次性安全链接，用户在浏览器中提交私钥 |
+| `vault_status()` | 查询密钥是否已配置 |
+| `vault_delete()` | 删除已存储的密钥 |
 | `print_trades(result)` | Display trade records (only when user asks) |
 
 ### Quota
@@ -722,7 +750,8 @@ All return **numpy arrays**. Use `arr[i]`, not `.iloc[i]`.
 | 拆分为两个代码块 (submit→poll) | 第二个代码块不会被执行 | 用 `run_server_backtest()` / `run_optimization()` 单代码块 |
 | Call `httpx.post()` directly | Missing auth/polling | Use `QuantAPIClient` |
 | 用户问"推荐策略"时讲策略类型教程（趋势跟随/均值回归/突破…） | 用户要能直接用的策略，不是上课 | **逐字发送推荐策略硬规则的固定模板**，推荐 2 个正收益策略文件 |
-| 调用 `start_monitor()` / `check_monitor()` / `list_monitors()` / `stop_monitor()` | 服务器监控接口未上线，返回 404 | 使用 Mode B 本地运行（`signal_runtime.py`） |
+| 只推荐本地运行、不提供服务器监控选项 | 用户可能更想 7×24 服务器监控 | 按 §4 Step 1 先让用户选择模式 |
+| 在聊天中索要或接收用户的钱包私钥 | 私钥会留在聊天记录中，极不安全 | 用 `vault_setup_link()` 生成安全链接，用户在浏览器中提交 |
 | Manually tweak params + re-backtest when user says "优化" | That's guessing, not optimizing | Use §3 `run_optimization()` |
 | Add new indicators/filters when user says "优化" | That's redesign (§1), not optimize (§3) | 优化=调参数, 重新设计=改逻辑 |
 | Send text and image as separate TG messages | 用户只看到最后一条 | 一条 TG 图片消息（caption 含指标摘要） |
