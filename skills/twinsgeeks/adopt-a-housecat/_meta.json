@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-housecat",
-  "displayName": "Adopt a Housecat — Virtual Cat Pet for AI Agents",
+  "displayName": "Housecat — Adopt a Housecat. Cat. 家猫。Gato.",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773198607738,
-    "commit": "https://github.com/openclaw/skills/commit/8a3191a78ab8a4d86e85a9dfdc04bccdbbb0043c"
+    "version": "1.0.3",
+    "publishedAt": 1775008267841,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773198607738,
+      "commit": "https://github.com/openclaw/skills/commit/8a3191a78ab8a4d86e85a9dfdc04bccdbbb0043c"
+    }
+  ]
 }
