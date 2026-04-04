@@ -3,9 +3,15 @@
   "slug": "checkvist",
   "displayName": "Checkvist",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773262980185,
-    "commit": "https://github.com/openclaw/skills/commit/8531365fd7492208db057f6a03ff4158806923e1"
+    "version": "1.0.2",
+    "publishedAt": 1775163342443,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773262980185,
+      "commit": "https://github.com/openclaw/skills/commit/8531365fd7492208db057f6a03ff4158806923e1"
+    }
+  ]
 }
