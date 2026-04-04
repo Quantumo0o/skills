@@ -3,9 +3,15 @@
   "slug": "microsoft-power-bi",
   "displayName": "Microsoft Power Bi",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772888573712,
-    "commit": "https://github.com/openclaw/skills/commit/2e6597b056603810a5e6face130479939216d502"
+    "version": "1.0.3",
+    "publishedAt": 1775162655113,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772888573712,
+      "commit": "https://github.com/openclaw/skills/commit/2e6597b056603810a5e6face130479939216d502"
+    }
+  ]
 }
