@@ -3,11 +3,16 @@
   "slug": "gws-events-renew",
   "displayName": "Gws Events Renew",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1774550983572,
-    "commit": "https://github.com/openclaw/skills/commit/75ba34d8d6e251fcdcfcee094a8b08d82e093f48"
+    "version": "1.0.12",
+    "publishedAt": 1774982030688,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1774550983572,
+      "commit": "https://github.com/openclaw/skills/commit/75ba34d8d6e251fcdcfcee094a8b08d82e093f48"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300449465,
