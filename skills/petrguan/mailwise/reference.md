@@ -3,43 +3,39 @@
 ## Installation
 
 ```bash
-pip install git+https://github.com/PetrGuan/MailWise.git
+pip install mailwise
 ```
 
-After install, clone the repo for config files:
+Then run the interactive setup wizard:
 ```bash
-git clone https://github.com/PetrGuan/MailWise.git && cd MailWise
-cp config.example.yaml config.yaml
+mailwise init
 ```
 
-Edit `config.yaml`:
-```yaml
-eml_directory: emails
-database: data/index.db
-markdown_directory: markdown
-embedding_model: all-MiniLM-L6-v2
-expert_boost: 1.5
-experts:
-  - email: engineer@company.com
-    name: Jane Doe
-```
+This creates your `config.yaml`, sets up directories, and optionally runs a test index. No manual config editing needed.
 
-Then index: `mailwise index`
+Then index your EML files:
+```bash
+mailwise index
+```
 
 ## Command Output Formats
 
 ### mailwise search
 
 ```
-1. [0.884] Bug title here
-   By: Engineer Name [Expert]
-   Date: Tuesday, March 10, 2026 4:27 PM
-   Email ID: 52
-   Preview: First 300 chars of matching message...
+  #1 [0.89] ★Expert  RE: Outlook calendar not syncing after mailbox move
+     From: senior.engineer@example.com (2024-11-15)
+     "The root cause is a stale folder-id cache. Clear HxCalendarSync
+      and restart the sync service..."
+
+  #2 [0.84]          RE: Sync failure post-migration — Mac clients
+     From: support.lead@example.com (2024-10-22)
+     "We've seen this pattern before. Check if the migration tool
+      preserved the folder GUIDs..."
 ```
 
 - Score in brackets [0.0 - 1.0] — higher is more similar
-- `[Expert]` tag appears for configured expert engineers
+- `★Expert` tag appears for configured expert engineers
 - Email ID can be used with `mailwise show <ID>`
 
 ### mailwise analyze
@@ -73,14 +69,14 @@ Outputs the full markdown thread:
 
 ---
 
-## Reply 1 -- Engineer A (addr@company.com)
+## Reply 1 -- Engineer A (addr@example.com)
 **Date:** Wed, 27 Aug 2025
 
 Message body...
 
 ---
 
-## Reply 2 -- Engineer B (addr@company.com) **[Expert]**
+## Reply 2 -- Engineer B (addr@example.com) **[Expert]**
 **Date:** Tue, 26 Aug 2025
 
 Expert analysis here...
