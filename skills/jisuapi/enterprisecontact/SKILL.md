@@ -1,6 +1,6 @@
 ---
-name: jisu-enterprisecontact
-description: 使用极速数据企业工商联系方式查询 API，按企业名称、统一信用代码、注册号或组织机构代码查询联系方式（地址、电话、手机、邮箱、网站等）。
+name: "Enterprise Contact Information Query - 企业联系方式查询"
+description: 按名称、统一社会信用代码等查企业地址、电话、邮箱与网站等联系方式。当用户说：这家公司的联系电话是多少？总部地址在哪？或类似企业联系方式问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🏢", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
