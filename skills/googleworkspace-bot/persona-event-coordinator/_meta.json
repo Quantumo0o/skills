@@ -3,11 +3,16 @@
   "slug": "persona-event-coordinator",
   "displayName": "Persona Event Coordinator",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1774551076903,
-    "commit": "https://github.com/openclaw/skills/commit/dd7c9797b35c68700ee0057df8d4b3d03fdcdba5"
+    "version": "1.0.12",
+    "publishedAt": 1774982119194,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1774551076903,
+      "commit": "https://github.com/openclaw/skills/commit/dd7c9797b35c68700ee0057df8d4b3d03fdcdba5"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300535048,
