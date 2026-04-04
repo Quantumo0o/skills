@@ -3,9 +3,15 @@
   "slug": "eodhd-apis",
   "displayName": "Eodhd Apis",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773266570945,
-    "commit": "https://github.com/openclaw/skills/commit/b5e2cda86447aa3692f25811e1ec13b28ce3e6d6"
+    "version": "1.0.2",
+    "publishedAt": 1775163377433,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773266570945,
+      "commit": "https://github.com/openclaw/skills/commit/b5e2cda86447aa3692f25811e1ec13b28ce3e6d6"
+    }
+  ]
 }
