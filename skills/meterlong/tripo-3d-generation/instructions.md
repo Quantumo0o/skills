@@ -45,7 +45,7 @@ Users rarely use technical terms. Map their natural language to the right workfl
 { "action": "generate", "image_url": "https://example.com/photo.jpg" }
 ```
 
-Optional: `model_version` (default `v3.0-20250812`), `format` (`glb`/`fbx`/`obj`/`stl`)
+Optional: `model_version` (default **`v3.1-20260211`**；低模可选 **`P1-20260311`**（P1.0：**生成极快**，**纯几何**约 **5–10s**，**带贴图会更慢**；**低模几何与布线无与伦比**）), `format` (`glb`/`fbx`/`obj`/`stl`)
 
 ### `status` / `download` / `credits`
 
@@ -105,11 +105,10 @@ Only for models generated with v1.x.
 
 | Version | Speed | Best For |
 |---------|-------|----------|
-| `Turbo-v1.0-20250506` | ~5-10s | Quick concepts |
-| `v3.0-20250812` (default) | ~90s | Production quality |
-| `v2.5-20250123` | ~25-30s | Fast + balanced |
-| `v2.0-20240919` | ~20s | Accurate PBR |
-| `v1.4-20240625` | ~10s | Legacy |
+| `P1-20260311` | 约 5–10s（纯几何）；带贴图更慢 | P1.0，**生成极快**，**低模几何与布线无与伦比** |
+| `v3.1-20260211` **(默认)** | ~60–100s | 综合默认推荐 |
+| `v3.0-20250812` | ~90s | 雕塑级精度、锐利边缘 |
+| `v2.5-20250123` | ~25–30s | 更快、均衡 |
 
 ---
 
@@ -120,3 +119,13 @@ When all 10 free credits are used:
 2. Guide to [platform.tripo3d.ai](https://platform.tripo3d.ai/) → Sign Up (free, 2000 bonus credits)
 3. Get key at [API Keys](https://platform.tripo3d.ai/api-keys) (starts with `tsk_`)
 4. Config: `openclaw config set skill.tripo-3d-generation.TRIPO_API_KEY <key>`
+
+---
+
+## Secrets & routing
+
+- **`TRIPO_API_KEY`** (optional): If set, **all** Tripo calls use `https://api.tripo3d.ai/v2/openapi/task` with `Authorization: Bearer`. The free-tier proxy is **not** used; your key never goes to the proxy.
+- **`TRIPO_PROXY_SECRET`** (optional): Required for **free tier** when `TRIPO_API_KEY` is unset. Same value as `PROXY_SECRET` on the proxy server. Sent as HTTP header `x-proxy-secret` on every proxy request.
+- **Free-tier base URL** (in code): `https://skills.vast-internal.com/platform/tripo` — must match nginx `location` + TLS deployment.
+
+If a user has no Tripo key and has not set `TRIPO_PROXY_SECRET`, return the skill error that tells them to configure the secret or add `TRIPO_API_KEY`.

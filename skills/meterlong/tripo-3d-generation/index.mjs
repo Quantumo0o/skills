@@ -1,25 +1,70 @@
-import { createHash } from "crypto";
-import { hostname } from "os";
+import { randomUUID } from "crypto";
+import { readFileSync, writeFileSync, existsSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
-const PROXY_BASE = "https://tripo-proxy.darknessporo.workers.dev";
+const TRIPO_API_BASE = "https://api.tripo3d.ai/v2/openapi";
+const PROXY_BASE = "https://skills.vast-internal.com/platform/tripo";
+
+let ephemeralUserId = null;
 
 function getUserId() {
-  const raw = `${hostname()}-${process.env.HOME || process.env.USERPROFILE || "unknown"}`;
-  return createHash("sha256").update(raw).digest("hex").slice(0, 16);
+  const baseDir = process.env.HOME || process.env.USERPROFILE || tmpdir();
+  const idFile = join(baseDir, ".tripo-skill-id");
+  try {
+    if (existsSync(idFile)) {
+      const id = readFileSync(idFile, "utf-8").trim();
+      if (id) return id;
+    }
+  } catch {
+    /* fall through */
+  }
+  const id = randomUUID().replace(/-/g, "").slice(0, 16);
+  try {
+    writeFileSync(idFile, id, "utf-8");
+    return id;
+  } catch {
+    if (!ephemeralUserId) ephemeralUserId = randomUUID().replace(/-/g, "").slice(0, 16);
+    return ephemeralUserId;
+  }
 }
 
-async function postJson(url, body) {
+function proxyHeaders(ctx) {
+  const secret = ctx.secrets?.TRIPO_PROXY_SECRET;
+  if (!secret) {
+    return null;
+  }
+  return {
+    "Content-Type": "application/json",
+    "x-proxy-secret": secret,
+  };
+}
+
+async function postJson(url, body, extraHeaders = {}) {
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...extraHeaders },
     body: JSON.stringify(body),
   });
   return res.json();
 }
 
-async function getJson(url) {
-  const res = await fetch(url);
+async function getJson(url, extraHeaders = {}) {
+  const res = await fetch(url, { headers: { ...extraHeaders } });
   return res.json();
+}
+
+async function tripoPostTask(userApiKey, taskBody) {
+  return postJson(`${TRIPO_API_BASE}/task`, taskBody, {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${userApiKey}`,
+  });
+}
+
+async function tripoGetTask(userApiKey, taskId) {
+  return getJson(`${TRIPO_API_BASE}/task/${encodeURIComponent(taskId)}`, {
+    Authorization: `Bearer ${userApiKey}`,
+  });
 }
 
 function formatCreditsInfo(data) {
@@ -84,6 +129,26 @@ function formatStatusResponse(data) {
   };
 }
 
+function directDownloadShape(taskId, data) {
+  const inner = data.data || data;
+  if (inner.status !== "success" && inner.status !== "SUCCESS") {
+    return {
+      error: "task_not_ready",
+      status: inner.status,
+      progress: inner.progress,
+    };
+  }
+  const output = inner.output || {};
+  return {
+    task_id: taskId,
+    status: "SUCCESS",
+    pbr_model_url: output.pbr_model,
+    model_url: output.model,
+    rendered_image_url: output.rendered_image,
+    message: "Model ready! Download using the pbr_model_url (recommended) or model_url.",
+  };
+}
+
 export async function run(params, ctx) {
   const { action } = params;
   const userId = getUserId();
@@ -98,16 +163,45 @@ export async function run(params, ctx) {
 
     const type = files ? "multiview_to_model" : image_url ? "image_to_model" : "text_to_model";
 
+    if (userApiKey) {
+      const taskBody = { type, model_version: model_version || "v3.1-20260211" };
+      if (prompt) taskBody.prompt = prompt;
+      if (image_url) taskBody.image_url = image_url;
+      if (files) taskBody.files = files;
+
+      const data = await tripoPostTask(userApiKey, taskBody);
+      if (data.code !== 0 && data.code !== undefined) {
+        return { error: data.error || "tripo_error", message: data.message || JSON.stringify(data) };
+      }
+      const taskId = data.data?.task_id || data.task_id;
+      if (!taskId) {
+        return { error: "tripo_error", message: data.message || "No task_id in Tripo response." };
+      }
+      return {
+        task_id: taskId,
+        status: "CREATED",
+        message: `3D generation task created! Task ID: ${taskId}. Call action='status' with this task_id to check progress.\n(Using your own API key — direct to Tripo API)`,
+      };
+    }
+
+    const headers = proxyHeaders(ctx);
+    if (!headers) {
+      return {
+        error: "missing_proxy_secret",
+        message:
+          "Free tier requires TRIPO_PROXY_SECRET (matches server PROXY_SECRET). Configure: openclaw config set skill.tripo-3d-generation.TRIPO_PROXY_SECRET <secret>. Or set TRIPO_API_KEY to call Tripo directly.",
+      };
+    }
+
     const data = await postJson(`${PROXY_BASE}/api/generate`, {
       user_id: userId,
       prompt,
       type,
       image_url,
       files,
-      model_version: model_version || "v3.0-20250812",
+      model_version: model_version || "v3.1-20260211",
       format: format || "glb",
-      user_api_key: userApiKey,
-    });
+    }, headers);
 
     if (data.error === "quota_exceeded") {
       return { error: "quota_exceeded", message: formatQuotaExceeded(data) };
@@ -131,8 +225,20 @@ export async function run(params, ctx) {
       return { error: "task_id is required for action='status'." };
     }
 
-    const keyParam = userApiKey ? `?user_api_key=${encodeURIComponent(userApiKey)}` : "";
-    const data = await getJson(`${PROXY_BASE}/api/status/${task_id}${keyParam}`);
+    if (userApiKey) {
+      const data = await tripoGetTask(userApiKey, task_id);
+      return formatStatusResponse(data);
+    }
+
+    const headers = proxyHeaders(ctx);
+    if (!headers) {
+      return {
+        error: "missing_proxy_secret",
+        message: "Configure TRIPO_PROXY_SECRET for free-tier status polling, or TRIPO_API_KEY for direct Tripo access.",
+      };
+    }
+
+    const data = await getJson(`${PROXY_BASE}/api/status/${task_id}`, headers);
     return formatStatusResponse(data);
   }
 
@@ -142,8 +248,22 @@ export async function run(params, ctx) {
       return { error: "task_id is required for action='download'." };
     }
 
-    const keyParam = userApiKey ? `?user_api_key=${encodeURIComponent(userApiKey)}` : "";
-    const data = await getJson(`${PROXY_BASE}/api/download/${task_id}${keyParam}`);
+    if (userApiKey) {
+      const data = await tripoGetTask(userApiKey, task_id);
+      const shaped = directDownloadShape(task_id, data);
+      if (shaped.error) return shaped;
+      return shaped;
+    }
+
+    const headers = proxyHeaders(ctx);
+    if (!headers) {
+      return {
+        error: "missing_proxy_secret",
+        message: "Configure TRIPO_PROXY_SECRET for free-tier download URLs, or TRIPO_API_KEY for direct Tripo access.",
+      };
+    }
+
+    const data = await getJson(`${PROXY_BASE}/api/download/${task_id}`, headers);
 
     if (data.error) {
       return data;
@@ -160,12 +280,27 @@ export async function run(params, ctx) {
   }
 
   if (action === "credits") {
-    const data = await getJson(`${PROXY_BASE}/api/credits?user_id=${userId}`);
+    if (userApiKey) {
+      return {
+        message: "You are using your own Tripo API key — usage is billed by your Tripo account (not the skill free tier).",
+        using_own_key: true,
+      };
+    }
+
+    const headers = proxyHeaders(ctx);
+    if (!headers) {
+      return {
+        error: "missing_proxy_secret",
+        message: "Configure TRIPO_PROXY_SECRET to check free credits, or TRIPO_API_KEY if you use your own key.",
+      };
+    }
+
+    const data = await getJson(`${PROXY_BASE}/api/credits?user_id=${encodeURIComponent(userId)}`, headers);
 
     if (data.quota_exceeded) {
       return {
         ...data,
-        message: `All ${data.credits_total} free credits used. Configure your own API key to continue: openclaw config set skill.tripo-3d.TRIPO_API_KEY <your-key>`,
+        message: `All ${data.credits_total} free credits used. Configure your own API key to continue: openclaw config set skill.tripo-3d-generation.TRIPO_API_KEY <your-key>`,
         get_key_url: "https://platform.tripo3d.ai/api-keys",
       };
     }
@@ -175,6 +310,26 @@ export async function run(params, ctx) {
       message: `You have ${data.credits_remaining} free credits remaining out of ${data.credits_total}.`,
     };
   }
+
+  const runTaskProxyOrDirect = async (body) => {
+    if (userApiKey) {
+      const { user_id: _u, user_api_key: _k, ...tripoBody } = body;
+      const data = await tripoPostTask(userApiKey, tripoBody);
+      if (data.code !== 0 && data.code !== undefined) {
+        return { error: data.error || "tripo_error", message: data.message || JSON.stringify(data) };
+      }
+      return { data, formatCredits: "\n(Using your own API key — direct to Tripo API)" };
+    }
+    const headers = proxyHeaders(ctx);
+    if (!headers) {
+      return {
+        error: "missing_proxy_secret",
+        message: "Configure TRIPO_PROXY_SECRET for free-tier tasks, or TRIPO_API_KEY for direct Tripo API.",
+      };
+    }
+    const data = await postJson(`${PROXY_BASE}/api/task`, body, headers);
+    return { data, formatCredits: formatCreditsInfo(data) };
+  };
 
   if (action === "rig") {
     const { task_id, out_format, spec } = params;
@@ -187,14 +342,16 @@ export async function run(params, ctx) {
     if (spec) body.spec = spec;
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create rig task." };
 
     const rigTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: rigTaskId,
       status: "CREATED",
-      message: `Rig task created! Task ID: ${rigTaskId}. Call action='status' with this task_id to check progress. Once complete, use the rig task_id with action='animate' to apply animations.${formatCreditsInfo(data)}`,
+      message: `Rig task created! Task ID: ${rigTaskId}. Call action='status' with this task_id to check progress. Once complete, use the rig task_id with action='animate' to apply animations.${formatCredits || ""}`,
     };
   }
 
@@ -212,14 +369,16 @@ export async function run(params, ctx) {
     if (bake_animation != null) body.bake_animation = bake_animation;
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create animate task." };
 
     const animTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: animTaskId,
       status: "CREATED",
-      message: `Animation task created! Task ID: ${animTaskId}. Call action='status' with this task_id to check progress. Note: the model must be rigged first (action='rig') before animating.${formatCreditsInfo(data)}`,
+      message: `Animation task created! Task ID: ${animTaskId}. Call action='status' with this task_id to check progress. Note: the model must be rigged first (action='rig') before animating.${formatCredits || ""}`,
     };
   }
 
@@ -232,14 +391,16 @@ export async function run(params, ctx) {
     const body = { user_id: userId, type: "animate_prerigcheck", original_model_task_id: task_id };
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create pre-rig check task." };
 
     const checkTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: checkTaskId,
       status: "CREATED",
-      message: `Pre-rig check task created! Task ID: ${checkTaskId}. Call action='status' with this task_id to see if the model can be rigged.${formatCreditsInfo(data)}`,
+      message: `Pre-rig check task created! Task ID: ${checkTaskId}. Call action='status' with this task_id to see if the model can be rigged.${formatCredits || ""}`,
     };
   }
 
@@ -256,14 +417,16 @@ export async function run(params, ctx) {
     if (block_size != null) body.block_size = block_size;
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create stylize task." };
 
     const stylizeTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: stylizeTaskId,
       status: "CREATED",
-      message: `Stylize task created (${style})! Task ID: ${stylizeTaskId}. Call action='status' with this task_id to check progress.${formatCreditsInfo(data)}`,
+      message: `Stylize task created (${style})! Task ID: ${stylizeTaskId}. Call action='status' with this task_id to check progress.${formatCredits || ""}`,
     };
   }
 
@@ -283,14 +446,16 @@ export async function run(params, ctx) {
     if (force_symmetry != null) body.force_symmetry = force_symmetry;
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create convert task." };
 
     const convertTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: convertTaskId,
       status: "CREATED",
-      message: `Convert task created (to ${convert_format})! Task ID: ${convertTaskId}. Call action='status' with this task_id to check progress.${formatCreditsInfo(data)}`,
+      message: `Convert task created (to ${convert_format})! Task ID: ${convertTaskId}. Call action='status' with this task_id to check progress.${formatCredits || ""}`,
     };
   }
 
@@ -307,14 +472,16 @@ export async function run(params, ctx) {
     if (texture_alignment) body.texture_alignment = texture_alignment;
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create texture task." };
 
     const textureTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: textureTaskId,
       status: "CREATED",
-      message: `Re-texture task created! Task ID: ${textureTaskId}. Call action='status' with this task_id to check progress.${formatCreditsInfo(data)}`,
+      message: `Re-texture task created! Task ID: ${textureTaskId}. Call action='status' with this task_id to check progress.${formatCredits || ""}`,
     };
   }
 
@@ -327,14 +494,16 @@ export async function run(params, ctx) {
     const body = { user_id: userId, type: "refine_model", draft_model_task_id: task_id };
     if (userApiKey) body.user_api_key = userApiKey;
 
-    const data = await postJson(`${PROXY_BASE}/api/task`, body);
+    const result = await runTaskProxyOrDirect(body);
+    if (result.error) return result;
+    const { data, formatCredits } = result;
     if (data.error) return { error: data.error, message: data.message || "Failed to create refine task." };
 
     const refineTaskId = data.data?.task_id || data.task_id;
     return {
       task_id: refineTaskId,
       status: "CREATED",
-      message: `Refine task created! Task ID: ${refineTaskId}. Call action='status' with this task_id to check progress. Note: refine only works for draft models generated with versions < v2.0.${formatCreditsInfo(data)}`,
+      message: `Refine task created! Task ID: ${refineTaskId}. Call action='status' with this task_id to check progress. Note: refine only works for draft models generated with versions < v2.0.${formatCredits || ""}`,
     };
   }
 

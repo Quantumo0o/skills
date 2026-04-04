@@ -51,8 +51,8 @@ Users rarely say "call action=generate with type=text_to_model". They say things
 3. **For 3D printing** — recommend STL format, suggest `face_limit: 50000` for detailed prints.
 4. **For Apple AR** — convert to USDZ.
 5. **For game engines (Unity/Unreal)** — GLB or FBX.
-6. **For quick concepts** — use `model_version: "Turbo-v1.0-20250506"` (5-10 seconds).
-7. **For production quality** — use default `v3.0-20250812` (90 seconds, best geometry).
+6. **Default generation** — use `model_version: "v3.1-20260211"` (skill default) unless the user asks otherwise.
+7. **Low-poly / topology-critical output** — use `model_version: "P1-20260311"` (P1.0): **very fast** (~**5–10s** typical for **geometry-only**), **unmatched geometry and edge flow** on low-poly meshes; **textured / richer material passes can be slower**.
 8. **Animation workflow is sequential**: generate → prerigcheck → rig → animate. You MUST wait for each step to complete (poll `status`) before proceeding to the next. The `animate` action requires the rig task's ID, NOT the original model's ID.
 9. **Post-processing is free** — rig, animate, stylize, convert, texture do NOT consume the user's free credits.
 
@@ -101,13 +101,14 @@ Optional post-processing (all free, all need task_id from a completed task):
 
 ## Model Versions
 
-| Model | Speed | Best For |
-|-------|-------|----------|
-| `Turbo-v1.0-20250506` | ~5-10s | Quick concepts, rapid prototyping |
-| `v3.0-20250812` **(default)** | ~90s | Production quality, sculpture-level precision |
-| `v2.5-20250123` | ~25-30s | Fast + balanced |
-| `v2.0-20240919` | ~20s | Accurate geometry with PBR |
-| `v1.4-20240625` | ~10s | Legacy |
+Default: **`v3.1-20260211`**. Supported values:
+
+| Model | Speed (typical) | Best For |
+|-------|-----------------|----------|
+| `P1-20260311` | ~5–10s (geometry-only) | **P1.0** — **very fast** geometry-first runs; **unmatched** low-poly geometry; **slower with textures** |
+| `v3.1-20260211` **(default)** | ~60–100s | General high-quality generation |
+| `v3.0-20250812` | ~90s | Sculpture-level precision, sharp edges |
+| `v2.5-20250123` | ~25–30s | Faster, balanced quality |
 
 ## Prompt Engineering Tips
 
@@ -132,23 +133,27 @@ When credits run out, guide the user:
 2. Go to [API Keys](https://platform.tripo3d.ai/api-keys) → Generate key (starts with `tsk_`)
 3. `openclaw config set skill.tripo-3d-generation.TRIPO_API_KEY <key>`
 
-## External Endpoints
+For **free tier** (no Tripo key), set the proxy shared secret:
 
-| Endpoint | Method | Data Sent | Purpose |
-|----------|--------|-----------|---------|
-| `tripo-proxy.darknessporo.workers.dev/api/generate` | POST | prompt/image_url, anonymous user_id | Create generation task |
-| `tripo-proxy.darknessporo.workers.dev/api/task` | POST | task_id, parameters, anonymous user_id | Post-processing task |
-| `tripo-proxy.darknessporo.workers.dev/api/status/:id` | GET | task_id | Poll progress |
-| `tripo-proxy.darknessporo.workers.dev/api/download/:id` | GET | task_id | Get download URLs |
-| `tripo-proxy.darknessporo.workers.dev/api/credits` | GET | anonymous user_id | Check credits |
+4. `openclaw config set skill.tripo-3d-generation.TRIPO_PROXY_SECRET <same as server PROXY_SECRET>`
+
+## External Endpoints (dual channel)
+
+| When | Host | Method | Purpose |
+|------|------|--------|---------|
+| **You set `TRIPO_API_KEY`** | `api.tripo3d.ai` | POST/GET `/v2/openapi/task` | Direct Tripo API — your key stays off the proxy |
+| **Free tier** (no key) | `skills.vast-internal.com` (path `/platform/tripo/`) | POST `/api/generate`, `/api/task` | Create tasks via operator proxy |
+| **Free tier** | same | GET `/api/status/:id`, `/api/download/:id`, `/api/credits` | Poll, download, credits |
+
+Free-tier requests include header `x-proxy-secret` (from `TRIPO_PROXY_SECRET`). They do **not** send your Tripo API key (you have none configured).
 
 ## Security & Privacy
 
-- **No personal data collected**: Anonymous `user_id` via SHA-256 hash of hostname (16 hex chars, irreversible).
-- **Modules used**: `crypto.createHash` (anonymous ID), `os.hostname` (hash input only). No filesystem, no shell, no persistence.
-- **API key**: Sent only to proxy over HTTPS. Never logged or stored elsewhere.
-- **What leaves the machine**: Text prompts, image URLs, anonymous user_id. Nothing else.
+- **User id for free tier**: Random UUID (16 hex chars), stored in `~/.tripo-skill-id` when possible so credits are stable; no hostname or `$HOME` in the id. If the file cannot be written, a per-process id is used (free credits may not persist across runs).
+- **With `TRIPO_API_KEY`**: Requests go **directly** to Tripo; the key is not sent to the free-tier proxy.
+- **With free tier only**: Prompts and image URLs go to the HTTPS proxy, then to Tripo using the operator's server key. Proxy secret prevents arbitrary public abuse of the proxy URL.
+- **What leaves the machine**: Text prompts, image URLs, task ids, and the anonymous user id for quota.
 
 ## Trust Statement
 
-By using this skill, your text prompts and image URLs are sent to Tripo AI (via Cloudflare Worker proxy) for 3D generation. Only install if you trust [Tripo AI](https://www.tripo3d.ai/). No data stored beyond a per-user credit counter.
+By using this skill, 3D generation is performed by [Tripo AI](https://www.tripo3d.ai/). With your own API key, you connect directly to Tripo. Without a key, traffic goes to the operator's HTTPS proxy (`skills.vast-internal.com`) under the terms described on ClawHub. Free-tier usage is tracked only by the anonymous id file above.

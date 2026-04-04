@@ -7,7 +7,7 @@ Generate 3D models from text or images using [Tripo AI](https://www.tripo3d.ai/)
 ### Install
 
 ```bash
-clawhub install tripo-3d
+clawhub install tripo-3d-generation
 ```
 
 ### Generate Your First 3D Model
@@ -18,13 +18,19 @@ Just ask your AI assistant:
 
 That's it! The skill handles everything — task creation, progress polling, and delivering download links.
 
+## API key & free tier
+
+- **No Tripo key**: Uses the operator HTTPS proxy at `skills.vast-internal.com` (path `/platform/tripo/`). You must configure **`TRIPO_PROXY_SECRET`** (same as server `PROXY_SECRET`) so the skill can send `x-proxy-secret`.
+- **Your Tripo key**: Set **`TRIPO_API_KEY`** — requests go **directly** to Tripo (`api.tripo3d.ai`); your key is never sent to the proxy.
+
 ## Features
 
 - **Text to 3D** — Describe any object and get a 3D model
 - **Image to 3D** — Convert photos into 3D models
 - **10 Free Credits** — Start generating immediately, no setup required
 - **Multiple Formats** — GLB, FBX, OBJ, STL
-- **Latest Model** — Uses Tripo v3.0-20250812 by default (best stable quality)
+- **Default model** — `v3.1-20260211`
+- **P1-20260311 (P1.0)** — **Very fast** generation: typically **~5–10s** for **geometry-only** meshes, plus **unmatched** low-poly geometry and mesh topology. **With full texturing / heavier materials, expect slower runs.**
 - **Async Generation** — Submit tasks and poll for results, no blocking
 
 ## Usage
@@ -65,7 +71,7 @@ When your 10 free credits are used up, you can continue with your own Tripo API 
 3. **Configure the skill**:
 
 ```bash
-openclaw config set skill.tripo-3d.TRIPO_API_KEY tsk_your_key_here
+openclaw config set skill.tripo-3d-generation.TRIPO_API_KEY tsk_your_key_here
 ```
 
 New Tripo accounts get **2,000 free credits** (worth $20) — so you'll have plenty to work with.
@@ -74,14 +80,14 @@ New Tripo accounts get **2,000 free credits** (worth $20) — so you'll have ple
 
 | Version | Speed | Quality | Best For |
 |---------|-------|---------|----------|
-| `Turbo-v1.0-20250506` | ~5-10s | Good | Fastest prototyping |
-| `v3.1-20260211` | ~60-100s | Highest | Newest (may be unstable) |
-| `v3.0-20250812` (default) | ~90s | Highest stable | Production-quality models |
-| `v2.5-20250123` | ~25-30s | High | Quick iterations |
-| `v2.0-20240919` | ~20s | High | Accurate geometry |
-| `v1.4-20240625` | ~10s | Good | Legacy, realistic textures |
+| `P1-20260311` | ~5–10s (geometry-only) | Topology | **P1.0** — **very fast**, **unmatched** low-poly geometry; **slower with textures** |
+| `v3.1-20260211` (default) | ~60–100s | Highest | Default high-quality generation |
+| `v3.0-20250812` | ~90s | Highest stable | Sculpture-level, sharp edges |
+| `v2.5-20250123` | ~25–30s | Balanced | Faster iterations |
 
-To use a different version, just mention it: "Generate a 3D robot using Tripo v2.5-20250123"
+To use a different version, mention it explicitly (e.g. `P1-20260311` for fast geometry-first low-poly, or `v2.5-20250123` for a balanced default).
+
+*P1.0 speed is typical for geometry-focused output; textured or high-material workflows can take longer.*
 
 ## Output Formats
 
