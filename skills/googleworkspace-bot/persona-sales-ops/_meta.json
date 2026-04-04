@@ -3,11 +3,16 @@
   "slug": "persona-sales-ops",
   "displayName": "Persona Sales Ops",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1774551093281,
-    "commit": "https://github.com/openclaw/skills/commit/6fd1e2ca16ab4a746f337d2e97109af5c3061af0"
+    "version": "1.0.12",
+    "publishedAt": 1774982134514,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1774551093281,
+      "commit": "https://github.com/openclaw/skills/commit/6fd1e2ca16ab4a746f337d2e97109af5c3061af0"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774300550143,
