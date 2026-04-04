@@ -3,11 +3,16 @@
   "slug": "barcode",
   "displayName": "Barcode Inquiry - 商品条码查询",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1774585719093,
-    "commit": "https://github.com/openclaw/skills/commit/17f6f365fd95cb4372a539ddd72c9bfe719d3f97"
+    "version": "1.0.10",
+    "publishedAt": 1775208529813,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1774585719093,
+      "commit": "https://github.com/openclaw/skills/commit/17f6f365fd95cb4372a539ddd72c9bfe719d3f97"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1773728897225,

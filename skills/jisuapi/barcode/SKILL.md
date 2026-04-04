@@ -1,6 +1,6 @@
 ---
-name: jisu-barcode2
-description: 使用极速数据商品条码查询 API，通过商品条形码查询商品名称、品牌、规格、产地、包装信息等基础资料。
+name: "Barcode Generation And Recognition - 条码生成识别"
+description: 按条形码查询商品名称、品牌、规格与产地等。当用户说：扫这个条码是什么商品、690 开头的条码查一下信息，或类似商品条码查询时，使用本技能。
 metadata: { "openclaw": { "emoji": "🏷️", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
@@ -12,7 +12,7 @@ metadata: { "openclaw": { "emoji": "🏷️", "requires": { "bins": ["python3"],
 ## 前置配置：获取 API Key
 
 1. 前往 [极速数据官网](https://www.jisuapi.com/) 注册账号
-2. 进入 [对应接口页面](https://www.jisuapi.com/api/barcode2/) 页面，点击「申请数据」
+2. 进入 [商品条码查询 API](https://www.jisuapi.com/api/barcode2/) 页面，点击「申请数据」
 3. 在会员中心获取 **AppKey**
 4. 配置 Key：
 
