@@ -1,6 +1,6 @@
 ---
-name: jisu-trademark
-description: 使用极速数据商标信息 API，支持商标关键词搜索和商标详情查询，获取商标名称、申请人、国际分类、公告期号和商标图片等信息。
+name: "Trademark Information Inquiry - 商标信息查询"
+description: 商标关键词搜索与详情查询（申请人、分类、公告等）。当用户说：查一下「某某」商标有没有被注册？这个商标注册人是谁？或类似商标问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "®️", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
