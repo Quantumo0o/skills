@@ -3,9 +3,15 @@
   "slug": "quickbase",
   "displayName": "Quickbase",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772953356082,
-    "commit": "https://github.com/openclaw/skills/commit/ebf06c13a5064d6123002874fc16404166836501"
+    "version": "1.0.2",
+    "publishedAt": 1775162796805,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772953356082,
+      "commit": "https://github.com/openclaw/skills/commit/ebf06c13a5064d6123002874fc16404166836501"
+    }
+  ]
 }
