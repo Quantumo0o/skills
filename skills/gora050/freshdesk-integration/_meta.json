@@ -3,9 +3,15 @@
   "slug": "freshdesk-integration",
   "displayName": "Freshdesk",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772708555607,
-    "commit": "https://github.com/openclaw/skills/commit/4f0dd20fc7f48b8a6c2509cefe3266cdabb6d1ec"
+    "version": "1.0.2",
+    "publishedAt": 1775162398068,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772708555607,
+      "commit": "https://github.com/openclaw/skills/commit/4f0dd20fc7f48b8a6c2509cefe3266cdabb6d1ec"
+    }
+  ]
 }
