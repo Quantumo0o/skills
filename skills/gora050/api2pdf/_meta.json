@@ -3,9 +3,15 @@
   "slug": "api2pdf",
   "displayName": "Api2Pdf",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773172999687,
-    "commit": "https://github.com/openclaw/skills/commit/d7a7eb75db0a43bbf06c0f0189d5c60cacd44bba"
+    "version": "1.0.2",
+    "publishedAt": 1775163147359,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773172999687,
+      "commit": "https://github.com/openclaw/skills/commit/d7a7eb75db0a43bbf06c0f0189d5c60cacd44bba"
+    }
+  ]
 }
