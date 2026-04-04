@@ -3,9 +3,15 @@
   "slug": "tencentcloud-ocr",
   "displayName": "TencentCloud OCR",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773199193101,
-    "commit": "https://github.com/openclaw/skills/commit/630b9d2cb91c54e2b24d168edc1993216125f119"
+    "version": "1.0.3",
+    "publishedAt": 1775024599395,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773199193101,
+      "commit": "https://github.com/openclaw/skills/commit/630b9d2cb91c54e2b24d168edc1993216125f119"
+    }
+  ]
 }

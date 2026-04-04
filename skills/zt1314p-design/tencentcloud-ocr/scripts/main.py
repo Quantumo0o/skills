@@ -64,21 +64,25 @@ def load_image_base64(value: str) -> str:
         return value
 
 
-def format_response(resp_json: dict) -> dict:
-    """格式化响应结果，提取识别文本。"""
-    text_detections = resp_json.get("TextDetections", [])
+def format_response(resp) -> dict:
+    """格式化 SDK 响应对象，提取识别文本。
+
+    Args:
+        resp: GeneralAccurateOCRResponse object from SDK.
+    """
+    text_detections = resp.TextDetections or []
 
     if not text_detections:
         return {
             "raw_text": "",
             "message": "No text detected in the image.",
-            "RequestId": resp_json.get("RequestId", ""),
+            "RequestId": resp.RequestId or "",
         }
 
-    raw_text = "\n".join(item.get("DetectedText", "") for item in text_detections)
+    raw_text = "\n".join(item.DetectedText or "" for item in text_detections)
     return {
         "raw_text": raw_text,
-        "RequestId": resp_json.get("RequestId", ""),
+        "RequestId": resp.RequestId or "",
     }
 
 
@@ -86,10 +90,12 @@ def call_general_accurate_ocr(args: argparse.Namespace) -> None:
     """调用腾讯云 GeneralAccurateOCR 接口。"""
     try:
         from tencentcloud.common import credential
+        from tencentcloud.common.exception.tencent_cloud_sdk_exception import (
+            TencentCloudSDKException,
+        )
         from tencentcloud.common.profile.client_profile import ClientProfile
         from tencentcloud.common.profile.http_profile import HttpProfile
-        from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
-        from tencentcloud.ocr.v20181119 import ocr_client, models
+        from tencentcloud.ocr.v20181119 import models, ocr_client
     except ImportError:
         print("错误: 缺少依赖 tencentcloud-sdk-python，请执行: pip install tencentcloud-sdk-python", file=sys.stderr)
         sys.exit(1)
@@ -126,10 +132,9 @@ def call_general_accurate_ocr(args: argparse.Namespace) -> None:
     if args.is_words is not None:
         req.IsWords = args.is_words
 
-    # 发起请求
+    # 发起请求（使用 SDK 高层接口，类型安全、自动反序列化）
     try:
-        resp_json_str = client.call_json("GeneralAccurateOCR", req._serialize())
-        resp_json = json.loads(resp_json_str)
+        resp = client.GeneralAccurateOCR(req)
     except TencentCloudSDKException as e:
         print(f"API调用失败 [{e.code}]: {e.message}", file=sys.stderr)
         if e.requestId:
@@ -137,7 +142,7 @@ def call_general_accurate_ocr(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     # 格式化输出
-    result = format_response(resp_json)
+    result = format_response(resp)
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
