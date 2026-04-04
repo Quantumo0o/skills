@@ -3,11 +3,16 @@
   "slug": "jisu-calendar",
   "displayName": "Calendar - 万年历查询",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774592705479,
-    "commit": "https://github.com/openclaw/skills/commit/79ca47a5538f09a88d1058c9f3b873ee5a1973d8"
+    "version": "1.0.6",
+    "publishedAt": 1775209591640,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774592705479,
+      "commit": "https://github.com/openclaw/skills/commit/79ca47a5538f09a88d1058c9f3b873ee5a1973d8"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773728855691,

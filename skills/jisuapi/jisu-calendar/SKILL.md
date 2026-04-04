@@ -1,6 +1,6 @@
 ---
-name: jisu-calendar
-description: 使用极速数据万年历 API 查询指定日期的公历、农历、星座、生肖、黄历及节假日信息。
+name: "Calendar - 万年历查询"
+description: 查询指定日期的公历、农历、星座、生肖、黄历要点与节假日。当用户说：明天农历几号？今年春节是哪天？或类似万年历问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🗓️", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
