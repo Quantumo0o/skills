@@ -1,6 +1,6 @@
 ---
 name: verdictswarm
-description: "Multi-agent crypto token intelligence. 6 AI agents independently analyze and debate a token's fundamentals before reaching consensus. Free, no API key needed."
+description: "Fight AI with AI. 6 adversarial AI agents debate crypto token risk before your agent trades. Rug-pull detection, security audits, consensus scoring via MCP."
 triggers:
   - scan token
   - analyze crypto
@@ -9,8 +9,9 @@ triggers:
   - crypto analysis
   - should I buy this token
   - check this token
+  - rug pull check
 requires:
-  - network: "https://verdictswarm-production-7460.up.railway.app"
+  - network: "https://api.vswarm.io"
 ---
 
 # VerdictSwarm — Multi-Agent Token Intelligence
@@ -21,7 +22,7 @@ Six specialized AI agents independently analyze your token from different angles
 
 > "What do you think of this token?" → 6 agents analyze → Consensus reached → You decide
 
-**No API key needed for free tier.** Install and start immediately.
+**Free tier available.** 10 quick scans per day, no API key needed.
 
 ## How It Works
 
@@ -29,63 +30,61 @@ Each agent specializes in a different aspect of token analysis:
 
 | Agent | Focus Area |
 |-------|-----------|
-| 🔒 Security Auditor | Smart contract review, permissions, authority status |
-| 📊 Market Analyst | Price trends, volume, liquidity, market cap analysis |
-| 👥 Community Investigator | Social presence, holder distribution, engagement |
-| 💰 Tokenomics Expert | Supply mechanics, vesting schedules, distribution |
-| 📈 Technical Analyst | Chart patterns, volume trends, momentum indicators |
-| ⚠️ Risk Assessor | Overall risk profile, comparative analysis |
+| Security Bot | Smart contract permissions, mint/freeze authority, honeypot detection |
+| Tokenomics Bot | Supply mechanics, holder concentration, distribution |
+| Social Bot | Community signals, social presence, engagement patterns |
+| Technical Bot | On-chain metrics, liquidity analysis, trading patterns |
+| Macro Bot | Market context, comparative analysis, sector trends |
+| Devil's Advocate | Challenges every verdict, finds what others missed |
 
-## Quick Start
+## MCP Tools
+
+Install via MCP for agent integration:
 
 ```bash
-curl -s "https://verdictswarm-production-7460.up.railway.app/v1/scan" \
+pip install verdictswarm-mcp
+```
+
+| Tool | Description |
+|------|-------------|
+| `scan_token` | Full 6-agent consensus risk scan |
+| `get_quick_score` | Fast cached score (0-100) for pre-trade screening |
+| `check_rug_risk` | Rug-pull focused security check (SAFE/CAUTION/DANGER) |
+| `get_token_report` | Shareable markdown report |
+| `get_pricing` | View pricing and Solana payment details |
+| `verify_payment` | Verify USDC payment on Solana |
+
+## Quick Start (API)
+
+```bash
+curl -s "https://api.vswarm.io/api/scan/quick" \
   -H "Content-Type: application/json" \
-  -d '{"address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN"}' | python3 -m json.tool
+  -d '{"address": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN", "chain": "solana"}'
 ```
 
-## Response
+## Scoring Guide
 
-```json
-{
-  "verdict": {
-    "score": 82,
-    "risk_level": "LOW",
-    "recommendation": "SAFE",
-    "consensus": "5/6 agents agree: strong fundamentals, active development"
-  },
-  "agents": [
-    { "name": "Security Auditor", "score": 85, "analysis": "..." },
-    { "name": "Market Analyst", "score": 78, "analysis": "..." }
-  ],
-  "debate": {
-    "rounds": 3,
-    "dissenting_opinions": ["Market Analyst noted declining volume trend..."]
-  },
-  "report_url": "https://verdictswarm-production-7460.up.railway.app/report/abc123",
-  "token": {
-    "name": "Jupiter",
-    "symbol": "JUP",
-    "chain": "solana"
-  }
-}
-```
-
-Every scan generates a **shareable report page** at the `report_url`.
+- 80-100: LOW risk (Grade A)
+- 70-79: LOW-MEDIUM (Grade B)
+- 60-69: MEDIUM (Grade C)
+- 40-59: HIGH (Grade D)
+- 0-39: CRITICAL (Grade F)
 
 ## Pricing
 
 | Tier | Cost | Details |
 |------|------|---------|
-| **Free** | $0 / no key needed | 5 scans/day, 2-agent quick analysis |
-| **PRO** | Paid plans available | Full 6-agent analysis, unlimited |
+| **Free** | $0 | 10 quick scans/day |
+| **Quick Scan** | 0.02 USDC | Cached score + metadata |
+| **Rug Check** | 0.05 USDC | Security-focused verdict |
+| **Full Scan** | 0.10 USDC | All 6 agents, full debate |
 
-## Related
+Pay per scan with USDC on Solana, or use a free API key from vswarm.io.
 
-- **Token Profiler:** Install `token-profiler` for raw aggregated data (no AI, just data from 5+ sources)
+## Supported Chains
+
+Solana, Ethereum, Base, BSC
 
 ## Agent Instructions
 
-When the user asks to analyze or check a crypto token, call the scan endpoint with the token's contract address. Present the verdict score, risk level, and consensus summary. If agents disagreed, highlight the differences. Include the `report_url` for the full breakdown.
-
-Supported chains: Solana, Ethereum, Base.
+When the user asks to analyze or check a crypto token, use the MCP tools (preferred) or call the API directly. Present the verdict score, risk level, and consensus summary. If agents disagreed, highlight the differences. Include the report URL for the full breakdown.
