@@ -3,9 +3,15 @@
   "slug": "northflank",
   "displayName": "Northflank",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773439358028,
-    "commit": "https://github.com/openclaw/skills/commit/689d493e24460d26c08d51155645166fe222858c"
+    "version": "1.0.2",
+    "publishedAt": 1775163752857,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773439358028,
+      "commit": "https://github.com/openclaw/skills/commit/689d493e24460d26c08d51155645166fe222858c"
+    }
+  ]
 }
