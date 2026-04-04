@@ -3,9 +3,15 @@
   "slug": "apolloio",
   "displayName": "Apolloio",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772787732097,
-    "commit": "https://github.com/openclaw/skills/commit/5a172b8f195a9ee594f34dd468178e8f4e487203"
+    "version": "1.0.2",
+    "publishedAt": 1775161813580,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772787732097,
+      "commit": "https://github.com/openclaw/skills/commit/5a172b8f195a9ee594f34dd468178e8f4e487203"
+    }
+  ]
 }
