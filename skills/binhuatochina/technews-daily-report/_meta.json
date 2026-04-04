@@ -1,0 +1,11 @@
+{
+  "owner": "binhuatochina",
+  "slug": "technews-daily-report",
+  "displayName": "科技新闻日报",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1775293595733,
+    "commit": null
+  },
+  "history": []
+}
