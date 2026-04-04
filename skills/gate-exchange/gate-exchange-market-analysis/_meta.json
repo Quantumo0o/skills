@@ -1,13 +1,18 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-exchange-market-analysis",
-  "displayName": "Gate Exchange Market Analysis",
+  "displayName": "Gate Exchange MarketAnalysis",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774617528407,
-    "commit": "https://github.com/openclaw/skills/commit/fb32dac77564270d05ccdf1be03d259e6461efd4"
+    "version": "1.0.2",
+    "publishedAt": 1775115271311,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774617528407,
+      "commit": "https://github.com/openclaw/skills/commit/fb32dac77564270d05ccdf1be03d259e6461efd4"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773397500386,
