@@ -1,13 +1,18 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-drift",
-  "displayName": "Adopt a Drift — Virtual Exotic Pet for AI Agents",
+  "displayName": "Drift — Adopt a Drift. AI-Native Pet. 漂流。Deriva.",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773301280473,
-    "commit": "https://github.com/openclaw/skills/commit/a9f79836db61091a47b620cc9b1b2520a388ef89"
+    "version": "1.0.3",
+    "publishedAt": 1775008178702,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773301280473,
+      "commit": "https://github.com/openclaw/skills/commit/a9f79836db61091a47b620cc9b1b2520a388ef89"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773195319806,
