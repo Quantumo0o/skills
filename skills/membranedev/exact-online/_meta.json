@@ -3,9 +3,15 @@
   "slug": "exact-online",
   "displayName": "Exact Online",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772787739103,
-    "commit": "https://github.com/openclaw/skills/commit/29d3363063151f368501032c3da12c4647278cb8"
+    "version": "1.0.2",
+    "publishedAt": 1775161817662,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772787739103,
+      "commit": "https://github.com/openclaw/skills/commit/29d3363063151f368501032c3da12c4647278cb8"
+    }
+  ]
 }
