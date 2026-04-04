@@ -3,11 +3,16 @@
   "slug": "anygen-diagram-generator",
   "displayName": "Diagram Generator",
   "latest": {
-    "version": "1.3.5",
-    "publishedAt": 1773250786929,
-    "commit": "https://github.com/openclaw/skills/commit/dceedb689dc9958ed391ecd8d15928bc8be3bd33"
+    "version": "3.0.0",
+    "publishedAt": 1774865669964,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.5",
+      "publishedAt": 1773250786929,
+      "commit": "https://github.com/openclaw/skills/commit/dceedb689dc9958ed391ecd8d15928bc8be3bd33"
+    },
     {
       "version": "1.3.2",
       "publishedAt": 1773167980111,
