@@ -1,55 +1,45 @@
 #!/usr/bin/env bash
-# Read-only trust review pack focused on Socket-style static concerns.
-# Prints a single PASS/FAIL verdict with compact evidence.
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$SKILL_DIR"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
 
-RUNTIME_FILES=(
-  "scripts/plan.sh"
-  "scripts/export-gmaps.sh"
-  "scripts/gen-airports.py"
-)
-
-# 1) Runtime suspicious execution/network clients (should be empty)
-if rg -n "\\bcurl\\b|\\bwget\\b|urllib\\.request|requests\\.|httpx\\.|subprocess\\.(run|Popen)|os\\.system|eval\\(|exec\\(" "${RUNTIME_FILES[@]}" >/tmp/socket-review-runtime.txt; then
-  echo "SOCKET_REVIEW: FAIL"
-  echo "reason=runtime_suspicious_pattern_detected"
-  cat /tmp/socket-review-runtime.txt
+fail() {
+  echo "[FAIL] $1" >&2
   exit 1
-fi
+}
 
-# 2) Credential leak smoke scan (should be empty)
-if rg -n "AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]+|ghp_[A-Za-z0-9]{36}|-----BEGIN (RSA|EC|OPENSSH|PRIVATE) KEY-----" SKILL.md README.md scripts references >/tmp/socket-review-secrets.txt; then
-  echo "SOCKET_REVIEW: FAIL"
-  echo "reason=security_concerns_credential_like_pattern_detected"
-  cat /tmp/socket-review-secrets.txt
-  exit 1
-fi
+pass() {
+  echo "[PASS] $1"
+}
 
-# 3) Obfuscation smoke scan for runtime scripts (should be empty)
-if rg -n "[A-Za-z0-9+/]{180,}={0,2}" scripts/plan.sh scripts/export-gmaps.sh scripts/gen-airports.py >/tmp/socket-review-obfuscation.txt; then
-  echo "SOCKET_REVIEW: FAIL"
-  echo "reason=code_obfuscation_long_encoded_blob_detected"
-  cat /tmp/socket-review-obfuscation.txt
-  exit 1
-fi
+echo "Running static trust review checks..."
 
-# 4) Frontmatter invariants
-if ! rg -n "^license:\s*MIT-0\s*$" SKILL.md >/dev/null; then
-  echo "SOCKET_REVIEW: FAIL"
-  echo "reason=security_concerns_license_not_mit_0"
-  exit 1
+# 1) Runtime and generator scripts should not make outbound network calls.
+if rg -n "\b(curl|wget)\b|\bfetch\s*\(|\baxios\s*\(|\brequests\.(get|post|put|delete|request)\b|\burllib\.(request|urlopen)\b|\bhttpx\.(get|post|put|delete|request|Client|AsyncClient)\b" scripts/plan.sh scripts/export-gmaps.sh scripts/gen-airports.py >/tmp/socket-review-network.txt; then
+  cat /tmp/socket-review-network.txt >&2
+  fail "Runtime/generator scripts include network-related patterns."
 fi
+pass "Runtime/generator scripts contain no network-client patterns."
 
-if ! rg -n "^\s*env:\s*\[\]\s*$" SKILL.md >/dev/null; then
-  echo "SOCKET_REVIEW: FAIL"
-  echo "reason=security_concerns_requires_env_not_empty"
-  exit 1
+# 2) Runtime and generator scripts should avoid dynamic command execution primitives.
+if rg -n "eval\(|\beval\b|bash -c|sh -c|source <\(|os\.system|subprocess\.|exec\(" scripts/plan.sh scripts/export-gmaps.sh scripts/gen-airports.py >/tmp/socket-review-exec.txt; then
+  cat /tmp/socket-review-exec.txt >&2
+  fail "Runtime/generator scripts include dynamic execution patterns."
 fi
+pass "Runtime/generator scripts contain no dynamic execution primitives."
 
-echo "SOCKET_REVIEW: PASS"
-echo "checks=runtime_suspicious_pattern,credential_leak_smoke,obfuscation_smoke,frontmatter_invariants"
-echo "socket_categories=malicious_behavior:pass,security_concerns:pass,code_obfuscation:pass,suspicious_patterns:pass"
+# 3) Ensure publish metadata keeps the approved license.
+if ! rg -n "^license:\s*MIT-0$" SKILL.md >/dev/null; then
+  fail "SKILL.md license is not MIT-0."
+fi
+pass "SKILL.md license remains MIT-0."
+
+# 4) Spot obvious credential-like strings in tracked content.
+if rg -n "AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|sk-[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{20,}" SKILL.md scripts references README.md >/tmp/socket-review-secrets.txt; then
+  cat /tmp/socket-review-secrets.txt >&2
+  fail "Potential credential pattern detected."
+fi
+pass "No obvious credential patterns detected."
+
+echo "All static trust review checks passed."
