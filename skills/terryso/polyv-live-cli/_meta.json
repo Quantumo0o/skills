@@ -3,11 +3,16 @@
   "slug": "polyv-live-cli",
   "displayName": "polyv-live-cli",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774511653680,
-    "commit": "https://github.com/openclaw/skills/commit/47460375442c04ec6a2888d2bda62750a52ec8b4"
+    "version": "1.0.5",
+    "publishedAt": 1774943130624,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774511653680,
+      "commit": "https://github.com/openclaw/skills/commit/47460375442c04ec6a2888d2bda62750a52ec8b4"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774244778189,
