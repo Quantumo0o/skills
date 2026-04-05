@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""MoPNG API client for OpenClaw - Image processing via qise.cc"""
+"""MoPNG API client for OpenClaw - Image processing via mopng.cn"""
 
 import argparse
+import ipaddress
 import json
 import mimetypes
 import os
@@ -12,10 +13,25 @@ import uuid
 from pathlib import Path
 from urllib import error, request, parse
 
-BASE_URL = "https://motu-api.qise.cc"
+BASE_URL = "https://mo-api.mopng.cn"
+UPSCALE_URL = "https://mo-api.mopng.cn"
 ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 MAX_BYTES = 25 * 1024 * 1024
 MAX_DIMENSION = 12000
+MAX_PROMPT_CHARS = 8000
+
+# Remote image URL passed as --input: only https, host must be under MoPNG or MOPNG_EXTRA_ALLOWED_IMAGE_HOSTS.
+_USER_URL_SUFFIX = "mopng.cn"
+_FORBIDDEN_RESULT_HOSTS = frozenset(
+    {
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",  # nosec B104 — blocklisted hostname for SSRF checks, not socket bind
+        "::1",
+        "169.254.169.254",
+        "metadata.google.internal",
+    }
+)
 
 
 def _workspace_root() -> Path:
@@ -28,6 +44,112 @@ def _ensure_within(path: Path, root: Path, label: str) -> None:
         path.relative_to(root)
     except ValueError:
         raise ValueError(f"{label} must be inside workspace: {root}")
+
+
+def _is_remote_image_ref(s: str) -> bool:
+    t = s.strip().lower()
+    return t.startswith("https://") or t.startswith("http://")
+
+
+def _extra_allowed_user_image_hosts() -> frozenset[str]:
+    raw = os.environ.get("MOPNG_EXTRA_ALLOWED_IMAGE_HOSTS", "")
+    return frozenset(h.strip().lower() for h in raw.split(",") if h.strip())
+
+
+def _host_matches_user_allowlist(host: str) -> bool:
+    h = host.lower().rstrip(".")
+    if not h:
+        return False
+    if h == _USER_URL_SUFFIX or h.endswith("." + _USER_URL_SUFFIX):
+        return True
+    for entry in _extra_allowed_user_image_hosts():
+        e = entry.rstrip(".").lower()
+        if not e:
+            continue
+        if e.startswith("."):
+            suf = e[1:]
+            if h == suf or h.endswith("." + suf):
+                return True
+        elif h == e or h.endswith("." + e):
+            return True
+    return False
+
+
+def _validate_user_image_url(url: str) -> None:
+    """Restrict user-supplied image URLs (SSRF mitigation for URLs forwarded to MoPNG)."""
+    u = url.strip()
+    p = parse.urlparse(u)
+    if p.scheme.lower() != "https":
+        raise ValueError("Remote image input must use https:// (http is not allowed).")
+    if not p.hostname:
+        raise ValueError("Remote image URL must include a valid hostname.")
+    if p.username is not None or p.password is not None:
+        raise ValueError("URLs with embedded credentials are not allowed.")
+    host = p.hostname
+    if not _host_matches_user_allowlist(host):
+        raise ValueError(
+            "Remote image URL host is not allowed. "
+            f"Use a hostname under {_USER_URL_SUFFIX}, or set MOPNG_EXTRA_ALLOWED_IMAGE_HOSTS "
+            "(comma-separated hosts or suffixes such as .cdn.example.com)."
+        )
+
+
+def _host_is_ssrf_risk(host: str) -> bool:
+    hn = host.lower().strip(".")
+    if not hn:
+        return True
+    if hn in _FORBIDDEN_RESULT_HOSTS:
+        return True
+    if hn.endswith(".local") or hn.endswith(".localhost"):
+        return True
+    for candidate in (hn, hn.strip("[]")):
+        try:
+            ip = ipaddress.ip_address(candidate)
+            return bool(
+                ip.is_private
+                or ip.is_loopback
+                or ip.is_multicast
+                or ip.is_reserved
+                or ip.is_link_local
+            )
+        except ValueError:
+            continue
+    return False
+
+
+def _validate_result_download_url(url: str) -> None:
+    """Validate URLs returned by MoPNG before downloading (HTTPS + no obvious SSRF targets)."""
+    u = url.strip()
+    p = parse.urlparse(u)
+    if p.scheme.lower() != "https":
+        raise ValueError("Download URL must use https.")
+    if not p.hostname:
+        raise ValueError("Download URL must include a hostname.")
+    if p.username is not None or p.password is not None:
+        raise ValueError("Download URL with credentials is not allowed.")
+    if _host_is_ssrf_risk(p.hostname):
+        raise ValueError("Download URL host is not allowed.")
+
+
+def _validate_prompt_field(text: str, name: str) -> str:
+    s = text.strip()
+    if not s:
+        raise ValueError(f"{name} cannot be empty.")
+    if len(s) > MAX_PROMPT_CHARS:
+        raise ValueError(f"{name} must be at most {MAX_PROMPT_CHARS} characters.")
+    return s
+
+
+def _validate_optional_prompt_field(text: str | None, name: str) -> str | None:
+    if text is None or not str(text).strip():
+        return None
+    return _validate_prompt_field(str(text), name)
+
+
+def _resolve_input_image_url(args, in_path: Path, api_key: str) -> str:
+    if _is_remote_image_ref(str(args.input)):
+        return str(args.input).strip()
+    return _upload_image(in_path, api_key)
 
 
 def _detect_image_format(data: bytes) -> str | None:
@@ -139,10 +261,10 @@ def _validate_input_image(path: Path) -> bytes:
     return data
 
 
-def _api_request(method: str, endpoint: str, api_key: str, data: dict | None = None, 
-                 files: dict | None = None, timeout: int = 90) -> dict:
+def _api_request(method: str, endpoint: str, api_key: str, data: dict | None = None,
+                 files: dict | None = None, timeout: int = 90, base_url: str = BASE_URL) -> dict:
     """Make API request with proper auth"""
-    url = f"{BASE_URL}{endpoint}"
+    url = f"{base_url}{endpoint}"
     headers = {"Authorization": f"Bearer {api_key}"}
     
     if files:
@@ -178,7 +300,7 @@ def _api_request(method: str, endpoint: str, api_key: str, data: dict | None = N
         req = request.Request(url, method=method, headers=headers)
     
     try:
-        with request.urlopen(req, timeout=timeout) as resp:
+        with request.urlopen(req, timeout=timeout) as resp:  # nosec B310 — URL is fixed API host + path
             return json.loads(resp.read().decode())
     except error.HTTPError as e:
         body = e.read().decode("utf-8", "ignore")
@@ -196,13 +318,13 @@ def _upload_image(image_path: Path, api_key: str) -> str:
     resp = _api_request("POST", "/api/v1/images/upload", api_key, files=files)
     if resp.get("code") != 0:
         raise RuntimeError(f"Upload failed: {resp.get('message', 'unknown error')}")
-    return resp["data"].get("signedUrl") or resp["data"].get("signed_url")
+    return resp["data"].get("signed_url") or resp["data"].get("signedUrl")
 
 
-def _poll_task(endpoint: str, task_id: str, api_key: str, max_retries: int = 60, interval: int = 2) -> dict:
+def _poll_task(endpoint: str, task_id: str, api_key: str, max_retries: int = 60, interval: int = 2, base_url: str = BASE_URL) -> dict:
     """Poll async task until complete or failed"""
     for i in range(max_retries):
-        resp = _api_request("GET", f"{endpoint}/{task_id}", api_key)
+        resp = _api_request("GET", f"{endpoint}/{task_id}", api_key, base_url=base_url)
         data = resp.get("data", {})
         status = data.get("status", "unknown")
         
@@ -218,8 +340,9 @@ def _poll_task(endpoint: str, task_id: str, api_key: str, max_retries: int = 60,
 
 def _download_image(url: str, output_path: Path) -> None:
     """Download image from URL to local path"""
+    _validate_result_download_url(url)
     req = request.Request(url, method="GET")
-    with request.urlopen(req, timeout=60) as resp:
+    with request.urlopen(req, timeout=60) as resp:  # nosec B310 — URL validated in _validate_result_download_url
         output_path.write_bytes(resp.read())
 
 
@@ -227,8 +350,7 @@ def cmd_remove_bg(args, api_key: str, workspace: Path, safe_output_root: Path) -
     """Remove background from image"""
     in_path, out_path = _prepare_paths(args, workspace, safe_output_root)
     
-    # Upload if local file
-    image_url = _upload_image(in_path, api_key) if not str(args.input).startswith("http") else args.input
+    image_url = _resolve_input_image_url(args, in_path, api_key)
     
     data = {
         "image_url": image_url,
@@ -239,10 +361,12 @@ def cmd_remove_bg(args, api_key: str, workspace: Path, safe_output_root: Path) -
     }
     
     resp = _api_request("POST", "/api/v1/open/image/remove-bg", api_key, data=data)
-    result = resp.get("data", {})
-    
-    # Poll if task is pending/processing
-    if result.get("status") in ("pending", "processing"):
+    if resp.get("code") != 0:
+        print(f"Task failed: {resp.get('message', 'unknown')}", file=sys.stderr)
+        return 1
+    result = resp.get("data") or {}
+
+    if args.async_mode and result.get("status") in ("pending", "processing"):
         task_id = result.get("task_id")
         print(f"Task {task_id} is {result.get('status')}, polling...")
         result = _poll_task("/api/v1/open/image/tasks", task_id, api_key)
@@ -251,9 +375,8 @@ def cmd_remove_bg(args, api_key: str, workspace: Path, safe_output_root: Path) -
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
     
-    # Download result - API uses camelCase
-    result_data = result.get("result", {})
-    image_url = result_data.get("imageUrl") or result_data.get("image_url")
+    # Download result
+    image_url = result.get("result", {}).get("imageUrl") or result.get("result", {}).get("image_url")
     if not image_url:
         print("No result image URL", file=sys.stderr)
         return 1
@@ -266,38 +389,40 @@ def cmd_remove_bg(args, api_key: str, workspace: Path, safe_output_root: Path) -
 def cmd_upscale(args, api_key: str, workspace: Path, safe_output_root: Path) -> int:
     """Upscale image"""
     in_path, out_path = _prepare_paths(args, workspace, safe_output_root)
-    
-    image_url = _upload_image(in_path, api_key) if not str(args.input).startswith("http") else args.input
-    
+
+    image_url = _resolve_input_image_url(args, in_path, api_key)
+
+    # Use camelCase for this endpoint
     data = {
-        "image_url": image_url,
+        "imageUrl": image_url,
         "scale": args.scale,
-        "tile_size": args.tile_size,
-        "tile_pad": args.tile_pad,
-        "output_format": args.output_format,
-        "async_mode": args.async_mode
+        "tileSize": args.tile_size,
+        "tilePad": args.tile_pad,
+        "outputFormat": args.output_format,
+        "asyncMode": args.async_mode
     }
-    
-    resp = _api_request("POST", "/api/v1/open/image/upscale", api_key, data=data)
-    result = resp.get("data", {})
-    
-    # Poll if task is pending/processing
-    if result.get("status") in ("pending", "processing"):
-        task_id = result.get("task_id")
+
+    resp = _api_request("POST", "/api/v1/ai/tools/upscale/photo", api_key, data=data, base_url=UPSCALE_URL)
+    if resp.get("code") != 0:
+        print(f"Task failed: {resp.get('message', 'unknown')}", file=sys.stderr)
+        return 1
+    result = resp.get("data") or {}
+
+    if args.async_mode and result.get("status") in ("pending", "processing"):
+        task_id = result.get("taskId") or result.get("task_id")
         print(f"Task {task_id} is {result.get('status')}, polling...")
-        result = _poll_task("/api/v1/open/image/tasks", task_id, api_key)
-    
+        result = _poll_task("/api/v1/ai/tools/tasks", task_id, api_key, base_url=UPSCALE_URL)
+
     if result.get("status") != "completed":
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
-    
-    # API uses camelCase
-    result_data = result.get("result", {})
-    image_url = result_data.get("imageUrl") or result_data.get("image_url")
+
+    # Handle camelCase result.imageUrl
+    image_url = result.get("result", {}).get("imageUrl") or result.get("result", {}).get("image_url")
     if not image_url:
         print("No result image URL", file=sys.stderr)
         return 1
-    
+
     _download_image(image_url, out_path)
     _print_result(out_path)
     return 0
@@ -307,7 +432,7 @@ def cmd_outpainting(args, api_key: str, workspace: Path, safe_output_root: Path)
     """Outpainting - expand image"""
     in_path, out_path = _prepare_paths(args, workspace, safe_output_root)
     
-    image_url = _upload_image(in_path, api_key) if not str(args.input).startswith("http") else args.input
+    image_url = _resolve_input_image_url(args, in_path, api_key)
     
     data = {
         "provider": "aliyun",
@@ -321,29 +446,57 @@ def cmd_outpainting(args, api_key: str, workspace: Path, safe_output_root: Path)
     }
     
     resp = _api_request("POST", "/api/v1/open/image/outpainting", api_key, data=data)
-    result = resp.get("data", {})
-    
-    # Check for immediate error
-    if result.get("code") != 0 and result.get("code") is not None:
+    if resp.get("code") != 0:
+        print(f"Task failed: {resp.get('message', 'unknown')}", file=sys.stderr)
+        return 1
+    result = resp.get("data") or {}
+
+    # Sync: immediate URL
+    out_image_url = result.get("image_url")
+    if out_image_url:
+        _download_image(out_image_url, out_path)
+        _print_result(out_path)
+        return 0
+
+    # Async: same generations poll as translation / t2i (POST returns task_id + pending)
+    job_id = result.get("job_id") or result.get("task_id") or result.get("jobId")
+    if result.get("status") in ("pending", "processing") and not job_id:
+        print("No task ID for async outpainting", file=sys.stderr)
+        return 1
+
+    if job_id:
+        if result.get("status") == "failed":
+            print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
+            return 1
+        if result.get("status") != "completed":
+            print(f"Job {job_id} submitted, polling...")
+            result = _poll_task(
+                "/api/v1/open/ai/generations", job_id, api_key, max_retries=120, interval=3
+            )
+
+    if result.get("status") == "failed":
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
-    
-    # Poll if task is pending/processing - outpainting uses ai/generations endpoint
-    if result.get("status") in ("pending", "processing"):
-        task_id = result.get("task_id")
-        print(f"Task {task_id} is {result.get('status')}, polling...")
-        result = _poll_task("/api/v1/open/ai/generations", task_id, api_key)
-    
-    if result.get("status") != "completed":
+
+    if result.get("status") not in ("completed", None):
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
-    
-    # Get result image URL - API uses results array like text-to-image
-    images = result.get("results", [])
+
+    result_data = result.get("result", {}) or {}
+    images = result_data.get("images", [])
     if not images:
-        print("No result images", file=sys.stderr)
+        u = result_data.get("imageUrl") or result_data.get("image_url")
+        if u:
+            images = [{"url": u}]
+    if not images:
+        results = result.get("results", [])
+        if results:
+            images = [{"url": r.get("url")} for r in results if r.get("url")]
+
+    if not images:
+        print("No result image URL", file=sys.stderr)
         return 1
-    
+
     _download_image(images[0]["url"], out_path)
     _print_result(out_path)
     return 0
@@ -353,7 +506,7 @@ def cmd_translation(args, api_key: str, workspace: Path, safe_output_root: Path)
     """Translate image text"""
     in_path, out_path = _prepare_paths(args, workspace, safe_output_root)
     
-    image_url = _upload_image(in_path, api_key) if not str(args.input).startswith("http") else args.input
+    image_url = _resolve_input_image_url(args, in_path, api_key)
     
     data = {
         "provider": "aliyun",
@@ -367,29 +520,57 @@ def cmd_translation(args, api_key: str, workspace: Path, safe_output_root: Path)
     }
     
     resp = _api_request("POST", "/api/v1/open/image/translation", api_key, data=data)
-    result = resp.get("data", {})
-    
-    # Check for immediate error
-    if result.get("code") != 0 and result.get("code") is not None:
+    if resp.get("code") != 0:
+        print(f"Task failed: {resp.get('message', 'unknown')}", file=sys.stderr)
+        return 1
+    result = resp.get("data") or {}
+
+    # Sync response: immediate image URL
+    image_url = result.get("image_url")
+    if image_url:
+        _download_image(image_url, out_path)
+        _print_result(out_path)
+        return 0
+
+    # Async: poll unified generations task endpoint (not /api/v1/open/image/translation/{task_id})
+    job_id = result.get("job_id") or result.get("task_id") or result.get("jobId")
+    if result.get("status") in ("pending", "processing") and not job_id:
+        print("No job ID for async translation task", file=sys.stderr)
+        return 1
+
+    if job_id:
+        if result.get("status") == "failed":
+            print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
+            return 1
+        if result.get("status") != "completed":
+            print(f"Job {job_id} submitted, polling...")
+            result = _poll_task(
+                "/api/v1/open/ai/generations", job_id, api_key, max_retries=120, interval=3
+            )
+
+    if result.get("status") == "failed":
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
-    
-    # Poll if task is pending/processing - translation uses ai/generations endpoint
-    if result.get("status") in ("pending", "processing"):
-        task_id = result.get("task_id")
-        print(f"Task {task_id} is {result.get('status')}, polling...")
-        result = _poll_task("/api/v1/open/ai/generations", task_id, api_key)
-    
-    if result.get("status") != "completed":
+
+    if result.get("status") not in ("completed", None):
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
-    
-    # Get result image URL - API uses results array
-    images = result.get("results", [])
+
+    result_data = result.get("result", {})
+    images = result_data.get("images", [])
     if not images:
-        print("No result images", file=sys.stderr)
+        u = result_data.get("imageUrl") or result_data.get("image_url")
+        if u:
+            images = [{"url": u}]
+    if not images:
+        results = result.get("results", [])
+        if results:
+            images = [{"url": r.get("url")} for r in results if r.get("url")]
+
+    if not images:
+        print("No result image URL", file=sys.stderr)
         return 1
-    
+
     _download_image(images[0]["url"], out_path)
     _print_result(out_path)
     return 0
@@ -398,15 +579,18 @@ def cmd_translation(args, api_key: str, workspace: Path, safe_output_root: Path)
 def cmd_text_to_image(args, api_key: str, workspace: Path, safe_output_root: Path) -> int:
     """Generate image from text"""
     out_path = _prepare_output_path(args.output, workspace, safe_output_root)
+    prompt = _validate_prompt_field(args.prompt, "prompt")
+    neg = _validate_optional_prompt_field(getattr(args, "negative_prompt", None), "negative prompt")
     
     data = {
         "type": "text_to_image",
         "model": args.model,
-        "prompt": args.prompt
+        "prompt": prompt,
+        "sensitive_word_filter": not getattr(args, "no_sensitive_word_filter", False),
     }
     
-    if args.negative_prompt:
-        data["negative_prompt"] = args.negative_prompt
+    if neg:
+        data["negative_prompt"] = neg
     if args.width:
         data["width"] = args.width
     if args.height:
@@ -417,7 +601,7 @@ def cmd_text_to_image(args, api_key: str, workspace: Path, safe_output_root: Pat
     resp = _api_request("POST", "/api/v1/open/ai/generations", api_key, data=data)
     result = resp.get("data", {})
     
-    job_id = result.get("jobId") or result.get("job_id") or result.get("task_id")
+    job_id = result.get("job_id") or result.get("task_id") or result.get("jobId")
     if not job_id:
         print("No job ID returned", file=sys.stderr)
         return 1
@@ -430,8 +614,20 @@ def cmd_text_to_image(args, api_key: str, workspace: Path, safe_output_root: Pat
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
     
-    # Get result images - API returns "results" array
-    images = result.get("results", [])
+    # Get result images - handle both camelCase and snake_case
+    result_data = result.get("result", {})
+    images = result_data.get("images", [])
+    if not images:
+        image_url = result_data.get("imageUrl") or result_data.get("image_url")
+        if image_url:
+            images = [{"url": image_url}]
+
+    # Also check for camelCase 'results' array
+    if not images:
+        results = result.get("results", [])
+        if results:
+            images = [{"url": r.get("url")} for r in results if r.get("url")]
+
     if not images:
         print("No result images", file=sys.stderr)
         return 1
@@ -452,19 +648,20 @@ def cmd_text_to_image(args, api_key: str, workspace: Path, safe_output_root: Pat
 def cmd_image_to_image(args, api_key: str, workspace: Path, safe_output_root: Path) -> int:
     """Generate image from image"""
     in_path, out_path = _prepare_paths(args, workspace, safe_output_root)
-    
-    # Upload reference image
-    reference_image = _upload_image(in_path, api_key) if not str(args.input).startswith("http") else args.input
+    reference_image = _resolve_input_image_url(args, in_path, api_key)
+    prompt = _validate_prompt_field(args.prompt, "prompt")
+    neg = _validate_optional_prompt_field(getattr(args, "negative_prompt", None), "negative prompt")
     
     data = {
         "type": "image_to_image",
         "model": args.model,
-        "prompt": args.prompt,
-        "referenceImage": reference_image
+        "prompt": prompt,
+        "referenceImage": reference_image,
+        "sensitive_word_filter": not getattr(args, "no_sensitive_word_filter", False),
     }
     
-    if args.negative_prompt:
-        data["negative_prompt"] = args.negative_prompt
+    if neg:
+        data["negative_prompt"] = neg
     if args.strength is not None:
         data["strength"] = args.strength
     if args.width:
@@ -475,7 +672,7 @@ def cmd_image_to_image(args, api_key: str, workspace: Path, safe_output_root: Pa
     resp = _api_request("POST", "/api/v1/open/ai/generations", api_key, data=data)
     result = resp.get("data", {})
     
-    job_id = result.get("jobId") or result.get("job_id") or result.get("task_id")
+    job_id = result.get("job_id") or result.get("task_id") or result.get("jobId")
     if not job_id:
         print("No job ID returned", file=sys.stderr)
         return 1
@@ -488,8 +685,20 @@ def cmd_image_to_image(args, api_key: str, workspace: Path, safe_output_root: Pa
         print(f"Task failed: {result.get('message', 'unknown')}", file=sys.stderr)
         return 1
     
-    # Get result images - API returns "results" array
-    images = result.get("results", [])
+    # Get result images - handle both camelCase and snake_case
+    result_data = result.get("result", {})
+    images = result_data.get("images", [])
+    if not images:
+        image_url = result_data.get("imageUrl") or result_data.get("image_url")
+        if image_url:
+            images = [{"url": image_url}]
+
+    # Also check for camelCase 'results' array
+    if not images:
+        results = result.get("results", [])
+        if results:
+            images = [{"url": r.get("url")} for r in results if r.get("url")]
+
     if not images:
         print("No result images", file=sys.stderr)
         return 1
@@ -527,9 +736,10 @@ def _prepare_paths(args, workspace: Path, safe_output_root: Path) -> tuple[Path,
     input_str = args.input
     
     # Handle input
-    if input_str.startswith("http"):
-        # Remote URL - will be used directly
-        in_path = Path(input_str)
+    if _is_remote_image_ref(input_str):
+        url = input_str.strip()
+        _validate_user_image_url(url)
+        in_path = Path(url)
     else:
         try:
             in_path = Path(input_str).expanduser().resolve(strict=True)
@@ -549,12 +759,19 @@ def _prepare_paths(args, workspace: Path, safe_output_root: Path) -> tuple[Path,
 
 
 def _prepare_output_path(output_str: str, workspace: Path, safe_output_root: Path) -> Path:
-    """Prepare output path"""
-    out_path = Path(output_str).expanduser()
-    if not out_path.is_absolute():
-        out_path = workspace / out_path
-    out_path = out_path.resolve()
-    
+    """Prepare output path (always under safe_output_root)."""
+    raw = Path(output_str).expanduser()
+    safe = safe_output_root.resolve()
+    if raw.is_absolute():
+        out_path = raw.resolve()
+    else:
+        candidate_ws = (workspace / raw).resolve()
+        try:
+            candidate_ws.relative_to(safe)
+            out_path = candidate_ws
+        except ValueError:
+            out_path = (safe / raw).resolve()
+
     _ensure_within(out_path, safe_output_root, "output path")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     
@@ -630,6 +847,11 @@ def main() -> int:
     cmd_t2i.add_argument("--width", type=int, help="Image width")
     cmd_t2i.add_argument("--height", type=int, help="Image height")
     cmd_t2i.add_argument("--n", type=int, help="Number of images")
+    cmd_t2i.add_argument(
+        "--no-sensitive-word-filter",
+        action="store_true",
+        help="Disable server-side sensitive word filtering (default: filtering on)",
+    )
     
     # image-to-image
     cmd_i2i = sub.add_parser("image-to-image", help="Generate image from image")
@@ -640,6 +862,11 @@ def main() -> int:
     cmd_i2i.add_argument("--strength", type=float, help="Edit strength")
     cmd_i2i.add_argument("--width", type=int, help="Image width")
     cmd_i2i.add_argument("--height", type=int, help="Image height")
+    cmd_i2i.add_argument(
+        "--no-sensitive-word-filter",
+        action="store_true",
+        help="Disable server-side sensitive word filtering (default: filtering on)",
+    )
     
     # list-models
     cmd_lm = sub.add_parser("list-models", help="List available models")
