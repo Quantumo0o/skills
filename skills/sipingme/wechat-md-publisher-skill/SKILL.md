@@ -1,15 +1,35 @@
 ---
 name: wechat-md-publisher
 description: 发布 Markdown 文章到微信公众号，支持草稿管理、多主题、智能图片处理、自动封面图。推荐与 news-to-markdown-skill 配合使用实现一键转载（支持本地图片）。
-version: 0.8.15
+version: 0.8.30
 author: Ping Si <sipingme@gmail.com>
 user-invocable: true
 requires:
-  - node: ">=18.0.0"
-  - npm: ">=8.0.0"
-  - env:
-      - WECHAT_APP_ID: "微信公众号 AppID（必需）"
-      - WECHAT_APP_SECRET: "微信公众号 AppSecret（必需）"
+  runtime:
+    - name: node
+      version: ">=18.0.0"
+    - name: npm
+      version: ">=8.0.0"
+  packages:
+    - npm: wechat-md-publisher
+      global: true
+  binaries:
+    - name: wechat-pub
+      providedBy: wechat-md-publisher
+env:
+  required:
+    - name: WECHAT_APP_ID
+      description: 微信公众号 AppID
+      sensitive: false
+    - name: WECHAT_APP_SECRET
+      description: 微信公众号 AppSecret
+      sensitive: true
+configPaths:
+  - path: ~/.config/wechat-md-publisher-nodejs/
+    description: 账号配置和缓存目录
+    contains:
+      - credentials: true
+      - encryption: AES-256
 permissions:
   filesystem:
     read:
@@ -22,13 +42,20 @@ permissions:
       - "api.weixin.qq.com": "微信公众号 API（发布、草稿、素材管理）"
       - "mp.weixin.qq.com": "微信公众号素材上传"
     optional:
-      - "User-configured remote theme API": "仅当用户使用 theme add-remote 命令时才会访问（⚠️ 需用户明确配置并信任该端点）"
-  credentials:
-    - name: "WECHAT_APP_SECRET"
-      storage: "由 wechat-md-publisher npm 包加密存储于 ~/.config/wechat-md-publisher-nodejs/"
-      handler: "wechat-md-publisher npm 包（https://github.com/sipingme/wechat-md-publisher）"
-      consent: "需要用户明确提供，不会自动收集"
-      note: "本 skill 不直接处理凭证加密，需信任上游 npm 包的实现"
+      - "remote-theme-api": "仅当用户使用 theme add-remote 命令时才会访问（⚠️ 需用户明确配置并信任该端点）"
+credentials:
+  - name: WECHAT_APP_SECRET
+    type: api-secret
+    storage:
+      location: ~/.config/wechat-md-publisher-nodejs/
+      encryption: AES-256
+      handler: wechat-md-publisher npm 包
+      handlerRepo: https://github.com/sipingme/wechat-md-publisher
+    consent: 需要用户明确提供，不会自动收集
+    securityNote: |
+      本 skill 不直接处理凭证加密，安全性依赖上游 npm 包的实现。
+      建议在提供凭证前审查 wechat-md-publisher 包的加密实现：
+      https://github.com/sipingme/wechat-md-publisher/blob/main/src/services/account.ts
 tags:
   - wechat
   - publishing

@@ -249,41 +249,22 @@ wechat-pub account add --name "新账号" --app-id xxx --app-secret xxx
 
 ### 问题 5：更新 Skill 后依赖未更新
 
-**✨ 自动更新（v0.2.2+）**
-
-从 v0.2.2 开始，skill 会在每次运行时**自动检查并更新依赖**：
-
-```bash
-# 直接使用，无需手动操作
-openclaw run wechat-md-publisher publish article.md
-
-# 输出示例：
-# 检查 wechat-md-publisher 依赖...
-# 当前版本: v0.3.1
-# 需要版本: v0.3.2
-# 正在更新...
-# ✓ 更新成功: v0.3.1 → v0.3.2
-```
-
-**手动更新（如果自动更新失败）**：
+**手动更新**：
 
 ```bash
 # 方法 1：强制重新安装（推荐）
 npm uninstall -g wechat-md-publisher
-npm install -g wechat-md-publisher@0.3.2
+npm install -g wechat-md-publisher@latest
 
 # 方法 2：清除缓存后安装
 npm cache clean --force
 npm install -g wechat-md-publisher@latest
 
 # 验证版本
-wechat-pub --version  # 应显示 0.3.2
+wechat-pub --version
 ```
 
-**工作原理**：
-- ✅ 每次运行时检查版本
-- ⚠️ 版本不匹配时提示用户手动更新（不会自动安装）
-- ✅ 提供明确的安装命令供用户执行
+> ⚠️ **注意**：此 skill 不会自动安装或更新 npm 包。所有安装操作需要用户手动确认执行。
 
 ## 🔒 安全性
 
