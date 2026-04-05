@@ -3,11 +3,16 @@
   "slug": "tacoclawtest",
   "displayName": "Tacoclaw Test",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1774858278122,
-    "commit": "https://github.com/openclaw/skills/commit/ef872408dd29b1fa0c832b974dea01dca191cdde"
+    "version": "1.0.9",
+    "publishedAt": 1774950694500,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1774858278122,
+      "commit": "https://github.com/openclaw/skills/commit/ef872408dd29b1fa0c832b974dea01dca191cdde"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1774255295004,
