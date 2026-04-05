@@ -21,6 +21,24 @@ LOG_FILE="${HOME}/.clawshorts.log"
 # Default config
 DEFAULT_LIMIT=300
 
+# ---------- IP validation (bash fallback — Python does the real check) ----------
+# Rejects: empty, non-numeric, octets >255, and obvious non-private IPs.
+# Covers the common cases: 192.168.x.x, 10.x.x.x, 172.16–31.x.x
+validate_ip_bash() {
+    local ip="$1"
+    local re='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+    [[ "$ip" =~ $re ]] || return 1
+    local IFS='.' && set -- $ip
+    # shellcheck disable=SC2086
+    [[ $1 -le 255 && $2 -le 255 && $3 -le 255 && $4 -le 255 ]] || return 1
+    # Private-range quick check (rough — Python addr.is_private is authoritative)
+    if [[ $1 -eq 10 ]]; then return 0; fi
+    if [[ $1 -eq 172 && $2 -ge 16 && $2 -le 31 ]]; then return 0; fi
+    if [[ $1 -eq 192 && $2 -eq 168 ]]; then return 0; fi
+    if [[ $1 -eq 127 ]]; then return 0; fi
+    return 1
+}
+
 # ============ PYTHON CLI ============
 run_python_cli() {
     local cmd="$1"
@@ -30,10 +48,20 @@ run_python_cli() {
 
 # ============ COMMANDS THAT USE PYTHON ============
 cmd_setup() {
+    local ip="${1:-}"
+    if [[ -z "$ip" ]] || ! validate_ip_bash "$ip"; then
+        echo "Error: valid private IP required (e.g. 192.168.1.100)"
+        return 1
+    fi
     run_python_cli setup "$@"
 }
 
 cmd_add() {
+    local ip="${1:-}"
+    if [[ -z "$ip" ]] || ! validate_ip_bash "$ip"; then
+        echo "Error: valid private IP required (e.g. 192.168.1.100)"
+        return 1
+    fi
     run_python_cli add "$@"
 }
 
@@ -72,6 +100,14 @@ cmd_logs() {
     tail -n "$lines" "$log_path"
 }
 
+cmd_config() {
+    run_python_cli config "$@"
+}
+
+cmd_detect() {
+    run_python_cli detect "$@"
+}
+
 # ============ COMMANDS THAT USE ADB (KEEP IN BASH) ============
 check_adb() {
     command -v adb &> /dev/null
@@ -91,8 +127,12 @@ install_adb() {
     echo "ADB installed successfully"
 }
 
-# Delegated to Python CLI (kept for reference, Python cmd_connect now handles this)
-cmd_connect_py() {
+cmd_connect() {
+    local ip="${1:-}"
+    if [[ -z "$ip" ]] || ! validate_ip_bash "$ip"; then
+        echo "Error: valid private IP required (e.g. 192.168.1.100)"
+        return 1
+    fi
     run_python_cli connect "$@"
 }
 
@@ -109,10 +149,12 @@ cmd_stop() {
         echo "Daemon not running"
         return 0
     fi
-    # Graceful shutdown: SIGTERM first, wait 2s, then SIGKILL
+    # Graceful shutdown: SIGTERM first, wait 2s, then SIGKILL only if still alive
     kill -TERM $pids 2>/dev/null || true
     sleep 2
-    pkill -f "clawshorts-daemon" 2>/dev/null || true
+    for pid in $pids; do
+        kill -0 "$pid" 2>/dev/null && kill -9 "$pid"
+    done
     echo "✅ Stopped"
 }
 
@@ -253,6 +295,8 @@ case "$_cmd" in
     logs)
         cmd_logs
         ;;
+    config)   shift; cmd_config "$@" ;;
+    detect)   shift; cmd_detect "$@" ;;
     *)
         echo "⚡ ClawShorts - YouTube Shorts Blocker"
         echo ""
@@ -272,9 +316,12 @@ case "$_cmd" in
         echo "  shorts add <IP> [NAME]      Add new device"
         echo "  shorts remove <IP>          Remove device"
         echo "  shorts list                  List all devices"
-        echo "  shorts connect <IP>          Connect via ADB"
+        echo "  shorts connect <IP>          Connect via ADB + detect screen"
         echo "  shorts enable <IP>           Enable device"
         echo "  shorts disable <IP>          Disable device"
+        echo ""
+        echo "  shorts config [show|get|set|reset]   View/set global or per-device config"
+        echo "  shorts detect <IP>                   Re-detect screen resolution via ADB"
         echo ""
         echo "Quick Start:"
         echo "  shorts setup 192.168.1.100 living-room"

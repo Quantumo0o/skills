@@ -11,8 +11,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 # Import db from scripts/ directory
 _scripts_dir = Path(__file__).resolve().parent.parent.parent / "scripts"
 sys.path.insert(0, str(_scripts_dir))
@@ -40,8 +38,6 @@ __all__ = [
 ]
 
 log = logging.getLogger(__name__)
-
-_CONFIG_FILE = STATE_DIR / "devices.yaml"  # kept for compat, not used
 
 
 # ---------------------------------------------------------------------------
@@ -99,9 +95,7 @@ def validate_device_input(ip: str, name: str | None = None) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 
 def load_devices() -> list[Device]:
-    """Load all enabled devices from SQLite. Migrates from YAML if needed."""
-    # Migration: if YAML exists but DB is empty, migrate
-    _migrate_yaml_to_db()
+    """Load all enabled devices from SQLite."""
     db_devices = db.get_devices()
     return [_row_to_device(d) for d in db_devices]
 
@@ -138,42 +132,6 @@ def save_devices(devices: list[Device]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Migration
-# ---------------------------------------------------------------------------
-
-def _migrate_yaml_to_db() -> None:
-    """One-time migration: read devices from YAML, insert into SQLite, delete YAML."""
-    yaml_path = STATE_DIR / "devices.yaml"
-    if not yaml_path.exists():
-        return
-
-    db.init_db()
-    existing = db.get_devices()
-    if existing:
-        # DB already has devices — migration was already done, clean up old YAML
-        log.info("DB already has %d device(s). Removing old YAML.", len(existing))
-        yaml_path.unlink()
-        return
-
-    try:
-        data = yaml.safe_load(yaml_path.read_text())
-        if not data or "devices" not in data:
-            return
-        migrated = 0
-        for d in data.get("devices", []):
-            db.add_device(
-                ip=d.get("ip"),
-                name=d.get("name"),
-                limit_val=float(d.get("limit", 300)),
-            )
-            migrated += 1
-        log.info("Migrated %d device(s) from YAML to SQLite", migrated)
-        yaml_path.unlink()
-        log.info("Deleted old devices.yaml")
-    except Exception as e:
-        log.warning("Migration failed: %s", e)
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

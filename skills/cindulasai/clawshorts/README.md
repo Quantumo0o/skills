@@ -67,6 +67,12 @@ To change it:
 ~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh install 1800
 ```
 
+Or change per-device on the fly:
+
+```bash
+shorts config set 192.168.1.100 limit 900
+```
+
 ---
 
 ## Commands
@@ -77,22 +83,62 @@ To change it:
 | Reset today's counter | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh reset` |
 | Stop the limiter | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh stop` |
 | Start it again | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh start` |
+| List devices | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh list` |
+| View config | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh config` |
+| Re-detect screen | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh detect 192.168.1.100` |
 | Remove completely | `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh uninstall` |
+
+---
+
+## Per-Device Configuration
+
+Each TV can have its own detection settings and limits. All config is stored in SQLite.
+
+**Show effective config for all devices:**
+```bash
+shorts list
+```
+
+**Show global defaults:**
+```bash
+shorts config
+```
+
+**Adjust detection threshold (example — 35% width):**
+```bash
+shorts config set shorts_width_threshold 0.35
+```
+
+**Set per-device override:**
+```bash
+shorts config set 192.168.1.100 width_threshold 0.40
+```
+
+**Reset device to use global defaults:**
+```bash
+shorts config reset 192.168.1.100
+```
+
+**Re-detect screen resolution:**
+```bash
+shorts detect 192.168.1.100
+```
 
 ---
 
 ## How It Works
 
-Every 3 seconds, ClawShorts checks what you're watching:
+Every 3 seconds, ClawShorts checks what you're watching. A Shorts is detected when **both** conditions are true:
 
-| What You're Watching | Width | Counts? |
-|---------------------|-------|---------|
-| YouTube Shorts (vertical video) | ~45% of screen | ✅ Yes |
-| Regular YouTube video | ~100% of screen | ❌ No |
-| YouTube home screen | varies | ❌ No |
-| Fire TV home / other apps | — | ❌ No |
+1. Player width < **35%** of screen width
+2. Aspect ratio < **1.3** (portrait — distinguishes Shorts from 16:9 previews)
 
-Only actual Shorts playback counts toward your daily limit.
+| What You're Watching | Width | Aspect Ratio | Counts? |
+|---------------------|-------|-------------|---------|
+| YouTube Shorts (vertical video) | ~32% | ~0.56 (portrait) | ✅ Yes |
+| Regular YouTube video | ~100% | ~1.78 (landscape) | ❌ No |
+| YouTube home / previews | ~38% | ~1.78 (landscape) | ❌ No |
+| Fire TV home / other apps | — | — | ❌ No |
 
 ---
 
@@ -102,7 +148,7 @@ Only actual Shorts playback counts toward your daily limit.
 A: No — this uses ADB which only works with Fire TV / Android TV.
 
 **Q: Can I use both Fire TV and Fire Stick?**
-A: Yes — add both IPs: `~/.openclaw/workspace/skills/clawshorts/scripts/clawshorts.sh setup 192.168.1.100,192.168.1.101`
+A: Yes — add both IPs: `shorts add 192.168.1.101 bedroom-tv`
 
 **Q: Does it block regular YouTube videos?**
 A: No — only YouTube Shorts. Regular videos don't count.
@@ -110,8 +156,8 @@ A: No — only YouTube Shorts. Regular videos don't count.
 **Q: What happens at midnight?**
 A: The counter resets automatically. You get your full daily limit back.
 
-**Q: Why do some Shorts not get blocked?**
-A: Detection works best when Shorts is the focused element. Brief navigations don't count.
+**Q: Can I adjust how sensitive the detection is?**
+A: Yes — use `shorts config set shorts_width_threshold 0.40` to make it trigger on wider players (40% instead of 35%).
 
 ---
 
@@ -153,7 +199,7 @@ This removes the auto-start daemon but keeps your usage data.
 ## Files & Data
 
 - `~/.clawshorts/` — all data lives here
-- `~/.clawshorts/clawshorts.db` — your watch history
+- `~/.clawshorts/clawshorts.db` — watch history and config (SQLite)
 - `~/.clawshorts/daemon.log` — debug log
 - `~/Library/LaunchAgents/com.fink.clawshorts.plist` — auto-start (macOS)
 

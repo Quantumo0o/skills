@@ -89,6 +89,43 @@ def check_daemon(ip: str) -> DaemonHealth:
 
 
 # ---------------------------------------------------------------------------
+# Screen resolution detection
+# ---------------------------------------------------------------------------
+
+def _get_screen_width(ip: str) -> int:
+    """Query actual screen width from device via adb, caching via simple file cache."""
+    cache_file = Path.home() / ".clawshorts" / f"screen_{ip.replace('.', '_')}.txt"
+    now = time.time()
+    # Cache for 1 hour
+    if cache_file.exists():
+        try:
+            content = cache_file.read_text().strip()
+            age = now - cache_file.stat().st_mtime
+            if age < 3600 and content:
+                return int(content)
+        except (ValueError, OSError):
+            pass
+    # Query device
+    device_id = f"{ip}:5555"
+    try:
+        out = subprocess.run(
+            ["adb", "-s", device_id, "shell", "wm", "size"],
+            capture_output=True, text=True, timeout=6,
+        )
+        # Prefer override size (last match) over physical size (first match)
+        matches = re.findall(r"(\d+)x(\d+)", out.stdout)
+        if matches:
+            # Use the LAST match (override takes priority over physical)
+            last = matches[-1]
+            width = int(last[0])
+            cache_file.write_text(str(width))
+            return width
+    except (subprocess.TimeoutExpired, OSError):
+        pass
+    return DEFAULT_SCREEN_WIDTH
+
+
+# ---------------------------------------------------------------------------
 # Live screen poll
 # ---------------------------------------------------------------------------
 
@@ -138,9 +175,10 @@ def poll_screen(ip: str) -> ScreenInfo:
             xml_content = Path("/tmp/verify-ui.xml").read_text(errors="replace")
             elem = parse_element_from_ui_dump(xml_content)
             if elem and elem.width:
+                screen_w = _get_screen_width(ip)
                 w = elem.width
-                pct = w / DEFAULT_SCREEN_WIDTH * 100
-                is_shorts = is_shorts_element(w, elem.height, DEFAULT_SCREEN_WIDTH)
+                pct = w / screen_w * 100
+                is_shorts = is_shorts_element(w, elem.height, screen_w)
                 status = "Shorts" if is_shorts else "Regular video"
                 return ScreenInfo(app, f"Focused: {w}px ({pct:.0f}%) - {status}")
             return ScreenInfo(app, "Focused: unknown")

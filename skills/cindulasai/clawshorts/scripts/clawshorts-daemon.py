@@ -32,10 +32,7 @@ sys.path.insert(0, str(_SRC_DIR))        # for clawshorts packages
 
 import clawshorts_db as db
 from clawshorts.constants import (
-    MAX_DELTA_SECONDS,
-    SHORTS_FALLBACK_HEIGHT_RATIO,
-    SHORTS_WIDTH_THRESHOLD_STRICT,
-    SHORTS_MAX_ASPECT_RATIO,
+    MAX_DELTA_SECONDS as _FALLBACK_MAX_DELTA,
     STATE_DIR,
 )
 from clawshorts.validators import validate_ipv4
@@ -62,40 +59,36 @@ YOUTUBE_PACKAGES = (
 # Config — loaded from DB at startup
 # ---------------------------------------------------------------------------
 
-def _load_devices_from_db() -> list[tuple[str, float]]:
-    """Load [(ip, limit_val), ...] from SQLite. Migrates from YAML if needed."""
+def _load_devices_from_db() -> list[dict]:
+    """Load full device dicts (with per-device config columns) from SQLite."""
     db.init_db()
     devs = db.get_devices()
-    if not devs:
-        # Migration: check if old YAML has devices
-        _migrate_from_yaml()
-        devs = db.get_devices()
-    return [(d["ip"], d["limit_val"]) for d in devs if d.get("enabled", True)]
+    return [d for d in devs if d.get("enabled", True)]
 
 
-def _migrate_from_yaml() -> None:
-    """One-time migration from YAML to SQLite."""
-    yaml_path = STATE_DIR / "devices.yaml"
-    if not yaml_path.exists():
-        return
-    try:
-        import yaml
-        data = yaml.safe_load(yaml_path.read_text())
-        if not data or "devices" not in data:
-            return
-        migrated = 0
-        for d in data.get("devices", []):
-            db.add_device(
-                ip=d.get("ip"),
-                name=d.get("name"),
-                limit_val=float(d.get("limit", 300)),
-            )
-            migrated += 1
-        log.info("Migrated %d device(s) from YAML to SQLite", migrated)
-        yaml_path.unlink()
-        log.info("Deleted old devices.yaml")
-    except Exception as e:
-        log.warning("Migration failed: %s", e)
+def _resolve_config(device: dict, global_cfg: dict) -> dict:
+    """Resolve all 6 config keys for a device: per-device column → global → hardcoded default."""
+    def resolve(key: str, col: str | None, default: float) -> float:
+        val = device.get(col) if col else None
+        if val is not None:
+            return float(val)
+        return float(global_cfg.get(key, default))
+
+    # Map config keys to device columns (None = not per-device overridable → use global only)
+    KEY_COL_DEFAULT = [
+        ("shorts_width_threshold", "width_threshold", 0.30),
+        ("shorts_max_aspect_ratio", "max_aspect_ratio", 1.3),
+        ("shorts_fallback_height_ratio", "fallback_height_ratio", 0.4),
+        ("shorts_delta_cap", "delta_cap", 300.0),
+        ("default_screen_width", "screen_width", 1920.0),
+        ("default_screen_height", "screen_height", 1080.0),
+    ]
+
+    result = {}
+    for key, col, default in KEY_COL_DEFAULT:
+        result[key] = resolve(key, col, default)
+
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -110,6 +103,11 @@ class DeviceState:
     screen_w: int = 0           # cached screen width (pixels)
     screen_h: int = 0           # cached screen height (pixels)
     date: str = ""             # current tracking date (midnight rollover)
+    # Detection thresholds (resolved: per-device → global → hardcoded default)
+    width_threshold: float = 0.30
+    max_aspect_ratio: float = 1.3
+    fallback_height_ratio: float = 0.4
+    delta_cap: float = 300.0
 
 
 # ---------------------------------------------------------------------------
@@ -119,10 +117,30 @@ class DeviceState:
 class DaemonContext:
     """Holds all mutable daemon state. Passed explicitly; no module-level _vars."""
 
-    def __init__(self, devices: list[tuple[str, float]], interval: int) -> None:
-        self.devices = devices  # [(ip, limit_val), ...]
+    def __init__(
+        self,
+        devices: list[dict],
+        global_cfg: dict[str, float],
+        interval: int,
+    ) -> None:
+        # devices: full device dicts from DB
+        # global_cfg: global config key→value from config table
+        self.devices = devices  # list[dict]
+        self.global_cfg = global_cfg
         self.interval = interval
-        self.states: dict[str, DeviceState] = {ip: DeviceState() for ip, _ in devices}
+        self.states: dict[str, DeviceState] = {}
+        for dev in devices:
+            ip = dev["ip"]
+            cfg = _resolve_config(dev, global_cfg)
+            state = DeviceState(
+                screen_w=int(cfg["default_screen_width"]),
+                screen_h=int(cfg["default_screen_height"]),
+                width_threshold=cfg["shorts_width_threshold"],
+                max_aspect_ratio=cfg["shorts_max_aspect_ratio"],
+                fallback_height_ratio=cfg["shorts_fallback_height_ratio"],
+                delta_cap=cfg["shorts_delta_cap"],
+            )
+            self.states[ip] = state
         self.shutdown: bool = False
         self.last_heartbeat: float = time.time()
 
@@ -268,8 +286,8 @@ def _dump_ui(ip: str) -> str:
 
 def _is_shorts(state: DeviceState, ip: str, xml: str) -> bool:
     """Detect YouTube Shorts using dual criteria:
-      1. Width < 45% of screen width (strict threshold)
-      2. Aspect ratio < 1.3 (portrait-ish, distinguishes from 16:9 hover previews)
+      1. Width < width_threshold fraction of screen width
+      2. Aspect ratio < max_aspect_ratio (portrait-ish, distinguishes from 16:9 hover previews)
 
     YouTube home hover previews are 16:9 landscape (~1.78 aspect).
     Actual Shorts are 9:16 portrait (<1.0 aspect).
@@ -281,7 +299,7 @@ def _is_shorts(state: DeviceState, ip: str, xml: str) -> bool:
       3. Last fallback: centred elements filling significant height
     """
     screen_w, screen_h = _get_screen_size(state, ip)
-    strict_threshold = screen_w * SHORTS_WIDTH_THRESHOLD_STRICT
+    strict_threshold = screen_w * state.width_threshold
 
     # Primary: focused element
     for m in re.finditer(
@@ -296,7 +314,7 @@ def _is_shorts(state: DeviceState, ip: str, xml: str) -> bool:
         aspect = player_w / player_h if player_h > 0 else 999
         log.debug("%s — focused %dx%dpx (%.0f%%, ar=%.2f)", ip, player_w, player_h, ratio * 100, aspect)
         # Must pass BOTH: width strict threshold AND portrait aspect
-        return player_w < strict_threshold and aspect < SHORTS_MAX_ASPECT_RATIO
+        return player_w < strict_threshold and aspect < state.max_aspect_ratio
 
     # Secondary: named player / surface / video elements
     for m in re.finditer(
@@ -312,14 +330,14 @@ def _is_shorts(state: DeviceState, ip: str, xml: str) -> bool:
         ratio = player_w / screen_w
         aspect = player_w / player_h if player_h > 0 else 999
         log.debug("%s — player %dx%dpx (%.0f%%, ar=%.2f)", ip, player_w, player_h, ratio * 100, aspect)
-        return player_w < strict_threshold and aspect < SHORTS_MAX_ASPECT_RATIO
+        return player_w < strict_threshold and aspect < state.max_aspect_ratio
 
     # Fallback: centred elements that fill significant height
     best_w, best_h = 0, 0
     for m in re.finditer(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
         x1, y1, x2, y2 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
         w, h = x2 - x1, y2 - y1
-        if h > screen_h * SHORTS_FALLBACK_HEIGHT_RATIO and x1 > 0 and x2 < screen_w and w > best_w:
+        if h > screen_h * state.fallback_height_ratio and x1 > 0 and x2 < screen_w and w > best_w:
             best_w, best_h = w, h
 
     if best_w == 0:
@@ -328,7 +346,7 @@ def _is_shorts(state: DeviceState, ip: str, xml: str) -> bool:
     ratio = best_w / screen_w
     aspect = best_w / best_h if best_h > 0 else 999
     log.debug("%s — fallback %dx%dpx (%.0f%%, ar=%.2f)", ip, best_w, best_h, ratio * 100, aspect)
-    return best_w < strict_threshold and aspect < SHORTS_MAX_ASPECT_RATIO
+    return best_w < strict_threshold and aspect < state.max_aspect_ratio
 
 
 # ---------------------------------------------------------------------------
@@ -377,7 +395,7 @@ def _process_device(ip: str, today: str, daily_limit: float, state: DeviceState)
     state.last_short_ts = now  # Set FIRST so first detection counts on next poll
     if prev_ts > 0:
         delta = now - prev_ts
-        if delta <= MAX_DELTA_SECONDS:
+        if delta <= state.delta_cap:
             db.add_seconds(ip, today, delta)
             log.debug("%s — +%.1fs", ip, delta)
 
@@ -411,16 +429,23 @@ def main() -> None:
 
     _setup_logging(args.debug)
 
-    # Load devices from SQLite — single source of truth
+    # Load devices + global config from SQLite — single source of truth
+    db.init_db()
     devices = _load_devices_from_db()
     if not devices:
         log.error("No devices found in database. Run 'shorts setup <IP>' first.")
         sys.exit(1)
 
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    db.init_db()
+    try:
+        global_cfg = db.get_all_config()
+        log.debug("Global config loaded: %s", global_cfg)
+    except Exception:
+        log.warning("Could not load global config from DB; using hardcoded defaults")
+        global_cfg = {}
 
-    ctx = DaemonContext(devices, args.interval)
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+
+    ctx = DaemonContext(devices, global_cfg, args.interval)
 
     # Wire up signals
     signal.signal(signal.SIGINT, _make_signal_handler(ctx))
@@ -435,7 +460,9 @@ def main() -> None:
         while not ctx.shutdown:
             today = time.strftime("%Y-%m-%d")
 
-            for ip, daily_limit in ctx.devices:
+            for dev in ctx.devices:
+                ip = dev["ip"]
+                daily_limit = dev["limit_val"]
                 state = ctx.states[ip]
 
                 # Midnight rollover
