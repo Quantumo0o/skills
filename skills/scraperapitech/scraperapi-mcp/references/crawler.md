@@ -23,10 +23,20 @@ Initiates a crawl that discovers and scrapes pages starting from a base URL.
 | `crawlBudget` | number | One required | Max credits the job may consume |
 | `urlRegexpExclude` | string | No | Regex to exclude URLs from crawling |
 | `apiParams` | object | No | Scrape config per page: `country_code`, `render`, `premium`, `ultra_premium`, `device_type`, `output_format` |
-| `callbackUrl` | string | No | Webhook URL for results and completion |
+| `callbackUrl` | string | No | Webhook URL for results and completion (see data-flow note below) |
 | `additionalData` | object | No | Custom metadata attached to the job |
 | `schedule` | object | No | Recurring schedule config (see below) |
 | `enabled` | boolean | No | Whether the job is active (default: true) |
+
+### callbackUrl — Data-Flow Warning
+
+When `callbackUrl` is set, ScraperAPI sends all crawled page results to that URL as POST requests. **Before setting a callbackUrl, confirm with the user:**
+
+1. **Who controls the endpoint** — scraped data (which may include PII, proprietary content, or sensitive page data) will be sent to this URL.
+2. **Data exposure** — results are transmitted over the network to the callback endpoint; ensure the endpoint uses HTTPS.
+3. **Volume** — a crawl can produce hundreds or thousands of result payloads depending on `crawlBudget` and `maxDepth`.
+
+Never set `callbackUrl` without explicit user approval.
 
 ### URL Regex Patterns
 
@@ -146,4 +156,4 @@ Cancel and delete a crawl job. This is **destructive** — the job and its data 
 - **Use `urlRegexpExclude`** to skip binary files, auth pages, and irrelevant sections.
 - **Test with low `maxDepth` first** (1–2) to validate your regex patterns before a full crawl.
 - **Enable `render` in `apiParams`** only if the site is JS-rendered — it multiplies credit cost per page.
-- **Use webhooks** (`callbackUrl`) for long-running crawls instead of polling `crawler_job_status` repeatedly.
+- **Consider webhooks** (`callbackUrl`) for long-running crawls instead of polling `crawler_job_status` repeatedly — but only with explicit user approval (see data-flow warning above).

@@ -42,4 +42,11 @@ Python-based, installed via PyPI (`pip install scraperapi-mcp-server`). **Only t
 - If `google_search` or `crawler_job_start` are available → **remote**. Use all 22 tools.
 - If only `scrape` is available → **local**. Use `scrape` for everything. For structured Google data, use `scrape` with `autoparse: true` and `outputFormat: "json"` on Google URLs.
 
-API key: direct users to https://www.scraperapi.com/dashboard if needed.
+### Environment Variables
+
+| Variant | Env Var | Description |
+|---------|---------|-------------|
+| Remote | `SCRAPERAPI_API_KEY` | API key passed as Bearer token to the hosted MCP server |
+| Local | `API_KEY` | API key passed to the local Python MCP server |
+
+Both variables hold the same ScraperAPI key value — the different names reflect what each server variant expects. Direct users to https://www.scraperapi.com/dashboard to obtain or manage their key.

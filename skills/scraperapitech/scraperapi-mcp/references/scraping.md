@@ -14,7 +14,7 @@ Scrapes a URL and returns its content. Handles proxy rotation, CAPTCHAs, and ant
 | `premium` | boolean | false | Use premium residential proxies |
 | `ultraPremium` | boolean | false | Advanced bypass mechanisms (incompatible with `premium`) |
 | `deviceType` | enum | — | `"mobile"` or `"desktop"` |
-| `outputFormat` | enum | `"markdown"` | `"text"`, `"markdown"`, `"csv"`, or `"json"` |
+| `outputFormat` | enum | `"markdown"` | `"text"`, `"markdown"`, `"html"`, `"csv"`, or `"json"` |
 | `autoparse` | boolean | false | Auto-parse JSON on supported sites; set `true` for csv/json output |
 
 ## When to Use Each Parameter
@@ -68,14 +68,6 @@ Always start minimal and escalate only as needed:
 5. If 403/429 or blocking persists: add `premium: true` (more expensive still).
 6. If still blocked: switch to `ultraPremium: true` (most expensive).
    - **NEVER** combine `premium` and `ultraPremium`.
-
-## Session Stickiness
-
-Use `session_number` (via direct API) when you need the same proxy IP across multiple requests — useful for:
-- Multi-page pagination on session-dependent sites
-- Multi-step workflows (login → navigate → extract)
-
-Note: `session_number` is not exposed as an MCP tool parameter but available via the direct API.
 
 ## Error Patterns
 
