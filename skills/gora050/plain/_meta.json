@@ -3,9 +3,15 @@
   "slug": "plain",
   "displayName": "Plain",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773993826235,
-    "commit": "https://github.com/openclaw/skills/commit/d524e8fb9fc056611c1f41958ff8eef7b28cbb4a"
+    "version": "1.0.2",
+    "publishedAt": 1775165297041,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773993826235,
+      "commit": "https://github.com/openclaw/skills/commit/d524e8fb9fc056611c1f41958ff8eef7b28cbb4a"
+    }
+  ]
 }
