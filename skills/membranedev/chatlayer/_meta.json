@@ -3,11 +3,16 @@
   "slug": "chatlayer",
   "displayName": "Chatlayer",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775166062488,
-    "commit": "https://github.com/openclaw/skills/commit/aebb779b31805275bcb8cb7f9ea6e3da64fa3769"
+    "version": "1.0.2",
+    "publishedAt": 1775166064651,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775166062488,
+      "commit": "https://github.com/openclaw/skills/commit/aebb779b31805275bcb8cb7f9ea6e3da64fa3769"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774141357322,
