@@ -1,6 +1,6 @@
 # Templates
 
-## Pre-Market Template
+## Pre-Market Template (full)
 
 US PRE-MARKET OUTLOOK
 
@@ -15,31 +15,31 @@ US PRE-MARKET OUTLOOK
 **KEY DEVELOPMENTS AFFECTING TODAY’S MARKET**
 
 **<Specific catalyst/event 1>**
-• <one concise impact line>
+• <one concise impact line> [🔗](<article-url>)
 
 **<Specific catalyst/event 2>**
-• <one concise impact line>
+• <one concise impact line> [🔗](<article-url>)
 
 **<Specific catalyst/event 3>**
-• <one concise impact line>
+• <one concise impact line> [🔗](<article-url>)
 
 **<Specific catalyst/event 4>**
-• <one concise impact line>
+• <one concise impact line> [🔗](<article-url>)
 
 ---
 
 **TICKERS TO WATCH**
 
 **<Ticker(s)>**
-• <one concise why-watch line>
+• <one concise why-watch line> [🔗](<article-url>)
 
 **<Ticker(s)>**
-• <one concise why-watch line>
+• <one concise why-watch line> [🔗](<article-url>)
 
 **<Ticker(s)>**
-• <one concise why-watch line>
+• <one concise why-watch line> [🔗](<article-url>)
 
-## Post-Market Template
+## Post-Market Template (full)
 
 US POST-MARKET RECAP
 
@@ -65,15 +65,23 @@ US POST-MARKET RECAP
 **Top 5 Gains**
 
 **<Ticker>**
-• <move + one-line driver>
+• <move + one-line driver> [🔗](<article-url>)
 
 **Top 5 Losses**
 
 **<Ticker>**
-• <move + one-line driver>
+• <move + one-line driver> [🔗](<article-url>)
 
 ---
 
 **MARKET SENTIMENT & FLOW SUMMARY**
 
-• <2-3 concise sentences on risk tone, breadth/leadership, and next-session setup>
+• <2-3 concise sentences on risk tone, breadth/leadership, and next-session setup> [🔗](<article-url>)
+
+## Compact Variant (same 3 sections)
+
+Use this when output profile is `compact`:
+
+- Keep all 3 section headings unchanged.
+- Use fewer bullets in sections 2 and 3.
+- Keep index snapshot lines intact.
