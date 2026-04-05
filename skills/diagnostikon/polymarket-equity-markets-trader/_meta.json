@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-equity-markets-trader",
-  "displayName": "Equity Markets & IPO Trader",
+  "displayName": "Polymarket Equity Markets Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773864824111,
-    "commit": "https://github.com/openclaw/skills/commit/23564a3b3b7b59d35820512cbe4b46880202f84e"
+    "version": "1.0.2",
+    "publishedAt": 1775317138029,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773864824111,
+      "commit": "https://github.com/openclaw/skills/commit/23564a3b3b7b59d35820512cbe4b46880202f84e"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773568811549,
