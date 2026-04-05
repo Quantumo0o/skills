@@ -1,7 +1,7 @@
 ---
 name: get-tb-month-sale
 description: 查询阿里平台（淘宝/天猫）商品月销量，支持商品ID或链接输入，返回月销量数据
-version: 1.1.3
+version: 1.1.5
 author: tom.yan@earlydata.com
 permissions: 网络访问权限（用于请求第三方API服务）
 dependencies: requests
@@ -12,7 +12,7 @@ api_usage: 本技能通过调用第三方API服务获取数据，认证由服务
 # Get Taobao Month Sale Skill（查询淘宝商品月销量技能）
 
 ## 1. Description
-当用户需要查询淘宝/天猫平台商品的月销量数据时，使用此技能通过商品ID或商品链接获取销量信息。
+当用户需要查询淘宝/天猫平台商品的月销量数据时，使用此技能通过商品ID或商品链接获取该商品过往30天销量信息。
 
 ## 2. When to use
 - 用户说："帮我查一下这个商品的月销量 https://item.taobao.com/item.htm?id=123456789"
@@ -24,7 +24,7 @@ api_usage: 本技能通过调用第三方API服务获取数据，认证由服务
    - 必选：商品ID 或 商品链接（支持淘宝/天猫链接，自动解析提取商品ID）；
 2. 若用户提供链接，自动解析提取商品ID；
 3. 调用 agent.py 中的 get_tb_month_sale 函数执行查询操作；
-4. 返回结果：告知用户商品月销量数据，若查询失败，说明具体原因（如商品不存在、链接无效、网络异常）。
+4. 返回结果：只需要告知用户商品月销量数据，若查询失败，说明具体原因（如商品不存在、链接无效、网络异常）。
 
 
 ## 4. Edge cases
