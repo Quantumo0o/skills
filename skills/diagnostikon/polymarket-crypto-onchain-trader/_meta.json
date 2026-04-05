@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-crypto-onchain-trader",
-  "displayName": "Crypto & On-Chain Trader",
+  "displayName": "Polymarket Crypto Onchain Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773855655972,
-    "commit": "https://github.com/openclaw/skills/commit/778ad07876ad48ecbf8605c26d6b6e1ddd6c05c3"
+    "version": "1.0.2",
+    "publishedAt": 1775317113795,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773855655972,
+      "commit": "https://github.com/openclaw/skills/commit/778ad07876ad48ecbf8605c26d6b6e1ddd6c05c3"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773475469295,
