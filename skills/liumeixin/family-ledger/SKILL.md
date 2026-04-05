@@ -32,6 +32,7 @@ metadata: {"openclaw":{"emoji":"📒","homepage":"","keywords":["账本","记账
 | type | string | 类型：收入 / 支出 |
 | amount | number | 金额 |
 | category | string | 类别 |
+| recorded_by | string | 记录人：设计虱 / 大脸鱼 |
 | house | string | 房屋（可选）：军龙苑/保利大都会/东方文创园/洛铜嘉苑/龙锦嘉园 |
 | child | string | 孩子（教育类别可选）：根据用户设置 |
 | note | string | 备注 |
@@ -95,6 +96,26 @@ metadata: {"openclaw":{"emoji":"📒","homepage":"","keywords":["账本","记账
 | due_date | string | 应还/应报销日期（可选） |
 | status | string | 状态：未还 / 已还 / 待报销 / 已报销 |
 | note | string | 备注 |
+
+---
+
+## 用户ID映射
+
+飞书用户ID与记录人对应关系：
+
+```
+~/.openclaw/workspace/shared/ledger/user-mapping.json
+```
+
+文件内容示例：
+```json
+{
+  "ou_7d82888fe950c222c78c4ba7e7ec9ab7": "设计虱",
+  "ou_2d8827e13291607774e7d518d1b5bfe0": "大脸鱼"
+}
+```
+
+技能自动从消息元数据中读取 sender_id，转换为记录人名称。
 
 ---
 
