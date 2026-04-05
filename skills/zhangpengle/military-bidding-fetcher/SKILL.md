@@ -25,7 +25,7 @@ metadata: {"openclaw":{"emoji":"🕷️","requires":{milb-fetcher},"install":"pi
 - `--regions "地区1,地区2"` → 地区筛选（仅对军队采购网生效）
 
 输出控制
-- `--output /path/to/file.xlsx` → 指定输出路径（默认存至 `~/.openclaw/workspace/military-bidding/商机信息汇总_{date}.xlsx`）
+- `--output /path/to/file.xlsx` → 指定输出路径（默认存至 `~/.openclaw/workspace/military-bidding/军队采购商机汇总_{date}.xlsx`）
 - `--no-auto-latest` → 禁用自动检测最新日期（未指定日期时改用今日）
 
 ## 数据源

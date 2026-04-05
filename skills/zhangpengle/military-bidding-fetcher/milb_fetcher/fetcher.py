@@ -33,6 +33,7 @@ import time
 import re
 import json
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 
@@ -316,7 +317,8 @@ def fetch_military_bidding(
     for region_name, region_code in regions.items():
         page = 1
         region_items = []
-        
+        consecutive_empty = 0
+
         # 分页获取数据
         max_pages = 10
         while page <= max_pages:
@@ -327,29 +329,28 @@ def fetch_military_bidding(
                 'pageSize': 20,
                 'regionCode': region_code,
             }
-            
+
             try:
                 resp = requests.get(base_url, params=params, headers=headers, timeout=10, proxies=get_proxies())
                 data = resp.json()
                 items = data.get('data', [])
-                
+
                 if not items:
                     break
-                
+
                 # 筛选当日数据
                 today_items = [item for item in items if date in (item.get('noticeTime') or '')]
-                
+
                 if today_items:
                     region_items.extend(today_items)
+                    consecutive_empty = 0
                     page += 1
                 else:
-                    # 如果当前页没有当日数据，再尝试下一页（可能有遗漏）
-                    if page < max_pages:
-                        page += 1
-                        continue
-                    else:
+                    consecutive_empty += 1
+                    if consecutive_empty >= 2:
                         break
-                    
+                    page += 1
+
             except Exception as e:
                 print(f"[ERROR] 地区 {region_name} 第{page}页获取失败: {e}")
                 break
@@ -678,24 +679,26 @@ def fetch_all_bidding(
     if high_value_keywords is None:
         high_value_keywords = DEFAULT_HIGH_VALUE_KW
     
-    # 自动获取各渠道最新日期
+    today = datetime.now().strftime('%Y-%m-%d')
+
+    # 确定各渠道日期：auto_latest 时并行预检，否则直接用指定日期
     if auto_latest and date is None:
-        today = datetime.now().strftime('%Y-%m-%d')
-        
-        print("[INFO] 自动检测各渠道最新日期...")
-        weain_date = _get_weain_latest_date()
-        military_date = today  # 军队采购网默认当天
-        nudt_date = _get_nudt_latest_date()
-        
+        print("[INFO] 自动检测各渠道最新日期（并行）...")
+        with ThreadPoolExecutor(max_workers=2) as ex:
+            f_weain_date = ex.submit(_get_weain_latest_date)
+            f_nudt_date = ex.submit(_get_nudt_latest_date)
+            weain_date = f_weain_date.result()
+            nudt_date = f_nudt_date.result()
+        military_date = today
+        file_date = today
+
         print(f"[INFO] 全军装备采购网最新: {weain_date}")
         print(f"[INFO] 军队采购网最新: {military_date}")
         print(f"[INFO] 国防科大采购网最新: {nudt_date}")
         print("=" * 60)
-        
-        file_date = today
     else:
         if date is None:
-            date = datetime.now().strftime('%Y-%m-%d')
+            date = today
         weain_date = date
         military_date = date
         nudt_date = date
@@ -703,46 +706,26 @@ def fetch_all_bidding(
         print("=" * 60)
         print(f"开始整合抓取 - 日期: {date}")
         print("=" * 60)
-    
+
     if output_path is None:
         output_dir = os.path.expanduser(get_output_dir())
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f'商机信息汇总_{file_date}.xlsx')
-    
-    # 获取全军武器装备采购信息网数据（使用其最新日期）
-    print(f"[INFO] 开始抓取全军武器装备采购信息网 - 日期: {weain_date}")
-    print("-" * 60)
-    df_weain = fetch_weain_bidding(
-        keywords=keywords,
-        date=weain_date
-    )
+        output_path = os.path.join(output_dir, f'军队采购商机汇总_{file_date}.xlsx')
+
+    # 并行抓取三个数据源
+    print("[INFO] 并行抓取三个数据源...")
+    with ThreadPoolExecutor(max_workers=3) as ex:
+        f_weain = ex.submit(fetch_weain_bidding, keywords, weain_date)
+        f_military = ex.submit(fetch_military_bidding, keywords, exclude_keywords,
+                               regions, military_date, high_value_keywords, False)
+        f_nudt = ex.submit(fetch_nudt_bidding, keywords, nudt_date)
+        df_weain = f_weain.result()
+        df_military = f_military.result()
+        df_nudt = f_nudt.result()
+
     weain_actual_date = weain_date if len(df_weain) > 0 else ""
-    
-    print()
-    
-    # 获取军队采购网数据（使用当天或最新日期）
-    print(f"[INFO] 开始抓取军队采购网 - 日期: {military_date}")
-    print("-" * 60)
-    df_military = fetch_military_bidding(
-        keywords=keywords,
-        exclude_keywords=exclude_keywords,
-        regions=regions,
-        date=military_date,
-        high_value_keywords=high_value_keywords,
-        save_csv=False
-    )
-    
-    print()
-    
-    # 获取国防科大采购信息网数据（使用其最新日期）
-    print(f"[INFO] 开始抓取国防科大采购信息网 - 日期: {nudt_date}")
-    print("-" * 60)
-    df_nudt = fetch_nudt_bidding(
-        keywords=keywords,
-        date=nudt_date
-    )
     nudt_actual_date = nudt_date if len(df_nudt) > 0 else ""
-    
+
     print()
     
     # 输出Excel
