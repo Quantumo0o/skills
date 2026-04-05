@@ -1,6 +1,6 @@
 ---
-name: jisu-stock-monitor
-description: 基于极速数据股票与历史行情 API，对持仓做一次性检查：成本盈亏、日内涨跌（含 ETF/黄金默认阈值）、开盘跳空%、真缺口、跨日动态止盈（可选状态文件）、告警冷却、放量/缩量、均线金叉/死叉、RSI 等（无常驻进程）。
+name: "Stock Monitor - 股票监控"
+description: 对持仓做一次性检查：盈亏、涨跌、缺口、均线与 RSI 等（无常驻进程，可配阈值与状态文件）。当用户说：帮我检查一下持仓要不要告警？我的 ETF 今天触发止损了吗？或类似持仓体检问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🛎️", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY", "JISU_STOCK_MONITOR_STATE"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
@@ -10,7 +10,6 @@ metadata: { "openclaw": { "emoji": "🛎️", "requires": { "bins": ["python3"],
 
 **免责声明：仅供技术学习与信息整理，不构成投资建议；行情与指标可能存在延迟或误差，请自行核实。**
 
-## 环境变量
 
 ```bash
 # Linux / macOS
@@ -123,7 +122,7 @@ skill/jisu-stock-monitor/*.state.json
 skill/jisu-stock-monitor/config*.local.json
 ```
 
-## 在 OpenClaw 中的推荐用法
+## 推荐用法
 
 1. 用户说「跑持仓监控」「有没有触发预警」「检查这几只票」等，且已有或愿意让你维护一份 **JSON 配置**（可参考 `config.example.json`）时。
 2. 确认环境已设 **`JISU_API_KEY`**，再执行一次：`python3 skills/jisu-stock-monitor/monitor.py check @<配置文件.json>`（或内联 JSON / 管道 `check -`）；**不要**为本技能启动后台常驻进程。
