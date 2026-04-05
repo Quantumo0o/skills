@@ -1,0 +1,11 @@
+{
+  "owner": "alessandro-brucato-tracebit",
+  "slug": "tracebit-canary-honeytokens",
+  "displayName": "Tracebit Canaries",
+  "latest": {
+    "version": "1.0.19",
+    "publishedAt": 1775212014190,
+    "commit": null
+  },
+  "history": []
+}
