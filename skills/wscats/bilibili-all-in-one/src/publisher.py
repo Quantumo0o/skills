@@ -2,24 +2,24 @@
 
 import os
 import json
-import hashlib
 import asyncio
 from typing import Optional, Dict, Any, List
+import logging
 
 import httpx
 
 from .auth import BilibiliAuth
-from .utils import DEFAULT_HEADERS, API_BASE, ensure_dir
+from .utils import DEFAULT_HEADERS, API_BASE
+
+_logger = logging.getLogger("bilibili.publisher")
 
 
 # Publishing API endpoints
 PREUPLOAD_URL = "https://member.bilibili.com/preupload"
-UPLOAD_URL = "https://upos-sz-upcdnbda2.bilivideo.com"
-ADD_VIDEO_URL = f"{API_BASE}/x/vu/web/add"
-EDIT_VIDEO_URL = f"{API_BASE}/x/vu/web/edit"
-DELETE_VIDEO_URL = f"{API_BASE}/x/vu/web/archive/del"
-DRAFT_ADD_URL = f"{API_BASE}/x/vu/web/draft/add"
-COVER_UPLOAD_URL = f"{API_BASE}/x/vu/web/cover/up"
+MEMBER_API_BASE = "https://member.bilibili.com"
+ADD_VIDEO_URL = f"{MEMBER_API_BASE}/x/vu/web/add"
+EDIT_VIDEO_URL = f"{MEMBER_API_BASE}/x/vu/web/edit"
+COVER_UPLOAD_URL = f"{MEMBER_API_BASE}/x/vu/web/cover/up"
 
 
 class BilibiliPublisher:
@@ -163,10 +163,11 @@ class BilibiliPublisher:
             if cover_result.get("success"):
                 cover_url = cover_result.get("url", "")
 
-        # Save as draft
+        # Save as draft (use the same add API with draft=1)
         async with self._get_client() as client:
             resp = await client.post(
-                DRAFT_ADD_URL,
+                ADD_VIDEO_URL,
+                params={"csrf": self.auth.csrf},
                 json={
                     "videos": [{
                         "filename": upload_result["filename"],
@@ -178,10 +179,19 @@ class BilibiliPublisher:
                     "tag": ",".join(tags),
                     "tid": int(category),
                     "cover": cover_url,
+                    "copyright": 1,
+                    "no_reprint": 1,
+                    "open_elec": 0,
+                    "draft": 1,
                     "csrf": self.auth.csrf,
                 },
             )
-            data = resp.json()
+            if resp.status_code != 200:
+                return {"success": False, "message": f"HTTP {resp.status_code}: {resp.text[:500]}"}
+            try:
+                data = resp.json()
+            except Exception:
+                return {"success": False, "message": f"Invalid JSON response: {resp.text[:500]}"}
 
         if data.get("code") != 0:
             return {"success": False, "message": data.get("message", "Draft save failed")}
@@ -269,6 +279,7 @@ class BilibiliPublisher:
         description: Optional[str] = None,
         tags: Optional[List[str]] = None,
         cover_path: Optional[str] = None,
+        file_path: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Edit an existing video's metadata.
 
@@ -278,6 +289,7 @@ class BilibiliPublisher:
             description: New description (if changing).
             tags: New tags (if changing).
             cover_path: New cover image path (if changing).
+            file_path: Path to video file (required for re-upload).
 
         Returns:
             Edit result.
@@ -295,15 +307,36 @@ class BilibiliPublisher:
 
         video = data["data"]
 
-        # Build edit payload
+        # Re-upload video file to get a fresh filename
+        if file_path and os.path.exists(file_path):
+            preupload_result = await self._preupload(file_path)
+            if not preupload_result.get("success"):
+                return preupload_result
+            upload_result = await self._upload_file(file_path, preupload_result)
+            if not upload_result.get("success"):
+                return upload_result
+            new_filename = upload_result["filename"]
+        else:
+            return {"success": False, "message": "file_path is required for editing (B站 requires re-upload)"}
+
+        # Build edit payload with videos info
+        new_title = title or video.get("title")
+        videos = [{
+            "filename": new_filename,
+            "title": new_title,
+            "desc": "",
+        }]
+
         edit_data = {
             "aid": video["aid"],
-            "title": title or video.get("title"),
+            "videos": videos,
+            "title": new_title,
             "desc": description if description is not None else video.get("desc", ""),
             "tag": ",".join(tags) if tags else ",".join(
                 t.get("tag_name", "") for t in video.get("tags", []) if t.get("tag_name")
             ),
             "tid": video.get("tid"),
+            "copyright": video.get("copyright", 1),
             "csrf": self.auth.csrf,
         }
 
@@ -314,8 +347,17 @@ class BilibiliPublisher:
                 edit_data["cover"] = cover_result.get("url", "")
 
         async with self._get_client() as client:
-            resp = await client.post(EDIT_VIDEO_URL, json=edit_data)
-            result = resp.json()
+            resp = await client.post(
+                EDIT_VIDEO_URL,
+                params={"csrf": self.auth.csrf},
+                json=edit_data,
+            )
+            if resp.status_code != 200:
+                return {"success": False, "message": f"HTTP {resp.status_code}: {resp.text[:500]}"}
+            try:
+                result = resp.json()
+            except Exception:
+                return {"success": False, "message": f"Invalid JSON response: {resp.text[:500]}"}
 
         if result.get("code") != 0:
             return {"success": False, "message": result.get("message", "Edit failed")}
@@ -326,53 +368,11 @@ class BilibiliPublisher:
             "message": "Video edited successfully",
         }
 
-    async def delete(self, bvid: str) -> Dict[str, Any]:
-        """Delete a video.
-
-        Args:
-            bvid: BV number of the video to delete.
-
-        Returns:
-            Deletion result.
-        """
-        # Get AID from BVID
-        async with self._get_client() as client:
-            resp = await client.get(
-                f"{API_BASE}/x/web-interface/view",
-                params={"bvid": bvid},
-            )
-            data = resp.json()
-
-        if data.get("code") != 0:
-            return {"success": False, "message": data.get("message", "Video not found")}
-
-        aid = data["data"]["aid"]
-
-        async with self._get_client() as client:
-            resp = await client.post(
-                DELETE_VIDEO_URL,
-                data={
-                    "aid": aid,
-                    "csrf": self.auth.csrf,
-                },
-            )
-            result = resp.json()
-
-        if result.get("code") != 0:
-            return {"success": False, "message": result.get("message", "Delete failed")}
-
-        return {
-            "success": True,
-            "bvid": bvid,
-            "aid": aid,
-            "message": "Video deleted successfully",
-        }
-
     async def execute(self, action: str, **kwargs) -> Dict[str, Any]:
         """Execute a publisher action.
 
         Args:
-            action: Action name ('upload', 'draft', 'schedule', 'edit', 'delete').
+            action: Action name ('upload', 'draft', 'schedule', 'edit').
             **kwargs: Additional parameters for the action.
 
         Returns:
@@ -383,7 +383,6 @@ class BilibiliPublisher:
             "draft": self.draft,
             "schedule": self.schedule,
             "edit": self.edit,
-            "delete": self.delete,
         }
 
         handler = actions.get(action)
@@ -640,8 +639,24 @@ class BilibiliPublisher:
             payload["dtime"] = dtime
 
         async with self._get_client() as client:
-            resp = await client.post(ADD_VIDEO_URL, json=payload)
-            data = resp.json()
+            params = {"csrf": self.auth.csrf}
+            resp = await client.post(
+                ADD_VIDEO_URL,
+                params=params,
+                json=payload,
+            )
+            if resp.status_code != 200:
+                return {
+                    "success": False,
+                    "message": f"HTTP {resp.status_code}: {resp.text[:500]}",
+                }
+            try:
+                data = resp.json()
+            except Exception:
+                return {
+                    "success": False,
+                    "message": f"Invalid JSON response: {resp.text[:500]}",
+                }
 
         if data.get("code") != 0:
             return {"success": False, "message": data.get("message", "Submit failed")}

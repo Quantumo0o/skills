@@ -32,6 +32,7 @@ class BilibiliAllInOne:
         bili_jct: Optional[str] = None,
         buvid3: Optional[str] = None,
         credential_file: Optional[str] = None,
+        persist: Optional[bool] = None,
     ):
         """Initialize BilibiliAllInOne.
 
@@ -40,20 +41,28 @@ class BilibiliAllInOne:
             bili_jct: Bilibili bili_jct (CSRF) cookie.
             buvid3: Bilibili buvid3 cookie.
             credential_file: Path to JSON credential file.
+            persist: Whether to persist credentials to disk (default: False).
+                Set to True or env BILIBILI_PERSIST=1 to auto-save/load
+                credentials from .credentials.json.
         """
         self.auth = BilibiliAuth(
             sessdata=sessdata,
             bili_jct=bili_jct,
             buvid3=buvid3,
             credential_file=credential_file,
+            persist=persist,
         )
 
         # Initialize all modules
         self.hot_monitor = HotMonitor(auth=self.auth)
         self.downloader = BilibiliDownloader(auth=self.auth)
         self.watcher = BilibiliWatcher(auth=self.auth)
-        self.subtitle = SubtitleDownloader(auth=self.auth)
         self.player = BilibiliPlayer(auth=self.auth)
+        self.subtitle = SubtitleDownloader(
+            auth=self.auth,
+            downloader=self.downloader,
+            player=self.player,
+        )
         self._publisher = None  # Lazy init (requires auth)
 
     @property
@@ -136,8 +145,6 @@ async def main():
         print('  python main.py downloader get_info \'{"url": "BV1xx411c7mD"}\'')
         print('  python main.py subtitle list \'{"url": "BV1xx411c7mD"}\'')
         print('  python main.py player get_danmaku \'{"url": "BV1xx411c7mD"}\'')
-        sys.exit(1)
-
     skill_name = sys.argv[1]
     action = sys.argv[2]
     params = json.loads(sys.argv[3]) if len(sys.argv) > 3 else {}

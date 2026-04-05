@@ -1,7 +1,7 @@
 {
   "name": "bilibili-all-in-one",
   "description": "A comprehensive Bilibili toolkit that integrates hot trending monitoring, video downloading, video watching/playback, subtitle downloading, and video publishing capabilities into a single skill.",
-"version": "1.0.12",
+"version": "1.0.18",
   "author": "wscats",
   "license": "MIT",
   "homepage": "https://github.com/wscats/bilibili-all-in-one",
@@ -10,14 +10,13 @@
   "type": "code",
   "runtime": "python>=3.8",
   "entry_point": "main.py",
-  "required_env_vars": ["BILIBILI_SESSDATA", "BILIBILI_BILI_JCT"],
-  "optional_env_vars": ["BILIBILI_BUVID3"],
+  "required_env_vars": [],
+"optional_env_vars": ["BILIBILI_SESSDATA", "BILIBILI_BILI_JCT", "BILIBILI_BUVID3", "BILIBILI_PERSIST"],
   "install": {
     "type": "pip",
     "command": "pip install -r requirements.txt",
     "packages": [
       "httpx>=0.24.0",
-      "bilibili-api-python>=16.0.0",
       "aiohttp>=3.8.0",
       "beautifulsoup4>=4.12.0",
       "lxml>=4.9.0",
@@ -29,15 +28,15 @@
     {
       "name": "BILIBILI_SESSDATA",
       "type": "string",
-      "description": "Bilibili SESSDATA cookie for authenticated API access (publishing, high-quality downloads).",
-      "required": true,
+      "description": "Bilibili SESSDATA cookie for authenticated API access. Only required for publishing and high-quality (1080p+/4K) downloads. Most features work without this.",
+      "required": false,
       "sensitive": true
     },
     {
       "name": "BILIBILI_BILI_JCT",
       "type": "string",
-      "description": "Bilibili bili_jct cookie (CSRF token) for all write operations (upload, edit, delete).",
-      "required": true,
+      "description": "Bilibili bili_jct cookie (CSRF token) for write operations (upload, edit). Only required for publishing. Most features work without this.",
+      "required": false,
       "sensitive": true
     },
     {
@@ -46,26 +45,36 @@
       "description": "Bilibili buvid3 cookie for device identification in authenticated sessions.",
       "required": false,
       "sensitive": true
+    },
+    {
+      "name": "BILIBILI_PERSIST",
+      "type": "string",
+      "description": "Set to '1', 'true', or 'yes' to enable automatic credential persistence. When enabled, credentials are saved to .credentials.json (0600 permissions) and auto-loaded on next startup. Default: disabled (in-memory only).",
+      "required": false,
+      "sensitive": false
     }
   ],
   "credentials": {
     "primary_credential": "BILIBILI_SESSDATA",
-    "storage": "in-memory by default; disk persistence only via explicit auth.save_to_file() call with 0600 permissions",
+    "credential_type": "full_session_cookies",
+    "credential_required_for": "Only the Publisher module (upload/edit/schedule/draft) and high-quality downloads (1080p+/4K) require credentials. All other features (hot monitoring, standard downloads, subtitles, danmaku, stats) work WITHOUT any credentials.",
+    "credential_scope_warning": "These are full browser session cookies (not limited API keys). Providing them grants the skill broad access to your Bilibili account. Use a test/throwaway account.",
+"storage": "in-memory by default. Set persist=True (or env BILIBILI_PERSIST=1) to auto-save/load credentials from .credentials.json with 0600 permissions. Persistence can also be toggled at runtime via auth.persist property.",
     "security_notes": [
-      "Credentials are NEVER persisted to disk unless the user explicitly calls save_to_file().",
+      "Credentials are NOT persisted to disk by default. Persistence must be explicitly opted-in via persist=True or BILIBILI_PERSIST=1.",
       "Prefer passing credentials via environment variables or in-memory parameters.",
-"All API requests go to official Bilibili endpoints and YouTube oEmbed API over HTTPS.",
-      "Use a test/throwaway Bilibili account for evaluation purposes."
+      "All API requests go to official Bilibili endpoints over HTTPS.",
+      "Use a test/throwaway Bilibili account for evaluation purposes.",
+      "These are full session cookies — treat them as highly sensitive. They grant broad account access, not just limited API scope."
     ]
   },
   "network": {
     "protocol": "HTTPS only",
     "allowed_domains": [
       "api.bilibili.com",
-      "member.bilibili.com",
-      "upos-sz-upcdnbda2.bilivideo.com",
-      "www.bilibili.com",
-      "www.youtube.com"
+        "member.bilibili.com",
+        "upos-sz-upcdnbda2.bilivideo.com",
+        "www.bilibili.com"
     ],
     "third_party_telemetry": false,
     "analytics": false
@@ -85,9 +94,7 @@
     "src/player.py",
     "src/subtitle.py",
     "src/watcher.py",
-    "src/publisher.py",
-    "tests/__init__.py",
-    "tests/test_all_skill_examples.py"
+    "src/publisher.py"
   ],
   "skills": [
     {
@@ -158,7 +165,7 @@
     },
     {
       "name": "bilibili_watcher",
-      "description": "Watch and monitor Bilibili (and YouTube) videos. Track view counts, comments, likes, and other engagement metrics over time.",
+      "description": "Watch and monitor Bilibili videos. Track view counts, comments, likes, and other engagement metrics over time.",
       "parameters": {
         "type": "object",
         "properties": {
@@ -169,7 +176,7 @@
           },
           "url": {
             "type": "string",
-            "description": "Video URL (supports Bilibili and YouTube)"
+            "description": "Video URL (supports Bilibili)"
           },
           "urls": {
             "type": "array",
@@ -268,8 +275,8 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": ["upload", "draft", "schedule", "edit", "delete"],
-            "description": "The action to perform: upload (upload and publish), draft (save as draft), schedule (schedule publication), edit (edit existing video), delete (delete a video)"
+            "enum": ["upload", "draft", "schedule", "edit"],
+            "description": "The action to perform: upload (upload and publish), draft (save as draft), schedule (schedule publication), edit (edit existing video)"
           },
           "file_path": {
             "type": "string",
@@ -302,7 +309,7 @@
           },
           "bvid": {
             "type": "string",
-            "description": "BV number of existing video (for edit/delete actions)"
+            "description": "BV number of existing video (for edit action)"
           },
           "credential": {
             "type": "object",
@@ -316,19 +323,19 @@
   "configuration": {
     "bilibili_sessdata": {
       "type": "string",
-      "description": "Bilibili SESSDATA cookie for authenticated operations",
+      "description": "Bilibili SESSDATA cookie. Optional — only needed for publishing and 1080p+/4K downloads. Most features work without credentials.",
       "required": false,
       "sensitive": true
     },
     "bilibili_bili_jct": {
       "type": "string",
-      "description": "Bilibili bili_jct cookie for CSRF protection",
+      "description": "Bilibili bili_jct cookie (CSRF token). Optional — only needed for publishing (upload/edit). Most features work without credentials.",
       "required": false,
       "sensitive": true
     },
     "bilibili_buvid3": {
       "type": "string",
-      "description": "Bilibili buvid3 cookie for device identification",
+      "description": "Bilibili buvid3 cookie for device identification. Optional.",
       "required": false,
       "sensitive": true
     },
@@ -345,13 +352,12 @@
   },
   "permissions": {
     "network": {
-      "description": "HTTP/HTTPS requests to Bilibili official APIs and YouTube oEmbed API",
-      "allowed_domains": [
-        "api.bilibili.com",
+      "description": "HTTP/HTTPS requests to Bilibili official APIs",
+    "allowed_domains": [
+      "api.bilibili.com",
         "member.bilibili.com",
         "www.bilibili.com",
-        "upos-sz-upcdnbda2.bilivideo.com",
-        "www.youtube.com"
+        "upos-sz-upcdnbda2.bilivideo.com"
       ]
     },
     "filesystem": {
@@ -360,5 +366,7 @@
       "note": "Credential files are NEVER auto-created. save_to_file() must be explicitly called by the user."
     }
   },
-  "always": false
+  "always": false,
+  "activation_note": "This skill should only be activated when the user explicitly requests Bilibili-related operations. It does NOT auto-activate on keyword/link detection.",
+  "disable_model_invocation": false
 }

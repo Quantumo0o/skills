@@ -3,9 +3,15 @@
   "slug": "bilibili-all-in-one",
   "displayName": "Bilibili All In One",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1773575249786,
-    "commit": "https://github.com/openclaw/skills/commit/e2de5445537ad0072131eb5408ffd6c909916e85"
+    "version": "1.0.21",
+    "publishedAt": 1775267396758,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1773575249786,
+      "commit": "https://github.com/openclaw/skills/commit/e2de5445537ad0072131eb5408ffd6c909916e85"
+    }
+  ]
 }

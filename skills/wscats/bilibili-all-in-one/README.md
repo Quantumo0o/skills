@@ -7,8 +7,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-%3E%3D3.8-blue?logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/license-MIT-green" />
-  <img src="https://img.shields.io/badge/version-1.0.9-orange" />
-  <img src="https://img.shields.io/badge/platform-Bilibili%20%7C%20YouTube-pink" />
+  <img src="https://img.shields.io/badge/version-1.0.18-orange" />
+  <img src="https://img.shields.io/badge/platform-Bilibili-pink" />
 </p>
 
 ---
@@ -25,10 +25,10 @@
 |:---:|---|:---:|
 | 🔥 **热门监控** | 热门视频、热搜话题、每周必看、分区排行榜 | ❌ |
 | ⬇️ **视频下载** | 多清晰度下载、批量下载、格式转换、音频提取 | ⚠️ 高清需要 |
-| 👀 **数据追踪** | 播放/点赞/收藏统计、数据追踪、多视频对比（支持 YouTube） | ❌ |
+| 👀 **数据追踪** | 播放/点赞/收藏统计、数据追踪、多视频对比 | ❌ |
 | 📝 **字幕提取** | 字幕下载、格式转换（SRT/ASS/VTT/TXT）、多语言、字幕合并 | ❌ |
 | ▶️ **视频播放** | 播放地址获取、弹幕抓取、分P/播放列表信息 | ⚠️ 高清需要 |
-| 📤 **视频发布** | 上传投稿、定时发布、草稿管理、编辑/删除视频 | ✅ 必须 |
+| 📤 **视频发布** | 上传投稿、定时发布、草稿管理、编辑视频 | ✅ 必须 |
 
 ## 🚀 快速开始
 
@@ -94,6 +94,31 @@ app = BilibiliAllInOne(
     buvid3="你的_buvid3",
 )
 ```
+
+### 方式四：持久化存储（可选）
+
+默认情况下，凭据仅保存在内存中，不会写入磁盘。如需跨会话自动保存/加载凭据：
+
+```bash
+# 通过环境变量启用
+export BILIBILI_PERSIST=1
+```
+
+```python
+# 或通过代码启用
+app = BilibiliAllInOne(persist=True)
+
+# 运行时切换：启用持久化
+app.auth.persist = True
+
+# 运行时切换：关闭持久化并删除文件
+app.auth.persist = False
+
+# 手动删除持久化文件
+app.auth.clear_persisted()
+```
+
+启用后，凭据自动保存到项目根目录的 `.credentials.json`（权限 `0600`，仅所有者可读写），下次启动时自动加载。
 
 > 💡 **如何获取 Cookie？** 登录 [bilibili.com](https://www.bilibili.com) → 按 F12 打开开发者工具 → Application → Cookies → 复制 `SESSDATA`、`bili_jct`、`buvid3` 的值。
 
@@ -198,7 +223,7 @@ result = await app.execute("downloader", "batch_download", urls=["BV1xx411c7mD",
 
 ### 3. 数据追踪 (`watcher`)
 
-追踪 B站和 YouTube 视频的互动数据，支持多视频对比。
+追踪 B站视频的互动数据，支持多视频对比。
 
 | 操作 | 说明 | 参数 |
 |---|---|---|
@@ -209,7 +234,6 @@ result = await app.execute("downloader", "batch_download", urls=["BV1xx411c7mD",
 
 **支持平台：**
 - **B站**：`https://www.bilibili.com/video/BVxxxxxx` 或 `BVxxxxxx`
-- **YouTube**：`https://www.youtube.com/watch?v=xxxxx` 或 `https://youtu.be/xxxxx`
 
 ```bash
 # 查看视频详情
@@ -223,16 +247,12 @@ python main.py watcher track '{"url": "BV1xx411c7mD", "interval": 30, "duration"
 
 # 对比多个视频
 python main.py watcher compare '{"urls": ["BV1xx411c7mD", "BV1yy411c8nE"]}'
-
-# YouTube 视频也支持
-python main.py watcher watch '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
 ```
 
 ```python
 # Python API
 stats = await app.execute("watcher", "get_stats", url="BV1xx411c7mD")
 comparison = await app.execute("watcher", "compare", urls=["BV1xx411c7mD", "BV1yy411c8nE"])
-youtube_info = await app.execute("watcher", "watch", url="https://youtu.be/dQw4w9WgXcQ")
 ```
 
 ---
@@ -334,8 +354,7 @@ playlist = await app.execute("player", "get_playlist", url="BV1xx411c7mD")
 | `upload` | 上传并发布视频 | `file_path`, `title`, `description`, `tags`, `category`, `cover_path` |
 | `draft` | 保存为草稿 | `file_path`, `title`, `description`, `tags`, `category` |
 | `schedule` | 定时发布 | `file_path`, `title`, `schedule_time`, `description`, `tags` |
-| `edit` | 编辑已发布视频 | `bvid`, `title`, `description`, `tags`, `cover_path` |
-| `delete` | 删除视频 | `bvid` |
+| `edit` | 编辑已发布视频 | `bvid`, `file_path`, `title`, `description`, `tags`, `cover_path` |
 
 **上传参数说明：**
 
@@ -360,11 +379,8 @@ python main.py publisher draft '{"file_path": "./video.mp4", "title": "草稿视
 # 定时发布
 python main.py publisher schedule '{"file_path": "./video.mp4", "title": "定时视频", "schedule_time": "2025-12-31T20:00:00+08:00"}'
 
-# 编辑视频信息
-python main.py publisher edit '{"bvid": "BV1xx411c7mD", "title": "新标题", "tags": ["更新"]}'
-
-# 删除视频
-python main.py publisher delete '{"bvid": "BV1xx411c7mD"}'
+# 编辑视频信息（B站要求重新上传视频文件）
+python main.py publisher edit '{"bvid": "BV1xx411c7mD", "file_path": "./video.mp4", "title": "新标题", "tags": ["更新"]}'
 ```
 
 ```python
@@ -377,6 +393,14 @@ result = await app.execute("publisher", "upload",
     description="通过 bilibili-all-in-one 发布",
     tags=["python", "bilibili"],
 )
+
+# 编辑视频（需要提供视频文件路径，B站要求重新上传）
+result = await app.execute("publisher", "edit",
+    bvid="BV1xx411c7mD",
+    file_path="./video.mp4",
+    title="新标题",
+    tags=["更新"],
+)
 ```
 
 ---
@@ -388,7 +412,7 @@ result = await app.execute("publisher", "upload",
 | 关注点 | 说明 |
 |---|---|
 | **需要哪些凭据？** | `SESSDATA`、`bili_jct`、`buvid3` — B站浏览器 Cookie |
-| **哪些功能需要认证？** | 视频发布（上传/编辑/删除/定时/草稿）、1080p+/4K 下载 |
+| **哪些功能需要认证？** | 视频发布（上传/编辑/定时/草稿）、1080p+/4K 下载 |
 | **哪些功能无需认证？** | 热门监控、标准画质下载、字幕获取、弹幕抓取、数据查看 |
 | **凭据发送到哪里？** | **仅限** B站官方 API（`api.bilibili.com`、`member.bilibili.com`），全部 HTTPS |
 | **是否持久化到磁盘？** | **否** — 除非你主动调用 `auth.save_to_file()`，凭据默认仅存在于内存 |
@@ -399,10 +423,9 @@ result = await app.execute("publisher", "upload",
 | 域名 | 用途 |
 |---|---|
 | `api.bilibili.com` | 视频信息、统计、热门、字幕、弹幕、播放地址 |
-| `member.bilibili.com` | 视频发布（上传、编辑、删除） |
+| `member.bilibili.com` | 视频发布（上传、编辑） |
 | `upos-sz-upcdnbda2.bilivideo.com` | 视频文件上传 CDN |
 | `www.bilibili.com` | 网页数据抓取备用 |
-| `www.youtube.com` | YouTube 视频元数据获取（oEmbed API，无需认证） |
 
 ### 安全建议
 
@@ -422,35 +445,21 @@ bilibili-all-in-one/
 ├── skill.json                      # Skill 配置与参数 Schema
 ├── skill.md                        # Skill 英文文档
 ├── README.md                       # 中文说明文档（本文件）
+├── LICENSE                         # MIT 许可证
 ├── requirements.txt                # Python 依赖
 ├── main.py                         # 入口文件，统一的 BilibiliAllInOne 类
-├── src/
-│   ├── __init__.py                 # 包导出
-│   ├── auth.py                     # 认证与凭据管理
-│   ├── utils.py                    # 共享工具函数、API 常量
-│   ├── hot_monitor.py              # 🔥 热门监控模块
-│   ├── downloader.py               # ⬇️ 视频下载模块
-│   ├── watcher.py                  # 👀 数据追踪模块
-│   ├── subtitle.py                 # 📝 字幕提取模块
-│   ├── player.py                   # ▶️ 视频播放模块
-│   └── publisher.py                # 📤 视频发布模块
-└── tests/
-    ├── __init__.py
-    └── test_all_skill_examples.py  # 27 个完整测试用例
+└── src/
+    ├── __init__.py                 # 包导出
+    ├── auth.py                     # 认证与凭据管理
+    ├── utils.py                    # 共享工具函数、API 常量
+    ├── hot_monitor.py              # 🔥 热门监控模块
+    ├── downloader.py               # ⬇️ 视频下载模块
+    ├── watcher.py                  # 👀 数据追踪模块
+    ├── subtitle.py                 # 📝 字幕提取模块
+    ├── player.py                   # ▶️ 视频播放模块
+    └── publisher.py                # 📤 视频发布模块
 ```
 
-## 🧬 技能来源
-
-本项目整合了以下 6 个独立 Skill 的功能：
-
-| 原始 Skill | 来源 | 整合为 |
-|---|---|---|
-| bilibili-hot-monitor | [Jacobzwj/bilibili-hot-monitor](https://clawhub.ai/Jacobzwj/bilibili-hot-monitor) | `hot_monitor` |
-| bililidownloader | [caiyundc880518/bililidownloader](https://clawhub.ai/caiyundc880518/bililidownloader) | `downloader` |
-| bilibili-youtube-watcher | [donnycui/bilibili-youtube-watcher](https://clawhub.ai/donnycui/bilibili-youtube-watcher) | `watcher` |
-| bilibili-subtitle-download-skill | [DavinciEvans/bilibili-subtitle-download-skill](https://clawhub.ai/DavinciEvans/bilibili-subtitle-download-skill) | `subtitle` |
-| bilibili-player | [e421083458/bilibili-player](https://clawhub.ai/e421083458/bilibili-player) | `player` |
-| bilibili-video-publish | [Johnnyxu820/bilibili-video-publish](https://clawhub.ai/Johnnyxu820/bilibili-video-publish) | `publisher` |
 
 ## 📦 统一返回格式
 
@@ -472,13 +481,6 @@ bilibili-all-in-one/
   "success": false,
   "message": "错误描述信息"
 }
-```
-
-## 🧪 运行测试
-
-```bash
-# 运行全部 27 个测试
-python -m unittest tests.test_all_skill_examples -v
 ```
 
 ## 📄 许可证

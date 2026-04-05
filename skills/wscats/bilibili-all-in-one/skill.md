@@ -6,8 +6,8 @@ description: >
   and video publishing capabilities into a single unified skill.
   Supports Bilibili session cookie authentication for publishing and
   high-quality downloads. Requests go to official Bilibili API endpoints
-  and YouTube oEmbed API (for YouTube stats) over HTTPS.
-version: 1.0.12
+  over HTTPS.
+version: 1.0.18
 type: code
 implementation: python
 interface: cli-and-api
@@ -23,7 +23,7 @@ tags:
   - danmaku
   - video-publish
   - video-player
-  - youtube-stats
+
   - batch-download
   - multi-format
 author: wscats
@@ -31,11 +31,12 @@ license: MIT
 homepage: https://github.com/wscats/bilibili-all-in-one
 repository: https://github.com/wscats/bilibili-all-in-one
 entry_point: main.py
-required_env_vars:
+required_env_vars: []
+optional_env_vars:
   - BILIBILI_SESSDATA
   - BILIBILI_BILI_JCT
-optional_env_vars:
   - BILIBILI_BUVID3
+  - BILIBILI_PERSIST
 install: pip install -r requirements.txt
 ---
 
@@ -43,18 +44,18 @@ install: pip install -r requirements.txt
 
 A comprehensive Bilibili toolkit that integrates hot trending monitoring, video downloading, video watching/playback, subtitle downloading, and video publishing capabilities into a single unified skill.
 
-> **⚠️ Required Environment Variables:** `BILIBILI_SESSDATA`, `BILIBILI_BILI_JCT` (required), `BILIBILI_BUVID3` (optional)
-> These are sensitive Bilibili session cookies needed for authenticated operations (publishing, high-quality downloads).
-> Features that do NOT require authentication: hot monitoring, standard-quality downloads, subtitle listing, danmaku, stats viewing.
+> **⚠️ Optional Environment Variables:** `BILIBILI_SESSDATA`, `BILIBILI_BILI_JCT` (optional), `BILIBILI_BUVID3` (optional), `BILIBILI_PERSIST` (optional)
+> These are sensitive Bilibili session cookies needed **only** for publishing and high-quality (1080p+/4K) downloads.
+> **Most features work WITHOUT any credentials:** hot monitoring, standard-quality downloads, subtitle listing, danmaku, stats viewing.
 >
-> **📦 Install:** `pip install -r requirements.txt` (all standard PyPI packages: httpx, bilibili-api-python, aiohttp, beautifulsoup4, lxml, requests)
+> **📦 Install:** `pip install -r requirements.txt` (all standard PyPI packages: httpx, aiohttp, beautifulsoup4, lxml, requests)
 >
 > **🔗 Source:** [github.com/wscats/bilibili-all-in-one](https://github.com/wscats/bilibili-all-in-one)
 
 ---
 ### 何时激活
 
-当用户说出或暗示以下内容时，本 Skill 会被激活：
+当用户**明确请求**以下 Bilibili 相关操作时，本 Skill 可被激活：
 
 | 触发场景 | 匹配的模块 | 典型触发词 |
 |---|---|---|
@@ -63,11 +64,9 @@ A comprehensive Bilibili toolkit that integrates hot trending monitoring, video 
 | 查看视频播放量、点赞数、数据追踪、对比 | 👀 Watcher | "播放量"、"点赞"、"数据"、"统计"、"对比"、"监控"、"追踪"、"观看量" |
 | 下载字幕、转换字幕格式、合并字幕 | 📝 Subtitle | "字幕"、"CC"、"SRT"、"ASS"、"字幕下载"、"字幕转换"、"翻译" |
 | 播放视频、获取弹幕、播放列表 | ▶️ Player | "播放"、"弹幕"、"播放地址"、"分P"、"播放列表"、"danmaku" |
-| 上传视频、发布、定时发布、草稿、编辑、删除 | 📤 Publisher | "上传"、"发布"、"投稿"、"定时发布"、"草稿"、"编辑视频"、"删除视频" |
-| 涉及YouTube视频数据查询 | 👀 Watcher | "YouTube"、"油管"、"YTB"、"YouTube观看量" |
-| 提及B站链接或BV号 | 自动识别 | `BV*`、`bilibili.com/video/*`、`b23.tv/*` |
+| 上传视频、发布、定时发布、草稿、编辑 | 📤 Publisher | "上传"、"发布"、"投稿"、"定时发布"、"草稿"、"编辑视频" |
 
-> 💡 **提示**：只要用户消息中包含 B站/Bilibili 相关操作意图，或包含 BV 号、bilibili 链接，本 Skill 即会被自动激活。无需显式声明调用。
+> ⚠️ **注意**：本 Skill 不会仅因消息中出现 Bilibili 链接或 BV 号就自动激活。只有当用户明确表达了操作意图（如"下载这个视频"、"查看热门"等）时才会被调用。涉及写操作（发布/编辑）时，需要用户显式提供凭证。
 
 ---
 
@@ -76,7 +75,7 @@ A comprehensive Bilibili toolkit that integrates hot trending monitoring, video 
 |---|---|
 | 🔥 **Hot Monitor** | Monitor Bilibili hot/trending videos and topics in real-time |
 | ⬇️ **Downloader** | Download Bilibili videos with multiple quality and format options |
-| 👀 **Watcher** | Watch and track video engagement metrics (supports Bilibili & YouTube) |
+| 👀 **Watcher** | Watch and track video engagement metrics (supports Bilibili) |
 | 📝 **Subtitle** | Download and process subtitles in multiple formats and languages |
 | ▶️ **Player** | Get playback URLs, danmaku (bullet comments), and playlist info |
 | 📤 **Publisher** | Upload, schedule, edit, and manage videos on Bilibili |
@@ -97,11 +96,11 @@ pip install -r requirements.txt
 ### Dependencies
 
 - `httpx >= 0.24.0`
-- `bilibili-api-python >= 16.0.0`
 - `aiohttp >= 3.8.0`
 - `beautifulsoup4 >= 4.12.0`
 - `lxml >= 4.9.0`
 - `requests >= 2.31.0`
+- `faster-whisper >= 1.0.0` *(optional, for speech recognition subtitle fallback)*
 
 ## Configuration
 
@@ -141,6 +140,26 @@ app = BilibiliAllInOne(
 )
 ```
 
+### 4. Persistent Storage (Optional)
+
+By default, credentials are kept **in-memory only** and are not saved to disk. To enable automatic persistence across sessions:
+
+```bash
+# Via environment variable
+export BILIBILI_PERSIST=1
+```
+
+```python
+# Or via code
+app = BilibiliAllInOne(persist=True)
+```
+
+When persistence is enabled:
+- Credentials are auto-saved to `.credentials.json` (with `0600` permissions) after initialization
+- On next startup, credentials are auto-loaded from this file
+- You can toggle persistence at runtime: `app.auth.persist = True` / `app.auth.persist = False`
+- To delete the persisted file: `app.auth.clear_persisted()`
+
 > **How to get cookies:** Log in to [bilibili.com](https://www.bilibili.com), open browser DevTools (F12) → Application → Cookies, and copy the values of `SESSDATA`, `bili_jct`, and `buvid3`.
 
 ## ⚠️ Security & Privacy
@@ -151,31 +170,31 @@ This skill handles **sensitive Bilibili session cookies**. Please read the follo
 
 | Concern | Detail |
 |---|---|
-| **What credentials are needed?** | `SESSDATA`, `bili_jct`, `buvid3` — Bilibili browser cookies |
-| **Which features require authentication?** | Publishing (upload/edit/delete/schedule/draft), downloading 1080p+/4K quality videos |
+| **What credentials are needed?** | `SESSDATA`, `bili_jct`, `buvid3` — Bilibili **full browser session cookies** (not limited API keys). Providing them grants broad access to your Bilibili account. |
+| **Which features require authentication?** | Publishing (upload/edit/schedule/draft), downloading 1080p+/4K quality videos |
 | **Which features work WITHOUT credentials?** | Hot monitoring, standard-quality downloads, subtitle listing, danmaku fetching, stats viewing |
-| **Where are credentials sent?** | To official Bilibili API endpoints (`api.bilibili.com`, `member.bilibili.com`) over HTTPS. YouTube metadata uses `www.youtube.com/oembed` (no credentials sent) |
-| **Are credentials persisted to disk?** | **NO** — unless you explicitly call `auth.save_to_file()`. Credentials stay in memory by default |
+| **Where are credentials sent?** | To official Bilibili API endpoints (`api.bilibili.com`, `member.bilibili.com`) over HTTPS only |
+| **Are credentials persisted to disk?** | **NO** by default — credentials stay in memory. Set `persist=True` or `BILIBILI_PERSIST=1` to opt-in to automatic persistence (saved to `.credentials.json` with `0600` permissions). You can also manually call `auth.save_to_file()` |
 | **File permissions for saved credentials** | `0600` (owner read/write only) — restrictive by default |
 
 ### Best Practices
 
-1. 🧪 **Use a test account** — Do NOT provide your primary Bilibili account cookies for evaluation/testing purposes.
-2. 🔒 **Prefer in-memory credentials** — Pass credentials via environment variables or direct parameters rather than saving to a file.
-3. 📁 **If you must save credentials** — Use `auth.save_to_file()` which creates files with `0600` permissions. Delete the file when no longer needed.
+1. 🧪 **Use a test account** — Do NOT provide your primary Bilibili account cookies for evaluation/testing purposes. These are **full session cookies** that grant broad account access (not limited API keys).
+2. 🔒 **Prefer in-memory credentials** — Pass credentials via environment variables or direct parameters rather than saving to a file. Only enable `persist=True` if you need credentials to survive across sessions.
+3. 📁 **If you enable persistence** — Credentials are saved with `0600` permissions. Use `auth.clear_persisted()` or `auth.persist = False` to remove the file when no longer needed.
 4. 🐳 **Run in isolation** — When possible, run this skill in an isolated container/environment and inspect network traffic.
-5. 🌐 **Verify network traffic** — All HTTP requests go to Bilibili's official domains and YouTube oEmbed API only. You can verify by monitoring outbound connections.
+5. 🌐 **Verify network traffic** — All HTTP requests go to Bilibili's official domains only. You can verify by monitoring outbound connections.
 6. ❌ **No exfiltration** — This skill does NOT send credentials to any third-party service, analytics endpoint, or telemetry server.
+7. 🔑 **Credential scope** — `SESSDATA` and `bili_jct` are full session cookies. They are NOT scoped/limited API keys. Treat them with the same care as your account password.
 
 ### Network Endpoints Used
 
 | Domain | Purpose |
 |---|---|
 | `api.bilibili.com` | Video info, stats, hot lists, subtitles, danmaku, playback URLs |
-| `member.bilibili.com` | Video publishing (upload, edit, delete) |
+| `member.bilibili.com` | Video publishing (upload, edit) |
 | `upos-sz-upcdnbda2.bilivideo.com` | Video file upload CDN |
 | `www.bilibili.com` | Web page scraping fallback |
-| `www.youtube.com` | YouTube video metadata via oEmbed API (no auth required) |
 
 ### Credential Requirement by Module
 
@@ -306,7 +325,7 @@ result = await app.execute("downloader", "download", url="BV1xx411c7mD", quality
 
 ### 3. 👀 Watcher (`bilibili_watcher`)
 
-Watch and monitor Bilibili (and YouTube) videos. Track view counts, comments, likes, and other engagement metrics over time.
+Watch and monitor Bilibili videos. Track view counts, comments, likes, and other engagement metrics over time.
 
 #### Actions
 
@@ -320,7 +339,6 @@ Watch and monitor Bilibili (and YouTube) videos. Track view counts, comments, li
 #### Supported Platforms
 
 - **Bilibili**: `https://www.bilibili.com/video/BVxxxxxx` or `BVxxxxxx`
-- **YouTube**: `https://www.youtube.com/watch?v=xxxxx` or `https://youtu.be/xxxxx`
 
 #### Examples
 
@@ -340,7 +358,7 @@ python main.py watcher compare '{"urls": ["BV1xx411c7mD", "BV1yy411c8nE"]}'
 
 ```python
 # Python API
-details = await app.execute("watcher", "watch", url="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
 comparison = await app.execute("watcher", "compare", urls=["BV1xx411c7mD", "BV1yy411c8nE"])
 ```
 
@@ -350,12 +368,18 @@ comparison = await app.execute("watcher", "compare", urls=["BV1xx411c7mD", "BV1y
 
 Download and process subtitles/CC from Bilibili videos. Supports multiple subtitle formats and languages.
 
+**When no CC subtitles are available**, the module automatically falls back to:
+1. **Speech Recognition** — Downloads the video's audio and transcribes it using `faster-whisper` (requires `pip install faster-whisper`)
+2. **Danmaku Extraction** — Fetches bullet comments from the video as a text reference
+
+Both fallback results are returned together when triggered.
+
 #### Actions
 
 | Action | Description | Parameters |
 |---|---|---|
 | `list` | List available subtitles | `url` |
-| `download` | Download subtitles | `url`, `language`, `format`, `output_dir` |
+| `download` | Download subtitles (with auto-fallback) | `url`, `language`, `format`, `output_dir` |
 | `convert` | Convert subtitle format | `input_path`, `output_format`, `output_dir` |
 | `merge` | Merge multiple subtitle files | `input_paths`, `output_path`, `output_format` |
 
@@ -367,13 +391,34 @@ Download and process subtitles/CC from Bilibili videos. Supports multiple subtit
 
 `zh-CN` (default), `en`, `ja`, and other language codes available on the video.
 
+#### Fallback Strategy
+
+When `download` is called and no CC subtitles exist:
+
+```
+CC Subtitle Available? ──Yes──▶ Download CC subtitle
+        │
+       No
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  Fallback 1: Speech Recognition     │
+│  Download audio → faster-whisper    │
+│  Output: {title}_transcribed.srt    │
+├─────────────────────────────────────┤
+│  Fallback 2: Danmaku Extraction     │
+│  Fetch bullet comments → SRT        │
+│  Output: {title}_danmaku.srt        │
+└─────────────────────────────────────┘
+```
+
 #### Examples
 
 ```bash
 # List available subtitles
 python main.py subtitle list '{"url": "BV1xx411c7mD"}'
 
-# Download Chinese subtitles in SRT format
+# Download Chinese subtitles in SRT format (auto-fallback if no CC)
 python main.py subtitle download '{"url": "BV1xx411c7mD", "language": "zh-CN", "format": "srt"}'
 
 # Download English subtitles in ASS format
@@ -390,6 +435,10 @@ python main.py subtitle merge '{"input_paths": ["part1.srt", "part2.srt"], "outp
 # Python API
 subs = await app.execute("subtitle", "list", url="BV1xx411c7mD")
 result = await app.execute("subtitle", "download", url="BV1xx411c7mD", language="zh-CN", format="srt")
+
+# When no CC subtitles, result includes both fallback outputs:
+# result["transcription"]["filepath"]  → speech recognition SRT
+# result["danmaku"]["filepath"]        → danmaku SRT
 ```
 
 ---
@@ -456,8 +505,7 @@ Publish videos to Bilibili. Supports uploading videos, setting metadata, schedul
 | `upload` | Upload and publish a video | `file_path`, `title`, `description`, `tags`, `category`, `cover_path`, `dynamic`, `no_reprint`, `open_elec` |
 | `draft` | Save as draft | `file_path`, `title`, `description`, `tags`, `category`, `cover_path` |
 | `schedule` | Schedule future publication | `file_path`, `title`, `schedule_time`, `description`, `tags`, `category`, `cover_path` |
-| `edit` | Edit existing video metadata | `bvid`, `title`, `description`, `tags`, `cover_path` |
-| `delete` | Delete a video | `bvid` |
+| `edit` | Edit existing video metadata | `bvid`, `file_path`, `title`, `description`, `tags`, `cover_path` |
 
 #### Upload Parameters
 
@@ -484,11 +532,8 @@ python main.py publisher draft '{"file_path": "./video.mp4", "title": "Draft Vid
 # Schedule publication
 python main.py publisher schedule '{"file_path": "./video.mp4", "title": "Scheduled Video", "schedule_time": "2025-12-31T20:00:00+08:00"}'
 
-# Edit video metadata
-python main.py publisher edit '{"bvid": "BV1xx411c7mD", "title": "New Title", "tags": ["updated"]}'
-
-# Delete a video
-python main.py publisher delete '{"bvid": "BV1xx411c7mD"}'
+# Edit video metadata (requires re-uploading the video file)
+python main.py publisher edit '{"bvid": "BV1xx411c7mD", "file_path": "./video.mp4", "title": "New Title", "tags": ["updated"]}'
 ```
 
 ```python
@@ -500,6 +545,14 @@ result = await app.execute("publisher", "upload",
     title="My Video",
     description="Published via bilibili-all-in-one",
     tags=["python", "bilibili"],
+)
+
+# Edit video (requires file_path for re-upload)
+result = await app.execute("publisher", "edit",
+    bvid="BV1xx411c7mD",
+    file_path="./video.mp4",
+    title="New Title",
+    tags=["updated"],
 )
 ```
 
@@ -516,33 +569,17 @@ bilibili-all-in-one/
 ├── requirements.txt        # Python dependencies
 ├── .gitignore              # Git ignore rules
 ├── main.py                 # Entry point & unified BilibiliAllInOne class
-├── src/
-│   ├── __init__.py         # Package exports
-│   ├── auth.py             # Authentication & credential management
-│   ├── utils.py            # Shared utilities, API constants, helpers
-│   ├── hot_monitor.py      # Hot/trending video monitoring
-│   ├── downloader.py       # Video downloading
-│   ├── watcher.py          # Video watching & stats tracking
-│   ├── subtitle.py         # Subtitle downloading & processing
-│   ├── player.py           # Video playback & danmaku
-│   └── publisher.py        # Video uploading & publishing
-└── tests/
-    ├── __init__.py
-    └── test_all_skill_examples.py  # Comprehensive unit tests
+└── src/
+    ├── __init__.py         # Package exports
+    ├── auth.py             # Authentication & credential management
+    ├── utils.py            # Shared utilities, API constants, helpers
+    ├── hot_monitor.py      # Hot/trending video monitoring
+    ├── downloader.py       # Video downloading
+    ├── watcher.py          # Video watching & stats tracking
+    ├── subtitle.py         # Subtitle downloading & processing
+    ├── player.py           # Video playback & danmaku
+    └── publisher.py        # Video uploading & publishing
 ```
-
-## Skill Origin
-
-This skill integrates the functionality of the following individual skills into one unified toolkit:
-
-| Original Skill | Source | Integrated Module |
-|---|---|---|
-| bilibili-hot-monitor | [Jacobzwj/bilibili-hot-monitor](https://clawhub.ai/Jacobzwj/bilibili-hot-monitor) | `hot_monitor` |
-| bililidownloader | [caiyundc880518/bililidownloader](https://clawhub.ai/caiyundc880518/bililidownloader) | `downloader` |
-| bilibili-youtube-watcher | [donnycui/bilibili-youtube-watcher](https://clawhub.ai/donnycui/bilibili-youtube-watcher) | `watcher` |
-| bilibili-subtitle-download-skill | [DavinciEvans/bilibili-subtitle-download-skill](https://clawhub.ai/DavinciEvans/bilibili-subtitle-download-skill) | `subtitle` |
-| bilibili-player | [e421083458/bilibili-player](https://clawhub.ai/e421083458/bilibili-player) | `player` |
-| bilibili-video-publish | [Johnnyxu820/bilibili-video-publish](https://clawhub.ai/Johnnyxu820/bilibili-video-publish) | `publisher` |
 
 ## Response Format
 
