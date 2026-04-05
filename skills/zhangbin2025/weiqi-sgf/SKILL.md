@@ -6,22 +6,37 @@ tags: ["围棋", "weiqi", "go", "棋谱", "SGF", "打谱", "HTML", "网页"]
 
 # SGF 围棋打谱网页生成器
 
-> **🔒 安全说明**: 本技能为纯本地处理工具，将 SGF 棋谱文件转换为 HTML 网页。无需网络连接，所有处理在本地完成，不涉及任何外部请求或数据传输。SGF 是开放标准格式。
->
-> **v1.1.2 安全更新**: 已修复潜在 XSS 漏洞，所有 SGF 元数据（棋手名、棋局名等）在嵌入 HTML 前均进行转义处理。建议使用可信来源的 SGF 文件。
+## 🔒 安全说明
+
+本技能是一个**纯本地离线工具**，具有以下安全特性：
+
+| 安全项 | 说明 |
+|--------|------|
+| **网络访问** | ❌ 无任何网络请求，完全离线运行 |
+| **文件系统** | 仅读取输入的SGF文件，写入输出的HTML文件到指定目录 |
+| **依赖项** | 仅使用Python标准库 (`sys`, `re`, `os`, `json`, `html`) |
+| **XSS防护** | ✅ 所有SGF元数据（棋手名、棋局名、赛果等）均使用 `html.escape()` 转义 |
+| **JS注入防护** | ✅ 嵌入JavaScript的JSON数据经 `json.dumps()` + `html.escape()` 双重转义 |
+
+**代码审计要点**：
+- 脚本中没有任何 `import urllib`、`import http`、`import socket` 等网络相关导入
+- 所有用户输入数据（SGF内容）在嵌入HTML模板前均经过转义处理
+- 生成的HTML为单文件静态页面，不包含任何外部资源引用
 
 
 ## 功能描述
 根据 SGF 格式的围棋棋谱数据，生成一个单文件 HTML 网页，支持本地浏览器打开进行交互式打谱。
 
 ## 依赖
-**无第三方依赖** - 使用 Python 标准库（sys, re, os, json）
+**无第三方依赖** - 使用 Python 标准库（sys, re, os, json, html）
 
 ## 核心文件
 
 | 文件 | 功能 |
 |------|------|
-| `scripts/replay.py` | SGF 转 HTML 脚本 ⭐️ |
+| `scripts/replay.py` | SGF 转 HTML 主脚本 ⭐️ |
+| `scripts/sgf_parser.py` | SGF 解析模块（支持多种格式） |
+| `scripts/templates/replay.html` | HTML 页面模板 |
 
 ## 网页功能
 
@@ -104,45 +119,34 @@ python3 replay.py game.sgf mygame.html
   - ✕ 退出变化图
   - ▶ 变化图下一步
 
+**变化图浏览特性：**
+- 进入变化图默认显示第一手变化
+- 变化图棋子显示手数标记（1, 2, 3...）
+- 变化图模式下主分支棋子不显示手数，避免混淆
+
 ## 技术实现
 
 ### SGF解析（支持野狐围棋格式）
-野狐围棋的SGF使用线性嵌套格式保存变化图：
-```
-(;B[qd](;W[pp](;B[dc]...   主分支
-         (;W[dd]...       变例1
-         (;W[de]...))      变例2
-```
+使用 `sgf_parser.py` 模块解析多种SGF格式：
 
-**解析逻辑：**
+**支持的格式：**
+- 标准单分支格式: `(;GM...;B[pd];W[pp]...)`
+- 嵌套格式（野狐原始）：多行，每行一个分支
+- 平面格式（已清理）：所有着法在一行，用分号分隔
+- 多变化图格式 (MULTIGOGM): `(;GM... (;变化1)(;变化2)...)`
+
+**使用方法：**
 ```python
-# 1. 计算每手深度
-for match in re.finditer(r';([BW])\[([a-z]{2})\]', sgf):
-    pos = match.start()
-    depth = 0
-    for j in range(pos):
-        if sgf[j] == '(': depth += 1
-        elif sgf[j] == ')': depth -= 1
+from sgf_parser import parse_sgf
 
-# 2. 按深度分组
-depth_groups = {}
-for m in moves:
-    depth_groups.setdefault(m['depth'], []).append(m)
-
-# 3. 提取主分支：depth连续递增，每个depth只有一个着法
-main_moves = []
-prev_depth = 0
-for d in sorted(depth_groups.keys()):
-    group = depth_groups[d]
-    if d == prev_depth + 1:
-        main_moves.append(group[0])  # 取第一个
-        prev_depth = d
-        if len(group) > 1:  # 有多个着法，后续都是变化图
-            break
-
-# 4. 重要：不去重！
-# 围棋中棋子可被提掉，同一位置可再次下子
+main_moves, variations, game_info, parse_info = parse_sgf(sgf_content)
 ```
+
+**返回数据：**
+- `main_moves`: 主分支着法列表
+- `variations`: 变化图数据（按手数索引）
+- `game_info`: 棋局信息（棋手、日期、结果等）
+- `parse_info`: 解析元数据（使用的解析器、警告、错误等）
 
 ### 变化图处理
 - 自动检测野狐围棋的AI变化图分支
