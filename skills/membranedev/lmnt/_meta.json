@@ -3,9 +3,15 @@
   "slug": "lmnt",
   "displayName": "Lmnt",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773630160114,
-    "commit": "https://github.com/openclaw/skills/commit/c78e565aa19718bf211017bfc3c5b8d2b6ba0b0e"
+    "version": "1.0.2",
+    "publishedAt": 1775164223643,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773630160114,
+      "commit": "https://github.com/openclaw/skills/commit/c78e565aa19718bf211017bfc3c5b8d2b6ba0b0e"
+    }
+  ]
 }
