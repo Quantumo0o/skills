@@ -149,6 +149,127 @@ When loading context for a task (Phase 1 of cook, or onboard), use a 4-phase ret
 
 **Key rule**: Stop at 3 high-relevance files, not 10 mediocre ones. Quality > quantity for context loading.
 
+## Compaction Technique: Structured Summary with Continuation Point
+
+When compaction is triggered (RED or approved ORANGE), generate a **structured summary** that replaces the full conversation history while preserving therapeutic continuity — the ability to resume exactly where work left off.
+
+### Summary Structure
+
+The compaction summary MUST include these sections in order:
+
+```markdown
+## Compaction Summary (generated at [tool call count])
+
+### Topics Covered
+- [bullet list of distinct topics/tasks worked on this session]
+
+### Key Decisions Made
+- [decision]: [rationale] — affects [files/modules]
+
+### Active Threads
+- [what was being worked on when compaction triggered — the "where we are now" anchor]
+- Current file: [path], current function/section: [name]
+- Partial progress: [what's done vs what remains in the immediate task]
+
+### Emotional/Priority Context
+- [user urgency level, blocking issues, deadlines mentioned]
+- [any user frustrations or preferences expressed this session]
+
+### Continuation Point
+> Resume: [exact next action to take — not vague "continue working" but specific "implement the validation logic in src/auth/validate.ts:47 using the Zod schema defined in Step 2"]
+```
+
+### Why This Structure
+
+Most compaction loses the **continuation point** — the agent knows WHAT was discussed but not WHERE to resume. The "Active Threads" and "Continuation Point" sections solve this by preserving:
+1. The exact file and function being edited
+2. What's done vs remaining in the current micro-task
+3. The specific next action (not a summary of the plan, but the next concrete step)
+
+### Rules
+
+- Summary MUST be <500 tokens — if longer, you're summarizing too much detail
+- "Active Threads" section is the most critical — get this wrong and the agent restarts from scratch
+- Never include full file contents in the summary — only paths and line references
+- Include user tone/urgency signals — these are lost in pure technical summaries
+
+## Incremental Stream Processing
+
+When processing streaming LLM output (e.g., in skills that invoke AI calls or process tool output incrementally), use **sentence-level buffering** instead of waiting for the full response:
+
+### Pattern: Buffer → Detect Boundary → Act
+
+```
+1. ACCUMULATE: Feed incoming chunks into a text buffer
+2. DETECT: Check for sentence boundaries:
+   - Primary: 40+ chars ending in . ! ? ; :
+   - Secondary: paragraph break (\n\n) with 15+ chars accumulated
+   - Never split mid-word or mid-code-block
+3. EXTRACT: Remove the complete sentence from the buffer
+4. ACT: Process the extracted sentence immediately (e.g., queue for TTS, parse for structured data, update progress display)
+5. CONTINUE: Keep accumulating the next sentence while processing the current one
+```
+
+### When to Use
+
+- **Skills that stream AI responses to the user**: process and display incrementally instead of waiting for the full response
+- **Background note-taking**: extract key points from streaming output as they arrive
+- **Progress reporting**: detect milestone keywords in streaming output to update progress
+
+### When NOT to Use
+
+- **Code generation**: wait for the full code block — partial code is useless
+- **JSON output**: accumulate until the closing brace — partial JSON can't be parsed
+- **Short responses** (<100 chars expected): overhead of boundary detection exceeds benefit
+
+## Artifact Folding (Large Output Management)
+
+When tool results are excessively large, they consume disproportionate context without proportionate value. **Artifact folding** saves the full output to a file and replaces it in context with a compact preview.
+
+### When to Fold
+
+| Condition | Action |
+|-----------|--------|
+| Tool output > 4000 characters | Fold to artifact |
+| Tool output > 120 lines | Fold to artifact |
+| Multiple tool outputs from the same command class (e.g., 5+ Grep results) | Fold all into single artifact |
+| Code block output > 200 lines | Fold to artifact |
+
+### Folding Procedure
+
+1. **Save full output** to `.rune/artifacts/artifact-{timestamp}-{tool}.md`:
+   ```markdown
+   # Artifact: {tool_name} output
+   Generated: {timestamp}
+   Command: {tool_call_summary}
+   
+   {full_output}
+   ```
+
+2. **Replace in context** with a compact preview:
+   ```
+   [FOLDED: {tool_name} output — {line_count} lines, {char_count} chars]
+   Preview (first 10 lines):
+   {first_10_lines}
+   ...
+   Full output: .rune/artifacts/artifact-{timestamp}-{tool}.md
+   Use Read to access the full artifact if needed.
+   ```
+
+3. **On compaction**: Artifact files survive compaction — the continuation summary references them by path. This means large outputs are preserved across compaction boundaries without consuming context.
+
+### Rules
+
+- **Never fold user messages** — only tool outputs
+- **Never fold error outputs** — errors need full visibility for debugging
+- **Never fold outputs < 1000 chars** — folding overhead exceeds savings
+- **Fold preemptively in YELLOW/ORANGE** — don't wait for RED to start managing output size
+- **Clean up artifacts** at session end: artifacts older than the current session can be deleted (they're already in git history or irrelevant)
+
+### Why
+
+A single grep across a large codebase can return 3000+ lines. Without folding, this consumes ~4000 tokens of context — often more than the rest of the conversation combined. Folding preserves the information (accessible via Read) while keeping context lean. Combined with the Structured Summary compaction technique, artifact folding enables much longer productive sessions.
+
 ## Context Health Levels
 
 ```
@@ -186,13 +307,29 @@ When ORANGE or RED is reached, use this table to determine whether compaction is
 | Research → Planning | YES | Research findings summarize well; key decisions survive |
 | Planning → Implementation | YES | Plan is in files (.rune/plan-*.md); context can reload from artifacts |
 | Debug → Next feature | YES | Debug findings are in Debug Report; fix has the diagnosis |
-| Mid-implementation (Phase 4) | **NO** | Losing file paths, partial changes, and test state is catastrophic |
+| Mid-implementation (Phase 4) | **CONDITIONAL** | Safe ONLY at task boundaries within Phase 4 (after a file is fully written + tested). Never mid-file-edit. See Mid-Loop Compaction below |
 | After failed approach → Pivot | YES | Failed approach should be discarded; fresh context helps |
 | Quality (Phase 5) → Verify | **NO** | Quality findings reference specific file:line in current context |
 | After commit (Phase 7) | YES | Work is persisted in git; safe boundary |
 
 **What survives compaction**: Task description, file paths mentioned, key decisions, plan reference, current phase.
 **What is lost**: Full file contents read, intermediate reasoning, exact error messages, tool output details.
+
+### Mid-Loop Compaction (Phase 4 Emergency)
+
+> From goclaw (nextlevelbuilder/goclaw, 832★): "Compact during run, not just at session boundary."
+
+When context hits RED during Phase 4 (implementation), compaction IS possible at **clean split points**:
+
+1. **Find a clean boundary**: completed task within the phase (file fully written + tests pass for that file)
+2. **Flush state first**: call `session-bridge` to save progress, then call `neural-memory` to capture decisions
+3. **Split 70/30**: preserve 70% of remaining context for continuation, summarize 30% of completed work
+4. **Never break tool pairs**: compaction MUST NOT split a `tool_use` from its `tool_result` — always keep pairs together
+5. **Inject continuation marker**: after compaction, include: "Resuming Phase 4. Tasks [1-3] complete. Currently on task 4. Plan file: `.rune/plan-X-phaseN.md`"
+
+**Timeout fallback**: If clean boundary can't be found within 30 seconds, create `.rune/.continue-here.md` and pause instead.
+
+**Skip if**: Context is ORANGE (not RED), or fewer than 3 tasks remain in the phase.
 
 ## Context Budget Audit (Baseline Cost Awareness)
 
@@ -255,6 +392,8 @@ Known failure modes for this skill. Check these before declaring done.
 | Injecting stale context from previous session without marking it historical | HIGH | Constraint 3: all loaded context must include session date marker |
 | Premature compaction from over-estimated utilization | MEDIUM | Tool count is directional only — sessions with heavy Read calls may need lower thresholds; only block at confirmed RED |
 | Not activating large-file adjustment on Python/Java codebases | MEDIUM | Track Read calls returning >500 lines; if ≥3 occur, switch to adjusted (0.8x) thresholds for the session |
+| Mid-loop compaction breaks tool_use/tool_result pair | CRITICAL | Always keep tool pairs together — splitting causes orphaned results and context corruption |
+| Mid-loop compaction without flushing state first | HIGH | session-bridge + neural-memory MUST run before compaction — losing unsaved decisions is worse than hitting context limit |
 
 ## Done When
 

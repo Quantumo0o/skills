@@ -179,9 +179,32 @@ Never silently remove doc content. If code was deleted, mark the doc section as 
 
 Delegate to `rune:git changelog` to produce a changelog entry from commits since last docs update.
 
-#### Step 4 — Report
+#### Step 4 — Cross-Doc Consistency Pass
 
-Show user: what was updated, what was added, what was flagged for review.
+> From gstack (garrytan/gstack, 50.9k★): "Cross-document consistency prevents the #2 docs problem: docs that exist but contradict each other."
+
+After updating any doc, verify consistency across all project documentation:
+
+| Check | Files | What to Compare |
+|-------|-------|----------------|
+| **Version numbers** | README, CLAUDE.md, package.json, CHANGELOG | Must all match current version |
+| **Feature lists** | README, landing page, CLAUDE.md | Same features listed (may differ in detail level) |
+| **Stats** | README, CLAUDE.md, landing page, dashboard | Skill count, test count, signal count must match |
+| **Commands** | README, CLAUDE.md, docs/ | Same commands with same flags |
+| **Tech stack** | README, ARCHITECTURE.md, CLAUDE.md | Consistent framework/library references |
+
+```
+Cross-Doc Consistency:
+- [x] README.md ↔ CLAUDE.md: versions match, commands match
+- [x] README.md ↔ docs/index.html: stats match, features match
+- [ ] README.md says "61 skills" but CLAUDE.md says "59" → FIX CLAUDE.md
+```
+
+**Fix inconsistencies immediately** — don't just report them. Update the stale doc to match the source of truth (usually the code or the most recently updated doc).
+
+#### Step 5 — Report
+
+Show user: what was updated, what was added, what was flagged for review. Include Cross-Doc Consistency results.
 
 ### API Mode
 
@@ -321,6 +344,8 @@ Docs Update Report:
 | API docs with wrong request/response shapes | HIGH | Extract from Zod/Pydantic/TypeScript types, not from memory |
 | Missing Quick Start section | MEDIUM | Constraint 4: every README has Quick Start |
 | Changelog with orphan PR links | LOW | Validate PR numbers exist before linking |
+| Cross-document inconsistency (README says X, CLAUDE.md says Y) | HIGH | Step 7: Cross-Doc Consistency Pass — verify stats, versions, and feature lists match across all docs |
+| Updating one doc but not others (stats drift) | HIGH | After any doc update, sweep all related docs for stale stats — especially README ↔ CLAUDE.md ↔ landing page |
 
 ## Done When
 

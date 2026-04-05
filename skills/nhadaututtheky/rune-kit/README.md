@@ -44,4 +44,4 @@ ui · backend · devops · mobile · security · trading · saas · ecommerce ·
 
 ## License
 
-MIT — v2.4.0
+MIT — v2.8.0

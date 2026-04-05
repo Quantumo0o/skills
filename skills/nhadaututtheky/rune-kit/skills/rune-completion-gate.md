@@ -95,6 +95,30 @@ Why: Self-Validation catches domain-specific quality issues that generic claim m
 If a skill has Self-Validation and ANY check is UNCONFIRMED or CONTRADICTED → overall verdict cannot be CONFIRMED, even if all explicit claims pass.
 </HARD-GATE>
 
+### Step 1d — Execution Loop Audit
+
+Before validating claims, audit the agent's tool call pattern for execution loops that indicate the agent was stuck but didn't report it:
+
+**Classify the agent's tool calls** from this workflow into two categories:
+
+| Category | Tools | Expected in Phase 4 |
+|----------|-------|---------------------|
+| **Observation** | Read, Grep, Glob, Bash(grep/ls/cat) | <40% of calls |
+| **Effect** | Write, Edit, Bash(build/test/npm) | >60% of calls |
+
+**Loop patterns to detect**:
+
+| Pattern | Detection | Verdict Impact |
+|---------|-----------|----------------|
+| **Observation chain**: 6+ consecutive observation tools in Phase 4 | Count longest observation-only streak | Add WARN: "Agent had {N}-call observation streak during implementation — possible analysis paralysis" |
+| **Low effect ratio**: <20% effect calls during Phase 4 | `effect_calls / total_calls` | Add WARN: "Only {X}% of Phase 4 calls were writes — agent may have been stuck" |
+| **Repeating tool pattern**: Same tool+args called 3+ times | Hash tool+args, count duplicates | Add WARN: "Agent called {tool}({args}) {N} times — possible loop" |
+| **Budget overrun**: Phase 4 exceeded 50 tool calls for a single-file task | Count Phase 4 calls vs files changed | Add WARN: "50+ tool calls for {N} files changed — disproportionate effort" |
+
+**Scoring impact**: Loop warnings don't change individual claim verdicts but ARE included in the Completion Gate Report under a new `### Execution Efficiency` section. This gives the calling orchestrator signal about whether the agent's process was healthy, not just whether the output was correct.
+
+**Skip if**: Nano/Fast rigor — not enough tool calls to meaningfully analyze.
+
 ### Step 2 — Match Evidence
 
 For each claim, look for corresponding evidence in the conversation context:
@@ -171,8 +195,6 @@ UNCONFIRMED — 1 claim lacks evidence, 1 contradicted. Cannot proceed to commit
 
 ### Step 4.5 — Cross-Phase Integration Check
 
-> From GSD (gsd-build/get-shit-done, 30.8k★): "Phase boundaries are where integration bugs hide."
-
 When validating a completed phase in a multi-phase plan, check for integration gaps between phases:
 
 1. **Orphaned exports** — files/functions created in this phase that claim to be used by future phases (see `## Cross-Phase Context → Exports`) but are not yet importable:
@@ -214,6 +236,29 @@ Before emitting verdict, verify evidence quality:
 | Quote matches claim exactly | CONFIRMED |
 | Quote contradicts claim | CONTRADICTED |
 
+### Step 5.5 — Plan Diff Check
+
+When validating a phase within a master plan, diff actual changes against the phase plan file:
+
+1. **Read the active phase plan** — glob for `.rune/plan-*-phase*.md` matching the current phase
+2. **Extract `## Files Touched`** — build a list of expected files (new/modify/delete)
+3. **Extract `## Tasks`** — build a list of all `- [ ]` and `- [x]` items
+4. **Compare against actual changes** — `git diff --name-only` (or file system scan)
+5. **Report**:
+
+| Check | Status |
+|-------|--------|
+| Unchecked task in phase plan (`- [ ]` still exists) | **INCOMPLETE** — task was not done |
+| File in plan's "Files Touched" but not in actual diff | **MISSING** — planned file was never touched |
+| File in actual diff but NOT in plan's "Files Touched" | **UNPLANNED** — scope creep (warn, not block) |
+| All tasks `[x]` AND all planned files touched | **PLAN-ALIGNED** |
+
+```
+Plan Diff: PLAN-ALIGNED | INCOMPLETE (2 unchecked tasks) | MISSING (1 file never touched)
+```
+
+**Skip if**: No active phase plan found (single-task, no master plan). **MANDATORY** for multi-phase master plans.
+
 ## Verdict Rules
 
 ```
@@ -249,6 +294,8 @@ Completion Gate Report with status (CONFIRMED/UNCONFIRMED/CONTRADICTED), claim v
 | Rubber-stamping — all CONFIRMED without scrutiny | HIGH | Default-FAIL mindset: actively seek 3-5 issues. Zero issues = red flag, apply skeptic sweep on weakest 2 claims |
 | Partial completion claimed as full — 80% done but "implemented" | HIGH | Adversarial checklist: check for partial completion, scope mismatch, evidence-claim alignment |
 | Self-Validation skipped — skill has checks but gate ignores them | HIGH | Step 1c: extract Self-Validation from skill's SKILL.md, treat each as implicit claim. Missing = UNCONFIRMED |
+| Plan says done but phase file has unchecked tasks | HIGH | Step 5.5: diff changed files vs phase plan's Files Touched + Tasks sections |
+| Agent stuck in observation loop but claims "implemented" | HIGH | Step 1d: Execution Loop Audit detects low effect ratio and observation chains — flags in report even if claims pass |
 
 ## Done When
 
@@ -256,6 +303,7 @@ Completion Gate Report with status (CONFIRMED/UNCONFIRMED/CONTRADICTED), claim v
 - Each claim matched against tool output evidence
 - Verdict table emitted with claim/evidence/verdict for each item
 - All 3 verification axes (Completeness/Correctness/Coherence) have at least one claim checked
+- Plan diff check passed (if multi-phase): all tasks checked, all planned files touched
 - Overall verdict: CONFIRMED / UNCONFIRMED / CONTRADICTED
 - If not CONFIRMED: specific gaps listed with remediation steps
 

@@ -326,6 +326,58 @@ mcp-server-<name>/
 - Installation: Claude Code, Cursor, Windsurf config snippets
 - Configuration reference (env vars with descriptions)
 
+## Reference Pattern: Multi-Provider Adapter
+
+When the MCP server needs to call multiple AI providers (e.g., both Anthropic and OpenAI), use the **Provider Adapter** pattern to normalize different APIs behind a unified interface.
+
+### Interface
+
+```typescript
+interface ProviderAdapter {
+  formatRequest(params: RequestParams): { url: string; init: RequestInit };
+  parseResponse(data: unknown): { content: string; usage: TokenUsage | null };
+  formatStreamRequest(params: RequestParams): { url: string; init: RequestInit };
+  parseSSEEvent(eventType: string, data: string): StreamChunk | null;
+}
+```
+
+### Discriminated Union for Stream Chunks
+
+```typescript
+type StreamChunk =
+  | { type: "thinking"; content: string }
+  | { type: "text"; content: string }
+  | { type: "done" }
+  | { type: "done_with_usage"; usage: TokenUsage }
+  | { type: "usage_delta"; inputTokens?: number; outputTokens?: number }
+  | { type: "error"; message: string };
+```
+
+### When to Apply
+
+- MCP server wraps multiple AI providers (e.g., a router server that dispatches to Claude, GPT, or local models)
+- MCP server aggregates responses from multiple APIs with different response formats
+- MCP server needs to support streaming from providers with different SSE event schemas
+
+### Key Implementation Notes
+
+- Each provider adapter handles its own SSE event types (Anthropic: `content_block_delta`, `message_start`; OpenAI: `response.output_text.delta`, `[DONE]`)
+- Buffer management for SSE: handle incomplete lines, track event types, manage abort signals
+- Provider-specific prompt tuning: some models benefit from additional constraints (e.g., "Maximum 2-3 paragraphs" for verbose models)
+- Per-provider token tracking: normalize different usage reporting formats into a single `TokenUsage` type
+
+### Cost-Aware Model Selection
+
+When building MCP servers that call AI providers, support **dual-model configuration** — allow users to specify a primary model for critical operations and a cheaper model for background tasks (summarization, classification, metadata extraction). This avoids burning expensive API credits on tasks that don't need maximum quality.
+
+```typescript
+// config.ts
+const config = {
+  primaryModel: process.env.PRIMARY_MODEL || 'claude-sonnet-4-20250514',
+  backgroundModel: process.env.BACKGROUND_MODEL || 'claude-haiku-4-5-20251001',
+};
+```
+
 ## Constraints
 
 1. MUST validate all tool inputs with Zod (TS) or Pydantic (Python) — never trust AI-provided inputs

@@ -141,6 +141,7 @@ Known failure modes for this skill. Check these before declaring done.
 | Classifying lock file changes as out-of-scope | LOW | package-lock.json, yarn.lock, Cargo.lock are always IN_SCOPE |
 | SIGNIFICANT CREEP threshold applied to 1-2 unplanned files | LOW | MINOR = 1-2 files, SIGNIFICANT = 3+ files — don't escalate prematurely |
 | Plan not loadable (no TodoWrite, no progress.md) | MEDIUM | Ask calling skill for plan as text description before proceeding |
+| Scope check against plan but not against stated intent | MEDIUM | Plan-based scope guard catches file drift; review Step 6.6 (Scope Drift Detection) catches intent drift. Both should run for full coverage |
 
 ## Done When
 

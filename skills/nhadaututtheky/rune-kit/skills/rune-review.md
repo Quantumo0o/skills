@@ -256,6 +256,47 @@ Produce a structured severity-ranked report.
 - Include a Positive Notes section (good patterns observed)
 - Include a Verdict: APPROVE | REQUEST CHANGES | NEEDS DISCUSSION
 
+### Step 6.5: Fix-First Triage
+
+> From gstack (garrytan/gstack, 50.9k★): "Reviews that produce 20 findings and delegate all to the user waste everyone's time."
+
+Classify each finding as **AUTO-FIX** or **ASK** before reporting:
+
+| Category | Auto-Fix? | Examples |
+|----------|-----------|---------|
+| Dead imports, unused variables | AUTO-FIX | `import { foo } from './bar'` where foo is never used |
+| Missing error handling on obvious paths | AUTO-FIX | `await fetch()` without try/catch in production code |
+| Console.log in production code | AUTO-FIX | Remove `console.log` from non-CLI production files |
+| Architectural concern, trade-off | ASK | "This bypasses the auth middleware — intentional?" |
+| Ambiguous intent | ASK | "Is this fallback behavior correct for null users?" |
+| Style/convention disagreement | ASK | "Project uses camelCase but this file uses snake_case" |
+
+**After classification:**
+- Apply AUTO-FIX findings directly via `rune-fix.md` — include all in a single batch
+- Collect ASK findings into ONE `AskUserQuestion` — not 5 separate questions
+- Report both: "Auto-fixed 4 issues. 2 findings need your input: [...]"
+
+**Rationalization prevention**: "This looks fine" is NOT acceptable without evidence. If you can't cite a specific file:line or convention that justifies the code, flag it as UNVERIFIED — don't rationalize away uncertainty.
+
+### Step 6.6: Scope Drift Detection
+
+> From gstack (garrytan/gstack, 50.9k★): "Intent vs diff catches scope creep that plan-based guards miss."
+
+After reviewing code, compare **stated intent** vs **actual diff**:
+
+1. Read the originating source: TODO list, PR description, commit messages, or plan file
+2. Extract stated intent: "what was this change supposed to do?"
+3. Run `git diff --stat` to see actual file changes
+4. Compare:
+
+| Result | Meaning | Action |
+|--------|---------|--------|
+| **CLEAN** | All changed files serve the stated intent | Note in report |
+| **DRIFT** | 1-2 files changed that don't relate to stated intent | WARN — "These files were modified but aren't mentioned in the task: [list]" |
+| **REQUIREMENTS_MISSING** | Stated intent mentions files/features not in the diff | WARN — "Task mentions X but it's not in the diff" |
+
+**This is informational, not blocking.** Scope drift is common and sometimes intentional — but making it visible prevents silent creep.
+
 After reporting:
 - If any CRITICAL findings: call `rune-fix.md` immediately with the finding details
 - If any HIGH findings: call `rune-fix.md` with the finding details
@@ -480,6 +521,9 @@ When `cook` or `ship` checks review status: compare review commit hash with curr
 | Suggesting "add X" without checking if X is used | MEDIUM | YAGNI pushback: grep codebase for the suggested feature → if uncalled anywhere → respond "Not called anywhere. Remove? (YAGNI)". Valid pushback, not laziness |
 | Adding abstractions "for future flexibility" | MEDIUM | Three similar lines > premature abstraction. Only abstract when there are 3+ concrete callers today |
 | Missing cross-phase integration check at phase boundary | MEDIUM | When reviewing a phase completion: check orphaned exports, uncalled routes, auth gaps, E2E flow continuity. Delegate to completion-gate Step 4.5 |
+| Review loop exceeds 3 iterations without resolution | MEDIUM | Cap at 3 review loops. After 3rd iteration with unresolved findings → surface to user with "these findings persist after 3 fix attempts — needs human decision" |
+| Auto-fixing something that should have been ASK | HIGH | When in doubt, ASK. AUTO-FIX only for mechanical issues (dead imports, console.log). Anything involving intent or trade-offs = ASK |
+| Scope drift flagged on intentional refactoring | LOW | Scope drift is informational, not blocking. User can override with "intentional" — don't re-flag after override |
 
 ## Done When
 

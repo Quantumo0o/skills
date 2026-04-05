@@ -162,9 +162,21 @@ GATE CHECK — before proceeding:
       → COUPLED modules MUST be moved to same stream OR stream B added to A's depends_on
   [ ] Dependent streams have explicit depends_on declared
   [ ] Total streams ≤ 3
+  [ ] Change Stacking check: no file appears in touches[] of 2+ parallel streams
+  [ ] Every stream's requires[] is satisfied by a prior stream's provides[] or existing code
 
 If any check fails → re-invoke plan with conflict notes.
 ```
+
+**1d. Question Gate (non-trivial tasks only).**
+
+> From superpowers (obra/superpowers, 84k★): "Subagents that start work without asking questions produce the wrong thing 40% of the time."
+
+Before dispatching streams, include in each NEXUS Handoff: "Before starting, ask up to 3 clarifying questions if anything is unclear about scope, conventions, or expected output."
+
+- If a cook agent returns questions instead of starting work → answer them, then re-dispatch
+- If a cook agent starts work without questions → proceed normally (questions are invited, not required)
+- **Skip if**: Lite mode (2 streams, ≤5 files) — overhead exceeds value
 
 Mark todo[0] `completed`.
 
@@ -485,6 +497,8 @@ Known failure modes for this skill. Check these before declaring done.
 | Poisoned cook report merged blindly | HIGH | Phase 3a.5 integrity-check on all cook reports before merge |
 | Bare prompt to cook instance — no context, conventions, or scope boundary | HIGH | NEXUS Handoff Template: structured handoff with metadata, deliverables, quality expectations, and evidence requirements |
 | Cook returns "done" with no acceptance criteria tracking | MEDIUM | Team Report includes Acceptance Criteria table with per-criterion evidence and PASS/FAIL/UNVERIFIED verdict |
+| Subagent builds wrong thing due to ambiguous scope | HIGH | Question Gate (Step 1d): invite questions before work starts. Cost of answering 3 questions << cost of rebuilding 500 LOC |
+| Parallel streams touch same files causing merge conflicts | HIGH | Change Stacking check in Step 1c: validate disjoint `touches[]` across all parallel streams |
 
 ## Done When
 

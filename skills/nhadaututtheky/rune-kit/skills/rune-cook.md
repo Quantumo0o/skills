@@ -40,7 +40,33 @@ Cook supports predefined workflow chains for common task types. Use these as sho
 /rune cook security   → Full pipeline + sentinel@opus + sast (all phases, security-escalated)
 /rune cook hotfix     → Minimal: fix → verify → commit (Phase 4 → 6 → 7, skip scout if user provides context)
 /rune cook nano       → Trivial: do → verify → done (no phases, ≤3 steps)
+/rune cook --template <name> → Load pre-built workflow template from installed Pro/Business packs
 ```
+
+### Template Workflows (Pro/Business)
+
+When `--template <name>` is provided, cook loads a pre-built workflow template instead of auto-detecting:
+
+```
+/rune cook --template product-discovery   → Pro: stakeholder interviews → problem framing → competitive → spec → validation
+/rune cook --template product-launch      → Pro: spec lock → implement → quality gates → staged rollout → announcement
+/rune cook --template product-iteration   → Pro: metrics review → feedback synthesis → re-prioritize → implement → measure
+/rune cook --template data-exploration    → Pro: data profiling → hypotheses → statistical testing → visualization → report
+/rune cook --template data-pipeline       → Pro: schema design → ETL → quality gates → deploy → monitoring
+/rune cook --template sales-outreach-campaign → Pro: prospect research → messaging → sequence → A/B test → launch
+/rune cook --template sales-deal-review   → Pro: account deep-dive → risk assessment → competitive strategy → action plan
+/rune cook --template support-incident-response → Pro: triage → diagnose → fix → verify → postmortem → KB update
+/rune cook --template support-kb-refresh  → Pro: audit → gap analysis → draft → review → publish
+```
+
+**Template resolution**: Templates are `.md` files in `extensions/pro-*/templates/` or `extensions/business-*/templates/`. Each template defines: phases, skill connections, mesh signals, and acceptance criteria. The compiler includes templates in pack output during build.
+
+**When --template is used**:
+1. Skip Phase 1.5 (auto-detection) — template pre-selects domain and pack
+2. Skip Phase 1.7 (workflow matching) — template IS the workflow
+3. Load template phases as the master plan (Phase 2 becomes "review template plan" not "create plan")
+4. Execute each template phase in order, invoking declared skills
+5. Emit template's declared signals on completion
 
 **Chain selection**: If user invokes `/rune cook` without a chain type, auto-detect from the task description:
 - Contains "bug", "fix", "broken", "error" → `bugfix`
@@ -48,6 +74,7 @@ Cook supports predefined workflow chains for common task types. Use these as sho
 - Contains "security", "auth", "vulnerability", "CVE" → `security`
 - Contains "urgent", "hotfix", "production" → `hotfix`
 - Contains "quick", "just", "chỉ cần", "copy", "move", "rename", "bump" → `nano`
+- Contains `--template` → load template workflow (see above)
 - Default → `feature`
 
 ## Phase Skip Rules
@@ -167,6 +194,7 @@ Auto-trigger: no `.rune/` dir (first run) OR build just failed with env-looking 
 2. Mark Phase 1 as `in_progress`
 3. **BA gate**: Feature Request / Integration / Greenfield → invoke `rune-ba.md`. Task > 50 words or business terms (users, revenue, workflow) → invoke `rune-ba.md`. Bug Fix / simple Refactor → skip. BA produces `.rune/features/<name>/requirements.md` for Phase 2.
 4. **Decision enforcement**: glob for `.rune/decisions.md`; if exists, read_file + extract constraints for Phase 2. Plan MUST NOT contradict active decisions without explicit user override.
+4b. **Contract enforcement**: If `.rune/contract.md` was loaded in Phase 0.6, list applicable contract sections for this task (e.g., `contract.security` for auth work, `contract.data` for database changes). These rules constrain Phase 2 planning and Phase 4 implementation.
 
 ### Phase 1 Step 3.5 — Clarification Gate
 
@@ -177,7 +205,11 @@ Skip if: bug fix with clear repro steps | user said "just do it" | fast mode + <
 5. Invoke scout to scan the codebase (Glob + Grep + Read on relevant files)
 6. Summarize: what exists, project conventions, files likely to change, active decision constraints
 7. **Python async detection**: if Python project detected, grep for async indicators (`async def`, `await`, `aiosqlite`, `aiohttp`, `asyncio.run`). If ≥3 matches → flag as **"async-first Python"** — new code defaults to `async def`
-8. Mark Phase 1 as `completed`
+8. **Explore-Before-Commit**: If scout reveals multiple viable approaches (e.g., 2+ libraries, 2+ architectural patterns), do NOT commit to an approach yet. Instead:
+   - List alternatives with 1-line trade-off each
+   - Flag to Phase 2 (plan) for formal comparison
+   - Separating "thinking" (Phase 1) from "committing" (Phase 2) prevents premature lock-in
+9. Mark Phase 1 as `completed`
 
 **Gate**: If scout finds the feature already exists → STOP and inform user.
 
@@ -212,13 +244,31 @@ After scout completes, check if the detected tech stack or task description matc
 
 ## Phase 0: RESUME CHECK (Before Phase 1)
 
-**Goal**: Detect if a master plan already exists for this task. If so, skip Phase 1-2 and resume from the current phase.
+**Goal**: Detect if a master plan already exists for this task, or if a `--template` was specified. If so, skip Phase 1-2 and resume/load the workflow.
+
+**Step 0.4 — Template Detection**: If user passed `--template <name>`:
+1. Search installed pack templates for the name: glob for `extensions/*/templates/<name>.md` and `extensions/pro-*/templates/<name>.md`
+2. If found: read_file the template file → parse phases, signals, connections, acceptance criteria
+3. Generate a master plan from the template: each template phase becomes a plan phase
+4. Write plan files to `.rune/plan-<template-name>.md` + `.rune/plan-<template-name>-phaseN.md`
+5. Announce "Loading template: <name> (<pack>)" → skip Phase 1, 1.5, 1.7, 2 → proceed to Phase 4 with Phase 1 of the template
+6. If template not found: warn user and fall through to normal workflow
 
 **Step 0.5 — Cross-Project Recall**: Call `neural-memory` (Recall Mode) with 3-5 topics relevant to the current task. Always prefix queries with the project name (e.g., `"ProjectName auth pattern"` not `"auth pattern"`).
 
 1. Glob to check for `.rune/plan-*.md` files
 2. If a master plan exists matching the current task: Read it → find first `⬚ Pending` or `🔄 Active` phase → load ONLY that phase file → announce "Resuming from Phase N" → skip to Phase 4
 3. If no master plan exists → proceed to Phase 1 as normal
+
+**Step 0.6 — Contract Load**: Glob to check for `.rune/contract.md`. If it exists:
+1. read_file the contract file and parse each `## section` as a named rule set
+2. Hold contract rules in context — they apply as **hard gates** throughout all phases
+3. Any code change that violates a contract rule → STOP and inform user before proceeding
+4. If no contract exists → proceed normally (contract is optional)
+
+<HARD-GATE>
+Contract violations are NON-NEGOTIABLE. If `.rune/contract.md` exists and a planned or implemented change violates any rule, cook MUST stop and report the violation. The user must explicitly override ("ignore contract rule X") to proceed.
+</HARD-GATE>
 
 **This enables multi-session workflows**: Opus plans once → each session picks up the next phase.
 
@@ -417,7 +467,15 @@ Before entering ANY Phase N+1, assert: Phase N `completed` in TodoWrite | gate c
 2. Save to `.rune/decisions.md` (approach + trade-offs), `.rune/progress.md` (task complete), `.rune/conventions.md` (new patterns)
 3. **Skill metrics** → `.rune/metrics/skills.json`: increment phase run/skip counts, quality gate results, debug loop counts under `cook` key
 4. **Routing overrides** (H3): if Phase 4 hit max loops for an error pattern → write rule to `.rune/metrics/routing-overrides.json`. Max 10 active rules.
-5. **Step 8.5 — Capture Learnings**: `neural-memory` (Capture Mode) — 2-5 memories: architecture decisions, patterns, error root-causes, trade-offs. Cognitive language (causal/decisional/comparative). Tags: `[project, tech, topic]`. Priority 5 routine / 7-8 decisions / 9-10 critical errors.
+5. **Step 8.5 — Cross-Cutting Sweep**: After commit, check if this phase changed stats (skill count, test count, signal count, pack count, layer counts). If ANY stat changed:
+   - [ ] `README.md` — stats, badges, feature list
+   - [ ] `docs/index.html` (landing page) — meta tags, hero badge, install section, mesh stats, footer
+   - [ ] `dashboard.html` (if local) — KPI cards, test count, skill tabs, layer counts
+   - [ ] `CLAUDE.md` — commands, test count, skill list
+   - [ ] `MEMORY.md` — milestones, version info
+
+   **Skip if**: No stats changed (pure refactor, docs-only, style change). **MANDATORY** if any numeric stat in README differs from actual.
+6. **Step 8.6 — Capture Learnings**: `neural-memory` (Capture Mode) — 2-5 memories: architecture decisions, patterns, error root-causes, trade-offs. Cognitive language (causal/decisional/comparative). Tags: `[project, tech, topic]`. Priority 5 routine / 7-8 decisions / 9-10 critical errors.
 6. Mark Phase 8 as `completed`
 
 ## Autonomous Loop Patterns
@@ -477,6 +535,56 @@ If ambiguous between Cancel and Steer → ask user: "Did you mean stop, or chang
 Hard caps: MAX_DEBUG_LOOPS=3, MAX_QUALITY_LOOPS=2, MAX_REPLAN=1, MAX_PIVOT=1, MAX_FIXES=30, WTF_THRESHOLD=20%.
 Escalation chain: debug-fix (3x) → re-plan (1x) → brainstorm rescue (1x) → THEN escalate to user.
 
+### Structured Escalation Report
+
+> From agency-agents (msitarzewski/agency-agents, 50.8k★): "After 3 retry failures, structured escalation prevents cargo-cult retrying."
+
+When escalation chain exhausts (all retries hit) or cook returns `BLOCKED`, produce a Structured Escalation Report instead of a vague "I can't do this":
+
+```markdown
+## Escalation Report
+- **Task**: [original task description]
+- **Status**: BLOCKED
+- **Attempts**: [count] across [N] phases
+
+### Failure History
+| # | Approach | Phase | Outcome | Root Cause |
+|---|---------|-------|---------|------------|
+| 1 | Direct fix | Phase 4 | Tests fail — null ref in auth.ts:42 | Missing user context |
+| 2 | Re-plan with guard clause | Phase 4 | Build fails — circular import | Guard approach introduces cycle |
+| 3 | Brainstorm rescue → adapter pattern | Phase 4 | Tests pass but perf regression 3x | Adapter adds indirection overhead |
+
+### Root Cause Analysis
+[1-2 sentences: why ALL approaches failed — is it architectural, environmental, or requirements-level?]
+
+### Recommended Resolutions (pick one)
+1. **Reassign** — different skill/agent with fresh context
+2. **Decompose** — break into smaller sub-tasks that CAN succeed independently
+3. **Revise requirements** — relax constraint X to unblock (specify which)
+4. **Accept partial** — ship what works, defer blocked portion
+5. **Defer** — park this task, work on something else first
+
+### Impact Assessment
+- **Blocked by this**: [downstream tasks/phases that depend on this]
+- **Not blocked**: [independent work that can continue]
+```
+
+<HARD-GATE>
+"Bad work is worse than no work." Cook MUST produce this report rather than attempting a 4th variant of a failing approach. Escalating is not failure — shipping broken code is.
+</HARD-GATE>
+
+### Subagent Question Gate
+
+> From superpowers (obra/superpowers, 84k★): "Subagents that start work without asking questions produce the wrong thing 40% of the time."
+
+Before dispatching a sub-skill (fix, test, review) for a non-trivial task (3+ files OR ambiguous scope):
+
+1. **Invite questions**: Include in the handoff: "Before starting, ask up to 3 clarifying questions if anything is unclear."
+2. **Answer before work**: If the sub-skill returns questions → answer them, THEN re-dispatch with answers included.
+3. **Skip if**: Fast/Nano rigor, single-file fix, or sub-skill is haiku-tier (too cheap to gate).
+
+This prevents the #1 parallel work failure: sub-skill assumes wrong interpretation, builds 500 LOC, then gets rejected in review.
+
 ### Subagent Status Protocol
 
 <MUST-READ path="references/subagent-status.md" trigger="when cook or any sub-skill needs to return a status"/>
@@ -526,6 +634,46 @@ Stuck patterns (all banned):
 
 A wrong first attempt that produces feedback beats perfect understanding that never ships.
 </HARD-GATE>
+
+### Observation/Effect Ratio Tracking
+
+Track every tool call during Phase 4 (IMPLEMENT) as either **observation** (read-only) or **effect** (modifies state):
+
+| Category | Tool Examples |
+|----------|--------------|
+| **Observation** | Read, Grep, Glob, Bash(grep/ls/cat/git log) |
+| **Effect** | Write, Edit, Bash(npm/build/test/mkdir) |
+
+**Detection rules** (check every 8 tool calls during Phase 4):
+
+| Pattern | Threshold | Signal | Action |
+|---------|-----------|--------|--------|
+| **Observation chain** | 6+ consecutive observation tools with zero effects | Agent is stuck reading, not building | Inject: "OBSERVATION LOOP — 6 reads without writing. Act on what you know or report BLOCKED." |
+| **Low effect ratio** | In last 10 calls, effects < 15% | Agent is in analysis mode, not implementation | Inject: "Effect ratio below 15%. Phase 4 is IMPLEMENT — write code, don't just read it." |
+| **Diminishing returns** | Last 3 observations found <2 new relevant facts combined | Searching is no longer productive | Inject: "Diminishing returns — last 3 reads added nothing new. Synthesize and act." |
+| **Repeating sequences** | A-B-A-B or A-B-C-A-B-C pattern across 6+ calls | Circular behavior | Inject: "REPEATING SEQUENCE detected. Break the cycle — try a different approach or report BLOCKED." |
+
+**Important**: These are injected as advisor messages, not hard blocks. The agent can continue if it has good reason, but the message forces conscious acknowledgment of the pattern.
+
+**Skip if**: Phase 1 (UNDERSTAND) — observation-heavy is expected during research. Only track during Phase 4+ where effects should dominate.
+
+### Budget-Aware Phase Progression
+
+Beyond the existing Exit Conditions (MAX_DEBUG_LOOPS, MAX_QUALITY_LOOPS, etc.), track **cumulative budget** across the entire cook session:
+
+| Budget | Limit | What Happens at Limit |
+|--------|-------|----------------------|
+| **Phase 4 react budget** | 15 tool calls per task within Phase 4 | Force: move to next task or report partial completion |
+| **Global replan budget** | 2 replans per session (Phase 4 Step 6) | Force: proceed with current plan or escalate to user |
+| **Quality retry budget** | 3 total quality re-runs across 5a-5d | Force: ship with known issues documented, don't loop |
+| **Total session tool calls** | 150 calls | Force: save state via session-bridge, compact or pause |
+
+**Hard override rules**:
+- If react budget exhausted for a task but task is IN_PROGRESS → force CONTINUE to next task (don't re-attempt)
+- If replan budget exhausted but plan still failing → force escalation (don't attempt 3rd replan)
+- If quality retry budget exhausted → emit concerns in Cook Report, proceed to commit with documented caveats
+
+**Why**: Without hard budgets, agents get trapped in local optimization loops — retrying the same failing approach indefinitely. Budget constraints force escalation or acceptance of partial results, which is always better than an infinite loop.
 
 ### Hash-Based Tool Loop Detection
 
@@ -604,6 +752,42 @@ Mentally track tool call fingerprints. 3 identical calls → WARN. 5 identical c
 | Test-First Gate | Failing tests before Phase 4 | Write tests or get explicit skip |
 | Quality Gate | preflight + sentinel + review before Phase 7 | Fix findings, re-run |
 | Verification Gate | lint + types + tests + build green before commit | Fix, re-run |
+
+## Structured Output Contract (Prompt-as-API Pattern)
+
+When cook invokes sub-skills that produce structured output (e.g., `ba` for requirements, `plan` for implementation plans, `test` for test specs), use the **Prompt-as-API-Contract** pattern: specify the exact output schema in the invocation prompt so the sub-skill returns machine-parseable results, not free-form prose.
+
+### Pattern
+
+```
+INVOCATION: "Analyze [X] and return results as JSON matching this schema:
+{
+  "insights": [{ "id": string, "category": string, "description": string, "actionable": string }],
+  "confidence": number,
+  "next_steps": string[]
+}
+Do NOT include explanatory text outside the JSON block."
+```
+
+### When to Apply
+
+| Phase | Sub-skill | Output Contract |
+|-------|-----------|----------------|
+| Phase 1 | `ba` | `{ requirements: [{id, priority, description, acceptance_criteria}], ambiguities: string[] }` |
+| Phase 2 | `plan` | `{ phases: [{name, tasks: [{description, files, effort}], dependencies}] }` |
+| Phase 3 | `test` | `{ test_cases: [{name, type, file, assertion}], coverage_targets: string[] }` |
+| Phase 5 | `review` | `{ findings: [{severity, file, line, description, fix}], verdict: "PASS"|"WARN"|"BLOCK" }` |
+
+### Rules
+
+- Include 1-2 concrete examples in the prompt — examples are worth more than schema descriptions
+- Always specify "Do NOT include explanatory text outside the JSON/markdown block" — LLMs default to wrapping structured output in prose
+- When the output will be consumed by another skill (not displayed to user), ALWAYS use this pattern
+- When the output will be displayed to the user, use markdown format instead — humans don't read JSON
+
+### Why
+
+Free-form sub-skill output forces the calling skill to parse natural language — fragile and lossy. Structured contracts make skill-to-skill communication reliable, enable automated validation, and reduce the tokens wasted on parsing instructions.
 
 ## Output Format
 

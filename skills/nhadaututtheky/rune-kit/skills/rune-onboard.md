@@ -52,6 +52,7 @@ project/
     ├── progress.md        # Empty, ready for session-bridge
     ├── session-log.md     # Empty, ready for session-bridge
     ├── instincts.md       # Empty, ready for session-bridge instinct learning
+    ├── contract.md        # Project invariants enforced by cook/sentinel
     └── DEVELOPER-GUIDE.md # Human-readable onboarding for new developers
 ```
 
@@ -113,6 +114,11 @@ Write_file to create each file:
 - `.rune/progress.md` — create with header `# Progress Log` and one placeholder entry
 - `.rune/session-log.md` — create with header `# Session Log` and current date as first entry
 - `.rune/instincts.md` — create with header `# Project Instincts` and a description: "Learned trigger→action patterns. Managed by session-bridge. See session-bridge SKILL.md Step 5.7 for format."
+- `.rune/contract.md` — generate a starter contract based on the detected tech stack:
+  - Copy structure from `docs/CONTRACT-TEMPLATE.md`
+  - Customize rules based on Step 2 findings (e.g., Python → add `no bare except`, Node.js → add `no console.log`, SQL database → add parameterized queries rule)
+  - Remove sections that don't apply (e.g., `contract.operations` for a library with no deployed service)
+  - The contract is a starting point — tell the user to review and customize it
 
 ### Step 5.5 — Load Existing Instincts
 
@@ -227,6 +233,56 @@ Audit the project's baseline context cost from MCP servers and agent configurati
 ```
 
 **Skip if**: Total MCP tools ≤80 AND CLAUDE.md ≤150 lines (healthy baseline).
+
+### Step 6e — AI-Driven Interview (Optional, User-Initiated)
+
+When invoked as `/rune onboard --interview` or when the project is too ambiguous for automated detection (e.g., no package.json, no clear entry point, mixed languages), switch to **conversational onboarding** — the AI asks targeted questions instead of relying solely on file scanning.
+
+#### Interview Flow
+
+Ask 5-8 questions in sequence, adapting based on answers. Start broad, narrow based on responses:
+
+```
+Q1: "What does this project do in one sentence?"
+    → Captures purpose (README may be missing or outdated)
+
+Q2: "Who uses this — internal team, external users, or both?"
+    → Determines audience, affects DEVELOPER-GUIDE.md tone
+
+Q3: "What's the main entry point — where does execution start?"
+    → Bypasses file scanning for complex monorepos
+
+Q4: "What commands do you use daily? (dev server, tests, build)"
+    → Gets verified commands instead of guessing from config files
+
+Q5: "Any areas of the codebase you'd warn a new developer about?"
+    → Captures tribal knowledge that no scan can detect
+
+Q6: "Are there external services this depends on? (databases, APIs, queues)"
+    → Maps integration points for Architecture Map
+
+Q7: "What's the deployment story — how does code get to production?"
+    → Captures CI/CD context
+
+Q8 (conditional): "Anything else a new session should know that's not in the code?"
+    → Catches edge cases, workarounds, known issues
+```
+
+#### Interview Rules
+
+- **Adapt**: Skip questions that were already answered by earlier responses. If Q1 reveals "it's a Next.js app", don't ask about the framework.
+- **Validate**: Cross-reference answers with actual file scan results. If user says "we use Jest" but `vitest.config.ts` exists, ask to clarify.
+- **Merge**: Interview answers supplement (not replace) automated scan. Scan provides facts, interview provides context and intent.
+- **Store**: Save interview responses as high-confidence entries in `.rune/conventions.md` and `.rune/cumulative-notes.md` (tagged `[from-interview]`)
+
+#### When to Auto-Suggest Interview
+
+Suggest switching to interview mode (but don't force it) when:
+- Step 2 produces 3+ "unknown" fields in tech stack detection
+- Project has no README.md and no package.json/pyproject.toml/Cargo.toml
+- Project appears to be a monorepo with 3+ distinct sub-projects
+
+Output: `"ℹ️ This project is hard to auto-detect. Run /rune onboard --interview for guided setup."`
 
 ### Step 7 — Commit
 Run_command to stage and commit the generated files:

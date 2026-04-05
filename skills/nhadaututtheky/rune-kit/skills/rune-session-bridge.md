@@ -50,7 +50,8 @@ Solve the #1 developer complaint: context loss across sessions. Session-bridge a
 ├── conventions.md    — Established patterns & style
 ├── progress.md       — Task progress tracker
 ├── session-log.md    — Brief log of each session
-└── instincts.md      — Learned project-specific patterns (trigger→action)
+├── instincts.md      — Learned project-specific patterns (trigger→action)
+└── cumulative-notes.md — Living project understanding (profile, themes, relationships)
 ```
 
 ## Execution
@@ -204,6 +205,58 @@ Extract atomic "instincts" — learned trigger→action patterns — from this s
 
 **Max instincts**: Keep `.rune/instincts.md` under 20 entries. When full, evict the lowest-confidence entry.
 
+#### Step 5.9 — Cumulative Project Notes (Structured Memory)
+
+Maintain a running **cumulative notes** file at `.rune/cumulative-notes.md` that evolves across sessions. Unlike `progress.md` (which tracks tasks) or `decisions.md` (which logs choices), cumulative notes capture the **living understanding** of the project — patterns learned, relationships discovered, recurring themes, and open threads.
+
+**Format** — use these fixed sections (add content, never remove prior entries):
+
+```markdown
+# Cumulative Project Notes
+
+## Project Profile
+- [Core purpose of the project — 1 sentence]
+- [Primary users/audience]
+- [Key technical constraints — e.g., "must run offline", "latency-critical", "multi-tenant"]
+
+## Architecture Map
+- [Key modules and their responsibilities — discovered over sessions]
+- [Critical data flows — e.g., "user input → validation → API → DB → cache invalidation"]
+- [Integration points — external APIs, services, databases]
+
+## Recurring Themes
+- [Patterns that keep coming up across sessions — e.g., "auth edge cases", "migration complexity"]
+- [Common failure modes — what breaks and why]
+- [Technical debt hotspots — areas that repeatedly cause issues]
+
+## Active Topics
+- [What's currently being worked on — updated each session]
+- [Open questions that haven't been resolved yet]
+- [Experiments in progress]
+
+## Relationship Map
+- [Key files and their dependencies — "changing X requires updating Y"]
+- [People and their areas — "Alice owns auth, Bob owns payments"]
+- [External service dependencies — "Stripe webhook → order.complete handler"]
+
+## Follow-Up Items
+- [ ] [Things noted but not yet addressed — carry forward until done]
+- [ ] [Ideas that came up during work but were out of scope]
+
+## Attention Points
+- [Things the next session should be aware of — fragile areas, pending PRs, deadlines]
+- [Temporary workarounds that need proper fixes]
+```
+
+**Update rules:**
+- **Create** the file on first session-bridge save if it doesn't exist
+- **Append** to existing sections — never overwrite prior entries (they represent accumulated knowledge)
+- **Prune** entries older than 60 days in Recurring Themes and Relationship Map — these may be stale
+- **Move** completed Follow-Up Items to a `## Resolved` section at the bottom (keep last 10)
+- **Keep under 200 lines** — if approaching limit, summarize older entries in each section
+
+**Why**: Individual state files (decisions.md, progress.md) capture discrete events. Cumulative notes capture the **emergent understanding** that develops over many sessions — the kind of knowledge that's lost when context resets. This is the project's "institutional memory."
+
 #### Step 6 — Cross-Project Knowledge Extraction (Neural Memory Bridge)
 
 Before committing, extract generalizable patterns from this session for cross-project reuse:
@@ -270,6 +323,7 @@ Read: .rune/decisions.md
 Read: .rune/conventions.md
 Read: .rune/progress.md
 Read: .rune/session-log.md
+Read: .rune/cumulative-notes.md
 ```
 
 #### Step 3 — Summarize
@@ -281,6 +335,7 @@ Present the loaded context to the agent in a structured summary:
 > - Key decisions: [last 3 entries from decisions.md]
 > - Active conventions: [count from conventions.md]
 > - Current progress: [in-progress and blocked items from progress.md]
+> - Project understanding: [Active Topics + Attention Points from cumulative-notes.md]
 > - Next task: [first item under "Next Session Should" from progress.md]
 
 #### Step 4 — Resume

@@ -263,6 +263,30 @@ After spec approved → transition to Implementation Mode.
 
 Every plan output — master plan, phase file, or inline plan — MUST end with an **Outcome Block** containing: What Was Planned + Immediate Next Action (single action, imperative) + How to Measure table (at least one shell command).
 
+## Change Stacking (Overlap Detection)
+
+When producing phase files with wave-based task grouping, every task MUST declare dependency metadata:
+
+```markdown
+### Task: Implement auth middleware
+- **File**: `src/middleware/auth.ts` — new
+- **touches**: [src/middleware/auth.ts, src/types/auth.d.ts]
+- **provides**: [AuthMiddleware, verifyToken()]
+- **requires**: [UserModel from Wave 1]
+- **depends_on**: [task-1a]
+```
+
+**Pre-dispatch validation** (run after all tasks written, before presenting plan):
+
+| Check | Detection | Action |
+|-------|-----------|--------|
+| **File overlap** | Same file in `touches[]` of 2+ tasks in same wave | BLOCK — move to sequential waves or merge tasks |
+| **Missing dependency** | Task A's `requires[]` not in any prior task's `provides[]` | BLOCK — add missing task or fix dependency chain |
+| **Cycle detection** | Task A `depends_on` B, B `depends_on` A | BLOCK — decompose into smaller tasks to break cycle |
+| **Orphaned provides** | Task declares `provides[]` but no future task `requires[]` it | WARN — may indicate dead code or missing consumer task |
+
+**Skip if**: Inline plan (trivial task), single-phase plan, or all tasks are strictly sequential.
+
 ## Constraints
 
 1. MUST produce master plan + phase files for non-trivial tasks (3+ phases OR 5+ files OR 100+ LOC)
@@ -312,6 +336,8 @@ Every plan output — master plan, phase file, or inline plan — MUST end with 
 | Recommending shortcut approach without Completeness Score | MEDIUM | Step 5.5: every alternative needs X/10 Completeness score + dual effort estimate (human vs AI). "Saves 70 LOC" is not a reason when AI makes the delta cost minutes |
 | Plan output missing Outcome Block | MEDIUM | Every plan output MUST end with Outcome Block (What Was Planned + Immediate Next Action + How to Measure) — executor drift when omitted |
 | Outcome Block "Next Action" is a list, not one action | LOW | One action only — ambiguity about where to start causes re-analysis and lost context |
+| Overlapping file ownership across parallel phases/streams | HIGH | Change Stacking: every task declares `touches[]` — overlap detection flags same file in 2+ tasks before execution |
+| Missing dependency between tasks that share artifacts | HIGH | Every task declares `provides[]` and `requires[]` — cycle detection + missing dep check before dispatch |
 
 ## Self-Validation
 
