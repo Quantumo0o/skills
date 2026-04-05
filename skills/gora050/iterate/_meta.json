@@ -3,9 +3,15 @@
   "slug": "iterate",
   "displayName": "Iterate",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773932582354,
-    "commit": "https://github.com/openclaw/skills/commit/8498d98e390a431c7b990bdd3c729fa580f7a052"
+    "version": "1.0.2",
+    "publishedAt": 1775164940050,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773932582354,
+      "commit": "https://github.com/openclaw/skills/commit/8498d98e390a431c7b990bdd3c729fa580f7a052"
+    }
+  ]
 }
