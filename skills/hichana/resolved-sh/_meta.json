@@ -3,11 +3,16 @@
   "slug": "resolved-sh",
   "displayName": "resolved-sh",
   "latest": {
-    "version": "0.1.2",
-    "publishedAt": 1774840557743,
-    "commit": "https://github.com/openclaw/skills/commit/c5a0eb4f79a845d0e9a6440422e5334d1e38358b"
+    "version": "0.1.4",
+    "publishedAt": 1775045523206,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.2",
+      "publishedAt": 1774840557743,
+      "commit": "https://github.com/openclaw/skills/commit/c5a0eb4f79a845d0e9a6440422e5334d1e38358b"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1774424475371,
