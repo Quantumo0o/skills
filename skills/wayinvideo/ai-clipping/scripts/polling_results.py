@@ -137,6 +137,10 @@ def update_save_file(file_path, project_id, api_response, status=None, error=Non
         data["api_response"] = api_response
         data["_metadata"]["status"] = status or api_response.get("status")
         
+        # Add project name if available in response
+        if "name" in api_response:
+            data["_metadata"]["name"] = api_response["name"]
+
         if status == "SUCCEEDED":
             data["_metadata"]["task_finished_at"] = now.isoformat()
             data["_metadata"]["task_expires_at"] = (now + timedelta(days=3)).isoformat()
