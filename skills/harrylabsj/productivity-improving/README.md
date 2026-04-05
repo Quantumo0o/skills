@@ -1,98 +1,51 @@
-# Auto Update Skill
+# Productivity Improving
 
-智能 Skill 更新工具 - 按需检查、即时提醒、一键升级。
+Personal productivity tracker and analysis skill for OpenClaw.
 
-## 🎯 核心理念
+## Overview
 
-**"在使用时更新"** - 当某个 skill 被触发时，自动检查并提醒更新，而不是定时批量更新。
+Productivity Improving helps you record activities, categorize how time is spent, and generate daily insights so you can steadily improve focus and balance.
 
-## ✨ 特性
+## Features
 
-- **按需触发** - 只在 skill 被使用时检查更新
-- **分级策略** - Patch自动、Minor建议、Major需确认
-- **智能缓存** - 24小时内同一 skill 只检查一次
-- **自动备份** - 升级前自动备份当前版本
-- **失败回滚** - 升级失败自动恢复
-- **黑名单** - 可指定某些 skill 不自动更新
+- Start and complete activities in real time
+- Quick-log finished tasks with durations
+- Auto-categorize work, learning, health, life, and rest
+- Generate daily markdown reports with time breakdowns
+- Surface simple productivity insights from today's activity history
 
-## 📦 安装
+## Example Usage
+
+Use these prompts or slash-style commands inside OpenClaw:
+
+```text
+start coding
+complete
+log workout 45 minutes
+what did I do today
+analyze my productivity this week
+/track report daily
+/track insights
+```
+
+## Local Development
 
 ```bash
-clawhub install auto-update-skill
+npm install
+npm run build
 ```
 
-## 🚀 使用
+## Data Storage
 
-### 方式一：CLI 命令
+- Activity data: `data/activities.json`
+- Daily reports: `data/logs/YYYY-MM-DD.md`
 
-```bash
-# 检查指定 skill
-auto-update-skill check my-skill
+## Privacy
 
-# 检查所有 skills
-auto-update-skill check --verbose
+- All data stays local by default
+- No external APIs required
+- No cloud sync unless you add it yourself
 
-# 执行更新（交互式）
-auto-update-skill update my-skill
-
-# 强制更新
-auto-update-skill update my-skill --force
-
-# 配置管理
-auto-update-skill config blacklist add my-skill
-auto-update-skill config auto patch true
-
-# 备份与回滚
-auto-update-skill backup list
-auto-update-skill rollback my-skill --version 1.0.0
-
-# 刷新缓存
-auto-update-skill refresh
-```
-
-### 方式二：集成到其他 Skill
-
-```javascript
-const { checkAndPrompt } = require('auto-update-skill/lib/checker');
-
-async function main() {
-  // 自动检查并提示更新
-  await checkAndPrompt('my-skill');
-  
-  // 继续执行原 skill 逻辑...
-}
-```
-
-## ⚙️ 更新原则
-
-| 版本变化 | 策略 | 说明 |
-|---------|------|------|
-| **Patch** (1.0.1→1.0.2) | 自动升级 | Bug 修复，安全更新 |
-| **Minor** (1.1→1.2) | 建议升级 | 新功能，向后兼容 |
-| **Major** (1→2) | 需确认 | 重大变更，可能影响现有功能 |
-
-## 🔧 配置
-
-配置文件位置：`~/.openclaw/auto-update-skill.json`
-
-```json
-{
-  "mode": "interactive",
-  "cacheDuration": 86400000,
-  "autoUpgrade": {
-    "patch": true,
-    "minor": false,
-    "major": false
-  },
-  "remindInterval": 604800000,
-  "blacklist": [],
-  "quietHours": {
-    "start": "22:00",
-    "end": "08:00"
-  }
-}
-```
-
-## 📄 许可证
+## License
 
 MIT
