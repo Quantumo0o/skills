@@ -18,6 +18,8 @@ Enhance existing PixVerse videos with additional capabilities: extend duration, 
 
 ```
 Have an existing video?
+├── Change content/scene? → pixverse create modify --video <id-or-path> --prompt "..." --json
+│                           (see pixverse:modify-video)
 ├── Make it longer? → pixverse create extend --video <id-or-path> --json
 ├── Higher resolution? → pixverse create upscale --video <id-or-path> --json
 ├── Add voice/speech?
@@ -45,7 +47,7 @@ Extend a video's duration.
 |:---|:---|:---|
 | `--video <id-or-path>` | Video ID or local file (required) | -- |
 | `--prompt <text>` | Prompt for extension | optional |
-| `-m, --model <model>` | Video model | `v5.6` (default), `v5`, `v4.5`, `v4`, `v3.5` |
+| `-m, --model <model>` | Video model | `v6` (default), `v5.5`, `v5` |
 | `-q, --quality <q>` | Video quality | `360p`, `540p`, `720p` (default), `1080p` |
 | `-d, --duration <sec>` | Duration | `4`, `5`, `8`, `10` (NOTE: extend supports 4s, unlike standard creation) |
 | `--count <n>` | Generations | `1`-`4` |
@@ -168,5 +170,6 @@ pixverse asset download $FINAL --json
 ## Related Skills
 
 - `pixverse:create-video` -- create videos from text or images
+- `pixverse:modify-video` -- modify video content with a prompt at a keyframe
 - `pixverse:task-management` -- check status and wait for tasks
 - `pixverse:asset-management` -- browse, download, and delete assets
