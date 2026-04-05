@@ -3,9 +3,15 @@
   "slug": "partnerboost-brand",
   "displayName": "PartnerBoost Brand",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773660213441,
-    "commit": "https://github.com/openclaw/skills/commit/f55ca44743fcaca6f42725433695d9c17cacce8d"
+    "version": "1.1.0",
+    "publishedAt": 1775032374964,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773660213441,
+      "commit": "https://github.com/openclaw/skills/commit/f55ca44743fcaca6f42725433695d9c17cacce8d"
+    }
+  ]
 }

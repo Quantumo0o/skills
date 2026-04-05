@@ -1,7 +1,7 @@
 ---
 name: partnerboost-api
 description: Call PartnerBoost merchant APIs to manage transactions, performance, billing, partners and more
-version: 0.1.0
+version: 1.1.0
 tags: [partnerboost, api, merchant]
 requires:
   env:
@@ -16,21 +16,7 @@ Please contact CSM to get the API key.
 
 ## Setup
 
-The operator must configure `PARTNERBOOST_API_KEY` in `~/.openclaw/openclaw.json`:
-
-```json5
-{
-  skills: {
-    entries: {
-      "partnerboost-api": {
-        env: {
-          PARTNERBOOST_API_KEY: "your-api-key-here"
-        }
-      }
-    }
-  }
-}
-```
+OpenClaw (and compatible clients such as QClaw) decide **where** configuration lives and how secrets are wired. This Skill does not document a canonical config file, layout, or JSON shape—you only need **`PARTNERBOOST_API_KEY`** in the process environment when API calls run. Use your client’s official instructions to supply it.
 
 ## Authentication
 
