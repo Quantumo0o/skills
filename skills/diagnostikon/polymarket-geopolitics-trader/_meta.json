@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-geopolitics-trader",
-  "displayName": "Geopolitics & Conflict Trader",
+  "displayName": "Polymarket Geopolitics Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773782564454,
-    "commit": "https://github.com/openclaw/skills/commit/eee1dc0d4759650422736a8c5ec22f3a32b8a6b6"
+    "version": "1.0.2",
+    "publishedAt": 1775317170361,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773782564454,
+      "commit": "https://github.com/openclaw/skills/commit/eee1dc0d4759650422736a8c5ec22f3a32b8a6b6"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773469032206,
