@@ -5,6 +5,8 @@ license: MIT-0
 metadata: {"openclaw":{"plugin":{"name":"MOVA","installCmd":"openclaw plugins install openclaw-mova"},"dataSentToExternalServices":[{"service":"MOVA API (api.mova-lab.eu)","data":"invoice image URL, extracted document fields, human decision, audit metadata"},{"service":"ERP connector (read-only mock by default)","data":"PO reference number for cross-reference lookup"}]}}
 ---
 
+> **Contract Skill** — A ready-to-use MOVA HITL workflow. Requires the `openclaw-mova` plugin.
+
 # MOVA Invoice OCR & Approval
 
 Submit a supplier invoice to MOVA for automated OCR extraction, risk validation, and a human decision gate — all with a tamper-proof audit trail.
