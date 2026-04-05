@@ -29,5 +29,6 @@
   "mealPreferences": {},
   "lastInteraction": "",
   "totalConversations": 0,
-  "conflictCooldown": false
+  "conflictCooldown": false,
+  "customPersonas": []
 }
