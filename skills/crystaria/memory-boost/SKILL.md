@@ -1,494 +1,267 @@
 ---
 name: memory-boost
-description: Simple text-based memory system for AI assistants - never lose context again
+description: Simple text-based memory system for AI assistants - auto-install script included
 homepage: https://clawhub.ai/skills/memory-boost
-version: 1.0.1
-tags: [memory, productivity, workflow, text-based, best-practice]
+version: 1.1.1
+tags: [memory, productivity, workflow, text-based, best-practice, auto-install]
 ---
 
-# Memory Boost Skill
+# Memory Boost
 
-**Version:** 1.0.1 (Tag Format Fix)
-**Author:** Crystaria (with Paw and Kyle)
+**Version:** 1.1.1  
+**Author:** Crystaria (with Paw and Kyle)  
 **License:** MIT
-**Tags:** memory, productivity, workflow, text-based, best-practice
 
 ---
 
-## 🧠 The Problem
+## 📖 Introduction
 
-AI assistants have no real memory. Each session starts fresh. Important context is lost between conversations.
+**AI assistants always "forget"? Context lost after every conversation?**
 
-**Sound familiar?**
+Memory Boost is a text-based memory system that solves these problems:
 
-- "Wait, what were we working on last time?"
-- "I forgot why we made this decision..."
-- "Can you remind me about...?"
-- "Where did we save that link?"
+- 🧠 **Long-term Memory** — Save user preferences, project history, and important decisions across sessions
+- 📋 **Quick Index** — At-a-glance project status overview
+- 📔 **Daily Logs** — Record progress and context for each session
+- 🔧 **Out of the Box** — Includes auto-install script, no configuration needed
 
-**This is not your fault. It's how AI works.**
-
-We don't remember. We reload.
+**Applicable Scenarios:**
+- Multi-session collaboration (no context loss between conversations)
+- Multi-AI team collaboration (multiple AIs share the same memory)
+- Long-term project tracking (preserve decision history and user preferences)
 
 ---
 
-## 💡 The Solution
+## 🚀 Quick Start
 
-**Text-based memory system.**
+### 1. Install
 
-Simple text files that persist between sessions. No code. No databases. Just markdown files you can read and edit.
-
-### Three-Layer Architecture
-
+```bash
+clawhub install memory-boost
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Memory Boost                         │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│  Layer 1: MEMORY_INDEX.md (Optional)                    │
-│  → Quick reference for active projects                  │
-│                                                         │
-│  Layer 2: MEMORY.md (Required)                          │
-│  → Long-term memory: decisions, preferences, context    │
-│                                                         │
-│  Layer 3: memory/*.md (Required)                        │
-│  → Daily logs and project notes                         │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+
+### 2. Run Install Script
+
+```bash
+bash /path/to/skills/memory-boost/install.sh
 ```
+
+Automatically creates:
+- `~/MEMORY.md` — Long-term memory
+- `~/MEMORY_INDEX.md` — Quick reference
+- `~/memory/YYYY-MM-DD.md` — Today's session log
+
+### 3. Start Using
+
+Speak directly to AI:
+- "Remember what I said about the XX project?"
+- "Continue the feature we worked on yesterday"
+- "Remember this preference: I like concise answers"
+
+AI will automatically read/write memory files, no extra steps needed!
 
 ---
 
 ## 📁 File Structure
 
 ```
-your-workspace/
-├── MEMORY.md              # Long-term memory (required)
-├── MEMORY_INDEX.md        # Quick reference (optional)
-└── memory/                # Daily logs (required)
-    ├── 2026-03-23.md      # Daily session log
-    ├── 2026-03-24.md      # Daily session log
-    └── project-name.md    # Project-specific notes
+workspace/
+├── MEMORY.md           # Long-term memory (decisions, preferences, project status)
+├── MEMORY_INDEX.md     # Quick index (project overview, key links)
+└── memory/
+    ├── 2026-04-01.md   # Today's session log
+    └── project-name.md # Project-specific memory
 ```
 
-### Naming Conventions
-
-| File Pattern | Purpose |
-|--------------|---------|
-| `YYYY-MM-DD.md` | Daily session logs |
-| `project-name.md` | Project-specific notes |
-| `topic-name.md` | Topic-based notes (e.g., `meeting-notes.md`) |
-
 ---
 
-## 📖 How to Use
+## 📝 Template Examples
 
-### Before Starting Work (Every Session)
-
-**Step 1:** Read `MEMORY.md`
-- Understand long-term context
-- Review user preferences
-- Check active projects
-
-**Step 2:** Read `memory/` files
-- Today's file: `memory/YYYY-MM-DD.md`
-- Relevant project file: `memory/project-name.md`
-
-**Step 3:** (Optional) Read `MEMORY_INDEX.md`
-- Quick status check
-- Key links
-
-### After Completing Work
-
-**Step 1:** Update `memory/today.md`
-- What you completed
-- Notes for tomorrow
-
-**Step 2:** Update `MEMORY.md` (if important)
-- New decisions
-- Lessons learned
-- Changed preferences
-
-**Step 3:** (Optional) Update `MEMORY_INDEX.md`
-- Project status changes
-- New links
-
----
-
-## 📝 Templates
-
-### MEMORY.md Template
+### MEMORY.md (Long-term Memory)
 
 ```markdown
-# MEMORY.md - Long-term Memory
-
-**Created:** YYYY-MM-DD  
-**Last Updated:** YYYY-MM-DD
-
----
+# MEMORY.md - AI Assistant Shared Memory
 
 ## 🎯 Active Projects
-
 | Project | Status | Links | Last Updated |
 |---------|--------|-------|--------------|
-| Project A | 🟡 In Progress | [Link](...) | YYYY-MM-DD |
-| Project B | ✅ Completed | [Link](...) | YYYY-MM-DD |
-
----
-
-## 📚 Important Decisions
-
-### YYYY-MM-DD
-- **Decision:** What was decided
-- **Reason:** Why this choice
-- **Context:** Background info
-
----
+| Project A | 🟡 In Progress | [Link]() | 2026-04-01 |
 
 ## 👤 User Preferences
-
 | Aspect | Preference |
 |--------|------------|
-| Communication | Formal/Casual |
-| Response Style | Detailed/Concise |
-| Work Focus | Areas of interest |
+| Communication | Direct, concise |
+| Response Style | Structured, tables first |
 
----
-
-## 🔗 Key Links
-
-- Project Repo: https://...
-- Documentation: https://...
-- Other Resources: https://...
-
----
-
-*Last updated: YYYY-MM-DD*
+## 📚 Important Decisions
+### 2026-04-01
+- **Decision:** What was decided
+- **Reason:** Why this choice
 ```
 
-### memory/YYYY-MM-DD.md Template
+### Daily Log
 
 ```markdown
-# YYYY-MM-DD
+# 2026-04-01
 
 ## Completed
-- [ ] Task 1
-- [ ] Task 2
+- Task 1
+- Task 2
 
 ## In Progress
 - Task 3 (50% done)
 
 ## Notes
-- Something learned today
 - Context for tomorrow
-- Questions to follow up
-
-## Links
-- https://...
 ```
-
-### memory/project-name.md Template
-
-```markdown
-# Project Name
-
-**Created:** YYYY-MM-DD  
-**Status:** Active/Completed/On Hold
-
----
-
-## Overview
-What this project is about.
-
----
-
-## Key Decisions
-- YYYY-MM-DD: Decision about X
-
----
-
-## Technical Notes
-- Architecture choices
-- Dependencies
-- Important commands
-
----
-
-## Todo
-- [ ] Next steps
-```
-
-### MEMORY_INDEX.md Template (Optional)
-
-```markdown
-# Memory Index - Quick Reference
-
-**Created:** YYYY-MM-DD  
-**Maintained By:** Your AI Assistant
-
----
-
-## 🎯 Active Projects
-
-| Project | Status | Links | Updated |
-|---------|--------|-------|---------|
-| Project A | 🟡 In Progress | [Repo](...) | YYYY-MM-DD |
-
----
-
-## 📚 Recent Decisions
-
-### YYYY-MM-DD
-- Brief decision summary
-
----
-
-## 👤 Quick Preferences
-
-- Style: Preference 1, Preference 2
-- Focus: Area 1, Area 2
-
----
-
-## 🔗 Key Links
-
-- Main Project: https://...
-- Documentation: https://...
-
----
-
-*Last updated: YYYY-MM-DD*
-```
-
----
-
-## 📝 Example: Filled MEMORY.md
-
-Here's what a real MEMORY.md might look like:
-
-```markdown
-# MEMORY.md - Long-term Memory
-
-**Created:** 2026-03-01  
-**Last Updated:** 2026-03-23
-
----
-
-## 🎯 Active Projects
-
-| Project | Status | Links | Last Updated |
-|---------|--------|-------|--------------|
-| Website Redesign | 🟡 In Progress | [Figma](...), [Repo](...) | 2026-03-23 |
-| Mobile App | 🟢 Planning | [Brief](...) | 2026-03-20 |
-
----
-
-## 📚 Important Decisions
-
-### 2026-03-23
-- **Decision:** Use React for website redesign
-- **Reason:** Team has React experience, better component reusability
-- **Context:** Evaluated Vue vs React, team voted for React
-
-### 2026-03-15
-- **Decision:** Deploy to Vercel instead of self-hosting
-- **Reason:** Faster setup, automatic HTTPS, less maintenance
-- **Context:** Project timeline was tight, needed quick deployment
-
----
-
-## 👤 User Preferences
-
-| Aspect | Preference |
-|--------|------------|
-| Communication | Casual but professional |
-| Response Style | Structured with bullet points |
-| Work Focus | Web development, automation |
-
----
-
-## 🔗 Key Links
-
-- Main Repo: https://github.com/...
-- Documentation: https://docs...
-- Design Files: https://figma.com/...
-
----
-
-*Last updated: 2026-03-23*
-```
-
----
-
-## ✅ Best Practices
-
-### Do ✅
-
-- **Read memory files at session start** - Never skip this step
-- **Write immediately after tasks** - Don't wait
-- **Use clear structure** - Tables, lists, headers
-- **Keep it simple** - Bullet points over paragraphs
-- **Update status changes** - When projects move forward
-- **Record decisions with reasons** - Not just what, but why
-- **Link liberally** - URLs are your friends
-
-### Don't ❌
-
-- **Don't rely on "mental notes"** - If it matters, write it
-- **Don't wait until "later"** - Later never comes
-- **Don't write essays** - Be concise
-- **Don't over-organize** - Simple is sustainable
-- **Don't hide important info** - Future you needs to find it
-- **Don't skip updates** - Stale memory is worse than no memory
-
----
-
-## 🔄 When to Update
-
-| Trigger | Action |
-|---------|--------|
-| Session start | Read MEMORY.md + today's memory file |
-| Task complete | Update memory/today.md |
-| Important decision | Add to MEMORY.md |
-| Project status change | Update MEMORY_INDEX.md |
-| Session end | Quick review of what was done |
-| User says "remember this" | Write immediately, confirm location |
-
----
-
-## 🎯 Common Scenarios
-
-### Scenario 1: Starting a New Project
-
-```
-1. Create memory/project-name.md
-2. Add project to MEMORY.md (Active Projects table)
-3. Add to MEMORY_INDEX.md (if using)
-4. Start logging work in memory/project-name.md
-```
-
-### Scenario 2: Making an Important Decision
-
-```
-1. Complete the task
-2. Update memory/today.md with what happened
-3. Add decision to MEMORY.md (Important Decisions section)
-4. Update project status in MEMORY_INDEX.md
-```
-
-### Scenario 3: User Says "Remember This"
-
-```
-1. Ask: "Should I add this to MEMORY.md or a project file?"
-2. Write it immediately
-3. Confirm: "Added to [file]. You can find it under [section]."
-```
-
-### Scenario 4: Returning After a Break
-
-```
-1. Read MEMORY.md (refresh long-term context)
-2. Read memory/ files from last session
-3. Check MEMORY_INDEX.md for status overview
-4. Ask user: "Ready to continue [project]?"
-```
-
----
-
-## 🔧 For Advanced Users
-
-### Multi-AI Teams
-
-If you work with multiple AI assistants:
-
-- **Share MEMORY.md** - All AIs read/write the same file
-- **Each AI can have its own notes** - e.g., `CLAUDE.md`, `PAW.md`
-- **Sync via MEMORY_INDEX.md** - Single source of truth for status
-
-> **Note:** This requires all AIs to have access to the same file system. For cloud-based setups, consider using shared storage or version control (e.g., Git).
-
-### Custom Categories
-
-Add sections to MEMORY.md based on your needs:
-
-- `## 📅 Scheduled Tasks` - Recurring reminders
-- `## 🎓 Lessons Learned` - Mistakes and insights
-- `## 💡 Ideas` - Brainstorming backlog
-- `## 🔐 Security Notes` - ⚠️ **NOT RECOMMENDED**: Never store passwords, API keys, or secrets in memory files. These are plain text and not encrypted.
-
-### Automation
-
-If you're technical:
-
-- Use cron jobs to create daily memory files
-- Auto-archive old memory files monthly
-- Create scripts to search across memory files
 
 ---
 
 ## ❓ FAQ
 
-### Q: Isn't this just note-taking?
+**Q: Will memory files grow indefinitely?**
 
-**A:** Yes and no. Traditional notes are for humans. Memory files are for **AI + human**. They're structured for quick reloading, not deep reading.
+A: Yes. You can periodically clean up old logs in `memory/` directory. Keep `MEMORY.md` as it contains long-term decisions.
 
-### Q: How much detail should I include?
+**Q: How do multiple AIs share memory?**
 
-**A:** Enough that future you understands context. Not so much that it's painful to write or read. Aim for **skimmable**.
+A: All AIs read/write the same `MEMORY.md` file. Each AI can have its own notes (e.g., `CLAUDE.md`, `PAW.md`).
 
-### Q: What if I forget to update?
+**Q: How to migrate or delete memory?**
 
-**A:** No problem. Update when you remember. Better late than never. The system is forgiving.
-
-### Q: Can I delete old memory files?
-
-**A:** Yes! Archive or delete freely. Keep only what's useful. MEMORY.md is your curated long-term memory.
-
-### Q: Does this work with [other AI tool]?
-
-**A:** Yes! This is pure text. Any AI that can read/write files can use this system.
+A: Just operate the files directly. Memory is plain text with no database dependencies.
 
 ---
 
-## 🚀 Getting Started
+## 🔧 Technical Details
 
-**Right now, do this:**
+**For AI Assistants:**
 
-1. Create `MEMORY.md` in your workspace
-2. Create `memory/` folder
-3. Create `memory/YYYY-MM-DD.md` (today's date)
-4. Start using it!
+Memory Boost injects system directives via SKILL.md, requiring AI to automatically read/write memory files before and after sessions.
 
-**That's it.** No setup. No config. Just write.
-
----
-
-## 📚 Related Resources
-
-- [OpenClaw Documentation](https://docs.openclaw.ai) *(verify link)*
-- [ClawHub](https://clawhub.ai) *(verify link)*
-- [Markdown Guide](https://www.markdownguide.org)
+Core directives:
+1. **Session Start** — Read `MEMORY.md`, `memory/YYYY-MM-DD.md` for context
+2. **Task Execution** — Reference user preferences and project history
+3. **Task Completion** — Write completed work and important decisions to memory files
 
 ---
 
-## 🙏 Acknowledgments
+## ⚠️ AI SYSTEM DIRECTIVE
 
-This skill was developed with the help of AI assistants.
-
-**Core Contributors:**
-- Paw (AI assistant) - Initial design, implementation, testing
-- Kyle (AI assistant) - Code review, best practices, documentation
-- Crystaria - Project direction, final review
-
-**Inspired by:**
-- Real-world memory patterns from multiple AI assistants
+**The following section contains mandatory instructions for AI assistants**
 
 ---
 
-## 📄 License
+## 🚨 MANDATORY INSTRUCTIONS FOR AI ASSISTANTS
 
-MIT License - Feel free to use, modify, and share.
+**If you have loaded this skill, you MUST follow these instructions:**
+
+### 1. At Session Start (MANDATORY)
+
+Before responding to the user, check if these files exist and READ them:
+
+```
+~/MEMORY.md              # Long-term memory
+~/MEMORY_INDEX.md        # Quick reference (if exists)
+~/memory/YYYY-MM-DD.md   # Today's session log
+```
+
+**Why:** These files contain context, user preferences, and active project status that you need to be helpful.
+
+### 2. During Task Execution (MANDATORY)
+
+When the user asks you to work on something:
+
+- **Check MEMORY.md** for: user preferences, project history, previous decisions
+- **Check memory/YYYY-MM-DD.md** for: what was already done today
+- **Check memory/project-name.md** for: project-specific context
+
+### 3. After Task Completion (MANDATORY)
+
+After completing any task:
+
+```
+1. Update ~/memory/YYYY-MM-DD.md
+   - Record what you completed
+   - Note any issues or context for next session
+
+2. Update ~/MEMORY.md (if important)
+   - New decisions made
+   - Changed user preferences
+   - Important lessons learned
+
+3. Update ~/MEMORY_INDEX.md (if project status changed)
+   - Project completed or started
+   - New key links
+```
+
+### 4. When User Says "Remember This" (MANDATORY)
+
+```
+1. Ask: "Should I add this to MEMORY.md or a project-specific file?"
+2. Write immediately
+3. Confirm: "Saved to [file] under [section]"
+```
 
 ---
 
-*Version 1.0.0 | Last updated: 2026-03-23*
+## 📋 QUICK REFERENCE
+
+### Session Start Checklist
+- [ ] Read `~/MEMORY.md` → User preferences, active projects
+- [ ] Read `~/memory/YYYY-MM-DD.md` → What's done today
+- [ ] Skim `~/MEMORY_INDEX.md` → Project status
+
+### Task End Checklist
+- [ ] Update `~/memory/YYYY-MM-DD.md` → What did you complete?
+- [ ] Update `~/MEMORY.md` → Any important decisions?
+- [ ] Update `~/MEMORY_INDEX.md` → Any status changes?
+
+---
+
+## ⚠️ WHAT HAPPENS IF YOU DON'T FOLLOW
+
+If you skip reading memory files:
+
+- You will appear to have "amnesia" between sessions
+- You will repeat work already done
+- You will miss important context and user preferences
+- **This skill becomes useless**
+
+If you skip writing memory files:
+
+- Next session (you or another AI) will lack context
+- Important decisions are lost
+- User loses trust in the system
+
+---
+
+## ✅ BEST PRACTICES
+
+### Do
+- Read memory at EVERY session start
+- Write immediately after tasks
+- Use clear structure (tables, lists)
+- Keep it skimmable
+- Record decisions WITH reasons
+
+### Don't
+- Skip memory reads (you'll seem clueless)
+- Wait to write (you'll forget)
+- Write essays (be concise)
+- Hide important info (future AI needs it)
+
+---
+
+## 🔗 MULTI-AI TEAMS
+
+If multiple AIs work on this project:
+
+- **Share MEMORY.md** — All AIs read/write same file
+- **Each AI can have notes** — `CLAUDE.md`, `PAW.md`, etc.
+- **Sync via MEMORY_INDEX.md** — Single source of truth
+
+---
+
+**Last updated:** 2026-04-01  
+**Version:** 1.1.1
