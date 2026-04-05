@@ -5,6 +5,14 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
+import {
+  classifyServiceKind,
+  getActionMode,
+  getAllSourceEntries,
+  getGitHubActionNoun,
+  getGitHubConnectionSummary,
+  getGitHubRequirementText,
+} from './openclaw-growth-shared.mjs';
 
 const DEFAULT_CONFIG_PATH = 'data/openclaw-growth-engineer/config.json';
 const DEFAULT_CONNECTION_TIMEOUT_MS = 15_000;
@@ -215,7 +223,7 @@ async function testAnalyticsConnection(analyticsToken) {
     ok: true,
     detail: analyticsToken
       ? 'analyticscli token auth check passed (`projects list`)'
-      : 'analyticscli local auth check passed (`projects list`)',
+      : 'analyticscli auth check passed (`projects list`)',
   };
 }
 
@@ -295,7 +303,7 @@ async function testSentryConnection(sentryToken, timeoutMs) {
   }
 }
 
-async function testGitHubConnection(githubToken, githubRepo, timeoutMs) {
+async function testGitHubConnection(githubToken, githubRepo, timeoutMs, actionMode) {
   if (!githubToken) {
     return {
       ok: false,
@@ -348,8 +356,12 @@ async function testGitHubConnection(githubToken, githubRepo, timeoutMs) {
       };
     }
 
-    const issuesResponse = await fetchWithTimeout(
-      `https://api.github.com/repos/${repo}/issues?state=all&per_page=1`,
+    const artifactPath =
+      actionMode === 'pull_request'
+        ? `pulls?state=all&per_page=1`
+        : `issues?state=all&per_page=1`;
+    const artifactsResponse = await fetchWithTimeout(
+      `https://api.github.com/repos/${repo}/${artifactPath}`,
       {
         method: 'GET',
         headers: {
@@ -359,17 +371,16 @@ async function testGitHubConnection(githubToken, githubRepo, timeoutMs) {
       },
       timeoutMs,
     );
-    if (!issuesResponse.ok) {
+    if (!artifactsResponse.ok) {
       return {
         ok: false,
-        detail: `issues API check failed (HTTP ${issuesResponse.status}: ${truncate(issuesResponse.body)})`,
+        detail: `${getGitHubActionNoun(actionMode)} API check failed (HTTP ${artifactsResponse.status}: ${truncate(artifactsResponse.body)})`,
       };
     }
 
     return {
       ok: true,
-      detail:
-        'GitHub auth, repository access, and issues API read checks passed (fine-grained token with Issues+Contents scopes is sufficient)',
+      detail: `${getGitHubConnectionSummary(actionMode)} (${getGitHubRequirementText(actionMode)})`,
     };
   } catch (error) {
     return {
@@ -409,6 +420,7 @@ async function runConnectionChecks({ checks, config, timeoutMs }) {
   const feedbackTokenEnv = getSecretName(config, 'feedbackTokenEnv', 'FEEDBACK_API_TOKEN');
   const githubTokenEnv = getSecretName(config, 'githubTokenEnv', 'GITHUB_TOKEN');
   const githubRepo = String(config?.project?.githubRepo || '').trim();
+  const actionMode = getActionMode(config);
 
   const analyticsSource = config.sources?.analytics;
   if (sourceEnabled(config, 'analytics')) {
@@ -515,19 +527,66 @@ async function runConnectionChecks({ checks, config, timeoutMs }) {
     addCheck(checks, 'connection:feedback', true, 'source disabled');
   }
 
+  for (const extraSource of getAllSourceEntries(config).filter((source) => !source.builtIn)) {
+    const serviceKind = classifyServiceKind(extraSource.service || extraSource.key);
+    const checkName = `connection:${extraSource.key}`;
+    if (extraSource.enabled === false) {
+      addCheck(checks, checkName, true, 'source disabled');
+      continue;
+    }
+
+    if (extraSource.mode === 'command') {
+      const command = String(extraSource.command || '').trim();
+      if (!command) {
+        addCheck(checks, checkName, false, 'source uses command mode but no command configured');
+        continue;
+      }
+      const commandCheck = await testCommandSourceJson(command);
+      addCheck(
+        checks,
+        checkName,
+        commandCheck.ok,
+        commandCheck.ok
+          ? `${extraSource.key} command smoke test passed`
+          : `${extraSource.key} command smoke test failed (${commandCheck.detail})`,
+      );
+      continue;
+    }
+
+    if (extraSource.secretEnv) {
+      const hasSecret = Boolean(process.env[extraSource.secretEnv]);
+      addCheck(
+        checks,
+        checkName,
+        hasSecret || serviceKind === 'feedback',
+        hasSecret
+          ? `${extraSource.secretEnv} set`
+          : serviceKind === 'feedback'
+            ? 'file mode without direct API test'
+            : `${extraSource.secretEnv} not set (required for this extra connector)`,
+        hasSecret || serviceKind === 'feedback' ? 'pass' : 'warn',
+      );
+      continue;
+    }
+
+    addCheck(checks, checkName, true, 'file mode (no live API smoke test configured)');
+  }
+
   const githubToken = process.env[githubTokenEnv] || '';
+  const githubCheckName =
+    actionMode === 'pull_request' ? 'connection:github-pull-requests' : 'connection:github';
   if (!githubToken) {
     addCheck(
       checks,
-      'connection:github',
+      githubCheckName,
       false,
-      `${githubTokenEnv} missing (required; fine-grained PAT with Issues Read/Write + Contents Read)`,
+      `${githubTokenEnv} missing (required; ${getGitHubRequirementText(actionMode)})`,
     );
   } else {
-    const githubConnection = await testGitHubConnection(githubToken, githubRepo, timeoutMs);
+    const githubConnection = await testGitHubConnection(githubToken, githubRepo, timeoutMs, actionMode);
     addCheck(
       checks,
-      'connection:github',
+      githubCheckName,
       githubConnection.ok,
       githubConnection.ok
         ? `GitHub auth check passed (${githubConnection.detail})`
@@ -557,6 +616,7 @@ async function main() {
   }
 
   if (config) {
+    const actionMode = getActionMode(config);
     const analyticsEnabled = sourceEnabled(config, 'analytics');
     addCheck(
       checks,
@@ -598,12 +658,12 @@ async function main() {
       `secret:${githubTokenEnv}`,
       hasGithubToken,
       hasGithubToken
-        ? 'set (required; fine-grained PAT with Issues Read/Write + Contents Read)'
-        : 'missing (required; fine-grained PAT with Issues Read/Write + Contents Read)',
+        ? `set (required; ${getGitHubRequirementText(actionMode)})`
+        : `missing (required; ${getGitHubRequirementText(actionMode)})`,
     );
 
-    for (const sourceName of ['analytics', 'revenuecat', 'sentry', 'feedback']) {
-      const source = config.sources?.[sourceName];
+    for (const source of getAllSourceEntries(config)) {
+      const sourceName = source.key;
       if (!source || source.enabled === false) {
         addCheck(
           checks,
@@ -680,6 +740,18 @@ async function main() {
           );
         }
 
+        if (!source.builtIn && source.secretEnv) {
+          const hasConnectorToken = Boolean(process.env[source.secretEnv]);
+          addCheck(
+            checks,
+            `secret:${source.secretEnv}`,
+            hasConnectorToken,
+            hasConnectorToken
+              ? `set (required for ${sourceName} command mode)`
+              : `missing (required for ${sourceName} command mode)`,
+          );
+        }
+
         continue;
       }
 
@@ -688,12 +760,22 @@ async function main() {
 
     addCheck(
       checks,
-      'github-issue-create',
-      config.actions?.autoCreateIssues !== false,
-      config.actions?.autoCreateIssues !== false
-        ? 'enabled'
-        : 'disabled (allowed, but GitHub baseline requirements still apply)',
-      config.actions?.autoCreateIssues !== false ? 'pass' : 'warn',
+      actionMode === 'pull_request' ? 'github-pull-request-create' : 'github-issue-create',
+      actionMode === 'pull_request'
+        ? config.actions?.autoCreatePullRequests !== false
+        : config.actions?.autoCreateIssues !== false,
+      actionMode === 'pull_request'
+        ? config.actions?.autoCreatePullRequests !== false
+          ? 'enabled'
+          : 'disabled (allowed, but GitHub baseline requirements still apply)'
+        : config.actions?.autoCreateIssues !== false
+          ? 'enabled'
+          : 'disabled (allowed, but GitHub baseline requirements still apply)',
+      (actionMode === 'pull_request'
+        ? config.actions?.autoCreatePullRequests !== false
+        : config.actions?.autoCreateIssues !== false)
+        ? 'pass'
+        : 'warn',
     );
 
     if (config.charting?.enabled) {

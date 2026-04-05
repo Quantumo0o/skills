@@ -4,6 +4,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { spawn } from 'node:child_process';
+import { getActionMode } from './openclaw-growth-shared.mjs';
 
 const DEFAULT_CONFIG_PATH = 'data/openclaw-growth-engineer/config.json';
 const DEFAULT_TEMPLATE_PATH = 'data/openclaw-growth-engineer/config.example.json';
@@ -193,10 +194,15 @@ async function ensureConfig(configPath) {
         ...(template.sources?.feedback || {}),
         enabled: false,
       },
+      extra: Array.isArray(template.sources?.extra) ? template.sources.extra : [],
     },
     actions: {
       ...template.actions,
+      mode: 'issue',
       autoCreateIssues: true,
+      autoCreatePullRequests: false,
+      draftPullRequests: true,
+      proposalBranchPrefix: 'openclaw/proposals',
     },
   };
 
@@ -241,6 +247,9 @@ function remediationForCheck(checkName, configPath) {
   }
   if (checkName === 'connection:github') {
     return 'Verify `GITHUB_TOKEN` and repo access to `/repos/<owner>/<repo>` + issues API.';
+  }
+  if (checkName === 'connection:github-pull-requests') {
+    return 'Verify `GITHUB_TOKEN` and repo access to `/repos/<owner>/<repo>/pulls`, plus `Pull requests: Read/Write` and `Contents: Read/Write` scopes.';
   }
   return 'Fix this blocker and rerun start.';
 }
@@ -347,6 +356,7 @@ async function main() {
     return;
   }
 
+  const actionMode = getActionMode(await readJson(configPath));
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -354,6 +364,7 @@ async function main() {
         phase: 'first_run_complete',
         configCreated: configResult.created,
         configPath,
+        actionMode,
         runnerOutput: runResult.stdout.trim(),
       },
       null,

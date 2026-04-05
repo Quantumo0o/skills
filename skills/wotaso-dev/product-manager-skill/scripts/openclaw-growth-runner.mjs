@@ -6,6 +6,12 @@ import process from 'node:process';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
+import {
+  getActionMode,
+  getAllSourceEntries,
+  getGitHubRequirementText,
+  shouldAutoCreateGitHubArtifact,
+} from './openclaw-growth-shared.mjs';
 
 const DEFAULT_CONFIG_PATH = 'data/openclaw-growth-engineer/config.json';
 const DEFAULT_STATE_PATH = 'data/openclaw-growth-engineer/state.json';
@@ -164,6 +170,7 @@ function getSecretName(config, key, fallback) {
 async function assertHardRequirements(config) {
   const missing = [];
   const analyticsSource = config?.sources?.analytics;
+  const actionMode = getActionMode(config);
   if (!analyticsSource || analyticsSource.enabled === false) {
     missing.push('sources.analytics must be enabled');
   }
@@ -185,9 +192,7 @@ async function assertHardRequirements(config) {
 
   const githubTokenEnv = getSecretName(config, 'githubTokenEnv', 'GITHUB_TOKEN');
   if (!process.env[githubTokenEnv]) {
-    missing.push(
-      `${githubTokenEnv} env var is required (fine-grained PAT with Issues Read/Write + Contents Read)`,
-    );
+    missing.push(`${githubTokenEnv} env var is required (${getGitHubRequirementText(actionMode)})`);
   }
 
   if (missing.length > 0) {
@@ -233,18 +238,18 @@ function buildIssueFingerprint(issuesPayload) {
 async function runAnalyzer({
   config,
   runtimeDir,
-  createIssues,
+  createGitHubArtifact,
   chartManifestPath,
 }) {
   await ensureDir(runtimeDir);
 
   const sourceFiles = {};
-  for (const sourceName of ['analytics', 'revenuecat', 'sentry', 'feedback']) {
-    const payload = await resolveSourcePayload(config.sources?.[sourceName], sourceName);
+  for (const source of getAllSourceEntries(config)) {
+    const payload = await resolveSourcePayload(source, source.key);
     if (!payload) continue;
-    const filePath = path.join(runtimeDir, `${sourceName}.json`);
+    const filePath = path.join(runtimeDir, `${source.key}.json`);
     await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
-    sourceFiles[sourceName] = filePath;
+    sourceFiles[source.key] = filePath;
   }
 
   if (!sourceFiles.analytics) {
@@ -275,15 +280,30 @@ async function runAnalyzer({
   if (sourceFiles.feedback) {
     args.push('--feedback', sourceFiles.feedback);
   }
-  if (createIssues) {
+  for (const source of getAllSourceEntries(config).filter((entry) => !entry.builtIn)) {
+    if (sourceFiles[source.key]) {
+      args.push('--source', `${source.key}=${sourceFiles[source.key]}`);
+    }
+  }
+  if (createGitHubArtifact) {
     const repo = String(config.project?.githubRepo || '').trim();
     if (!repo) {
-      throw new Error('actions.autoCreateIssues=true but project.githubRepo is missing.');
+      throw new Error(`actions.mode=${getActionMode(config)} requires project.githubRepo.`);
     }
-    args.push('--create-issues', '--repo', repo);
+    args.push(
+      getActionMode(config) === 'pull_request' ? '--create-pull-requests' : '--create-issues',
+      '--repo',
+      repo,
+    );
     const labels = Array.isArray(config.project?.labels) ? config.project.labels : [];
     if (labels.length > 0) {
       args.push('--labels', labels.join(','));
+    }
+    if (config.actions?.proposalBranchPrefix) {
+      args.push('--branch-prefix', String(config.actions.proposalBranchPrefix));
+    }
+    if (config.actions?.draftPullRequests === false) {
+      args.push('--no-draft-pull-requests');
     }
   }
   if (chartManifestPath) {
@@ -361,10 +381,10 @@ function computeSourceHashes(sourcePayloadMap) {
 
 async function loadSourcePayloads(config) {
   const payloads = {};
-  for (const sourceName of ['analytics', 'revenuecat', 'sentry', 'feedback']) {
-    const payload = await resolveSourcePayload(config.sources?.[sourceName], sourceName);
+  for (const source of getAllSourceEntries(config)) {
+    const payload = await resolveSourcePayload(source, source.key);
     if (payload) {
-      payloads[sourceName] = payload;
+      payloads[source.key] = payload;
     }
   }
   return payloads;
@@ -414,7 +434,7 @@ async function runOnce(configPath, statePath) {
     return;
   }
 
-  const createIssuesEnabled = Boolean(config.actions?.autoCreateIssues);
+  const createGitHubArtifact = shouldAutoCreateGitHubArtifact(config);
   const chartManifestPath = await maybeGenerateCharts({
     config,
     payloads,
@@ -423,7 +443,7 @@ async function runOnce(configPath, statePath) {
   const dryRun = await runAnalyzer({
     config,
     runtimeDir,
-    createIssues: false,
+    createGitHubArtifact: false,
     chartManifestPath,
   });
 
@@ -452,16 +472,20 @@ async function runOnce(configPath, statePath) {
     return;
   }
 
-  if (createIssuesEnabled) {
+  if (createGitHubArtifact) {
     await runAnalyzer({
       config,
       runtimeDir,
-      createIssues: true,
+      createGitHubArtifact: true,
       chartManifestPath,
     });
-    process.stdout.write(`[${new Date().toISOString()}] Created GitHub issues.\n`);
+    process.stdout.write(
+      `[${new Date().toISOString()}] Created GitHub ${getActionMode(config) === 'pull_request' ? 'pull requests' : 'issues'}.\n`,
+    );
   } else {
-    process.stdout.write(`[${new Date().toISOString()}] Drafts generated only (autoCreateIssues=false).\n`);
+    process.stdout.write(
+      `[${new Date().toISOString()}] Drafts generated only (${getActionMode(config)} auto-create disabled).\n`,
+    );
   }
 
   await fs.mkdir(path.dirname(statePath), { recursive: true });

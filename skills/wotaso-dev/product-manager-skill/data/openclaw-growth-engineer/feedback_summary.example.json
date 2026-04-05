@@ -9,6 +9,10 @@
       "count": 18,
       "channel": "app_store_reviews",
       "comment": "Multiple users mention they do not understand weekly vs yearly plan differences.",
+      "locations": [
+        { "location_id": "paywall/onboarding_offer", "count": 11 },
+        { "location_id": "paywall/settings_restore", "count": 7 }
+      ],
       "keywords": ["paywall", "pricing", "plans", "subscription"],
       "suggested_actions": [
         "Simplify plan copy and highlight annual savings",
@@ -23,6 +27,10 @@
       "count": 12,
       "channel": "support_tickets",
       "comment": "Users ask for faster start and less friction before first result.",
+      "locations": [
+        { "location_id": "onboarding/profile_step", "count": 9 },
+        { "location_id": "onboarding/permissions_gate", "count": 3 }
+      ],
       "keywords": ["onboarding", "friction", "first value"]
     }
   ]

@@ -1,6 +1,6 @@
 ---
 name: product-manager-skill
-description: Turn analytics and customer signals into prioritized product decisions, PRD drafts, experiment plans, and implementation-ready GitHub backlog issues.
+description: Turn analytics and customer signals into prioritized product decisions, PRD drafts, experiment plans, and implementation-ready GitHub backlog issues or draft proposal PRs.
 license: MIT
 homepage: https://github.com/wotaso/analyticscli-skills
 metadata: {"author":"wotaso","version":"0.8.2","openclaw":{"emoji":"📌","homepage":"https://github.com/wotaso/analyticscli-skills"}}
@@ -14,7 +14,7 @@ metadata: {"author":"wotaso","version":"0.8.2","openclaw":{"emoji":"📌","homep
 - you want concise PM outputs that engineering can execute directly
 - you need a PRD or experiment brief with measurable success criteria
 - you need a decision memo with tradeoffs and recommendation
-- you want analytics + code context converted into prioritized GitHub issues
+- you want analytics + code context converted into prioritized GitHub issues or draft proposal PRs
 
 ## Core Rules
 
@@ -65,7 +65,8 @@ Before running issue generation/autopilot mode, verify and report:
   - `ANALYTICSCLI_READONLY_TOKEN` (recommended; required for non-keychain CLI auth)
   - `REVENUECAT_API_KEY`
   - `SENTRY_AUTH_TOKEN`
-  - optional `FEEDBACK_API_TOKEN`
+- optional `FEEDBACK_API_TOKEN`
+- optional connector-specific env vars used by `sources.extra[]`
 
 If anything is missing, stop autopilot and return a concrete "missing items" list with where to obtain each value.
 
@@ -88,9 +89,9 @@ This protocol must work even when the user prompt is vague and even when repo-sp
    - If any check fails, return only a concrete blocker checklist with exact fix commands.
 2. Portable mode execution:
    - run first pass directly via `analyticscli` commands (bounded, deterministic)
-   - generate 3-5 prioritized issue drafts and create GitHub issues when allowed
+   - generate 3-5 prioritized issue drafts and create GitHub issues or draft pull requests when allowed
 3. After run:
-   - report whether drafts were generated and whether GitHub issues were created
+   - report whether drafts were generated and whether GitHub issues or PRs were created
    - include command to repeat the same run path
 
 Never block on "please provide goal + datasource" if config and sources already exist.

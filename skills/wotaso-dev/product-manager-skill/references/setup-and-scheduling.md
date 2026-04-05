@@ -135,6 +135,12 @@ The check validates:
 - required env vars for baseline execution (`GITHUB_TOKEN`) and enabled channels
 - live connector/API smoke tests for enabled channels
 
+The config also supports:
+
+- `actions.mode = "issue"`
+- `actions.mode = "pull_request"`
+- extra connectors via `sources.extra[]` for tools such as GlitchTip, ASC CLI, or store review exports
+
 ## 5) Data Refresh Workflow
 
 The runner consumes summary files. Update them before each cycle:
@@ -175,7 +181,7 @@ node scripts/openclaw-growth-engineer.mjs \
   --max-issues 4
 ```
 
-## 8) GitHub Issue Creation
+## 8) GitHub Creation Modes
 
 Use a fine-grained `GITHUB_TOKEN` (no full-account token needed):
 
@@ -195,3 +201,5 @@ Recommended guardrails:
 - max 3-5 issues per run
 - `skipIfNoDataChange=true`
 - `skipIfIssueSetUnchanged=true`
+
+Draft pull-request mode is also supported. In that mode the runner creates proposal branches and draft PRs with `.openclaw/proposals/...md` files instead of issues.

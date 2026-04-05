@@ -7,6 +7,7 @@ import process from 'node:process';
 
 const DEFAULT_PORT = 4310;
 const DEFAULT_DIR = 'data/openclaw-growth-engineer/feedback-api';
+const FEEDBACK_HEADERS = ['x-feedback-token', 'x-feedback-key'];
 
 function parseArgs(argv) {
   const args = {
@@ -46,6 +47,7 @@ Usage:
 Auth:
   Optional env FEEDBACK_API_TOKEN.
   If set, clients must send header: x-feedback-token: <token>
+  The API also accepts: x-feedback-key: <token>
 `);
   process.exit(exitCode);
 }
@@ -79,14 +81,32 @@ async function readBody(req) {
 
 function normalizeItem(input) {
   const now = new Date().toISOString();
+  const metadata =
+    input && typeof input.metadata === 'object' && !Array.isArray(input.metadata) ? input.metadata : {};
+  const rawFeedback = String(input.feedback || input.message || input.comment || input.summary || '').trim();
+  const locationId = String(input.locationId || input.location || metadata.locationId || '').trim();
+  const surface = String(input.appSurface || input.surface || metadata.surface || '').trim();
+  const title =
+    String(
+      input.title ||
+        input.summary ||
+        metadata.title ||
+        (rawFeedback ? rawFeedback.split(/[.!?]/)[0] : '') ||
+        'User feedback',
+    ).trim() || 'User feedback';
   return {
     id: String(input.id || `fb_${Date.now()}`),
-    title: String(input.title || input.summary || 'User feedback'),
-    comment: input.comment ? String(input.comment) : '',
-    area: String(input.area || 'general').toLowerCase(),
-    channel: String(input.channel || 'unknown'),
-    priority: String(input.priority || 'medium').toLowerCase(),
+    title,
+    comment: rawFeedback,
+    area: String(input.area || metadata.area || 'general').toLowerCase(),
+    channel: String(input.channel || surface || 'unknown'),
+    surface: surface || null,
+    location_id: locationId || null,
+    priority: String(input.priority || metadata.priority || 'medium').toLowerCase(),
     tags: Array.isArray(input.tags) ? input.tags.map(String) : [],
+    metadata,
+    app_id: input.appId ? String(input.appId) : null,
+    user_id: input.userId ? String(input.userId) : null,
     created_at: String(input.created_at || now),
   };
 }
@@ -119,19 +139,34 @@ function buildSummary(events) {
       priority: event.priority || 'medium',
       count: 0,
       channel: event.channel || 'mixed',
+      surface: event.surface || null,
       comment: event.comment || '',
       keywords: [],
+      locations: new Map(),
     };
     current.count += 1;
     current.comment = event.comment || current.comment;
     const tags = Array.isArray(event.tags) ? event.tags : [];
     current.keywords = [...new Set([...current.keywords, ...tags])];
+    if (event.location_id) {
+      current.locations.set(
+        event.location_id,
+        (current.locations.get(event.location_id) || 0) + 1,
+      );
+    }
     if (event.priority === 'high') {
       current.priority = 'high';
     }
     grouped.set(key, current);
   }
-  const items = [...grouped.values()].sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
+  const items = [...grouped.values()]
+    .map((item) => ({
+      ...item,
+      locations: [...item.locations.entries()]
+        .map(([location_id, count]) => ({ location_id, count }))
+        .sort((a, b) => b.count - a.count || a.location_id.localeCompare(b.location_id)),
+    }))
+    .sort((a, b) => b.count - a.count || a.title.localeCompare(b.title));
   return {
     window: 'rolling',
     generated_at: new Date().toISOString(),
@@ -153,7 +188,7 @@ async function main() {
       if (req.method === 'OPTIONS') {
         res.writeHead(204, {
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Headers': 'content-type,x-feedback-token',
+          'Access-Control-Allow-Headers': `content-type,${FEEDBACK_HEADERS.join(',')}`,
           'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
         });
         res.end();
@@ -161,7 +196,7 @@ async function main() {
       }
 
       if (requiredToken) {
-        const token = req.headers['x-feedback-token'];
+        const token = FEEDBACK_HEADERS.map((header) => req.headers[header]).find(Boolean);
         if (token !== requiredToken) {
           sendJson(res, 401, { ok: false, error: 'unauthorized' });
           return;
@@ -212,7 +247,7 @@ async function main() {
     process.stdout.write(`Feedback API listening on http://localhost:${args.port}\n`);
     process.stdout.write(`Data dir: ${storageDir}\n`);
     if (requiredToken) {
-      process.stdout.write('Auth: enabled (x-feedback-token required)\n');
+      process.stdout.write('Auth: enabled (x-feedback-token or x-feedback-key required)\n');
     } else {
       process.stdout.write('Auth: disabled (set FEEDBACK_API_TOKEN to enable)\n');
     }

@@ -4,6 +4,11 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { createInterface } from 'node:readline/promises';
+import {
+  buildExtraSourceConfig,
+  getDefaultSourceHint,
+  getDefaultSourcePath,
+} from './openclaw-growth-shared.mjs';
 
 const DEFAULT_CONFIG_PATH = 'data/openclaw-growth-engineer/config.json';
 
@@ -59,6 +64,23 @@ async function askYesNo(rl, label, defaultYes = true) {
     if (!answer) return defaultYes;
     if (answer === 'y' || answer === 'yes') return true;
     if (answer === 'n' || answer === 'no') return false;
+  }
+}
+
+async function askChoice(rl, label, options, defaultValue) {
+  const normalizedDefault = options.includes(defaultValue) ? defaultValue : options[0];
+  while (true) {
+    const answer = (
+      await rl.question(`${label} (${options.join('/')}) [${normalizedDefault}]: `)
+    )
+      .trim()
+      .toLowerCase();
+    if (!answer) {
+      return normalizedDefault;
+    }
+    if (options.includes(answer)) {
+      return answer;
+    }
   }
 }
 
@@ -129,37 +151,69 @@ async function main() {
       .filter(Boolean);
     const maxIssues = Number.parseInt(await ask(rl, 'Max issues per run', '4'), 10) || 4;
     const intervalMinutes = Number.parseInt(await ask(rl, 'Check interval in minutes', '1440'), 10) || 1440;
+    const actionMode = await askChoice(
+      rl,
+      'Preferred GitHub output',
+      ['issue', 'pull_request'],
+      'issue',
+    );
 
     const analytics = await askSourceConfig(
       rl,
       'analytics',
       'data/openclaw-growth-engineer/analytics_summary.example.json',
-      '- AnalyticsCLI: run a bounded query/export and write JSON summary.\n- For MVP: keep one JSON file and update before each run.',
+      getDefaultSourceHint('analytics'),
       { forceEnabled: true },
     );
     const revenuecat = await askSourceConfig(
       rl,
       'revenuecat',
       'data/openclaw-growth-engineer/revenuecat_summary.example.json',
-      '- RevenueCat dashboard export or API aggregation script.\n- Include conversion deltas and package-level signals.',
+      getDefaultSourceHint('revenuecat'),
     );
     const sentry = await askSourceConfig(
       rl,
       'sentry',
       'data/openclaw-growth-engineer/sentry_summary.example.json',
-      '- Sentry issue search/API export (top regressions, affected users, events).\n- Map to compact issue summary JSON.',
+      getDefaultSourceHint('sentry'),
     );
     const feedback = await askSourceConfig(
       rl,
       'feedback',
       'data/openclaw-growth-engineer/feedback_summary.example.json',
-      '- Support tickets, app reviews, or in-app feedback tags.\n- Aggregate recurring requests into JSON items.',
+      getDefaultSourceHint('feedback'),
     );
+    const extraSourcesRaw = await ask(
+      rl,
+      'Extra connectors (comma-separated, e.g. glitchtip,asc-cli,app-store-reviews)',
+      '',
+    );
+    const extraSources = extraSourcesRaw
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .map((service) =>
+        buildExtraSourceConfig(service, {
+          mode: 'file',
+          path: getDefaultSourcePath(service),
+        }),
+      );
 
-    const autoCreateIssues = await askYesNo(rl, 'Create GitHub issues automatically when new ideas are found?', true);
+    const autoCreateIssues =
+      actionMode === 'issue'
+        ? await askYesNo(rl, 'Create GitHub issues automatically when new ideas are found?', true)
+        : false;
+    const autoCreatePullRequests =
+      actionMode === 'pull_request'
+        ? await askYesNo(
+            rl,
+            'Create draft pull requests with implementation proposal files automatically?',
+            true,
+          )
+        : false;
     const enableCharting = await askYesNo(
       rl,
-      'Generate matplotlib charts from analytics signals and include them in issues?',
+      'Generate matplotlib charts from analytics signals and include them in generated GitHub artifacts?',
       false,
     );
     const chartCommand = enableCharting
@@ -186,6 +240,7 @@ async function main() {
         revenuecat,
         sentry,
         feedback,
+        extra: extraSources,
       },
       schedule: {
         intervalMinutes,
@@ -194,6 +249,10 @@ async function main() {
       },
       actions: {
         autoCreateIssues,
+        autoCreatePullRequests,
+        mode: actionMode,
+        draftPullRequests: true,
+        proposalBranchPrefix: 'openclaw/proposals',
       },
       charting: {
         enabled: enableCharting,
@@ -213,6 +272,18 @@ async function main() {
     process.stdout.write(`\nSaved config: ${configPath}\n`);
     process.stdout.write('\nNext steps:\n');
     process.stdout.write(`1) Set secrets in OpenClaw secret store (env var names in config.secrets)\n`);
+    if (extraSources.length > 0) {
+      process.stdout.write(
+        `2) Fill each extra connector under \`sources.extra[]\` with the final file path or command and optional \`secretEnv\`\n`,
+      );
+      process.stdout.write(
+        `3) Run once: node scripts/openclaw-growth-runner.mjs --config ${configPath}\n`,
+      );
+      process.stdout.write(
+        `4) Run interval loop: node scripts/openclaw-growth-runner.mjs --config ${configPath} --loop\n`,
+      );
+      return;
+    }
     process.stdout.write(`2) Run once: node scripts/openclaw-growth-runner.mjs --config ${configPath}\n`);
     process.stdout.write(
       `3) Run interval loop: node scripts/openclaw-growth-runner.mjs --config ${configPath} --loop\n`,

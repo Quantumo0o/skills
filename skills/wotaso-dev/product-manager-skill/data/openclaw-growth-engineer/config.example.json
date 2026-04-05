@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "generatedAt": "2026-03-21T00:00:00.000Z",
   "project": {
     "githubRepo": "owner/repo",
@@ -29,7 +29,27 @@
       "enabled": false,
       "mode": "file",
       "path": "data/openclaw-growth-engineer/feedback_summary.example.json"
-    }
+    },
+    "extra": [
+      {
+        "key": "glitchtip",
+        "label": "glitchtip",
+        "service": "glitchtip",
+        "enabled": false,
+        "mode": "file",
+        "path": "data/openclaw-growth-engineer/glitchtip_summary.json",
+        "secretEnv": "GLITCHTIP_API_TOKEN"
+      },
+      {
+        "key": "asc_cli",
+        "label": "asc-cli",
+        "service": "asc-cli",
+        "enabled": false,
+        "mode": "command",
+        "command": "node scripts/export-asc-summary.mjs",
+        "secretEnv": "ASC_API_KEY_ID"
+      }
+    ]
   },
   "schedule": {
     "intervalMinutes": 1440,
@@ -37,7 +57,11 @@
     "skipIfIssueSetUnchanged": true
   },
   "actions": {
-    "autoCreateIssues": true
+    "mode": "issue",
+    "autoCreateIssues": true,
+    "autoCreatePullRequests": false,
+    "draftPullRequests": true,
+    "proposalBranchPrefix": "openclaw/proposals"
   },
   "charting": {
     "enabled": false,
