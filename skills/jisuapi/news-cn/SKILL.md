@@ -1,6 +1,6 @@
 ---
-name: news-cn
-description: 中文新闻网页聚合：列表页抓取，digest 输出分组 Markdown 简报（标题+链接）；另支持 JSON/Markdown 与 RSS。无需新闻 API Key、无外部 LLM。Use When 用户要每日要闻链接简报或门户条目抓取。
+name: "News Brief - 新闻简报"
+description: 中文新闻门户列表抓取，可输出 Markdown 简报或 JSON/RSS，无需新闻类 API Key。当用户说：给我一份今日要闻链接简报、抓一下门户新闻标题，或类似中文新闻聚合时，使用本技能。
 metadata: { "openclaw": { "emoji": "📰", "requires": { "bins": ["python3"] } } }
 ---
 

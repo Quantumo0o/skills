@@ -3,11 +3,16 @@
   "slug": "news-cn",
   "displayName": "News Brief - 新闻简报",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774349195248,
-    "commit": "https://github.com/openclaw/skills/commit/c7858a8bec0f190ab386b438f671b015a87d19d4"
+    "version": "1.0.4",
+    "publishedAt": 1775208048847,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774349195248,
+      "commit": "https://github.com/openclaw/skills/commit/c7858a8bec0f190ab386b438f671b015a87d19d4"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773999519972,
