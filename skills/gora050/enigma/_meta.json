@@ -3,9 +3,15 @@
   "slug": "enigma",
   "displayName": "Enigma",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773947102919,
-    "commit": "https://github.com/openclaw/skills/commit/587665a5101db9959a3e436f552e7895b4db5c5c"
+    "version": "1.0.2",
+    "publishedAt": 1775165059603,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773947102919,
+      "commit": "https://github.com/openclaw/skills/commit/587665a5101db9959a3e436f552e7895b4db5c5c"
+    }
+  ]
 }
