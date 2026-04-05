@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-esports-trader",
-  "displayName": "Esports & Gaming Trader",
+  "displayName": "Polymarket Esports Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773862641670,
-    "commit": "https://github.com/openclaw/skills/commit/8c0b92de59cd2657deceb298a3428fb934e25882"
+    "version": "1.0.3",
+    "publishedAt": 1775333549587,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773862641670,
+      "commit": "https://github.com/openclaw/skills/commit/8c0b92de59cd2657deceb298a3428fb934e25882"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773568724175,
