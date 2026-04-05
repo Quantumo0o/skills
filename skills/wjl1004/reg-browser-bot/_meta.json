@@ -1,11 +1,17 @@
 {
   "owner": "wjl1004",
   "slug": "reg-browser-bot",
-  "displayName": "Reg自动化浏览器机器人",
+  "displayName": "Reg Browser Bot",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773897500231,
-    "commit": "https://github.com/openclaw/skills/commit/13e29ee20fc4b4502c2af3051591342e1478d9d5"
+    "version": "5.4.0",
+    "publishedAt": 1775291046027,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773897500231,
+      "commit": "https://github.com/openclaw/skills/commit/13e29ee20fc4b4502c2af3051591342e1478d9d5"
+    }
+  ]
 }
