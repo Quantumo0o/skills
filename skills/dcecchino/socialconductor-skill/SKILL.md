@@ -2,11 +2,26 @@
 name: socialconductor
 description: >
   Manage your SocialConductor AI comment automation bots from any chat app.
-  Control Facebook/Instagram, YouTube, and TikTok — check status, pause or
-  resume replies, view logs, manage leads, block users, and post manual
-  replies — all without opening a browser. Facebook Pages link via a one-time
-  browser URL. YouTube links via Google OAuth. TikTok links via QR code.
-version: "1.4.0"
+  Control Facebook, Instagram, YouTube, and TikTok — check status, pause or
+  resume AI replies, view comment logs, manage leads, block users, and post
+  manual replies — all without opening a browser. Automate social media
+  comment responses with AI across multiple platforms.
+summary: >
+  AI-powered social media comment automation for Facebook, Instagram, YouTube,
+  and TikTok. Control your bots via chat — pause, resume, view logs, manage
+  leads, block users, post manual replies.
+tags:
+  - social-media
+  - automation
+  - facebook
+  - instagram
+  - youtube
+  - tiktok
+  - comments
+  - ai-replies
+  - marketing
+  - saas
+version: "1.6.0"
 metadata:
   openclaw:
     emoji: "🤖"
@@ -36,6 +51,19 @@ Each platform uses its own API key. You can connect one, two, or all three —
 commands are prefixed by platform so OpenClaw always knows which bot you mean.
 
 ---
+
+## Facebook / Instagram — Account Requirements
+
+> ⚠️ **Facebook requires a Business or Professional Creator account.**
+> A personal Facebook profile will not work. Before connecting, make sure you have:
+>
+> - A **Facebook Page** (not a personal profile) set up at [business.facebook.com](https://business.facebook.com)
+> - Your Page linked to a **Business Manager** or configured as a **Professional Creator Page**
+> - Admin or Editor role on the Page
+>
+> Instagram automation is available if your Instagram account is connected to
+> your Facebook Page as a **Professional (Creator or Business) Instagram account**.
+> A standard personal Instagram account will not work.
 
 ## Facebook / Instagram — Setup (first time only)
 
@@ -84,6 +112,13 @@ https://podium.socialconductor.ai/api/openclaw/
 
 ---
 
+## YouTube — Account Requirements
+
+> ⚠️ **YouTube requires an active YouTube channel (YouTube Page).**
+> A Google account alone is not enough — you must have created a YouTube channel
+> at [youtube.com](https://youtube.com) before connecting. The channel can be
+> a standard creator channel; no special business setup is required.
+
 ## YouTube — Setup (first time only)
 
 Say:
@@ -120,6 +155,12 @@ OpenClaw registers you and sends a browser link. Open it, sign in with Google
 https://studio.socialconductor.ai/api/openclaw/
 
 ---
+
+## TikTok — Account Requirements
+
+> ✅ **TikTok works with standard creator accounts.**
+> No business account or special setup is required — any normal TikTok creator
+> account can connect. Just make sure your account is active and can post/comment.
 
 ## TikTok — Setup (first time only)
 
