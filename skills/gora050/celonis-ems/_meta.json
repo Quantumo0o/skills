@@ -3,9 +3,15 @@
   "slug": "celonis-ems",
   "displayName": "Celonis Ems",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773547346838,
-    "commit": "https://github.com/openclaw/skills/commit/36404ba6a8b939e603a27178fe891aa9521befc4"
+    "version": "1.0.2",
+    "publishedAt": 1775164037586,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773547346838,
+      "commit": "https://github.com/openclaw/skills/commit/36404ba6a8b939e603a27178fe891aa9521befc4"
+    }
+  ]
 }
