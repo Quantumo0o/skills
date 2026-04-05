@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-onlyfans-trader",
-  "displayName": "OnlyFans Trader",
+  "displayName": "Polymarket Onlyfans Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774183666030,
-    "commit": "https://github.com/openclaw/skills/commit/c94b525b321b632a50835af90eafe607622491d4"
+    "version": "1.0.2",
+    "publishedAt": 1775333538428,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774183666030,
+      "commit": "https://github.com/openclaw/skills/commit/c94b525b321b632a50835af90eafe607622491d4"
+    }
+  ]
 }
