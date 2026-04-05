@@ -3,9 +3,15 @@
   "slug": "inmobile",
   "displayName": "Inmobile",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773709361134,
-    "commit": "https://github.com/openclaw/skills/commit/d591b1df96580fd041008735e3f09a4a34418f45"
+    "version": "1.0.2",
+    "publishedAt": 1775164377740,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773709361134,
+      "commit": "https://github.com/openclaw/skills/commit/d591b1df96580fd041008735e3f09a4a34418f45"
+    }
+  ]
 }
