@@ -1,518 +1,535 @@
 ---
-name: competitor-analysis
-description: Competitive analysis skill based on Zhang Zaiwang's methodology. Provides systematic competitive analysis framework, tools and templates to help users conduct professional competitive analysis.
+name: competitor-analysis-zhangzaiwang
+description: A systematic competitive analysis skill based on Zhang Zaiwang's "Effective Competitive Analysis" methodology. Provides a complete competitive analysis framework, tools, and templates to help users conduct professional competitor research.
 metadata:
   openclaw:
     emoji: "📊"
     category: "business-analysis"
-    author: "Zhang Zaiwang"    capers@qq.com
-    book: "Effective Competitive Analysis: Essential Methodology for Good Products"
+    author: "Zhang Zaiwang"  capers@qq.com
+    book: "Effective Competitive Analysis: The Methodology Every Great Product Team Needs"
     version: "1.0.0"
 ---
 
 # Competitive Analysis Skill (Zhang Zaiwang Methodology)
 
-Based on Zhang Zaiwang's "Effective Competitive Analysis" methodology, providing a complete competitive analysis framework, tools and templates.
+A systematic competitive analysis framework based on Zhang Zaiwang's *Effective Competitive Analysis*, providing a complete set of analysis methods, tools, and templates.
 
-## Core Principles
+## Core Philosophy
 
-1. **Know yourself and know your enemy, and you can fight a hundred battles without defeat** - Competitive analysis is the foundation of product competition
-2. **Co-opetition mindset** - A new perspective that combines competition and cooperation
-3. **Right intention, taking advantage, clear approach, excellent techniques, united people, practice** - Complete analysis philosophy
-4. **6-step competitive analysis** - Systematic operation process
+1. **Know yourself, know your rivals** - Competitive analysis is the foundation of product strategy
+2. **Co-opetition mindset** - A new perspective where competition and collaboration coexist
+3. **Right intention → seize momentum → understand the path → master methods → unite people → take action** - A complete analytical philosophy
+4. **6-Step Competitive Analysis Process** - A systematic operational workflow
 
-## 🎯 Skill Usage Guide
+## 🎯 How to Use This Skill
 
-### **Key Principle: Start with the end in mind, goal-driven**
+### **Key Principle: Begin with the End in Mind, Goal-Driven**
 
-**Before using this skill, you must first clarify the analysis goal.** Without a clear goal, competitive analysis will lose direction and become meaningless information stacking.
+**Before using this skill, you must first clarify the analysis objective.** Without a clear goal, competitive analysis loses direction and becomes a meaningless pile of data.
 
-### **Interactive Startup Process**
+### **Interactive Startup Flow**
 
-When users request competitive analysis, if the following key information is not clear, **you must first ask the user**:
+When a user requests a competitive analysis, if any of the following key pieces of information are unclear, **you must ask the user first**:
 
-#### **6 Key Questions (Competitive Analysis Starting Point):**
-1. **For which product is the competitive analysis being done?** - Clarify the analysis object
-2. **Which stage is the product currently in?** - Confirm the development stage (planning/development/operation)
-3. **What are the main problems and challenges facing the current product?** - Diagnose core issues
-4. **What is the purpose of doing competitive analysis?** - Determine analysis intent (decision support/learning reference/market early warning)
-5. **What are the specific goals of competitive analysis?** - Set measurable goals
-6. **What is the output deliverable?** - Clarify expected deliverables
+#### **6 Key Questions (Starting Point for Any Analysis):**
 
-### **Why is goal clarity so important?**
+1. **Which product is being analyzed?** - Define the subject of analysis
+2. **What stage is the product currently at?** - Confirm the development phase (Concept / Build / Launch)
+3. **What are the main problems and challenges the product faces?** - Diagnose the core issue
+4. **What is the purpose of this competitive analysis?** - Determine the intent (decision support / learning & benchmarking / market monitoring)
+5. **What are the specific goals of this analysis?** - Set measurable objectives
+6. **What is the expected deliverable?** - Clarify the output format
 
-| Goal Clarity | Analysis Effect | Resource Efficiency | Decision Value |
-|-------------|----------------|---------------------|----------------|
-| **Clear Goal** | Precise analysis, hitting the key points | Efficient use of resources | Sufficient decision basis |
-| **Ambiguous Goal** | General analysis, unclear focus | Partial resource waste | Limited decision reference |
-| **Missing Goal** | Disorganized analysis, wrong direction | Significant resource waste | Low decision value |
+### **Why Clarity of Goals Matters**
 
-### **Quick Start Suggestions**
+| Level of Clarity | Analysis Quality | Resource Efficiency | Decision Value |
+| ---------------- | ---------------- | ------------------- | -------------- |
+| **Clear goals**  | Precise, on target | Resources used efficiently | Strong basis for decisions |
+| **Vague goals**  | Unfocused, missing key points | Partial waste of resources | Limited decision value |
+| **No goals**     | Scattered, wrong direction | Heavy waste of resources | Low decision value |
 
-1. **For simple needs**: Directly ask the 6 key questions
-2. **For complex projects**: Use `goal-clarification-template.md` for systematic sorting
-3. **For team collaboration**: Organize goal alignment meetings to reach consensus
+### **Quick Start Recommendations**
 
-**Remember:** The time spent on goal clarification will be doubled in subsequent analysis.
+1. **For simple requests**: Ask the 6 key questions directly
+2. **For complex projects**: Use the `goal-clarification-template.md` for systematic scoping
+3. **For team collaboration**: Run a goal-alignment meeting to reach consensus
 
-## Knowledge System Architecture
+**Remember:** Time invested in clarifying goals will pay back double during analysis.
+
+## Knowledge Architecture
 
 ```
-Tao (Philosophy)
-├── Know yourself and know your enemy
+Dao (Philosophy)
+├── Know yourself, know your rivals
 ├── Co-opetition mindset
-└── Right intention, taking advantage, clear approach, excellent techniques, united people, practice
+└── Right intention → momentum → path → methods → people → action
 
 Fa (Process)
-└── 6-step competitive analysis
+└── 6-Step Competitive Analysis Process
 
 Shu (Methods)
-├── Comparison method, matrix analysis, competitive tracking matrix
-├── Function decomposition, demand exploration
-├── PEST analysis, Porter's Five Forces model
+├── Comparative analysis, matrix analysis, competitor tracking matrix
+├── Feature decomposition, needs exploration
+├── PEST analysis, Porter's Five Forces
 ├── SWOT analysis
-└── Add-subtract-multiply-divide
+└── Add / Remove / Multiply / Eliminate (strategic canvas)
 
 Qi (Tools)
 ├── Lean Canvas
-├── Competitive Canvas
+├── Competitor Canvas
 └── Strategy Canvas
 
-Li (Cases)
-└── Complete case analysis
+Li (Case Studies)
+└── Full worked examples
 
 Jian (Practice)
-└── Practice session
+└── Hands-on exercises
 ```
 
-## 6-Step Competitive Analysis (Core Process)
+## 6-Step Competitive Analysis Process (Core Workflow)
 
-### Step 1: Clarify Goals - Start with the end in mind (Most critical step)
+### Step 1: Clarify Goals — Begin with the End in Mind (Most Critical Step)
 
-**Core concept:** Start with the end in mind, goal-driven. Without a clear goal, competitive analysis will lose direction and become meaningless information stacking.
+**Core idea:** Start from the desired outcome and work backwards. Without clear goals, analysis becomes aimless data collection.
 
-#### **Interactive Goal Clarification Process**
+#### **Interactive Goal Clarification Flow**
 
-**When users request competitive analysis, if the following information is not clear, you must first ask:**
+**When a user requests a competitive analysis, if the following is unclear, ask first (you may offer common options for the user to choose from):**
 
-**1. Analysis Object Clarification**
-- **Key question:** For which product/service/feature is the competitive analysis being done?
-- **Follow-up points:** 
+**1. Define the Subject**
+
+- **Key question:** Which product / service / feature is being analyzed?
+- **Follow-up probes:**
   - Product name and version
-  - If it's a new idea, please describe the core concept
+  - If it's a new idea, describe the core concept
   - Who is the target user group?
 
-**2. Development Stage Confirmation**
-- **Key question:** Which stage is the product currently in?
-- **Option explanations:**
-  - **Planning stage:** The product is still in the concept stage, need to verify market feasibility
-  - **Development stage:** The product is being developed, need design references and function借鉴
-  - **Operation stage:** The product has been launched, need optimization and competitive strategy
+**2. Confirm Development Stage**
 
-**3. Problem Diagnosis**
-- **Key question:** What are the main problems and challenges facing the current product?
-- **Question directions:**
-  - User growth issues? Retention issues? Payment conversion issues?
-  - Market competition pressure? Technical bottlenecks? Resource constraints?
+- **Key question:** What stage is the product currently at?
+- **Options:**
+  - **Concept stage (Ideation):** Product is still conceptual; need to validate market viability
+  - **Build stage (Development):** Product is under development; need design references and feature benchmarks
+  - **Launch stage (Operations):** Product is live; need optimization and competitive strategy
+
+**3. Diagnose the Problem**
+
+- **Key question:** What are the main problems and challenges the product currently faces?
+- **Probe directions:**
+  - User growth? Retention? Paid conversion?
+  - Competitive pressure? Technical bottlenecks? Resource constraints?
   - Brand awareness? User experience issues?
 
-**4. Analysis Purpose Determination**
-- **Key question:** What is the purpose of doing competitive analysis?
+**4. Determine the Analysis Purpose**
+
+- **Key question:** What is the purpose of this competitive analysis?
 - **Purpose types:**
-  - **Decision support:** Provide basis for product decisions (market entry, feature priority, investment decisions, etc.)
-  - **Learning reference:** Learn from competitors' advantages, avoid pitfalls (function design, user experience, operation strategy, etc.)
-  - **Market early warning:** Monitor market changes, warn of competitive threats (new competitors, policy changes, technical trends, etc.)
+  - **Decision support:** Inform product decisions (market entry, feature prioritization, investment decisions, etc.)
+  - **Learning & benchmarking:** Learn from competitors' strengths, avoid common pitfalls (feature design, UX, growth strategy, etc.)
+  - **Market monitoring:** Track market shifts, flag competitive threats (new entrants, policy changes, tech trends, etc.)
 
-**5. Specific Goal Setting**
-- **Key question:** What are the specific goals of competitive analysis?
+**5. Set Specific Goals**
+
+- **Key question:** What are the specific, measurable goals of this analysis?
 - **Goal examples:**
-  - "Find product differentiated positioning, increase market share by 5%"
-  - "Optimize core function experience, reduce user churn rate by 10%"
-  - "Evaluate market entry feasibility, develop product roadmap"
-  - "Learn from competitor operation strategies, improve user activity"
+  - "Identify a differentiated positioning to grow market share by 5%"
+  - "Optimize core feature experience to reduce churn by 10%"
+  - "Assess market entry feasibility and define a product roadmap"
+  - "Learn from competitor growth strategies to improve user engagement"
 
-**6. Output Deliverable Clarification**
-- **Key question:** What is the expected output deliverable?
-- **Deliverable types:**
-  - Complete competitive analysis report
-  - Key findings summary (1-2 pages)
-  - Function comparison matrix
-  - Strategic recommendation list
+**6. Define Expected Output**
+
+- **Key question:** What deliverable do you expect?
+- **Output types:**
+  - Full competitive analysis report
+  - Key findings summary (1–2 pages)
+  - Feature comparison matrix
+  - Strategic recommendations list
   - Implementation roadmap
 
-#### **Importance of Goal Clarity**
+#### **How Goals Shape the Rest of the Analysis**
 
-**How goals affect subsequent analysis:**
-
-| Analysis Goal | Competitor Selection Focus | Analysis Dimension Focus | Tool Selection |
-|--------------|---------------------------|-------------------------|---------------|
-| **Market entry decision** | Market leaders + potential competitors | Market size + competitive landscape + business model | Porter's Five Forces + Lean Canvas |
-| **Function design reference** | Excellent products with similar functions | Function details + user experience + technical implementation | Function decomposition + user experience evaluation |
-| **Competitive strategy formulation** | Direct competitors | Advantage/disadvantage comparison + user feedback | SWOT analysis + Strategy Canvas |
-| **Learning reference** | Industry benchmarks + innovators | Best practices + innovation points | Case study + model analysis |
+| Analysis Goal | Competitor Selection Focus | Key Analysis Dimensions | Recommended Tools |
+| ------------- | ------------------------- | ----------------------- | ----------------- |
+| **Market entry decision** | Market leaders + emerging players | Market size, competitive landscape, business model | Porter's Five Forces + Lean Canvas |
+| **Feature design reference** | Functionally similar, best-in-class products | Feature details, UX, technical implementation | Feature decomposition + UX evaluation |
+| **Competitive strategy** | Direct competitors | Strengths/weaknesses comparison, user feedback | SWOT + Strategy Canvas |
+| **Benchmarking & learning** | Industry leaders + innovators | Best practices, innovation highlights | Case studies + pattern analysis |
 
 #### **Common Mistakes to Avoid**
 
-❌ **Mistake:** Skip goal clarification, start analysis directly
-✅ **Correct:** Spend 30% of time clarifying goals to ensure correct analysis direction
+❌ **Wrong:** Skip goal clarification and jump straight into analysis  
+✅ **Right:** Spend 30% of the time clarifying goals to ensure the right direction
 
-❌ **Mistake:** Goals are too broad (e.g., "understand the market")
-✅ **Correct:** Goals are specific and measurable (e.g., "find 3 differentiated opportunity points")
+❌ **Wrong:** Vague goals (e.g., "understand the market")  
+✅ **Right:** Specific, measurable goals (e.g., "identify 3 differentiation opportunities")
 
-❌ **Mistake:** Do not distinguish analysis purposes, use the same method
-✅ **Correct:** Customize analysis methods and depth based on purpose
+❌ **Wrong:** Apply the same methodology regardless of purpose  
+✅ **Right:** Tailor the analysis depth and methods to the specific goal
 
-#### **Goal Clarity Checklist**
+#### **Goal Clarification Checklist**
 
-Before starting analysis, confirm the following issues are clear:
-- [ ] Analysis object is clear and specific
-- [ ] Development stage has been confirmed
-- [ ] Core issues have been identified
-- [ ] Analysis purpose has been determined
+Before starting the analysis, confirm all of the following:
+
+- [ ] Subject of analysis is clearly defined
+- [ ] Development stage is confirmed
+- [ ] Core problems are identified
+- [ ] Analysis purpose is determined
 - [ ] Specific goals are measurable
-- [ ] Output deliverables are expected
+- [ ] Expected output is agreed upon
 
-**Tool:** First part of Competitive Canvas + Goal Clarification Template (see templates/)
+**Tools:** Competitor Canvas Part 1 + Goal Clarification Template (see `templates/`)
 
-### Step 2: Select Competitors - Careful Selection
-**Competitor classification:**
-- Brand competitors: Same product form and target user group, different brands
-- Category competitors: Different product forms, similar target user groups
-- Substitutes: Different products that meet the same needs
-- Reference products: Products worth learning from
+---
 
-**Selection principles:**
-1. Initial selection: Preliminary selection based on analysis purpose
-2. Refined selection: Focus on 3 or so key competitors for in-depth analysis
-3. Dynamic adjustment: Regular review, pay attention to market changes
+### Step 2: Select Competitors — Choose Wisely
 
-**Tool:** Second part of Competitive Canvas
+**Competitor Classification:**
 
-### Step 3: Determine Analysis Dimensions - Multi-dimensional Perspective
-**Product perspective (factors affecting product success):**
-1. Function
-2. User experience design
+- **Brand competitors:** Same product form and target user group, different brand
+- **Category competitors:** Different product form, similar target user group
+- **Substitutes:** Different products that satisfy the same underlying need
+- **Reference products:** Products worth learning from and benchmarking against
+
+**Selection Principles:**
+
+1. Long-list: Generate a broad initial list based on analysis purpose
+2. Short-list: Focus on ~3 key competitors for deep-dive analysis
+3. Dynamic review: Revisit the list regularly as the market evolves
+
+**Tools:** Competitor Canvas Part 2
+
+---
+
+### Step 3: Define Analysis Dimensions — Multi-Angle Perspective
+
+**Product Perspective (Factors that determine product success):**
+
+1. Features & functionality
+2. User experience & design
 3. Team background
 4. Technology
-5. Market promotion
+5. Marketing & growth
 6. Strategic positioning
-7. User situation
-8. Profit model
-9. Layout planning
+7. User base
+8. Revenue model
+9. Future roadmap & expansion plans
 
-**User perspective ($APPEALS framework):**
-1. $-Price
-2. A-Availability
-3. P-Packaging
-4. P-Performance
-5. E-Easy to Use
-6. A-Assurances
-7. L-Life Cycle of Cost
-8. S-Social Acceptance
+**User Perspective ($APPEALS Framework):**
 
-**Selection principles:**
-- Select based on competitive analysis goals
-- Adjust focus based on product type
-- Focus based on key success factors
+1. $ — Price
+2. A — Availability
+3. P — Packaging
+4. P — Performance
+5. E — Ease of Use
+6. A — Assurances
+7. L — Life Cycle of Cost
+8. S — Social Acceptance
 
-**Tool:** Third part of Competitive Canvas
+**Selection Principles:**
 
-### Step 4: Collect Competitor Information - Comprehensive Collection
-**Information source classification:**
+- Choose dimensions based on your analysis goals — do not chase comprehensiveness for its own sake
+- Adjust emphasis based on product type
+- Focus on key success factors (KSF)
 
-1. **Competitor official public information**
-   - Official website, official Weibo, official account
-   - Media reports, CEO interviews
-   - Product downloads, documents, FAQ, user forums
-   - Product launch events, exhibitions
-   - Company financial reports, recruitment advertisements
+**Tools:** Competitor Canvas Part 3
+
+---
+
+### Step 4: Gather Competitor Intelligence — Cast a Wide Net
+
+**Information Source Categories:**
+
+1. **Competitor's own public materials**
+   - Official website, social media, official blog
+   - Press coverage, CEO interviews
+   - Product downloads, documentation, FAQ, user forums
+   - Product launches, exhibitions, trade shows
+   - Financial reports, job postings
 
 2. **Third-party channels**
-   - Industry media, industry associations
-   - Industry summits, trade shows
-   - Internal company channels (sales, marketing, operations, etc.)
-   - Third-party evaluation agencies, databases
-   - Search engines, patent agencies
+   - Industry media, trade associations
+   - Industry summits, exhibitions
+   - Internal channels (sales, marketing, operations)
+   - Third-party review sites, databases
+   - Search engines, patent offices
 
-3. **First-hand information**
-   - Personal experience
-   - On-site inspection
-   - User interviews, questionnaires
-   - Reverse engineering (within legal scope)
+3. **Primary research**
+   - Hands-on product testing
+   - Field research
+   - User interviews, surveys
+   - Reverse engineering (within legal limits)
 
-**Information rating standards:**
-- Level A: Completely reliable, authoritative source
-- Level B: Usually reliable, occasional errors
-- Level C: Not very reliable, needs verification
-- Level D: Unreliable, for reference only
-- Level E: Cannot evaluate reliability
+**Information Reliability Rating:**
 
-**Tool:** Fourth part of Competitive Canvas
+- **A-grade:** Fully reliable, authoritative source
+- **B-grade:** Generally reliable, occasional inaccuracies
+- **C-grade:** Somewhat unreliable, requires verification
+- **D-grade:** Unreliable, reference only
+- **E-grade:** Reliability cannot be assessed
 
-### Step 5: Information Organization and Analysis - Detailed Analysis
-**Analysis method toolbox:**
+**Tools:** Competitor Canvas Part 4
 
-1. **Comparison method**
-   - Check comparison method (function comparison)
-   - Rating comparison method (user experience evaluation)
-   - Description comparison method (detailed comparison)
+---
 
-2. **Matrix analysis method**
-   - Two-dimensional matrix analysis of product positioning
-   - Discover market gap opportunities
+### Step 5: Analyze & Synthesize — Unravel the Threads
 
-3. **Competitive tracking matrix**
-   - Track competitor historical versions
-   - Predict competitor next moves
+**Analysis Methods Toolkit:**
 
-4. **Function decomposition**
-   - Decompose by menu navigation
-   - Decompose by usage process
-   - Decompose by interactive operation
+1. **Comparative Analysis**
+   - Checklist comparison (feature parity)
+   - Scoring comparison (UX evaluation)
+   - Descriptive comparison (detailed narrative)
 
-5. **Demand exploration (5Why analysis)**
-   - Solution-level demand → Problem-level demand → Human nature-level demand
-   - Explore the real needs behind functions
+2. **Matrix Analysis**
+   - 2×2 matrix to map product positioning
+   - Identify white-space opportunities in the market
 
-6. **PEST analysis (macro environment)**
+3. **Competitor Tracking Matrix**
+   - Track competitor version history
+   - Anticipate competitors' next moves
+
+4. **Feature Decomposition**
+   - Decompose by navigation menu
+   - Decompose by user workflow
+   - Decompose by interaction patterns
+
+5. **Needs Exploration (5 Whys)**
+   - Solution-level need → Problem-level need → Human-level need
+   - Surface the real user need behind any feature
+
+6. **PEST Analysis (Macro Environment)**
    - Politics
    - Economy
    - Society
    - Technology
 
-7. **Porter's Five Forces model (industry environment)**
-   - Industry competitors
-   - Threat of potential entrants
+7. **Porter's Five Forces (Industry Environment)**
+   - Rivalry among existing competitors
+   - Threat of new entrants
    - Threat of substitutes
    - Bargaining power of suppliers
    - Bargaining power of buyers
 
-8. **SWOT analysis**
+8. **SWOT Analysis**
    - Strengths
    - Weaknesses
    - Opportunities
    - Threats
 
-**Analysis framework: Sky·Rain·Umbrella**
-- Sky = Facts (current situation)
-- Rain = Explanation (interpretation of the situation)
-- Umbrella = Action (conclusions drawn from the explanation)
+**Tools:** Competitor Canvas Parts 5–8
 
-**Tool:** Fifth to eighth parts of Competitive Canvas
+---
 
-### Step 6: Summary Report - Value-driven
-**Competitive strategy types:**
+### Step 6: Report & Recommend — Value-Driven Output
 
-1. **SWOT-based competitive strategy**
-   - SO strategy: Leverage strengths, seize opportunities (growth type)
-   - WO strategy: Utilize opportunities, overcome weaknesses (turnaround type)
-   - ST strategy: Leverage strengths, avoid threats (diversification type)
-   - WT strategy: Reduce weaknesses, avoid threats (defensive type)
+**Competitive Strategy Types:**
 
-2. **Porter's competitive strategy**
+1. **SWOT-Based Strategies**
+   - SO Strategy: Leverage strengths to seize opportunities (Growth)
+   - WO Strategy: Use opportunities to overcome weaknesses (Turnaround)
+   - ST Strategy: Use strengths to counter threats (Diversification)
+   - WT Strategy: Minimize weaknesses and avoid threats (Defensive)
+
+2. **Porter's Generic Strategies**
    - Focus strategy
    - Cost leadership strategy
    - Differentiation strategy
 
-3. **"Copy-Surpass-Profit" methodology**
-   - Copy: Learn and reference
-   - Surpass: Surpass and innovate
-   - Profit: Commercial success
+3. **"Copy → Surpass → Cash" Methodology**
+   - Copy: Learn and borrow from the best
+   - Surpass: Innovate beyond what you copied
+   - Cash: Convert innovation into commercial success
 
-4. **Judo strategy (small companies dealing with giants)**
-   - Movement principle: Avoid direct conflict
-   - Balance principle: Utilize opponent's scale
-   - Leverage principle: Turn opponent's advantage into disadvantage
+4. **Judo Strategy (For smaller players competing with giants)**
+   - Movement principle: Avoid direct confrontation
+   - Balance principle: Use the opponent's scale against them
+   - Leverage principle: Turn the opponent's strengths into weaknesses
 
-5. **Disruptive innovation**
-   - New market disruption
+5. **Disruptive Innovation**
+   - New-market disruption
    - Low-end disruption
 
-**Report structure:**
-1. Executive summary
-2. Market overview
-3. In-depth competitor analysis
-4. Comparative analysis
-5. Strategic recommendations
+**Report Structure:**
 
-**Tool:** Ninth part of Competitive Canvas
+1. Executive Summary
+2. Analysis Goals & Product Overview
+3. Competitor Selection & Classification
+4. Deep-Dive Competitor Profiles
+5. Multi-Dimensional Comparative Analysis
+6. SWOT Analysis
+7. Strategy Canvas & Differentiation
+8. Porter's Five Forces Analysis
+9. Lean Canvas
+10. Strategic Recommendations & Roadmap
+11. Competitor Canvas Summary
+
+**Tools:** Competitor Canvas Part 9
+
+---
 
 ## Three Core Tools
 
 ### 1. Lean Canvas (Business Model Analysis)
-**9 modules:**
+
+**9 Building Blocks:**
+
 1. Problem
-2. Customer segments
-3. Unique value proposition
+2. Customer Segments
+3. Unique Value Proposition
 4. Solution
 5. Channels
-6. Key metrics
-7. Competitive barriers
-8. Cost analysis
-9. Revenue analysis
+6. Key Metrics
+7. Unfair Advantage
+8. Cost Structure
+9. Revenue Streams
 
-**Function:** Establish product global view, analyze business model
+**Purpose:** Build a holistic product view and analyze the business model
 
-### 2. Competitive Canvas (Competitive Analysis Template)
-**9 parts:**
-1. Competitive analysis goals
-2. Select competitors
-3. Determine analysis dimensions
-4. Collect competitor information
+---
+
+### 2. Competitor Canvas (Competitive Analysis Template)
+
+**9 Sections:**
+
+1. Analysis Goals
+2. Competitor Selection
+3. Analysis Dimensions
+4. Information Gathering
 5. Strengths
 6. Weaknesses
 7. Opportunities
 8. Threats
-9. Summary and recommendations
+9. Summary & Recommendations
 
-**Function:** Quick start for beginners, low-cost idea validation
+**Purpose:** Helps newcomers get up to speed quickly and test hypotheses at low cost
 
-### 3. Strategy Canvas (Differentiation Innovation)
-**Usage steps:**
-1. List main competitive elements
-2. Draw competitor value curves
-3. Apply "add-subtract-multiply-divide"
-4. Draw differentiated value curves
+---
 
-**Add-subtract-multiply-divide:**
-- Add: Add new elements
-- Subtract: Reduce unnecessary elements
-- Multiply: Innovatively enhance
-- Divide: Remove redundant elements
+### 3. Strategy Canvas (Differentiation & Innovation)
 
-**Function:** Product differentiation innovation, find blue ocean market
+**Steps:**
 
-## Network Engineering Special Perspective
+1. List the main competing factors
+2. Plot the value curves of key competitors
+3. Apply the "Add / Remove / Multiply / Eliminate" framework
+4. Plot your differentiated value curve
 
-For network engineering related products, additional attention to:
+**Add / Remove / Multiply / Eliminate:**
 
-### Technical dimensions
-- **Architecture analysis:** Distributed, cloud-native, microservices
-- **Performance indicators:** Latency, throughput, availability, SLA
-- **Security:** Encryption, authentication, access control, compliance
-- **Integration capability:** API design, SDK quality, ecosystem
-- **Operation and maintenance support:** Monitoring alerts, automation, document quality
+- **Add:** Introduce new elements the industry has never offered
+- **Remove:** Eliminate elements the industry takes for granted
+- **Multiply:** Raise certain elements well above the industry standard
+- **Eliminate:** Remove elements that are costly but add little value
 
-### Market dimensions
-- **Technical trends:** SDN/NFV, 5G, edge computing, zero trust
-- **Standard compatibility:** Industry standards, protocol support, interoperability
-- **Customer types:** Operators, enterprises, government, cloud service providers
-- **Procurement process:** Bidding, POC testing, technical evaluation
+**Purpose:** Drive product differentiation and find blue-ocean opportunities
 
-## Execution Guide
+---
 
-### Quick Start Template
-```
-# Competitive Analysis Quick Start
+## Common Mistakes to Avoid
 
-1. Fill in Competitive Canvas (30 minutes)
-   - Clarify analysis goals
-   - Select 3 key competitors
-   - Determine core analysis dimensions
+1. ❌ Analyzing only features while ignoring the business model
+2. ❌ Confirmation bias — only collecting information that confirms your view
+3. ❌ Listing information without deep analysis
+4. ❌ Vague, non-actionable recommendations
+5. ❌ Static analysis that ignores how the market evolves
+6. ❌ Cookie-cutter analysis lacking a differentiated perspective
 
-2. Information collection (2-4 hours)
-   - Official information collection
-   - Personal product experience
-   - User feedback research
+## Keys to Success
 
-3. Preliminary analysis (2 hours)
-   - Function comparison table
-   - Preliminary SWOT analysis
-   - Key findings summary
+1. ✅ Begin with the end in mind — clarify goals first
+2. ✅ Multi-dimensional perspective — analyze comprehensively
+3. ✅ Go deep — explore the real needs behind features
+4. ✅ Dynamic tracking — continuously update your intelligence
+5. ✅ Value-driven — deliver actionable, grounded recommendations
+6. ✅ Team alignment — build shared understanding
 
-4. In-depth analysis (as needed)
-   - Lean Canvas analysis
-   - Strategy Canvas differentiation
-   - Complete report writing
-```
+---
 
-### Common Mistakes to Avoid
-1. ❌ Only analyze functions, ignore business model
-2. ❌ Subjective bias, only collect favorable information
-3. ❌ Information listing, lack of in-depth analysis
-4. ❌ Vague recommendations, lack of operability
-5. ❌ Static analysis, ignore dynamic changes
-6. ❌ Homogeneous analysis, lack of differentiated perspective
-
-### Success Keys
-1. ✅ Start with the end in mind, clear goals
-2. ✅ Multi-dimensional perspective, comprehensive analysis
-3. ✅ Deep excavation, explore needs
-4. ✅ Dynamic tracking, continuous update
-5. ✅ Value-driven, actionable recommendations
-6. ✅ Team collaboration, consensus building
-
-## Output Templates
+## Output Template
 
 ### Competitive Analysis Report Structure
+
 ```
+Cover Page
+Table of Contents
+
 1. Executive Summary
-   - Analysis purpose and scope
-   - Key findings
-   - Key recommendations
+   - Key conclusions (3–4 key finding cards)
+   - Market landscape overview
+   - Summary of functional strengths / technical gaps / market opportunities
 
-2. Market Overview
-   - Market size and growth
-   - Market segmentation
-   - Main player landscape
+2. Analysis Goals & Product Overview
+   - 2.1 Product Positioning (product name, stage, core tech stack, target users, unique value)
+   - 2.2 Product Feature Landscape (layered architecture: engine / AI / management / data / ops)
+   - 2.3 Six Key Questions (subject / stage / core challenges / purpose / specific goals / expected output)
 
-3. In-depth Competitor Analysis
-   - Competitor A: Business model + product analysis
-   - Competitor B: Business model + product analysis
-   - Competitor C: Business model + product analysis
+3. Competitor Selection & Classification
+   - Competitor classification table (direct / indirect / industry benchmarks, with company names and selection rationale)
+   - Key competitors for deep-dive (3–5 selected, with reasons for inclusion)
 
-4. Comparative Analysis
-   - Function comparison matrix
-   - User experience rating
-   - Business model comparison
-   - Comprehensive SWOT analysis
+4. Deep-Dive Competitor Profiles
+   - Profile cards for each competitor (company background / product positioning / core technology / deployment model / pricing model / core strengths / core weaknesses)
 
-5. Strategic Recommendations
-   - Differentiated positioning suggestions
-   - Competitive strategy selection
-   - Product roadmap suggestions
-   - Risks and countermeasures
+5. Multi-Dimensional Comparative Analysis
+   (Note: sub-sections below are illustrative; actual dimensions should be driven by analysis goals)
+   - 5.1 Feature Comparison Matrix (star ratings ★★★★★, with your product column highlighted)
+   - 5.2 Technical Architecture Comparison (PBX engine / AI engine / deployment / SLA, etc.)
+   - 5.3 Market Positioning Map (price level × customer scale 2×2 matrix)
+   - 5.4 Target Customer Segment Comparison (customer profiles / company size / industry focus / average contract value)
+   - 5.5 Pricing Strategy Comparison (pricing model / price range / minimum commitment)
+
+6. SWOT Analysis
+   - Strengths / Weaknesses / Opportunities / Threats
+   - SWOT Strategy Matrix (SO Growth / WO Turnaround / ST Diversification / WT Defensive — 3 strategies per quadrant)
+
+7. Strategy Canvas & Differentiation
+   - "Add / Remove / Multiply / Eliminate" differentiation strategy (each element includes competing factor + specific action)
+
+8. Porter's Five Forces Analysis
+   - Rivalry among existing competitors (threat level rating + analysis)
+   - Threat of new entrants (threat level rating + analysis)
+   - Threat of substitutes (threat level rating + analysis)
+   - Bargaining power of suppliers (threat level rating + analysis)
+   - Bargaining power of buyers (threat level rating + analysis)
+
+9. Lean Canvas
+   - Problem / Customer Segments (early adopters + core users) / Unique Value Proposition
+   - Solution / Channels / Key Metrics
+   - Unfair Advantage / Cost Structure / Revenue Streams
+
+10. Strategic Recommendations & Roadmap
+    - 10.1 Overall competitive strategy (Porter's Focus / Differentiation / Cost Leadership + Judo Strategy)
+    - 10.2 Phased roadmap (Near-term 0–6 mo / Mid-term 6–18 mo / Long-term 18–36 mo, with P0/P1/P2 priorities)
+    - 10.3 Differentiated marketing strategy (messaging and core value proposition vs. each key competitor)
+    - 10.4 Key Success Factors (KSF) (benchmark cases / core tech moats / entry barriers / ecosystem partnerships)
+
+11. Competitor Canvas Summary
+    - Summary table across 9 dimensions: analysis goals / competitor selection / analysis dimensions / core strengths / key weaknesses / market opportunities / competitive threats / strategic choices / development path
 
 Appendix:
 - Raw data tables
-- Detailed function decomposition
+- Detailed feature breakdown
 - User research questionnaire
 - Reference list
 ```
 
-## Skill Usage Scenarios
-
-### When to use this skill
-1. **Product planning stage:** Market entry decision, product positioning
-2. **Product design stage:** Function design reference, user experience optimization
-3. **Market competition stage:** Competitive strategy formulation, differentiated positioning
-4. **Learning and improvement stage:** Industry research, product sense cultivation
-5. **Investment decision stage:** Project evaluation, due diligence
-
-### Suitable for
-- Product managers, product planning personnel
-- Marketing managers, operation personnel
-- Entrepreneurs, investors
-- Strategic planning personnel
-- Relevant personnel who need to do competitive analysis
-
-## Practical Exercises
-
-### Practice session
-1. **Select your product:** Select a product you are familiar with or working on
-2. **Fill in Competitive Canvas:** Complete filling according to 6 steps
-3. **Apply analysis tools:** Use at least 3 analysis methods
-4. **Output analysis report:** Write a complete competitive analysis report
-5. **Team discussion:** Communicate with colleagues and get feedback
-
-### Continuous improvement
-1. **Regular review:** Update competitive analysis quarterly
-2. **Dynamic tracking:** Establish competitive tracking matrix
-3. **Method iteration:** Optimize analysis methods based on practice
-4. **Knowledge precipitation:** Establish competitive analysis knowledge base
-
 ---
 
-**Remember:** Competitive analysis is not a one-time task, but a continuous process. Through systematic methodology and tools, turn competitive analysis into the core competitiveness of the product.
+## When to Use This Skill
 
-**Data source:** Zhang Zaiwang "Effective Competitive Analysis: Essential Methodology for Good Products", China Machine Press.
+### Recommended Use Cases
+
+1. **Product planning:** Market entry decisions, product positioning
+2. **Product design:** Feature design reference, UX optimization
+3. **Competitive strategy:** Strategy formulation, differentiated positioning
+4. **Learning & development:** Industry research, sharpening product intuition
+5. **Investment decisions:** Project evaluation, due diligence
+
+### Who This Is For
+
+- Product managers and product strategists
+- Marketing managers and growth professionals
+- Entrepreneurs and investors
+- Corporate strategy and planning teams
+- Anyone who needs to conduct a rigorous competitive analysis
