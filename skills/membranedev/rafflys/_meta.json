@@ -3,9 +3,15 @@
   "slug": "rafflys",
   "displayName": "Rafflys",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773795764047,
-    "commit": "https://github.com/openclaw/skills/commit/8e647411162f0425f86cff60a31b8215f7d1af74"
+    "version": "1.0.2",
+    "publishedAt": 1775164571956,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773795764047,
+      "commit": "https://github.com/openclaw/skills/commit/8e647411162f0425f86cff60a31b8215f7d1af74"
+    }
+  ]
 }
