@@ -3,9 +3,15 @@
   "slug": "logoraisr",
   "displayName": "Logoraisr",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774487478184,
-    "commit": "https://github.com/openclaw/skills/commit/3ea493d09b9f96befec56785a07f0ca1d1c09026"
+    "version": "1.0.2",
+    "publishedAt": 1775167667428,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774487478184,
+      "commit": "https://github.com/openclaw/skills/commit/3ea493d09b9f96befec56785a07f0ca1d1c09026"
+    }
+  ]
 }
