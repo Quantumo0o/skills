@@ -1,11 +1,17 @@
 {
   "owner": "hanxueyuan",
   "slug": "emirates",
-  "displayName": "emirates",
+  "displayName": "Emirates",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1774771685154,
-    "commit": "https://github.com/openclaw/skills/commit/796a73397232f514edf7eda4aef1ffca8901813a"
+    "version": "0.1.1",
+    "publishedAt": 1775400466387,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1774771685154,
+      "commit": "https://github.com/openclaw/skills/commit/796a73397232f514edf7eda4aef1ffca8901813a"
+    }
+  ]
 }

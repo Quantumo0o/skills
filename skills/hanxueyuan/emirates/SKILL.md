@@ -1,33 +1,51 @@
 ---
 name: emirates
-description: "全球最大国际航空公司之一"
-metadata:
-  { "openclaw": { "emoji": "✈️", "version": "0.1.0", "author": "hanxueyuan", "tags": ["encyclopedia","travel","emirates"] } }
+description: 阿联酋航空公司介绍和航班查询
+version: 1.0.0
+tags: [airline, emirates, travel, uae, aviation]
 ---
 
-# ✈️ Emirates 阿联酋航空
+# Emirates (阿联酋航空)
 
-全球最大国际航空公司之一
+总部位于迪拜的国际航空公司，以豪华服务著称。
 
-## What This Skill Does
+## 公司介绍
 
-This skill provides comprehensive information about **Emirates 阿联酋航空**:
+**阿联酋航空**成立于 1985 年，是中东地区最大的航空公司。
 
-1. **Overview** — What it is, history, key facts
-2. **Latest Updates** — Recent news, developments, and announcements
-3. **Key Data** — Statistics, rankings, records, and metrics
-4. **Resources** — Official websites, useful links, and references
-5. **Related Topics** — Connected entities and recommendations
+### 基本信息
 
-## Example Queries
+| 项目 | 详情 |
+|------|------|
+| **成立时间** | 1985 年 |
+| **总部** | 迪拜，阿联酋 |
+| **枢纽机场** | 迪拜国际机场 (DXB) |
+| **机队规模** | 250+ 架 |
+| **目的地** | 150+ 个城市 |
 
-- "Tell me about Emirates"
-- "Latest news on Emirates"
-- "Emirates key facts"
+### 舱位等级
 
-## How It Works
+| 舱位 | 特点 |
+|------|------|
+| **头等舱** | 私人套房、空中淋浴 |
+| **商务舱** | 平躺座椅、专属休息区 |
+| **经济舱** | 宽敞座椅、娱乐系统 |
 
-Uses web search to fetch real-time, comprehensive information from authoritative sources.
+### 服务特色
 
-## Author
-Created by hanxueyuan | Part of the Encyclopedia project | License: MIT
+- **ice 娱乐系统** - 数千部电影和节目
+- **机上美食** - 多国料理
+- **空中酒廊** - 头等舱和商务舱专属
+- **接送服务** - 部分城市提供免费接送
+
+## 官方网站
+
+- **全球官网**: https://www.emirates.com
+- **中国官网**: https://www.emirates.com/cn
+
+## 参考链接
+
+- [Emirates 官网](https://www.emirates.com)
+
+---
+**版本**: 1.0.0
