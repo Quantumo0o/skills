@@ -39,7 +39,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("HybridRetriever")
 
-WORKSPACE = Path("/home/admin/.openclaw/workspace")
+# 使用相对路径，避免硬编码
+WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", Path.cwd()))
 DB_PATH = WORKSPACE / "data" / "training_quotes.db"
 CONFIG_PATH = WORKSPACE / "data" / "retriever_config.json"
 

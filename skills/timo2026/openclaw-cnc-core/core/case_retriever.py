@@ -19,7 +19,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("CaseRetriever")
 
-WORKSPACE = Path("/home/admin/.openclaw/workspace")
+# 使用相对路径，避免硬编码
+WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", Path.cwd()))
 DB_PATH = WORKSPACE / "data" / "training_quotes.db"
 PARAMS_PATH = WORKSPACE / "data" / "optimized_params_v2.json"
 

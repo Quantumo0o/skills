@@ -1,7 +1,7 @@
 ---
 name: openclaw-cnc-core
 description: 🦞 OpenClaw CNC 智能报价系统核心框架 - 支持 STEP 解析、智能报价、风险控制
-version: 1.0.0
+version: 1.2.0
 author: Timo2026
 license: MIT
 repository: https://github.com/Timo2026/openclaw-cnc-core
@@ -21,11 +21,45 @@ metadata:
       - qqbot
       - email
       - feishu
+requirements:
+  env_vars:
+    - name: OPENCLAW_WORKSPACE
+      description: 工作目录路径（可选，默认当前目录）
+    - name: DASHSCOPE_API_KEY
+      description: DashScope API密钥（用于向量嵌入，可选）
+  external_apis:
+    - name: DashScope
+      purpose: 向量嵌入服务
+      optional: true
+    - name: Feishu Webhook
+      purpose: 风险预警通知
+      optional: true
 ---
 
 # OpenClaw CNC Core 🦞
 
 > 基于 OpenClaw 的 CNC 智能报价系统核心框架
+
+## ⚠️ 重要说明
+
+### 外部API声明
+
+本系统使用以下外部服务（均为可选）：
+
+| 服务 | 用途 | 必需 |
+|------|------|------|
+| **DashScope API** | 向量嵌入服务 | ❌ 可选 |
+| **Feishu Webhook** | 风险预警通知 | ❌ 可选 |
+
+### 环境变量
+
+```bash
+# 可选：设置工作目录
+export OPENCLAW_WORKSPACE=/your/workspace/path
+
+# 可选：DashScope API密钥（用于向量嵌入）
+export DASHSCOPE_API_KEY=your_api_key
+```
 
 ## ✨ Features
 
