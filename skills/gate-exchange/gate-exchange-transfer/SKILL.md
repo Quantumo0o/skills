@@ -2,7 +2,20 @@
 name: gate-exchange-transfer
 version: "2026.3.23-1"
 updated: "2026-03-23"
-description: "Gate Exchange same-UID internal transfer skill. Use when user says 'transfer', 'move funds', 'spot to futures', 'USDT-margined', 'perpetual', 'margin'. Phase 1: internal transfer only (no main-sub). Execution requires explicit user confirmation and source balance pre-check."
+description: "Gate Exchange same-UID internal transfer skill. Use when the user asks to move funds between their own Gate accounts. Triggers on 'transfer funds', 'move USDT to futures', 'internal transfer'."
+required_credentials:
+  - gate_api_key
+  - gate_api_secret
+required_env_vars:
+  - GATE_API_KEY
+  - GATE_API_SECRET
+required_permissions:
+  - Delivery:Read
+  - Fx:Read
+  - Margin:Read
+  - Options:Read
+  - Spot:Read
+  - Wallet:Write
 ---
 
 # Gate Exchange Transfer (Internal Transfer)
@@ -34,8 +47,8 @@ Execute same-UID internal transfers between Gate trading accounts: **spot**, **i
 
 **Query Operations (Read-only)**
 
-- cex_delivery_list_delivery_account_book
-- cex_fx_list_futures_account_book
+- cex_dc_list_dc_account_book
+- cex_fx_list_fx_account_book
 - cex_margin_list_margin_account_book
 - cex_options_list_options_account_book
 - cex_spot_list_spot_account_book
@@ -45,9 +58,11 @@ Execute same-UID internal transfers between Gate trading accounts: **spot**, **i
 - cex_wallet_create_transfer
 
 ### Authentication
-- API Key Required: Yes (see skill doc/runtime MCP deployment)
+- Credentials Source: Local Gate MCP deployment (`GATE_API_KEY`, `GATE_API_SECRET`)
+- API Key Required: Yes
 - Permissions: Delivery:Read, Fx:Read, Margin:Read, Options:Read, Spot:Read, Wallet:Write
-- Get API Key: https://www.gate.io/myaccount/profile/api-key/manage
+- Never ask the user to paste secrets into chat; rely on the configured MCP session only.
+- API Key Provisioning Reference: https://www.gate.com/myaccount/profile/api-key/manage (create or rotate keys outside the chat when the local MCP setup requires them).
 
 ### Installation Check
 - Required: Gate (main)
@@ -56,6 +71,13 @@ Execute same-UID internal transfers between Gate trading accounts: **spot**, **i
   - Codex: `gate-mcp-codex-installer`
   - Claude: `gate-mcp-claude-installer`
   - OpenClaw: `gate-mcp-openclaw-installer`
+
+## MCP Mode
+
+**Read and strictly follow** [`references/mcp.md`](./references/mcp.md), then execute this skill's transfer workflow.
+
+- `SKILL.md` keeps transfer intent routing and account-type mapping.
+- `references/mcp.md` is the authoritative MCP execution layer for transfer pre-check, confirmation gate, execution, and ledger verification.
 
 ## Preconditions
 
@@ -365,8 +387,8 @@ After a transfer, user may ask for history. By account type:
 | Account | Query tool (if MCP provides) | Notes |
 |---------|------------------------------|--------|
 | Spot | `cex_spot_list_spot_account_book` | currency, time, limit |
-| Perpetual | `cex_fx_list_futures_account_book` | settle, type=dnw |
-| Delivery | `cex_delivery_list_delivery_account_book` | settle, type=dnw |
+| Perpetual | `cex_fx_list_fx_account_book` | settle, type=dnw |
+| Delivery | `cex_dc_list_dc_account_book` | settle, type=dnw |
 | Margin | `cex_margin_list_margin_account_book` | currency_pair, time, limit |
 | Options | `cex_options_list_options_account_book` | per MCP docs |
 
