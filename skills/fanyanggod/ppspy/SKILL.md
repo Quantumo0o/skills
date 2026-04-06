@@ -31,8 +31,9 @@ Search and analyze Shopify stores, Facebook ads, ad monitoring, and sales tracki
 
 ## Setup
 
-1. Get your API key at [ppspy.com](https://www.ppspy.com)
-2. Set the environment variable: `PPSPY_API_KEY`
+1. Visit the official website at [ppspy.com](https://www.ppspy.com/) to view real-time dashboard data and product UI.
+2. Visit the direct API site at [api.ppspy.com](https://api.ppspy.com/) to get your API key and manage billing/recharge.
+3. Set the environment variable: `PPSPY_API_KEY`
 
 ## Available Tools (58 total)
 
