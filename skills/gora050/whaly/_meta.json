@@ -3,9 +3,15 @@
   "slug": "whaly",
   "displayName": "Whaly",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774944275354,
-    "commit": "https://github.com/openclaw/skills/commit/ed42889d891214e7d83f93d45112cc8cb3fc3558"
+    "version": "1.0.2",
+    "publishedAt": 1775170033825,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774944275354,
+      "commit": "https://github.com/openclaw/skills/commit/ed42889d891214e7d83f93d45112cc8cb3fc3558"
+    }
+  ]
 }
