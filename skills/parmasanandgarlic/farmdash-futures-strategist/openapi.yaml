@@ -110,7 +110,7 @@ paths:
                     $ref: '#/components/schemas/TechnicalIndicators'
                   strategyHint:
                     type: string
-                    enum: [momentum_long, momentum_short, mean_reversion, no_trade]
+                    enum: [momentum_long, momentum_short, trend_pullback_long, trend_pullback_short, mean_reversion, no_trade]
 
   /v1/agent/futures/account-state:
     get:
@@ -185,6 +185,9 @@ paths:
                   type: string
                   pattern: '^0x[a-fA-F0-9]{40}$'
                   description: Agent's Hyperliquid API wallet address
+                riskMultiplier:
+                  type: number
+                  description: Optional flexibility modifier for risk tolerance. 1.0 is default (2% max). 0.5 is conservative (1% max). Server caps at 1.0.
       responses:
         '200':
           description: Strategy recommendation
@@ -236,10 +239,13 @@ paths:
                   description: Stop-loss price
                 riskPercent:
                   type: number
-                  description: Risk per trade as decimal (default 0.02 = 2%, max 0.02)
+                  description: Risk per trade as decimal (default 0.02 = 2%, server caps at 0.02)
                 targetPrice:
                   type: number
                   description: Take-profit price (for R:R calculation)
+                riskMultiplier:
+                  type: number
+                  description: Optional flexibility modifier for risk tolerance. 1.0 is default (2% max). 0.5 is conservative (1% max). Server caps at 1.0.
       responses:
         '200':
           description: Position sizing result
@@ -484,7 +490,7 @@ components:
       properties:
         recommendedStrategy:
           type: string
-          enum: [funding_arb, momentum_long, momentum_short, mean_reversion, no_trade]
+          enum: [funding_arb, momentum_long, momentum_short, trend_pullback_long, trend_pullback_short, mean_reversion, no_trade]
         confidence:
           type: number
           description: 0-100

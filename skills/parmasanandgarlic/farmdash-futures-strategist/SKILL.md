@@ -226,29 +226,31 @@ Typical profile:
 
 Best when:
 
-- ADX is strong
+- ADX is strong (> 25, or > 35 for very strong trends)
 - EMA and MACD align
-- volume confirms the move
+- Volume confirms the move (> 1.5x average, ideally > 2.0x)
+- RSI aligns with trend direction (dynamic thresholds based on ADX)
 
 Typical profile:
 
-- 3x to 5x leverage cap
+- Dynamic leverage scaling based on ATR (volatility-adjusted, cap 5x)
 - ATR-based stop
-- explicit confirmation that the setup is directional, not neutral
+- Explicit confirmation that the setup is directional, not neutral
 
 ### Mean Reversion
 
 Best when:
 
-- ADX is weak
-- price is stretched versus the local mean
-- Bollinger and RSI show exhaustion
+- ADX is weak (< 20)
+- Price is stretched versus the local mean
+- Bollinger Bands are tight (< 2% width is optimal, > 5% is rejected as too volatile)
+- RSI shows exhaustion (< 35 or > 65)
 
 Typical profile:
 
-- lower leverage
-- tighter invalidation
-- no trade if the market is transitioning into trend
+- Lower leverage (volatility-adjusted, cap 3x)
+- Tighter invalidation (1.5x ATR stop)
+- No trade if the market is transitioning into trend or bands are too wide
 
 ### Position Manager
 
@@ -267,7 +269,8 @@ These rules are non-negotiable:
 
 - max leverage: 5x
 - max risk per trade: 2 percent of equity
-- max position concentration: 20 percent of equity
+- max position concentration: 20 percent of equity (or $50k USD, whichever is lower)
+- minimum stop distance: 0.5% (to prevent oversized positions in low volatility)
 - daily loss halt: -3 percent
 - max drawdown circuit breaker: -15 percent from peak
 - research gate: call `analyze_futures_strategy` before non-reduce-only execution
