@@ -1,33 +1,53 @@
 ---
 name: hangzhou
-description: "数字经济之城，西湖所在地"
-metadata:
-  { "openclaw": { "emoji": "🏙️", "version": "0.1.0", "author": "hanxueyuan", "tags": ["encyclopedia","china","hangzhou"] } }
+description: 杭州城市介绍和旅游指南
+version: 1.0.0
+tags: [city, hangzhou, china, travel, tourism]
 ---
 
-# 🏙️ Hangzhou 杭州
+# 杭州 (Hangzhou)
 
-数字经济之城，西湖所在地
+中国浙江省省会，以西湖美景和数字经济闻名。
 
-## What This Skill Does
+## 城市概况
 
-This skill provides comprehensive information about **Hangzhou 杭州**:
+**杭州**是浙江省省会，副省级市，长三角中心城市之一。
 
-1. **Overview** — What it is, history, key facts
-2. **Latest Updates** — Recent news, developments, and announcements
-3. **Key Data** — Statistics, rankings, records, and metrics
-4. **Resources** — Official websites, useful links, and references
-5. **Related Topics** — Connected entities and recommendations
+### 基本信息
 
-## Example Queries
+| 项目 | 详情 |
+|------|------|
+| **省份** | 浙江省 |
+| **面积** | 16,850 平方公里 |
+| **人口** | 1220 万 |
+| **GDP** | 1.88 万亿人民币 (2022) |
+| **著名景点** | 西湖、灵隐寺 |
 
-- "Tell me about Hangzhou"
-- "Latest news on Hangzhou"
-- "Hangzhou key facts"
+### 著名景点
 
-## How It Works
+| 景点 | 类型 | 简介 |
+|------|------|------|
+| **西湖** | 自然景观 | 世界文化遗产 |
+| **灵隐寺** | 宗教建筑 | 千年古刹 |
+| **宋城** | 主题公园 | 宋代文化主题 |
+| **西溪湿地** | 自然保护区 | 城市湿地公园 |
+| **千岛湖** | 自然景观 | 人工湖景区 |
 
-Uses web search to fetch real-time, comprehensive information from authoritative sources.
+### 数字经济
 
-## Author
-Created by hanxueyuan | Part of the Encyclopedia project | License: MIT
+- 阿里巴巴总部所在地
+- 网易、蚂蚁金服等企业总部
+- 中国电子商务之都
+- 数字经济发展先行区
+
+## 官方网站
+
+- **杭州市政府**: https://www.hangzhou.gov.cn
+- **杭州旅游**: https://www.hztour.com
+
+## 参考链接
+
+- [杭州政府官网](https://www.hangzhou.gov.cn)
+
+---
+**版本**: 1.0.0
