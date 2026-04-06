@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-macro-calendar-catalyst-trader",
-  "displayName": "Calendar Catalyst Trader",
+  "displayName": "Polymarket Macro Calendar Catalyst Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774892534020,
-    "commit": "https://github.com/openclaw/skills/commit/d78cc7bf682bff15541737dffd346530d1bb3d2d"
+    "version": "1.0.1",
+    "publishedAt": 1775317240094,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774892534020,
+      "commit": "https://github.com/openclaw/skills/commit/d78cc7bf682bff15541737dffd346530d1bb3d2d"
+    }
+  ]
 }
