@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-macro-sentiment-divergence-trader",
-  "displayName": "Macro Sentiment Divergence Trader",
+  "displayName": "Polymarket Macro Sentiment Divergence Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774952842055,
-    "commit": "https://github.com/openclaw/skills/commit/737456aba9f38cd0f761f5e440a6c13c0cee3b6d"
+    "version": "1.0.1",
+    "publishedAt": 1775317279204,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774952842055,
+      "commit": "https://github.com/openclaw/skills/commit/737456aba9f38cd0f761f5e440a6c13c0cee3b6d"
+    }
+  ]
 }
