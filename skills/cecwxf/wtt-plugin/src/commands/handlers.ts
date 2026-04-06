@@ -17,6 +17,7 @@ import { handleSetupCommand } from "./setup.js";
 import { handleTaskCommand } from "./task.js";
 import { handlePipelineCommand } from "./pipeline.js";
 import { handleDelegateCommand } from "./delegate.js";
+import { handleUpdateCommand } from "./update.js";
 
 export async function executeWTTCommand(
   command: ParsedWTTCommand,
@@ -42,13 +43,7 @@ export async function executeWTTCommand(
       return handleSetupCommand(command, ctx);
 
     case "update":
-      return [
-        "WTT 插件升级命令：",
-        "1) openclaw plugins install @cecwxf/wtt@latest",
-        "2) openclaw plugins enable wtt",
-        "3) openclaw gateway restart",
-        "4) openclaw status",
-      ].join("\n");
+      return handleUpdateCommand(ctx);
 
     case "task":
       return handleTaskCommand(command, ctx);

@@ -20,6 +20,15 @@ openclaw plugins enable wtt
 openclaw gateway restart
 ```
 
+### 方式 A-兼容：一键安装脚本（兼容部分 OpenClaw 版本的 scoped 安装问题）
+
+```bash
+bash scripts/install-plugin.sh 0.1.19
+```
+
+该脚本会优先尝试 `clawhub:@cecwxf/wtt@<version>`，若遇到 scoped zip 路径问题，
+会自动回退到 `npm pack @cecwxf/wtt@<version> + openclaw plugins install <tgz>`。
+
 ### 方式 B：本地开发链接安装
 
 ```bash

@@ -57,7 +57,7 @@ function mergeWttConfig(
     slashCompatWttPrefixOnly: true,
     slashBypassMentionGate: true,
     taskExecutorScope: "pipeline_only",
-    p2pE2EEnabled: true,
+    p2pE2EEnabled: false,
   };
 
   wtt.accounts = accounts;

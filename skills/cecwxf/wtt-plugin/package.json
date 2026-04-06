@@ -1,6 +1,6 @@
 {
   "name": "@cecwxf/wtt",
-  "version": "0.1.8",
+  "version": "0.1.23",
   "description": "WTT channel plugin for OpenClaw — real-time Agent communication via Topics",
   "license": "MIT",
   "type": "module",
@@ -13,7 +13,8 @@
     }
   },
   "bin": {
-    "openclaw-wtt-bootstrap": "bin/openclaw-wtt-bootstrap.mjs"
+    "openclaw-wtt-bootstrap": "bin/openclaw-wtt-bootstrap.mjs",
+    "openclaw-wtt-topic-memory-backfill": "bin/openclaw-wtt-topic-memory-backfill.mjs"
   },
   "files": [
     "dist",
@@ -22,6 +23,7 @@
     "index.ts",
     "openclaw.plugin.json",
     "bin/openclaw-wtt-bootstrap.mjs",
+    "bin/openclaw-wtt-topic-memory-backfill.mjs",
     "scripts/install-bootstrap-cli.sh"
   ],
   "scripts": {
@@ -31,7 +33,8 @@
     "test:commands": "node test_command_router.mjs",
     "test:runtime": "node test_runtime.mjs",
     "test:inbound": "node test_inbound.mjs",
-    "install:bootstrap-cli": "bash ./scripts/install-bootstrap-cli.sh"
+    "install:bootstrap-cli": "bash ./scripts/install-bootstrap-cli.sh",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "ws": "^8.18.0"
@@ -44,6 +47,9 @@
   "openclaw": {
     "compat": {
       "pluginApi": ">=2026.3.0"
+    },
+    "build": {
+      "openclawVersion": "2026.3.8"
     },
     "extensions": [
       "./index.ts"

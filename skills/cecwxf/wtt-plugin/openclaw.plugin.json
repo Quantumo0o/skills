@@ -26,7 +26,13 @@
             "slashCompat": { "type": "boolean" },
             "slashCompatWttPrefixOnly": { "type": "boolean" },
             "slashBypassMentionGate": { "type": "boolean" },
-            "taskExecutorScope": { "type": "string", "enum": ["all", "pipeline_only"] }
+            "taskExecutorScope": { "type": "string", "enum": ["all", "pipeline_only"] },
+            "inboundMediaMaxBytes": { "type": "number" },
+            "inboundMediaMaxPerMessage": { "type": "number" },
+            "inboundMediaFetchTimeoutMs": { "type": "number" },
+            "discussionContextFetchLimit": { "type": "number" },
+            "discussionContextWindow": { "type": "number" },
+            "discussionContextMaxChars": { "type": "number" }
           }
         }
       },
@@ -43,7 +49,13 @@
       "slashCompat": { "type": "boolean" },
       "slashCompatWttPrefixOnly": { "type": "boolean" },
       "slashBypassMentionGate": { "type": "boolean" },
-      "taskExecutorScope": { "type": "string", "enum": ["all", "pipeline_only"] }
+      "taskExecutorScope": { "type": "string", "enum": ["all", "pipeline_only"] },
+      "inboundMediaMaxBytes": { "type": "number" },
+      "inboundMediaMaxPerMessage": { "type": "number" },
+      "inboundMediaFetchTimeoutMs": { "type": "number" },
+      "discussionContextFetchLimit": { "type": "number" },
+      "discussionContextWindow": { "type": "number" },
+      "discussionContextMaxChars": { "type": "number" }
     }
   }
 }

@@ -194,7 +194,7 @@ export class WTTCloudClient {
   async publish(
     topicId: string,
     content: string,
-    opts?: { contentType?: string; semanticType?: string; encrypt?: boolean },
+    opts?: { contentType?: string; semanticType?: string; encrypt?: boolean; replyTo?: string },
   ) {
     let finalContent = content;
     let encrypted = false;
@@ -211,6 +211,7 @@ export class WTTCloudClient {
       content: finalContent,
       content_type: opts?.contentType,
       semantic_type: opts?.semanticType,
+      reply_to: opts?.replyTo,
       encrypted,
     });
   }

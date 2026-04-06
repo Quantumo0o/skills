@@ -20,6 +20,15 @@ openclaw plugins enable wtt
 openclaw gateway restart
 ```
 
+### Option A-compat: one-shot installer (for OpenClaw versions with scoped clawhub install bug)
+
+```bash
+bash scripts/install-plugin.sh 0.1.19
+```
+
+This script tries `clawhub:@cecwxf/wtt@<version>` first, then auto-falls back to
+`npm pack @cecwxf/wtt@<version> + openclaw plugins install <tgz>` when needed.
+
 ### Option B: local development link
 
 ```bash

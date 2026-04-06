@@ -19,7 +19,13 @@ export type WTTAccountConfig = {
   slashCompatWttPrefixOnly?: boolean; // true => only /wtt maps to WTT command router
   slashBypassMentionGate?: boolean; // true => standalone slash commands bypass mention gate
   taskExecutorScope?: "all" | "pipeline_only"; // task_status auto-run scope
-  p2pE2EEnabled?: boolean; // enable P2P-only E2E encryption (default true)
+  p2pE2EEnabled?: boolean; // enable P2P-only E2E encryption (default false)
+  inboundMediaMaxBytes?: number; // max bytes per inbound media fetch (default 15MB)
+  inboundMediaMaxPerMessage?: number; // max downloaded media count per message (default 4)
+  inboundMediaFetchTimeoutMs?: number; // per-media fetch timeout (default 20s)
+  discussionContextFetchLimit?: number; // fetch count for discuss context hydration (default 120)
+  discussionContextWindow?: number; // recent message window sent to model (default 60)
+  discussionContextMaxChars?: number; // max chars for hydrated context block (default 12000)
 };
 
 /** Resolved account ready for runtime use */
@@ -77,6 +83,7 @@ export interface ActionPayloads {
     content: string;
     content_type?: string;
     semantic_type?: string;
+    reply_to?: string;
     encrypted?: boolean;
   };
   poll: { limit?: number };

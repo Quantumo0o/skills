@@ -34,7 +34,7 @@ import { WTTCloudClient } from "./ws-client.js";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
-import { dirname, join as joinPath } from "node:path";
+import { dirname, extname, join as joinPath } from "node:path";
 import { randomBytes } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
@@ -51,6 +51,12 @@ const DEFAULT_SLASH_COMPAT_ENABLED = false;
 const DEFAULT_SLASH_COMPAT_WTT_PREFIX_ONLY = true;
 const DEFAULT_SLASH_BYPASS_MENTION_GATE = false;
 const DEFAULT_NATURAL_BRIDGE_MIN_DOING_MS = 2500;
+const DEFAULT_INBOUND_MEDIA_MAX_BYTES = 15 * 1024 * 1024;
+const DEFAULT_INBOUND_MEDIA_MAX_PER_MESSAGE = 4;
+const DEFAULT_INBOUND_MEDIA_FETCH_TIMEOUT_MS = 20_000;
+const DEFAULT_DISCUSSION_CONTEXT_FETCH_LIMIT = 200;
+const DEFAULT_DISCUSSION_CONTEXT_WINDOW = 100;
+const DEFAULT_DISCUSSION_CONTEXT_MAX_CHARS = 24_000;
 
 type OpenClawConfig = {
   session?: {
@@ -138,7 +144,13 @@ type GatewayStartContext = {
 const hooks: { before: HookFn[]; after: HookFn[] } = { before: [], after: [] };
 const clients = new Map<string, WTTCloudClient>();
 const topicTypeCache = new Map<string, string>();
-const DEFAULT_P2P_E2E_ENABLED = true;
+const recentTopicMediaCache = new Map<string, {
+  at: number;
+  mediaUrls: string[];
+  mediaTypes: string[];
+}>();
+const DEFAULT_P2P_E2E_ENABLED = false;
+const RECENT_TOPIC_MEDIA_TTL_MS = 10 * 60_000;
 
 function registerHook(phase: "before_tool_call" | "after_tool_call", fn: HookFn): void {
   if (phase === "before_tool_call") hooks.before.push(fn);
@@ -274,9 +286,103 @@ function rememberTopicType(topicId: string | undefined, topicType: string | unde
   }
 }
 
+function recentTopicMediaKey(topicId: string, senderId: string): string {
+  return `${topicId.trim()}::${senderId.trim()}`;
+}
+
+function rememberRecentTopicMedia(topicId: string, senderId: string, mediaUrls: string[], mediaTypes: string[]): void {
+  const topic = topicId.trim();
+  const sender = senderId.trim();
+  if (!topic || !sender || mediaUrls.length === 0) return;
+
+  const dedupUrls = Array.from(new Set(mediaUrls.map((item) => String(item || "").trim()).filter(Boolean)));
+  const dedupTypes = mediaTypes.slice(0, dedupUrls.length);
+  if (dedupUrls.length === 0) return;
+
+  recentTopicMediaCache.set(recentTopicMediaKey(topic, sender), {
+    at: Date.now(),
+    mediaUrls: dedupUrls,
+    mediaTypes: dedupTypes.length > 0 ? dedupTypes : new Array(dedupUrls.length).fill("image/png"),
+  });
+
+  while (recentTopicMediaCache.size > 5000) {
+    const oldest = recentTopicMediaCache.keys().next().value;
+    if (!oldest) break;
+    recentTopicMediaCache.delete(oldest);
+  }
+}
+
+function readRecentTopicMedia(topicId: string, senderId: string): { mediaUrls: string[]; mediaTypes: string[] } | null {
+  const now = Date.now();
+  const key = recentTopicMediaKey(topicId, senderId);
+  const direct = recentTopicMediaCache.get(key);
+  if (direct) {
+    if (now - direct.at <= RECENT_TOPIC_MEDIA_TTL_MS) {
+      return {
+        mediaUrls: direct.mediaUrls.slice(),
+        mediaTypes: direct.mediaTypes.slice(),
+      };
+    }
+    recentTopicMediaCache.delete(key);
+  }
+
+  // Fallback: some environments may surface a changing sender_id for HUMAN
+  // messages. In that case, use latest recent media within the same topic.
+  const prefix = `${topicId.trim()}::`;
+  let best: { at: number; mediaUrls: string[]; mediaTypes: string[] } | null = null;
+  for (const [entryKey, value] of recentTopicMediaCache.entries()) {
+    if (!entryKey.startsWith(prefix)) continue;
+    if (now - value.at > RECENT_TOPIC_MEDIA_TTL_MS) {
+      recentTopicMediaCache.delete(entryKey);
+      continue;
+    }
+    if (!best || value.at > best.at) best = value;
+  }
+
+  if (!best) return null;
+  return {
+    mediaUrls: best.mediaUrls.slice(),
+    mediaTypes: best.mediaTypes.slice(),
+  };
+}
+
+function looksLikeImageFollowupText(text: string): boolean {
+  const raw = String(text || "").trim();
+  if (!raw) return true;
+
+  const compact = raw.replace(/\s+/g, "");
+  if (compact.length <= 24) return true;
+
+  return /(图片|图里|看图|识别|这是啥|这是什么|什么狗|啥狗|what\s+is\s+this|what\s+dog|identify)/i.test(raw);
+}
+
 function isP2PTopicId(topicId: string): boolean {
   const type = topicTypeCache.get(topicId.trim());
   return type === "p2p";
+}
+
+function isDiscussionTopicMessage(raw: WsMessagePayload & Record<string, unknown>, topicId: string): boolean {
+  const topicType = String(raw.topic_type ?? "").trim().toLowerCase();
+  if (topicType === "discussion") return true;
+  if (topicType === "p2p" || topicType === "broadcast" || topicType === "collaborative") return false;
+
+  const cached = topicTypeCache.get(topicId.trim());
+  if (cached === "discussion") return true;
+  if (cached === "p2p" || cached === "broadcast" || cached === "collaborative") return false;
+
+  const metadata = parseInboundMetadata(raw);
+  const metadataType = String(metadata?.topic_type ?? metadata?.topicType ?? "").trim().toLowerCase();
+  if (metadataType === "discussion") return true;
+  if (metadataType === "p2p" || metadataType === "broadcast" || metadataType === "collaborative") return false;
+
+  const metadataChatType = String(metadata?.chat_type ?? metadata?.chatType ?? "").trim().toLowerCase();
+  const metadataIsForum = metadata?.is_forum;
+  if (metadataChatType === "group" || metadataChatType === "supergroup") return true;
+  if (metadataIsForum === true || String(metadataIsForum).toLowerCase() === "true") return true;
+
+  // Heuristic fallback: most non-p2p group threads are discussion-like and
+  // should keep a local topic-memory file for retrieval.
+  return Boolean(topicId && !isLikelyP2PMessage(raw));
 }
 
 function isP2PE2EEnabled(account: ResolvedWTTAccount): boolean {
@@ -873,6 +979,7 @@ function parseWttTarget(rawTarget: string):
 async function sendText(params: {
   to: string;
   text: string;
+  replyTo?: string;
   accountId?: string;
   cfg?: OpenClawConfig;
 }): Promise<{ channel: "wtt"; messageId: string; conversationId?: string; meta?: Record<string, unknown> }> {
@@ -891,7 +998,10 @@ async function sendText(params: {
     response = await client.p2p(target.value, params.text, p2pEncryptEnabled);
   } else {
     const shouldEncryptTopic = p2pEncryptEnabled && isP2PTopicId(target.value);
-    response = await client.publish(target.value, params.text, { encrypt: shouldEncryptTopic });
+    response = await client.publish(target.value, params.text, {
+      encrypt: shouldEncryptTopic,
+      replyTo: params.replyTo,
+    });
   }
 
   await runHooks("after", { tool: "sendText", args: { ...params, target }, result: response });
@@ -911,6 +1021,7 @@ async function sendMedia(params: {
   to: string;
   text?: string;
   mediaUrl?: string;
+  replyTo?: string;
   accountId?: string;
   cfg?: OpenClawConfig;
 }): Promise<{ channel: "wtt"; messageId: string; conversationId?: string; meta?: Record<string, unknown> }> {
@@ -922,6 +1033,7 @@ async function sendMedia(params: {
   return sendText({
     to: params.to,
     text: payload,
+    replyTo: params.replyTo,
     accountId: params.accountId,
     cfg: params.cfg,
   });
@@ -974,7 +1086,918 @@ function sanitizeInboundText(raw: string): string {
   // Strip WTT source marker banner block if present.
   text = text.replace(/┌─ 来源标识[\s\S]*?└[^\n]*\n?/g, "").trim();
 
+  // Remove inline image payload markers from text body.
+  // Why: markdown image syntax starts with `!`, which can be interpreted as
+  // shell-command prefix by OpenClaw slash command surface.
+  text = text.replace(/<img\b[^>]*>/gi, " ");
+  text = text.replace(/!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi, " ");
+  text = text.replace(/(?:^|\n)\s*https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg)(?:\?[^\s]*)?\s*(?=\n|$)/gim, "\n");
+  text = text.replace(/\n{3,}/g, "\n\n").trim();
+
   return text;
+}
+
+function extractInboundImageMedia(raw: string, rawMsg?: Record<string, unknown>): { mediaUrls: string[]; mediaTypes: string[] } {
+  const source = raw || "";
+  const mediaUrls: string[] = [];
+  const mediaTypes: string[] = [];
+
+  const imageExtRe = /\.(?:jpg|jpeg|png|gif|webp|bmp|svg|heic|heif)(?:\?|$)/i;
+  const imageHostHintRe = /(?:^|\/)media\/[0-9a-f-]{16,}(?:\.[a-z0-9]{2,8})?(?:\?|$)/i;
+
+  const pushUrl = (urlRaw: string): void => {
+    const url = String(urlRaw || "").trim().replace(/[),.;]+$/, "");
+    if (!url) return;
+    if (!/^https?:\/\//i.test(url) && !/^\/?.*media\/[0-9a-f-]{16,}/i.test(url)) return;
+    if (mediaUrls.includes(url)) return;
+    mediaUrls.push(url);
+    mediaTypes.push("image/png");
+  };
+
+  const scanStringForImageUrls = (input: string): void => {
+    const text = String(input || "");
+    if (!text) return;
+
+    // HTML <img src="url"> pattern (from rich editor)
+    const htmlImgRe = /<img\s[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi;
+    let htmlMatch: RegExpExecArray | null;
+    while ((htmlMatch = htmlImgRe.exec(text)) !== null) {
+      pushUrl(htmlMatch[1]);
+    }
+
+    // Markdown ![alt](url) pattern (accept absolute + relative media paths)
+    const mdImgRe = /!\[[^\]]*\]\(([^\s)]+)\)/gi;
+    let mdMatch: RegExpExecArray | null;
+    while ((mdMatch = mdImgRe.exec(text)) !== null) {
+      pushUrl(mdMatch[1]);
+    }
+
+    // Generic URL scan (covers metadata/url fields and host URLs without explicit image token)
+    const genericUrlRe = /https?:\/\/[^\s"'<>\])]+/gi;
+    let urlMatch: RegExpExecArray | null;
+    while ((urlMatch = genericUrlRe.exec(text)) !== null) {
+      const candidate = String(urlMatch[0] || "").replace(/[),.;]+$/, "");
+      if (!candidate) continue;
+      if (imageExtRe.test(candidate) || imageHostHintRe.test(candidate)) {
+        pushUrl(candidate);
+      }
+    }
+
+    // Relative media URL scan (e.g. /media/<id> from backend metadata)
+    const relativeMediaRe = /(?:^|[\s(\["'])(\/?media\/[0-9a-f-]{16,}(?:\.[a-z0-9]{2,8})?(?:\?[^\s)"']*)?)/gi;
+    let relMatch: RegExpExecArray | null;
+    while ((relMatch = relativeMediaRe.exec(text)) !== null) {
+      pushUrl(relMatch[1]);
+    }
+
+    // Bare image URLs on their own line (explicit fast path)
+    const bareImgRe = /^(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg)(?:\?[^\s]*)?)$/gim;
+    let bareMatch: RegExpExecArray | null;
+    while ((bareMatch = bareImgRe.exec(text)) !== null) {
+      pushUrl(bareMatch[1]);
+    }
+  };
+
+  const walkUnknown = (value: unknown, depth = 0): void => {
+    if (depth > 5 || value == null) return;
+    if (typeof value === "string") {
+      scanStringForImageUrls(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      const upper = Math.min(value.length, 80);
+      for (let i = 0; i < upper; i += 1) walkUnknown(value[i], depth + 1);
+      return;
+    }
+    if (typeof value !== "object") return;
+
+    const obj = value as Record<string, unknown>;
+    for (const [k, v] of Object.entries(obj)) {
+      const key = k.toLowerCase();
+      if (typeof v === "string") {
+        // Prioritize likely media-related keys.
+        if (key.includes("image") || key.includes("media") || key.includes("url") || key.includes("file") || key.includes("asset") || key.includes("attach")) {
+          scanStringForImageUrls(v);
+        } else if (/https?:\/\//i.test(v)) {
+          scanStringForImageUrls(v);
+        }
+      } else {
+        walkUnknown(v, depth + 1);
+      }
+    }
+  };
+
+  scanStringForImageUrls(source);
+  if (rawMsg) walkUnknown(rawMsg);
+
+  return { mediaUrls, mediaTypes };
+}
+
+function absolutizeInboundMediaUrls(mediaUrls: string[], cloudUrl: string): string[] {
+  const base = String(cloudUrl || "").trim().replace(/\/$/, "");
+  const originMatch = base.match(/^(https?:\/\/[^/]+)/i);
+  const origin = originMatch ? originMatch[1] : base;
+
+  const out: string[] = [];
+  for (const raw of mediaUrls) {
+    let url = String(raw || "").trim();
+    if (!url) continue;
+
+    if (/^\/\//.test(url)) {
+      url = `https:${url}`;
+    } else if (/^\//.test(url) && origin) {
+      url = `${origin}${url}`;
+    } else if (/^media\//i.test(url) && origin) {
+      url = `${origin}/${url}`;
+    }
+
+    if (!/^https?:\/\//i.test(url)) continue;
+    if (out.includes(url)) continue;
+    out.push(url);
+  }
+
+  return out;
+}
+
+function toThumbnailVariantUrl(urlRaw: string): string {
+  const url = String(urlRaw || "").trim();
+  if (!url) return url;
+  if (!/\/media\//i.test(url)) return url;
+
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.get("variant")) {
+      parsed.searchParams.set("variant", "thumb");
+    }
+    return parsed.toString();
+  } catch {
+    // best-effort for non-standard URLs
+    const sep = url.includes("?") ? "&" : "?";
+    if (/([?&])variant=/i.test(url)) return url;
+    return `${url}${sep}variant=thumb`;
+  }
+}
+
+function toThumbnailVariantUrls(urls: string[]): string[] {
+  const out: string[] = [];
+  for (const item of urls) {
+    const normalized = toThumbnailVariantUrl(item);
+    if (!normalized) continue;
+    if (out.includes(normalized)) continue;
+    out.push(normalized);
+  }
+  return out;
+}
+
+function resolveOpenClawHomeDir(): string {
+  const fromEnv = process.env.OPENCLAW_HOME?.trim();
+  if (fromEnv) return fromEnv;
+  return dirname(openclawConfigPath());
+}
+
+function resolveInboundMediaDir(): string {
+  return joinPath(resolveOpenClawHomeDir(), "media", "inbound");
+}
+
+function extensionFromContentType(contentType: string | undefined): string {
+  const normalized = String(contentType || "").toLowerCase();
+  if (!normalized) return "";
+  if (normalized.includes("jpeg") || normalized.includes("jpg")) return ".jpg";
+  if (normalized.includes("png")) return ".png";
+  if (normalized.includes("gif")) return ".gif";
+  if (normalized.includes("webp")) return ".webp";
+  if (normalized.includes("bmp")) return ".bmp";
+  if (normalized.includes("svg")) return ".svg";
+  if (normalized.includes("heic")) return ".heic";
+  if (normalized.includes("heif")) return ".heif";
+  if (normalized.includes("mp4")) return ".mp4";
+  return "";
+}
+
+function extensionFromUrl(urlRaw: string): string {
+  try {
+    const parsed = new URL(urlRaw);
+    const ext = extname(parsed.pathname || "").toLowerCase();
+    if (!ext) return "";
+    if (/^\.[a-z0-9]{1,8}$/.test(ext)) return ext;
+    return "";
+  } catch {
+    const ext = extname(urlRaw).toLowerCase();
+    if (!ext) return "";
+    return /^\.[a-z0-9]{1,8}$/.test(ext) ? ext : "";
+  }
+}
+
+async function downloadInboundMediaToLocal(params: {
+  url: string;
+  account: ResolvedWTTAccount;
+  maxBytes: number;
+  timeoutMs: number;
+}): Promise<{ path: string; contentType?: string; bytes: number }> {
+  const headers: Record<string, string> = {
+    Accept: "image/*,*/*;q=0.8",
+  };
+  if (params.account.token) {
+    headers.Authorization = `Bearer ${params.account.token}`;
+    headers["X-Agent-Token"] = params.account.token;
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.max(1000, params.timeoutMs));
+
+  let response: Response;
+  try {
+    response = await fetch(params.url, {
+      method: "GET",
+      headers,
+      redirect: "follow",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    throw new Error(`http_${response.status}`);
+  }
+
+  const chunks: Buffer[] = [];
+  let total = 0;
+
+  const reader = response.body?.getReader();
+  if (reader) {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > params.maxBytes) {
+        throw new Error(`media_too_large_${total}`);
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } else {
+    const buf = Buffer.from(await response.arrayBuffer());
+    total = buf.length;
+    if (total > params.maxBytes) {
+      throw new Error(`media_too_large_${total}`);
+    }
+    chunks.push(buf);
+  }
+
+  if (total <= 0) {
+    throw new Error("empty_media");
+  }
+
+  const contentType = (response.headers.get("content-type") || "").split(";")[0]?.trim().toLowerCase() || undefined;
+  const ext = extensionFromContentType(contentType) || extensionFromUrl(params.url) || ".bin";
+  const fileName = `wtt-inbound-${Date.now()}-${randomBytes(6).toString("hex")}${ext}`;
+  const mediaDir = resolveInboundMediaDir();
+  await mkdir(mediaDir, { recursive: true });
+  const filePath = joinPath(mediaDir, fileName);
+  await writeFile(filePath, Buffer.concat(chunks));
+
+  return {
+    path: filePath,
+    contentType,
+    bytes: total,
+  };
+}
+
+async function materializeInboundMediaForContext(params: {
+  mediaUrls: string[];
+  mediaTypes: string[];
+  account: ResolvedWTTAccount;
+  accountId: string;
+  preferThumbnail?: boolean;
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<{ mediaPaths: string[]; mediaTypes: string[] }> {
+  if (params.mediaUrls.length === 0) {
+    return { mediaPaths: [], mediaTypes: [] };
+  }
+
+  const maxBytes = toPositiveInt(params.account.config.inboundMediaMaxBytes, DEFAULT_INBOUND_MEDIA_MAX_BYTES);
+  const maxPerMessage = toPositiveInt(params.account.config.inboundMediaMaxPerMessage, DEFAULT_INBOUND_MEDIA_MAX_PER_MESSAGE);
+  const timeoutMs = toPositiveInt(params.account.config.inboundMediaFetchTimeoutMs, DEFAULT_INBOUND_MEDIA_FETCH_TIMEOUT_MS);
+  const sourceUrls = params.mediaUrls
+    .slice(0, Math.max(1, maxPerMessage))
+    .map((url) => (params.preferThumbnail ? toThumbnailVariantUrl(url) : url));
+
+  const mediaPaths: string[] = [];
+  const mediaTypes: string[] = [];
+
+  for (let idx = 0; idx < sourceUrls.length; idx += 1) {
+    const url = sourceUrls[idx] || "";
+    if (!url) continue;
+
+    try {
+      const downloaded = await downloadInboundMediaToLocal({
+        url,
+        account: params.account,
+        maxBytes,
+        timeoutMs,
+      });
+      mediaPaths.push(downloaded.path);
+      mediaTypes.push(downloaded.contentType || params.mediaTypes[idx] || "image/png");
+      params.log?.("info", `[${params.accountId}] inbound media downloaded url=${url} path=${downloaded.path} bytes=${downloaded.bytes}`);
+    } catch (err) {
+      params.log?.("warn", `[${params.accountId}] inbound media download failed url=${url}`, err);
+    }
+  }
+
+  return {
+    mediaPaths,
+    mediaTypes,
+  };
+}
+
+type DiscussionHistoryMessage = {
+  id: string;
+  senderId: string;
+  senderDisplayName?: string;
+  senderType?: string;
+  content: string;
+  createdAt?: string;
+  replyTo?: string;
+  mediaPaths?: string[];
+  mediaUrls?: string[];
+  replyExcerpt?: string;
+};
+
+function resolveTopicMemoryDir(): string {
+  return joinPath(resolveOpenClawHomeDir(), "topic-memory");
+}
+
+function compactDiscussionContent(raw: string): string {
+  const source = String(raw || "");
+  return source
+    .replace(/┌─\s*来源标识[\s\S]*?└[^\n]*\n?/g, "")
+    .replace(/\[回复上下文\][\s\S]*?(?:---|$)/g, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/!\[[^\]]*\]\(([^)]+)\)/g, (_m, u) => `[image:${toThumbnailVariantUrl(String(u || ""))}]`)
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Read and parse the local topic memory file into DiscussionHistoryMessage[].
+ * Returns empty array if the file doesn't exist or is malformed.
+ *
+ * Compatible formats:
+ * - Legacy 2-line entries
+ * - Extended multi-line entries with text/media/reply_excerpt blocks
+ */
+async function readLocalTopicMemory(params: {
+  topicId: string;
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<DiscussionHistoryMessage[]> {
+  if (!params.topicId) return [];
+
+  const path = joinPath(resolveTopicMemoryDir(), `topic_id_${params.topicId}.md`);
+  let raw: string;
+  try {
+    raw = await readFile(path, "utf8");
+  } catch {
+    return []; // file doesn't exist — cold start
+  }
+
+  const messages: DiscussionHistoryMessage[] = [];
+  const lines = raw.split("\n");
+  // Pattern: - [timestamp] type:senderId(displayName) id=xxx [reply_to=xxx] [...]
+  const entryRe = /^- \[([^\]]*)\]\s+([\w]+):(\S+?)(?:\(([^)]*)\))?\s+id=(\S+?)(?:\s+reply_to=(\S+))?(?:\s+.*)?$/;
+
+  let i = 0;
+  while (i < lines.length) {
+    const match = lines[i].match(entryRe);
+    if (!match) {
+      i += 1;
+      continue;
+    }
+
+    const [, createdAt, senderType, senderId, displayName, id, replyTo] = match;
+    i += 1;
+
+    const bodyLines: string[] = [];
+    while (i < lines.length && !entryRe.test(lines[i])) {
+      if (lines[i].startsWith("  ")) bodyLines.push(lines[i].slice(2));
+      i += 1;
+    }
+
+    let content = "";
+    const mediaPaths: string[] = [];
+    const mediaUrls: string[] = [];
+    let replyExcerpt: string | undefined;
+
+    for (const row of bodyLines) {
+      const line = row.trim();
+      if (!line) continue;
+
+      if (line.startsWith("text:")) {
+        content = line.slice("text:".length).trim();
+        continue;
+      }
+
+      if (line.startsWith("media_paths:")) {
+        const payload = line.slice("media_paths:".length).trim();
+        for (const part of payload.split("|").map((item) => item.trim()).filter(Boolean)) {
+          mediaPaths.push(part);
+        }
+        continue;
+      }
+
+      if (line.startsWith("media_urls:")) {
+        const payload = line.slice("media_urls:".length).trim();
+        for (const part of payload.split("|").map((item) => item.trim()).filter(Boolean)) {
+          mediaUrls.push(part);
+        }
+        continue;
+      }
+
+      if (line.startsWith("reply_excerpt:")) {
+        replyExcerpt = line.slice("reply_excerpt:".length).trim() || undefined;
+        continue;
+      }
+
+      if (!content) {
+        content = line;
+      } else {
+        content += ` ${line}`;
+      }
+    }
+
+    messages.push({
+      id,
+      senderId,
+      senderDisplayName: displayName || undefined,
+      senderType: senderType || undefined,
+      content: content.trim(),
+      createdAt: createdAt || undefined,
+      replyTo: replyTo || undefined,
+      mediaPaths,
+      mediaUrls,
+      replyExcerpt,
+    });
+  }
+
+  return messages;
+}
+
+async function fetchDiscussionTopicMessages(params: {
+  account: ResolvedWTTAccount;
+  topicId: string;
+  limit: number;
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<DiscussionHistoryMessage[]> {
+  if (!params.account.token || !params.topicId) return [];
+
+  try {
+    const base = params.account.cloudUrl.replace(/\/$/, "");
+    const resp = await fetch(`${base}/topics/${encodeURIComponent(params.topicId)}/messages?limit=${Math.max(1, params.limit)}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        "X-Agent-Token": params.account.token,
+      },
+    });
+
+    if (!resp.ok) {
+      params.log?.("warn", `[wtt] discussion context fetch failed topic=${params.topicId} status=${resp.status}`);
+      return [];
+    }
+
+    const raw = await resp.json() as unknown;
+    const source = Array.isArray(raw)
+      ? raw
+      : (asRecord(raw)?.messages as unknown[] | undefined) ?? (asRecord(raw)?.items as unknown[] | undefined) ?? [];
+
+    const mapped: DiscussionHistoryMessage[] = [];
+    for (const item of source) {
+      const row = asRecord(item);
+      if (!row) continue;
+
+      const id = toOptionalString(row.message_id) ?? toOptionalString(row.id);
+      const senderId = toOptionalString(row.sender_id) ?? "unknown";
+      const content = String(row.content ?? "").trim();
+      if (!id || !content) continue;
+
+      mapped.push({
+        id,
+        senderId,
+        senderDisplayName: toOptionalString(row.sender_display_name),
+        senderType: toOptionalString(row.sender_type),
+        content,
+        createdAt: toOptionalString(row.created_at),
+        replyTo: toOptionalString(row.reply_to),
+      });
+    }
+
+    mapped.sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return ta - tb;
+    });
+
+    return mapped;
+  } catch (err) {
+    params.log?.("warn", `[wtt] discussion context fetch error topic=${params.topicId}`, err);
+    return [];
+  }
+}
+
+async function hydrateDiscussionTopicMemoryIfMissing(params: {
+  accountId: string;
+  account: ResolvedWTTAccount;
+  topicId: string;
+  topicName?: string;
+  limit: number;
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<void> {
+  if (!params.topicId) return;
+
+  try {
+    const path = joinPath(resolveTopicMemoryDir(), `topic_id_${params.topicId}.md`);
+    try {
+      const existing = await readFile(path, "utf8");
+      if (existing.includes("id=")) return;
+    } catch {
+      // file not found, continue
+    }
+
+    let topicName = params.topicName;
+    const wsClient = getClient(params.accountId);
+
+    if (!topicName && wsClient) {
+      try {
+        const detail = await wsClient.detail(params.topicId);
+        const row = asRecord(detail);
+        topicName = toOptionalString(row?.name) ?? toOptionalString(row?.title) ?? toOptionalString(row?.topic_name);
+      } catch {
+        // ignore detail failure
+      }
+    }
+
+    let seeded: DiscussionHistoryMessage[] = [];
+
+    if (wsClient) {
+      try {
+        const raw = await wsClient.history(params.topicId, Math.max(1, params.limit));
+        const source = Array.isArray(raw)
+          ? raw
+          : (asRecord(raw)?.messages as unknown[] | undefined) ?? (asRecord(raw)?.items as unknown[] | undefined) ?? (asRecord(raw)?.data as unknown[] | undefined) ?? [];
+
+        for (const item of source) {
+          const row = asRecord(item);
+          if (!row) continue;
+
+          const id = toOptionalString(row.id) ?? toOptionalString(row.message_id);
+          const contentRaw = String(row.content ?? "");
+          const media = extractInboundImageMedia(contentRaw, row);
+          const content = sanitizeInboundText(contentRaw).trim() || (media.mediaUrls.length > 0 ? "[media_only]" : "");
+          if (!id || (!content && media.mediaUrls.length === 0)) continue;
+
+          seeded.push({
+            id,
+            senderId: toOptionalString(row.sender_id) ?? "unknown",
+            senderDisplayName: toOptionalString(row.sender_display_name),
+            senderType: toOptionalString(row.sender_type),
+            content,
+            createdAt: toOptionalString(row.created_at),
+            replyTo: toOptionalString(row.reply_to),
+            mediaUrls: toThumbnailVariantUrls(media.mediaUrls),
+          });
+        }
+
+        seeded.sort((a, b) => {
+          const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+          const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+          return ta - tb;
+        });
+
+        if (seeded.length > 0) {
+          params.log?.("info", `[wtt] discussion topic memory cold start via ws history topic=${params.topicId} count=${seeded.length}`);
+        }
+      } catch (err) {
+        params.log?.("warn", `[wtt] discussion ws history fetch failed topic=${params.topicId}`, err);
+      }
+    }
+
+    if (seeded.length === 0) {
+      seeded = await fetchDiscussionTopicMessages({
+        account: params.account,
+        topicId: params.topicId,
+        limit: params.limit,
+        log: params.log,
+      });
+      if (seeded.length > 0) {
+        params.log?.("info", `[wtt] discussion topic memory cold start via http topic=${params.topicId} count=${seeded.length}`);
+      }
+    }
+
+    if (seeded.length > 0) {
+      await persistDiscussionTopicMemory({
+        topicId: params.topicId,
+        topicName,
+        messages: seeded,
+        log: params.log,
+      });
+    }
+  } catch (err) {
+    params.log?.("warn", `[wtt] discussion topic memory hydrate failed topic=${params.topicId}`, err);
+  }
+}
+
+async function persistDiscussionTopicMemory(params: {
+  topicId: string;
+  topicName?: string;
+  messages: DiscussionHistoryMessage[];
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<void> {
+  if (!params.topicId || params.messages.length === 0) return;
+
+  try {
+    const dir = resolveTopicMemoryDir();
+    await mkdir(dir, { recursive: true });
+    const path = joinPath(dir, `topic_id_${params.topicId}.md`);
+
+    const lines: string[] = [];
+    lines.push(`# topic_id_${params.topicId}`);
+    if (params.topicName?.trim()) {
+      lines.push(`topic_name: ${params.topicName.trim()}`);
+    }
+    lines.push(`updated_at: ${new Date().toISOString()}`);
+    lines.push("");
+
+    for (const msg of params.messages) {
+      const ts = msg.createdAt ?? "";
+      const nameTag = msg.senderDisplayName ? `(${msg.senderDisplayName})` : "";
+      const who = `${msg.senderType || "unknown"}:${msg.senderId}${nameTag}`;
+      const content = compactDiscussionContent(msg.content).replace(/\n/g, " ").trim();
+      const mediaCount = (msg.mediaPaths?.length ?? 0) + (msg.mediaUrls?.length ?? 0);
+      const contentForStore = content || (mediaCount > 0 ? "[media_only]" : "");
+      lines.push(`- [${ts}] ${who} id=${msg.id}${msg.replyTo ? ` reply_to=${msg.replyTo}` : ""}${mediaCount > 0 ? ` media_count=${mediaCount}` : ""}`);
+      lines.push(`  text: ${contentForStore}`);
+      if (msg.mediaPaths && msg.mediaPaths.length > 0) {
+        lines.push(`  media_paths: ${msg.mediaPaths.join(" | ")}`);
+      }
+      if (msg.mediaUrls && msg.mediaUrls.length > 0) {
+        lines.push(`  media_urls: ${msg.mediaUrls.join(" | ")}`);
+      }
+      if (msg.replyExcerpt) {
+        lines.push(`  reply_excerpt: ${msg.replyExcerpt}`);
+      }
+    }
+
+    await writeFile(path, `${lines.join("\n")}\n`, "utf8");
+  } catch (err) {
+    params.log?.("warn", `[wtt] discussion topic memory persist failed topic=${params.topicId}`, err);
+  }
+}
+
+/**
+ * Append a single message to the topic memory file incrementally.
+ * Called for every inbound discussion message (not just @mentions),
+ * so the memory file stays up-to-date even without inference triggers.
+ */
+async function appendDiscussionTopicMemory(params: {
+  topicId: string;
+  topicName?: string;
+  msg: DiscussionHistoryMessage;
+  log?: (level: "debug" | "info" | "warn" | "error", msg: string, data?: unknown) => void;
+}): Promise<void> {
+  if (!params.topicId || !params.msg.id) return;
+
+  try {
+    const dir = resolveTopicMemoryDir();
+    await mkdir(dir, { recursive: true });
+    const path = joinPath(dir, `topic_id_${params.topicId}.md`);
+
+    // Check if message already recorded (idempotent)
+    let existing = "";
+    try {
+      existing = await readFile(path, "utf8");
+    } catch {
+      // File doesn't exist yet — will create with header
+    }
+
+    const idMarker = `id=${params.msg.id}`;
+    const history = existing ? await readLocalTopicMemory({ topicId: params.topicId }) : [];
+    if (existing.includes(idMarker)) {
+      // Upsert path: same message id may arrive first without media (push) and
+      // later with richer media URLs (poll). Merge fields instead of dropping.
+      const existingIdx = history.findIndex((item) => item.id === params.msg.id);
+      if (existingIdx >= 0) {
+        const current = history[existingIdx];
+        const incomingContent = compactDiscussionContent(params.msg.content).replace(/\n/g, " ").trim();
+        const incomingMediaPaths = Array.from(new Set((params.msg.mediaPaths ?? []).map((v) => String(v || "").trim()).filter(Boolean)));
+        const incomingMediaUrls = Array.from(
+          new Set(
+            (params.msg.mediaUrls ?? [])
+              .map((v) => toThumbnailVariantUrl(String(v || "").trim()))
+              .filter(Boolean),
+          ),
+        );
+
+        const mergedMediaPaths = Array.from(new Set([...(current.mediaPaths ?? []), ...incomingMediaPaths]));
+        const mergedMediaUrls = Array.from(
+          new Set(
+            [...(current.mediaUrls ?? []), ...incomingMediaUrls]
+              .map((v) => toThumbnailVariantUrl(String(v || "").trim()))
+              .filter(Boolean),
+          ),
+        );
+        const mergedContent = (current.content && current.content !== "[media_only]")
+          ? current.content
+          : (incomingContent || current.content || "");
+
+        const changed = mergedMediaPaths.length !== (current.mediaPaths ?? []).length
+          || mergedMediaUrls.length !== (current.mediaUrls ?? []).length
+          || mergedContent !== current.content;
+
+        if (changed) {
+          history[existingIdx] = {
+            ...current,
+            content: mergedContent,
+            mediaPaths: mergedMediaPaths,
+            mediaUrls: mergedMediaUrls,
+          };
+          await persistDiscussionTopicMemory({
+            topicId: params.topicId,
+            topicName: params.topicName,
+            messages: history,
+            log: params.log,
+          });
+        }
+      }
+      return;
+    }
+
+    const replyTarget = params.msg.replyTo
+      ? history.find((item) => item.id === params.msg.replyTo)
+      : undefined;
+    const replyExcerpt = replyTarget
+      ? compactDiscussionContent(replyTarget.content).slice(0, 220)
+      : undefined;
+
+    const ts = params.msg.createdAt ?? new Date().toISOString();
+    const nameTag = params.msg.senderDisplayName ? `(${params.msg.senderDisplayName})` : "";
+    const who = `${params.msg.senderType || "unknown"}:${params.msg.senderId}${nameTag}`;
+    const content = compactDiscussionContent(params.msg.content).replace(/\n/g, " ").trim();
+    const mediaPaths = Array.from(new Set((params.msg.mediaPaths ?? []).map((v) => String(v || "").trim()).filter(Boolean)));
+    const mediaUrls = Array.from(
+      new Set(
+        (params.msg.mediaUrls ?? [])
+          .map((v) => toThumbnailVariantUrl(String(v || "").trim()))
+          .filter(Boolean),
+      ),
+    );
+    const mediaCount = mediaPaths.length + mediaUrls.length;
+    const contentForStore = content || (mediaCount > 0 ? "[media_only]" : "");
+
+    const lines: string[] = [];
+    lines.push(`- [${ts}] ${who} ${idMarker}${params.msg.replyTo ? ` reply_to=${params.msg.replyTo}` : ""}${mediaCount > 0 ? ` media_count=${mediaCount}` : ""}`);
+    lines.push(`  text: ${contentForStore}`);
+    if (mediaPaths.length > 0) {
+      lines.push(`  media_paths: ${mediaPaths.join(" | ")}`);
+    }
+    if (mediaUrls.length > 0) {
+      lines.push(`  media_urls: ${mediaUrls.join(" | ")}`);
+    }
+    if (replyExcerpt) {
+      lines.push(`  reply_excerpt: ${replyExcerpt}`);
+    }
+
+    if (!existing) {
+      // Create file with header
+      const headerLines = [`# topic_id_${params.topicId}`];
+      if (params.topicName?.trim()) {
+        headerLines.push(`topic_name: ${params.topicName.trim()}`);
+      }
+      headerLines.push(`updated_at: ${new Date().toISOString()}`);
+      headerLines.push("");
+      await writeFile(path, `${headerLines.join("\n")}\n${lines.join("\n")}\n`, "utf8");
+    } else {
+      // Append to existing file
+      await writeFile(path, `${existing.trimEnd()}\n${lines.join("\n")}\n`, "utf8");
+    }
+  } catch (err) {
+    params.log?.("warn", `[wtt] discussion topic memory append failed topic=${params.topicId}`, err);
+  }
+}
+
+function extractDiscussionSearchTokens(text: string): string[] {
+  const source = compactDiscussionContent(text || "").toLowerCase();
+  if (!source) return [];
+
+  const tokens = new Set<string>();
+
+  const latin = source.match(/[a-z0-9_\-]{2,}/g) ?? [];
+  for (const token of latin) tokens.add(token);
+
+  const hanBlocks = source.match(/[\u4e00-\u9fff]{2,}/g) ?? [];
+  for (const block of hanBlocks) {
+    tokens.add(block);
+    for (let i = 0; i < block.length - 1; i += 1) {
+      tokens.add(block.slice(i, i + 2));
+    }
+  }
+
+  return Array.from(tokens).slice(0, 24);
+}
+
+function buildDiscussionContextBlock(params: {
+  messages: DiscussionHistoryMessage[];
+  currentMessageId: string;
+  windowSize: number;
+  maxChars: number;
+  replyTo?: string;
+}): string {
+  if (params.messages.length === 0) return "";
+
+  const currentIdx = Math.max(0, params.messages.findIndex((m) => m.id === params.currentMessageId));
+  const start = Math.max(0, currentIdx - Math.max(1, params.windowSize));
+  const focus = params.messages.slice(start, currentIdx + 1);
+
+  const lines: string[] = [];
+  lines.push("[TOPIC_CONTEXT]");
+  lines.push("以下为当前讨论话题最近消息（按时间顺序）。回答时请结合这些上下文，不要只看 @ 内容。\n");
+
+  if (params.replyTo) {
+    const target = params.messages.find((m) => m.id === params.replyTo);
+    if (target) {
+      const targetName = target.senderDisplayName ? `(${target.senderDisplayName})` : "";
+      lines.push(`[被回复消息] id=${target.id} sender=${target.senderId}${targetName}`);
+      lines.push(compactDiscussionContent(target.content).slice(0, 1200));
+      if (target.mediaPaths && target.mediaPaths.length > 0) {
+        lines.push(`media_paths: ${target.mediaPaths.join(" | ")}`);
+      }
+      if (target.mediaUrls && target.mediaUrls.length > 0) {
+        lines.push(`media_urls: ${target.mediaUrls.join(" | ")}`);
+      }
+      lines.push("");
+    }
+  }
+
+  for (const msg of focus) {
+    const compact = compactDiscussionContent(msg.content);
+    const hasMedia = Boolean((msg.mediaPaths && msg.mediaPaths.length > 0) || (msg.mediaUrls && msg.mediaUrls.length > 0));
+    if (!compact && !hasMedia) continue;
+    const nameTag = msg.senderDisplayName ? `(${msg.senderDisplayName})` : "";
+    const mediaTag = (msg.mediaPaths && msg.mediaPaths.length > 0)
+      ? ` media_paths=${msg.mediaPaths.join("|")}`
+      : ((msg.mediaUrls && msg.mediaUrls.length > 0) ? ` media_urls=${msg.mediaUrls.join("|")}` : "");
+    const replyExcerptTag = msg.replyExcerpt ? ` reply_excerpt=${msg.replyExcerpt}` : "";
+    lines.push(`- id=${msg.id} sender=${msg.senderId}${nameTag}${msg.replyTo ? ` reply_to=${msg.replyTo}` : ""}${mediaTag}${replyExcerptTag}: ${compact || "[media_message]"}`);
+  }
+
+  // Precision retrieval for long discussion topics:
+  // lexical+reply aware hit selection across full topic memory.
+  const currentMessage = params.messages[currentIdx];
+  const queryTokens = extractDiscussionSearchTokens(currentMessage?.content ?? "");
+  if (queryTokens.length > 0 && params.messages.length > Math.max(40, focus.length + 10)) {
+    const focusIds = new Set(focus.map((m) => m.id));
+    const scored = params.messages
+      .filter((m) => !focusIds.has(m.id))
+      .map((m) => {
+        const hay = [
+          compactDiscussionContent(m.content || ""),
+          m.replyExcerpt || "",
+          ...(m.mediaUrls ?? []),
+          ...(m.mediaPaths ?? []),
+        ].join(" ").toLowerCase();
+        let score = 0;
+        for (const tk of queryTokens) {
+          if (tk && hay.includes(tk)) score += tk.length >= 4 ? 3 : 1;
+        }
+        if (params.replyTo && m.id === params.replyTo) score += 8;
+        if (params.replyTo && m.replyTo === params.replyTo) score += 4;
+        if (currentMessage?.replyTo && m.id === currentMessage.replyTo) score += 6;
+        return { m, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8);
+
+    if (scored.length > 0) {
+      lines.push("");
+      lines.push("[检索命中]");
+      for (const { m, score } of scored) {
+        const compact = compactDiscussionContent(m.content || "") || "[media_message]";
+        const mediaTag = (m.mediaPaths && m.mediaPaths.length > 0)
+          ? ` media_paths=${m.mediaPaths.join("|")}`
+          : ((m.mediaUrls && m.mediaUrls.length > 0) ? ` media_urls=${m.mediaUrls.join("|")}` : "");
+        lines.push(`- score=${score} id=${m.id} sender=${m.senderId}${m.replyTo ? ` reply_to=${m.replyTo}` : ""}${mediaTag}: ${compact.slice(0, 240)}`);
+      }
+    }
+  }
+
+  let block = lines.join("\n").trim();
+  if (block.length > params.maxChars) {
+    block = block.slice(block.length - params.maxChars);
+    block = `[TOPIC_CONTEXT-TRUNCATED]\n${block}`;
+  }
+  return block;
 }
 
 function isMeaningfulUserText(text: string): boolean {
@@ -1137,6 +2160,8 @@ function normalizeSlashForWttCommandRouter(text: string, account: ResolvedWTTAcc
     bind: "bind",
     whoami: "whoami",
     help: "help",
+    update: "update",
+    upgrade: "update",
   };
 
   const match = trimmed.match(/^\/([a-z][a-z0-9_:-]*)(?:\s+([\s\S]*))?$/i);
@@ -1311,14 +2336,17 @@ function resolveInboundTopicId(msg: WsMessagePayload & Record<string, unknown>):
 
 function resolveInboundDedupKey(msg: WsNewMessage): string {
   const payload = msg.message as WsMessagePayload & Record<string, unknown>;
+  const { mediaUrls } = extractInboundImageMedia(String(payload.content ?? ""), payload);
+  const mediaSig = mediaUrls.slice(0, 4).join("|") || "no-media";
+  const contentSig = String(payload.content ?? "").slice(0, 48);
   const directId = toOptionalString(payload.id);
-  if (directId) return directId;
+  if (directId) return `${directId}:${mediaSig}:${contentSig}`;
 
   const topicId = resolveInboundTopicId(payload) || "no-topic";
   const senderId = toOptionalString(payload.sender_id) ?? "unknown";
   const createdAt = toOptionalString(payload.created_at) ?? "";
   const content = String(payload.content ?? "").slice(0, 96);
-  return `${topicId}:${senderId}:${createdAt}:${content}`;
+  return `${topicId}:${senderId}:${createdAt}:${mediaSig}:${content}`;
 }
 
 function isLikelyP2PMessage(msg: WsMessagePayload & Record<string, unknown>): boolean {
@@ -1370,37 +2398,18 @@ export function normalizeInboundWsMessage(params: {
   const senderName = toOptionalString(raw.sender_display_name);
   const topicName = toOptionalString(raw.topic_name);
 
-  const content = sanitizeInboundText(params.decryptedContent ?? String(raw.content ?? ""));
+  const rawContent = params.decryptedContent ?? String(raw.content ?? "");
+  let content = sanitizeInboundText(rawContent);
   const messageId = toOptionalString(raw.id) ?? `${topicId || "no-topic"}:${senderId}:${Date.now()}`;
   const timestamp = toIsoTimestamp(raw.created_at);
 
-  // Extract image URLs from content for OpenClaw media-understanding pipeline
-  const mediaUrls: string[] = [];
-  const mediaTypes: string[] = [];
-  // HTML <img src="url"> pattern (from Tiptap rich editor)
-  const htmlImgRe = /<img\s[^>]*\bsrc\s*=\s*"(https?:\/\/[^"]+)"/gi;
-  let htmlMatch: RegExpExecArray | null;
-  while ((htmlMatch = htmlImgRe.exec(content)) !== null) {
-    mediaUrls.push(htmlMatch[1]);
-    mediaTypes.push("image/png");
-  }
-  // Markdown ![alt](url) pattern (from chat input)
-  const mdImgRe = /!\[[^\]]*\]\((https?:\/\/[^\s)]+)\)/gi;
-  let mdMatch: RegExpExecArray | null;
-  while ((mdMatch = mdImgRe.exec(content)) !== null) {
-    if (!mediaUrls.includes(mdMatch[1])) {
-      mediaUrls.push(mdMatch[1]);
-      mediaTypes.push("image/png");
-    }
-  }
-  // Bare image URLs on their own line
-  const bareImgRe = /^(https?:\/\/\S+\.(?:jpg|jpeg|png|gif|webp|svg)(?:\?[^\s]*)?)$/gim;
-  let bareMatch: RegExpExecArray | null;
-  while ((bareMatch = bareImgRe.exec(content)) !== null) {
-    if (!mediaUrls.includes(bareMatch[1])) {
-      mediaUrls.push(bareMatch[1]);
-      mediaTypes.push("image/png");
-    }
+  // Extract image URLs from original message body for OpenClaw media-understanding pipeline.
+  const { mediaUrls, mediaTypes } = extractInboundImageMedia(rawContent, raw);
+
+  // If message is image-only after sanitization, keep a minimal prompt so it
+  // won't be dropped by empty-message gating.
+  if (!content.trim() && mediaUrls.length > 0) {
+    content = "请结合这张图片内容进行识别并回复。";
   }
 
   const isP2P = isLikelyP2PMessage(raw);
@@ -1571,6 +2580,7 @@ export function createInboundMessageRelay(params: {
 async function deliverReplyPayload(params: {
   to: string;
   payload: Record<string, unknown>;
+  replyTo?: string;
   accountId: string;
   cfg: OpenClawConfig;
 }): Promise<void> {
@@ -1592,6 +2602,7 @@ async function deliverReplyPayload(params: {
         to: params.to,
         text: first ? text : "",
         mediaUrl: media,
+        replyTo: params.replyTo,
         accountId: params.accountId,
         cfg: params.cfg,
       });
@@ -1605,6 +2616,7 @@ async function deliverReplyPayload(params: {
   await sendText({
     to: params.to,
     text,
+    replyTo: params.replyTo,
     accountId: params.accountId,
     cfg: params.cfg,
   });
@@ -1638,12 +2650,20 @@ export async function routeInboundWsMessage(params: {
     }
   }
 
-  const normalized = normalizeInboundWsMessage({
+  let normalized = normalizeInboundWsMessage({
     msg: params.msg,
     decryptedContent,
   });
 
   const rawMsg = params.msg.message as WsMessagePayload & Record<string, unknown>;
+  if (normalized.mediaUrls.length > 0) {
+    const absMediaUrls = absolutizeInboundMediaUrls(normalized.mediaUrls, params.account.cloudUrl);
+    normalized = {
+      ...normalized,
+      mediaUrls: absMediaUrls,
+      mediaTypes: absMediaUrls.map(() => "image/png"),
+    };
+  }
   const inboundTaskId = toOptionalString(rawMsg.task_id);
   const inferredTopicType = String(rawMsg.topic_type ?? "").toLowerCase();
   if (normalized.topicId) {
@@ -1654,6 +2674,42 @@ export async function routeInboundWsMessage(params: {
     }
   }
   const typingTopicId = normalized.topicId?.trim() || "";
+  const mentionMatch = resolveMentionMatch(String(rawMsg.content ?? ""), params.account.agentId, params.account.name);
+  const originalMediaUrls = normalized.mediaUrls.slice();
+  const originalMediaTypes = normalized.mediaTypes.slice();
+
+  // Remember recent media from this sender/topic even when the message itself
+  // does not trigger inference (for example: image first, @mention second).
+  if (typingTopicId && originalMediaUrls.length > 0) {
+    rememberRecentTopicMedia(typingTopicId, normalized.senderId, originalMediaUrls, originalMediaTypes);
+    params.log?.("info", `[${params.accountId}] inbound media captured topic=${typingTopicId} sender=${normalized.senderId} count=${originalMediaUrls.length}`);
+  }
+
+  // If current @mention message carries no media, try to reuse sender's latest
+  // media in the same topic so "image + @mention" split messages still work.
+  if (
+    typingTopicId
+    && normalized.mediaUrls.length === 0
+    && mentionMatch.matchesAgent
+    && looksLikeImageFollowupText(normalized.text)
+  ) {
+    const recentMedia = readRecentTopicMedia(typingTopicId, normalized.senderId);
+    if (recentMedia && recentMedia.mediaUrls.length > 0) {
+      normalized = {
+        ...normalized,
+        mediaUrls: recentMedia.mediaUrls,
+        mediaTypes: recentMedia.mediaTypes,
+      };
+      params.log?.("info", `[${params.accountId}] inbound media hydrated from recent cache topic=${typingTopicId} sender=${normalized.senderId} count=${recentMedia.mediaUrls.length}`);
+    } else {
+      const rawKeys = Object.keys(rawMsg || {}).slice(0, 40).join(",");
+      const md = parseInboundMetadata(rawMsg);
+      const metadataKeys = md ? Object.keys(md).slice(0, 30).join(",") : "";
+      const contentPreview = String(rawMsg.content ?? "").slice(0, 120).replace(/\s+/g, " ");
+      params.log?.("info", `[${params.accountId}] inbound media cache_miss topic=${typingTopicId} sender=${normalized.senderId} raw_keys=${rawKeys} metadata_keys=${metadataKeys} content_preview=${contentPreview}`);
+    }
+  }
+
 
   const emitTypingSignal = async (state: "start" | "stop"): Promise<void> => {
     if (!typingTopicId || !params.typingSignal) return;
@@ -1692,11 +2748,6 @@ export async function routeInboundWsMessage(params: {
     }
   };
 
-  if (!isMeaningfulUserText(normalized.text)) {
-    // Ignore empty/visual-only/status payloads to avoid creating empty task requests.
-    return { routed: false, reason: "empty_message" };
-  }
-
   if (isSystemLikeInbound(rawMsg, normalized.text)) {
     // Ignore transport/system chatter in user-facing conversation flow.
     return { routed: false, reason: "system_message" };
@@ -1723,14 +2774,64 @@ export async function routeInboundWsMessage(params: {
 
   const topicType = String(rawMsg.topic_type ?? "").toLowerCase();
   const topicName = String(rawMsg.topic_name ?? "");
+  const isDiscussionTopic = isDiscussionTopicMessage(rawMsg, typingTopicId);
   const isTaskLinkedTopic = Boolean(inboundTaskId || topicName.startsWith("TASK-"));
   const isSlashLike = /^\/\S+/.test((normalized.text || "").trim());
   const inboundMetadata = parseInboundMetadata(rawMsg);
-  const mentionTargetedDiscussion = topicType === "discussion"
-    && resolveMentionMatch(String(rawMsg.content ?? ""), params.account.agentId, params.account.name).matchesAgent;
+  const mentionTargetedDiscussion = isDiscussionTopic && mentionMatch.matchesAgent;
+
+  const hasMeaningfulText = isMeaningfulUserText(normalized.text);
+  const allowVisualOnlyDiscussionMessage = isDiscussionTopic && originalMediaUrls.length > 0;
+  if (!hasMeaningfulText && !allowVisualOnlyDiscussionMessage) {
+    // Ignore empty/status payloads to avoid creating empty task requests.
+    // Exception: discussion image/video-only messages must still enter topic memory.
+    return { routed: false, reason: "empty_message" };
+  }
+
+  // For discussion topics, keep local topic memory complete even when inference
+  // is not triggered. Download image media and index local paths/urls.
+  let indexedTopicMedia: { mediaPaths: string[]; mediaTypes: string[] } = { mediaPaths: [], mediaTypes: [] };
+  if (isDiscussionTopic && typingTopicId && (normalized.text.trim() || originalMediaUrls.length > 0)) {
+    await hydrateDiscussionTopicMemoryIfMissing({
+      accountId: params.accountId,
+      account: params.account,
+      topicId: typingTopicId,
+      topicName: normalized.topicName ?? topicName,
+      limit: 60,
+      log: params.log,
+    });
+
+    if (originalMediaUrls.length > 0) {
+      indexedTopicMedia = await materializeInboundMediaForContext({
+        mediaUrls: originalMediaUrls,
+        mediaTypes: originalMediaTypes,
+        account: params.account,
+        accountId: params.accountId,
+        preferThumbnail: true,
+        log: params.log,
+      });
+    }
+
+    await appendDiscussionTopicMemory({
+      topicId: typingTopicId,
+      topicName: normalized.topicName ?? topicName,
+      msg: {
+        id: normalized.messageId,
+        senderId: normalized.senderId,
+        senderDisplayName: normalized.senderName ?? toOptionalString(rawMsg.sender_display_name),
+        senderType: String(rawMsg.sender_type ?? "unknown"),
+        content: normalized.text,
+        createdAt: normalized.timestamp,
+        replyTo: toOptionalString(rawMsg.reply_to),
+        mediaPaths: indexedTopicMedia.mediaPaths,
+        mediaUrls: toThumbnailVariantUrls(originalMediaUrls),
+      },
+      log: params.log,
+    });
+  }
 
   if (slashCompatEnabled) {
-    if (topicType === "discussion" && !isTaskLinkedTopic && isSlashLike) {
+    if (isDiscussionTopic && !isTaskLinkedTopic && isSlashLike) {
       const targetAgentId = toOptionalString(inboundMetadata?.command_target_agent_id)
         ?? toOptionalString(inboundMetadata?.commandTargetAgentId);
 
@@ -1787,6 +2888,26 @@ export async function routeInboundWsMessage(params: {
     params.log?.("info", `[${params.accountId}] inference_gate bypassed reason=slash_command topic_type=${String(rawMsg.topic_type)}`);
   }
 
+  // Telegram-style media handling: download inbound media first, then pass
+  // local file paths into MediaPath/MediaPaths for stable vision pipeline input.
+  // Reuse files already downloaded for topic-memory indexing when available.
+  const downloadedInboundMedia = indexedTopicMedia.mediaPaths.length > 0
+    ? indexedTopicMedia
+    : await materializeInboundMediaForContext({
+        mediaUrls: normalized.mediaUrls,
+        mediaTypes: normalized.mediaTypes,
+        account: params.account,
+        accountId: params.accountId,
+        log: params.log,
+      });
+
+  const contextMediaPaths = downloadedInboundMedia.mediaPaths.length > 0
+    ? downloadedInboundMedia.mediaPaths
+    : normalized.mediaUrls;
+  const contextMediaTypes = downloadedInboundMedia.mediaTypes.length > 0
+    ? downloadedInboundMedia.mediaTypes
+    : normalized.mediaTypes;
+
   const route = runtime.routing.resolveAgentRoute({
     cfg: params.cfg,
     channel: CHANNEL_ID,
@@ -1826,13 +2947,72 @@ export async function routeInboundWsMessage(params: {
     ?? toOptionalString(rawMsg.title)
     ?? (normalized.topicName && !normalized.topicName.startsWith("TASK-") ? normalized.topicName : undefined);
 
-  const mentionDirective = (topicType === "discussion" && mentionTargetedDiscussion)
+  const mentionDirective = (isDiscussionTopic && mentionTargetedDiscussion)
     ? "注意：这是讨论话题中明确 @ 你的消息，必须直接回应用户问题，禁止输出 NO_REPLY。\n\n"
     : "";
 
-  const bodyForAgent = inboundTaskId && taskTitleCandidate
-    ? `${mentionDirective}任务标题: ${taskTitleCandidate}\n\n用户消息: ${normalized.text}`
-    : `${mentionDirective}${normalized.text}`;
+  const replyToId = toOptionalString(rawMsg.reply_to);
+  let discussionContextBlock = "";
+  if (isDiscussionTopic && normalized.topicId && (mentionTargetedDiscussion || Boolean(replyToId))) {
+    const contextWindow = toPositiveInt(
+      params.account.config.discussionContextWindow,
+      DEFAULT_DISCUSSION_CONTEXT_WINDOW,
+    );
+    const contextMaxChars = toPositiveInt(
+      params.account.config.discussionContextMaxChars,
+      DEFAULT_DISCUSSION_CONTEXT_MAX_CHARS,
+    );
+
+    // Local-first: read from local memory file (kept up-to-date by incremental append).
+    // Only fall back to HTTP if local file is empty (cold start / first encounter).
+    let discussionMessages = await readLocalTopicMemory({
+      topicId: normalized.topicId,
+      log: params.log,
+    });
+
+    if (discussionMessages.length === 0) {
+      // Cold start: HTTP fetch to bootstrap the local memory file
+      params.log?.("info", `[wtt] topic memory cold start, fetching via HTTP topic=${normalized.topicId}`);
+      const contextFetchLimit = toPositiveInt(
+        params.account.config.discussionContextFetchLimit,
+        DEFAULT_DISCUSSION_CONTEXT_FETCH_LIMIT,
+      );
+      discussionMessages = await fetchDiscussionTopicMessages({
+        account: params.account,
+        topicId: normalized.topicId,
+        limit: contextFetchLimit,
+        log: params.log,
+      });
+      if (discussionMessages.length > 0) {
+        await persistDiscussionTopicMemory({
+          topicId: normalized.topicId,
+          topicName: normalized.topicName,
+          messages: discussionMessages,
+          log: params.log,
+        });
+      }
+    }
+
+    if (discussionMessages.length > 0) {
+      discussionContextBlock = buildDiscussionContextBlock({
+        messages: discussionMessages,
+        currentMessageId: normalized.messageId,
+        windowSize: contextWindow,
+        maxChars: contextMaxChars,
+        replyTo: replyToId,
+      });
+
+      const memDir = resolveTopicMemoryDir();
+      const memFile = `topic_id_${normalized.topicId}.md`;
+      discussionContextBlock += `\n\n[TOPIC_MEMORY_FILE] ${memDir}/${memFile}\n如需查看完整讨论历史，请读取上述文件。`;
+    }
+  }
+
+  const bodyCore = inboundTaskId && taskTitleCandidate
+    ? `任务标题: ${taskTitleCandidate}\n\n用户消息: ${normalized.text}`
+    : normalized.text;
+
+  const bodyForAgent = `${mentionDirective}${discussionContextBlock ? `${discussionContextBlock}\n\n` : ""}${bodyCore}`;
 
   const ctxPayload = runtime.reply.finalizeInboundContext({
     // Keep Body plain so downstream task/title extraction uses user text directly.
@@ -1856,13 +3036,17 @@ export async function routeInboundWsMessage(params: {
     Timestamp: normalized.timestamp,
     OriginatingChannel: CHANNEL_ID,
     OriginatingTo: normalized.to,
-    // Pass extracted image URLs to OpenClaw media-understanding pipeline
-    ...(normalized.mediaUrls.length > 0
+    // Pass media as local paths when available (Telegram parity), fallback to
+    // original URLs when download is unavailable.
+    ...(contextMediaPaths.length > 0
       ? {
-          MediaUrl: normalized.mediaUrls[0],
-          MediaUrls: normalized.mediaUrls,
-          MediaType: normalized.mediaTypes[0],
-          MediaTypes: normalized.mediaTypes,
+          MediaPath: contextMediaPaths[0],
+          MediaPaths: contextMediaPaths,
+          MediaUrl: contextMediaPaths[0],
+          MediaUrls: contextMediaPaths,
+          MediaType: contextMediaTypes[0],
+          MediaTypes: contextMediaTypes,
+          OriginalMediaUrls: normalized.mediaUrls.length > 0 ? normalized.mediaUrls : undefined,
         }
       : {}),
   });
@@ -1949,7 +3133,10 @@ export async function routeInboundWsMessage(params: {
           if (params.deliver) {
             await params.deliver({
               to: normalized.to,
-              payload,
+              payload: {
+                ...payload,
+                replyToMessageId: normalized.messageId,
+              },
             });
             return;
           }
@@ -1957,6 +3144,7 @@ export async function routeInboundWsMessage(params: {
           await deliverReplyPayload({
             to: normalized.to,
             payload,
+            replyTo: normalized.messageId,
             accountId: params.accountId,
             cfg: params.cfg,
           });
@@ -1974,7 +3162,7 @@ export async function routeInboundWsMessage(params: {
     await emitTypingSignal("stop");
   }
 
-  const shouldForceMentionAck = topicType === "discussion"
+  const shouldForceMentionAck = isDiscussionTopic
     && Boolean(inferDecision?.trigger)
     && (mentionTargetedDiscussion || inferDecision?.reason === "discussion_runner_match");
 
