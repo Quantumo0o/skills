@@ -3,11 +3,16 @@
   "slug": "agenlace",
   "displayName": "Agenlace",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774581200795,
-    "commit": "https://github.com/openclaw/skills/commit/b037ec81f3a0d6310540b7b673c57a02b0ba9cb0"
+    "version": "1.0.3",
+    "publishedAt": 1775136200667,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774581200795,
+      "commit": "https://github.com/openclaw/skills/commit/b037ec81f3a0d6310540b7b673c57a02b0ba9cb0"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774438243796,
