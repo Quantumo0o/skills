@@ -3,9 +3,15 @@
   "slug": "userleap",
   "displayName": "Userleap",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775009039628,
-    "commit": "https://github.com/openclaw/skills/commit/911a5377b16add3d49f1ab33328c9026fbe1b8c1"
+    "version": "1.0.2",
+    "publishedAt": 1775170294125,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775009039628,
+      "commit": "https://github.com/openclaw/skills/commit/911a5377b16add3d49f1ab33328c9026fbe1b8c1"
+    }
+  ]
 }
