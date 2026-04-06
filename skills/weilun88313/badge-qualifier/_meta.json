@@ -3,9 +3,15 @@
   "slug": "badge-qualifier",
   "displayName": "Badge Qualifier",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774425882066,
-    "commit": "https://github.com/openclaw/skills/commit/4dc2be526dc4b6af4b31976e5978ee2728a30369"
+    "version": "0.4.0",
+    "publishedAt": 1775030030746,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774425882066,
+      "commit": "https://github.com/openclaw/skills/commit/4dc2be526dc4b6af4b31976e5978ee2728a30369"
+    }
+  ]
 }
