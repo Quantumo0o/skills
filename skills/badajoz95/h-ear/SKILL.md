@@ -4,11 +4,7 @@ description: "H-ear.world transforms sound into an actionable, meaningful transl
 version: 0.1.0
 author: H-ear World
 homepage: https://h-ear.world
-openclaw:
-  requires:
-    env: [HEAR_API_KEY, HEAR_ENV]
-    bins: []
-  primaryEnv: HEAR_API_KEY
+metadata: {"openclaw": {"requires": {"env": ["HEAR_API_KEY", "HEAR_ENV"], "bins": []}, "primaryEnv": "HEAR_API_KEY"}}
 ---
 
 # H-ear — Sound Intelligence for AI Agents
@@ -33,9 +29,12 @@ H-ear.world transforms sound into an actionable, meaningful translation layer of
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `HEAR_API_KEY` | Yes | | H-ear Enterprise API key. Get one at [h-ear.world](https://h-ear.world). |
+| `HEAR_API_KEY` | Yes* | | H-ear Enterprise API key (`ncm_sk_...`). Required unless `HEAR_BEARER_TOKEN` is set. Get one at [h-ear.world](https://h-ear.world). |
+| `HEAR_BEARER_TOKEN` | Yes* | | OAuth bearer token. Alternative to `HEAR_API_KEY` — one of the two must be set. |
 | `HEAR_ENV` | Yes | | Target environment: `dev`, `staging`, or `prod`. |
 | `HEAR_BASE_URL` | No | Per-environment default | Override API base URL (advanced). |
+
+*One of `HEAR_API_KEY` or `HEAR_BEARER_TOKEN` is required.
 
 ## Webhook Delivery
 

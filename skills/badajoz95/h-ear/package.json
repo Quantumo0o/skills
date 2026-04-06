@@ -1,6 +1,6 @@
 {
   "name": "@h-ear/openclaw",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenClaw skill for H-ear World audio classification — sound intelligence in WhatsApp, Telegram, Slack, Discord, and Teams",
   "type": "module",
   "main": "./dist/index.js",
@@ -23,7 +23,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@h-ear/core": "*"
+    "@h-ear/core": "^0.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -6,6 +6,7 @@
 import type {
     ClassifyResult, ClassesResult, HealthResult,
     UsageResult, JobsResult, JobResult, AsyncAccepted,
+    JobEventsResult, JobAudioResult, JobWaveformResult,
     EnterpriseWebhookListResult, EnterpriseWebhook, EnterpriseWebhookCreateResult,
     PingResult, WebhookDeliveriesResult,
 } from '@h-ear/core';
@@ -78,20 +79,20 @@ export function formatHealth(result: HealthResult): string {
 }
 
 export function formatUsage(result: UsageResult): string {
-    const minutesPct = result.minutesTotal > 0
-        ? Math.round((result.minutesUsed / result.minutesTotal) * 100)
+    const minutesPct = result.period.minutesLimit > 0
+        ? Math.round((result.period.minutesUsed / result.period.minutesLimit) * 100)
         : 0;
-    const callsPct = result.callsLimit > 0
-        ? Math.round((result.callsToday / result.callsLimit) * 100)
+    const callsPct = result.daily.limit > 0
+        ? Math.round((result.daily.used / result.daily.limit) * 100)
         : 0;
 
     return [
         `**H-ear API Usage**`,
-        `Plan: ${result.plan}`,
-        `Minutes: ${result.minutesUsed.toLocaleString()} / ${result.minutesTotal.toLocaleString()} (${minutesPct}%)`,
-        `Today: ${result.callsToday.toLocaleString()} / ${result.callsLimit.toLocaleString()} calls (${callsPct}%)`,
-        `Active keys: ${result.activeKeys}`,
-        `Period: ${result.periodStart} to ${result.periodEnd}`,
+        `Tier: ${result.tier}`,
+        `Minutes: ${result.period.minutesUsed.toLocaleString()} / ${result.period.minutesLimit.toLocaleString()} (${minutesPct}%)`,
+        `Today: ${result.daily.used.toLocaleString()} / ${result.daily.limit.toLocaleString()} calls (${callsPct}%)`,
+        `Remaining: ${result.daily.remaining.toLocaleString()} calls`,
+        `Period: ${result.period.start} to ${result.period.end}`,
     ].join('\n');
 }
 
@@ -106,15 +107,15 @@ export function formatJobsList(result: JobsResult): string {
         lines.push('|--------|--------|------|--------|---------|');
 
         for (const job of result.jobs) {
-            const id = job.jobId.substring(0, 8);
+            const id = (job.jobId || '-').substring(0, 8);
             const status = job.status === 'completed' ? 'done' : job.status;
             const file = job.fileName || '-';
             const events = job.eventCount ?? '-';
-            const created = job.createdAt.substring(0, 16).replace('T', ' ');
+            const created = job.createdAt ? job.createdAt.substring(0, 16).replace('T', ' ') : '-';
             lines.push(`| ${id}... | ${status} | ${file} | ${events} | ${created} |`);
         }
 
-        if (result.pagination.hasMore) {
+        if (result.hasMore) {
             lines.push('', `_Showing ${result.jobs.length} of ${result.total} — use "jobs last N" for more._`);
         }
     } else {
@@ -168,6 +169,60 @@ export function formatClassifySubmitted(accepted: AsyncAccepted): string {
         '',
         `Check status: \`job ${accepted.requestId}\``,
     ].join('\n');
+}
+
+export function formatJobEvents(result: JobEventsResult): string {
+    const lines: string[] = [
+        `**Job Events** (${result.total} total)`,
+        `Job: ${result.jobId.substring(0, 8)}...`,
+        '',
+    ];
+
+    if (result.events.length > 0) {
+        lines.push('| Sound | Confidence | Category | Time |');
+        lines.push('|-------|-----------|----------|------|');
+
+        for (const event of result.events.slice(0, 20)) {
+            const name = event.tier2 || event.tier1;
+            const pct = `${Math.round(event.confidence * 100)}%`;
+            const cat = event.tier1;
+            const time = `${event.startTime.toFixed(1)}s`;
+            lines.push(`| ${name} | ${pct} | ${cat} | ${time} |`);
+        }
+
+        if (result.hasMore) {
+            lines.push('', `_Showing ${result.events.length} of ${result.total} — use pagination for more._`);
+        }
+    } else {
+        lines.push('No events found.');
+    }
+
+    return lines.join('\n');
+}
+
+export function formatJobAudio(result: JobAudioResult): string {
+    const lines: string[] = [
+        `**Job Audio**`,
+        `Job: ${result.jobId.substring(0, 8)}...`,
+        `URL: ${result.audioUrl}`,
+        `Expires: ${result.expiresAt}`,
+    ];
+    if (result.duration) lines.push(`Duration: ${result.duration.toFixed(1)}s`);
+    if (result.mimeType) lines.push(`Type: ${result.mimeType}`);
+    return lines.join('\n');
+}
+
+export function formatJobWaveform(result: JobWaveformResult): string {
+    const lines: string[] = [
+        `**Job Waveform**`,
+        `Job: ${result.jobId.substring(0, 8)}...`,
+        `Waveform: ${result.waveformUrl}`,
+        `Zoom: ${result.zoom} (${result.samplesPerPixel} samples/px)`,
+        `Expires: ${result.expiresAt}`,
+    ];
+    if (result.audioUrl) lines.push(`Audio: ${result.audioUrl}`);
+    if (result.duration) lines.push(`Duration: ${result.duration.toFixed(1)}s`);
+    return lines.join('\n');
 }
 
 export function formatAlertRegistered(soundClass: string): string {

@@ -3,11 +3,16 @@
   "slug": "h-ear",
   "displayName": "H-ear",
   "latest": {
-    "version": "0.1.7",
-    "publishedAt": 1775152582134,
-    "commit": "https://github.com/openclaw/skills/commit/40561392b4b437c218d51ce79487fdb5ce9cee7e"
+    "version": "0.2.1",
+    "publishedAt": 1775432401379,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.7",
+      "publishedAt": 1775152582134,
+      "commit": "https://github.com/openclaw/skills/commit/40561392b4b437c218d51ce79487fdb5ce9cee7e"
+    },
     {
       "version": "0.1.2",
       "publishedAt": 1774925833848,
