@@ -159,7 +159,7 @@ class ComfyUIExecutor:
         url = f"{self.server_url}/prompt"
         
         try:
-            response = self.session.post(url, json=workflow, timeout=30)
+            response = self.session.post(url, json={"prompt": workflow}, timeout=30)
             
             if response.status_code >= 400:
                 raise Exception(f"提交工作流失败: HTTP {response.status_code}, {response.text}")

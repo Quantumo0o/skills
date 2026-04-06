@@ -3,7 +3,7 @@
 # ComfyUI 服务配置
 server:
   # ComfyUI 服务地址
-  url: "http://127.0.0.1:8188"
+  url: ""
   # API 密钥（可选，如果 ComfyUI 启用了鉴权）
   api_key: null
 
