@@ -23,14 +23,20 @@ Use the skill whenever you want to replicate the NVIDIA `models.providers.nvidia
 
 ```bash
 python skills/nvidia-model-config/scripts/merge_nvidia_config.py \
-  --config openclaw.json --backup
+  --config openclaw.json --key "YOUR_KEY" --setup-env ~/.config/openclaw/gateway.env --setup-systemd --backup
 ```
 
 - `--config` defaults to `openclaw.json` in the current directory.
+- `--key` provides the API key (alternatively, set `NVIDIA_API_KEY` in your shell).
+- `--setup-env` writes the key to a dedicated environment file (e.g., `~/.config/openclaw/gateway.env`).
+- `--setup-systemd` creates a systemd user override to load the environment file for the gateway.
 - `--backup` saves the original file as `openclaw.json.bak` before overwriting.
 - By default, the script writes `models.providers.nvidia.apiKey` as:
   - `{"source":"env","provider":"default","id":"NVIDIA_API_KEY"}`
-- Set your key in the **runtime environment** where the OpenClaw **gateway** runs. That is not always the same as your interactive shell.
+
+### Manual Environment Setup
+
+If you prefer not to use `--setup-systemd`, you must set your key in the **runtime environment** where the OpenClaw **gateway** runs.
 
 **Interactive shell / CLI only** (e.g. testing `openclaw` in a terminal):
 

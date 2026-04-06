@@ -101,6 +101,16 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--setup-env",
+        type=Path,
+        help="Write the API key to a .env file for the gateway (e.g., ~/.config/openclaw/gateway.env).",
+    )
+    parser.add_argument(
+        "--setup-systemd",
+        action="store_true",
+        help="Create a systemd user override for the openclaw-gateway service to use the .env file.",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print patched JSON to stdout instead of writing to disk.",
@@ -124,6 +134,50 @@ def dump_config(path: Path, data: dict):
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
         f.write("\n")
+
+
+def setup_env_file(path: Path, key_id: str, key: str):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines = []
+    if path.exists():
+        with path.open("r", encoding="utf-8") as f:
+            lines = f.readlines()
+    
+    updated = False
+    new_lines = []
+    for line in lines:
+        if line.startswith(f"{key_id}="):
+            new_lines.append(f"{key_id}={key}\n")
+            updated = True
+        else:
+            new_lines.append(line)
+    
+    if not updated:
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] += "\n"
+        new_lines.append(f"{key_id}={key}\n")
+    
+    with path.open("w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+    
+    os.chmod(path, 0o600)
+    print(f"Updated environment file: {path}")
+
+
+def setup_systemd_override(env_file: Path, key_id: str):
+    override_dir = Path("~/.config/systemd/user/openclaw-gateway.service.d").expanduser()
+    override_dir.mkdir(parents=True, exist_ok=True)
+    override_file = override_dir / "nvidia-env.conf"
+    
+    content = f"""[Service]
+Environment={key_id}=
+EnvironmentFile=-{env_file.resolve()}
+"""
+    with override_file.open("w", encoding="utf-8") as f:
+        f.write(content)
+    
+    print(f"Created systemd override: {override_file}")
+    print("Run: systemctl --user daemon-reload && systemctl --user restart openclaw-gateway.service")
 
 
 def remove_inline_env_key(config: dict, key_id: str):
@@ -162,9 +216,9 @@ def merge_nvidia_provider(config: dict, api_key: str | None, key_id: str, inline
 def main():
     args = parse_args()
     key = args.key or os.environ.get(args.key_id)
-    if args.inline_key and not key:
+    if (args.inline_key or args.setup_env) and not key:
         raise SystemExit(
-            f"NVIDIA API key required via --key or {args.key_id} environment variable when --inline-key is used."
+            f"NVIDIA API key required via --key or {args.key_id} environment variable when --inline-key or --setup-env is used."
         )
 
     config_path = args.config.expanduser()
@@ -182,6 +236,13 @@ def main():
         shutil.copy2(config_path, backup_path)
 
     dump_config(config_path, config)
+    print(f"Updated OpenClaw config: {config_path}")
+
+    if args.setup_env and key:
+        env_path = args.setup_env.expanduser()
+        setup_env_file(env_path, args.key_id, key)
+        if args.setup_systemd:
+            setup_systemd_override(env_path, args.key_id)
 
 
 if __name__ == "__main__":
