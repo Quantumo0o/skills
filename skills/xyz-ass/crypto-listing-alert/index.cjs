@@ -6,7 +6,7 @@ const os = require("os");
 const http = require("http");
 const https = require("https");
 
-const DEFAULT_API_URL = "https://noteagent.ai/api";
+const DEFAULT_API_URL = "https://listingalert.org/api";
 //const DEFAULT_API_URL = "http://localhost:8004/api"
 const CONFIG_DIR = ".exchange-alerts";
 const CONFIG_FILE = "config.json";

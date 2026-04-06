@@ -1,7 +1,7 @@
 ﻿---
 name: crypto-listing-alert
 description: Use when users want to subscribe, pay, or manage Crypto Listing Alert notifications for exchange listing events and need Telegram, Discord, or Email delivery with API-key login.
-version: 1.0.1
+version: 1.0.2
 ---
 
 # Crypto Listing Alert Skill
@@ -57,7 +57,7 @@ node skills/crypto-listing-alert/index.cjs check-login --json
 - If `logged_in = true`: proceed normally.
 - If `logged_in = false`: immediately guide user to get API key from website first, then login:
 
-  1. Visit `https://noteagent.ai`
+  1. Visit `https://listingalert.org`
   2. Register/login and generate API key
   3. Run:
 
@@ -74,7 +74,7 @@ Do not continue subscription/payment commands before login is ready.
 1. Always use `--json` flag when calling the CLI.
 
 2. First-time setup flow:
-   - User must first login website and generate API key at `https://noteagent.ai`.
+   - User must first login website and generate API key at `https://listingalert.org`.
    - Check local login state via `check-login --json`.
    - If not logged in, run:
      `node skills/crypto-listing-alert/index.cjs login --api-key <KEY> --json`
@@ -129,7 +129,7 @@ Expected response (example):
 ```json
 {
   "logged_in": true,
-  "api_url": "https://noteagent.ai/api",
+  "api_url": "https://listingalert.org/api",
   "config_path": ".../.exchange-alerts/config.json"
 }
 ```
