@@ -3,9 +3,15 @@
   "slug": "ai-tech-deep-analysis",
   "displayName": "AI Tech Deep Analysis",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774430319589,
-    "commit": "https://github.com/openclaw/skills/commit/8e7e1baa4f7ece0f98e0809deaf133514f2641ef"
+    "version": "1.0.1",
+    "publishedAt": 1775013544582,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774430319589,
+      "commit": "https://github.com/openclaw/skills/commit/8e7e1baa4f7ece0f98e0809deaf133514f2641ef"
+    }
+  ]
 }
