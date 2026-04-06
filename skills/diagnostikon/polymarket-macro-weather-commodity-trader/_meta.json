@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-macro-weather-commodity-trader",
-  "displayName": "Weather-Commodity Trader",
+  "displayName": "Polymarket Macro Weather Commodity Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774953040979,
-    "commit": "https://github.com/openclaw/skills/commit/62c0eb2d3d9a2686c6d773cb9d7ca50053995d41"
+    "version": "1.0.1",
+    "publishedAt": 1775317285187,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774953040979,
+      "commit": "https://github.com/openclaw/skills/commit/62c0eb2d3d9a2686c6d773cb9d7ca50053995d41"
+    }
+  ]
 }
