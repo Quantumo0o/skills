@@ -1,19 +1,19 @@
 {
-  "name": "48 Zodiac Cyber Reader",
-  "version": "1.0.10",
-  "description": "Provides fast, secure analysis of 48 zodiac zones and detailed dual compatibility scores. Accepts either 48-Zodiac IDs or birth-date strings, which are resolved by the API. All user-facing interpretations must be grounded in tool output. (48星区配对)",
+  "name": "48-zodiac-cyber-reader",
+  "version": "1.0.14",
+  "description": "Provides fast, secure 48 zodiac analysis and dual compatibility readings using only month-day inputs or zone IDs, with no local system access and tool-grounded output.",
   "author": "Miaozai Studio",
   "license": "MIT",
   "env": {},
   "tools": [
     {
       "name": "get_zone_details",
-      "description": "获取指定 48 星区的单人性格与深层人格解析。参数 'sign' 支持传入 48 星区 ID（如 'taurus2'）或生日字符串（如 '07-01'、'7/1'、'7月1日'），由 API 自动解析并返回真实查询结果。",
+      "description": "Fetch detailed personality and deep-character analysis for a specified 48 Zodiac zone. The 'sign' parameter accepts either a 48-Zodiac ID (e.g., 'taurus2') or a birthdate string (e.g., '07-01', '7/1'). The API resolves it automatically.",
       "command": "python zodiac_api.py zone {{sign}}"
     },
     {
       "name": "get_pairing_details",
-      "description": "获取两个 48 星区的深度宿命感情配对报告、打分及相处避坑指南。参数 'sign1' 和 'sign2' 支持传入 48 星区 ID 或生日字符串（如 '05-09'、'5/9'、'5月9日'），由 API 自动解析并返回真实配对结果。",
+      "description": "Fetch in-depth destiny-style romantic compatibility report, score, and relationship guide for two 48 Zodiac signs. Parameters 'sign1' and 'sign2' accept either 48-Zodiac IDs or birthdate strings (e.g., '05-09', '5/9'). The API resolves them automatically.",
       "command": "python zodiac_api.py pairing {{sign1}} {{sign2}}"
     }
   ]

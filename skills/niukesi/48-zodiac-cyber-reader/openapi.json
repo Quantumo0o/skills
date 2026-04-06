@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "48 Zodiac Cyber Reader API",
-    "description": "Provides fast, secure analysis of 48 Zodiac zones and detailed dual compatibility scores without requiring API keys. Inputs may be 48-Zodiac IDs or birth-date strings, which are resolved server-side at request time. (48星区配对与性格解析专属大模型插件)",
-    "version": "1.0.3"
+    "description": "Provides fast, secure analysis of 48 Zodiac zones and detailed dual compatibility scores without requiring API keys. Inputs may be 48-Zodiac IDs or birth-date strings, which are resolved server-side at request time.",
+    "version": "1.0.4"
   },
   "servers": [
     {
@@ -14,14 +14,14 @@
     "/api/zone": {
       "get": {
         "operationId": "getZoneDetails",
-        "summary": "获取指定单个星区的深度性格解析",
-        "description": "通过传入 48 星区 ID（如 taurus2）或生日字符串（如 05-09、5/9、5月9日）获取该星区的人格属性、核心映像等详细说明。服务端会在请求时自动完成生日到星区 ID 的解析。",
+        "summary": "Get detailed personality analysis for a single 48 Zodiac zone",
+        "description": "Retrieve personality attributes, core impressions and detailed descriptions for a given 48 Zodiac zone by passing either a zone ID (e.g. taurus2) or a birthdate string (e.g. 05-09, 5/9). The server resolves the birthdate to the corresponding zone ID automatically.",
         "parameters": [
           {
             "name": "sign",
             "in": "query",
             "required": true,
-            "description": "48 星区 ID 或生日字符串。支持如 aries1、05-09、5/9、5月9日。生日输入仅用于请求时映射到对应星区 ID。",
+            "description": "48 Zodiac ID or birthdate string. Supports formats like aries1, 05-09, 5/9. Birthdate is resolved to the corresponding zone ID at request time.",
             "schema": {
               "type": "string"
             }
@@ -29,7 +29,7 @@
         ],
         "responses": {
           "200": {
-            "description": "查询成功，返回单人 48 星区的结构化数据（含 id、name、title、details）"
+            "description": "Success — returns structured single-zone data including id, name, title, and details."
           }
         }
       }
@@ -37,14 +37,14 @@
     "/api/pairing": {
       "get": {
         "operationId": "getPairingDetails",
-        "summary": "获取两个星区之间的深度宿命配对解析",
-        "description": "传入两个人的 48 星区 ID 或生日字符串（支持无序），获取双方的契合度分数、优劣势标签、以及在情感、工作、家人维度的具体相处模式解析。服务端会在请求时自动完成生日到星区 ID 的解析。",
+        "summary": "Get in-depth destiny-style compatibility analysis between two 48 Zodiac zones",
+        "description": "Retrieve compatibility scores, strength/risk tags, and detailed relationship patterns across emotional, work and life dimensions for two 48 Zodiac signs. Pass either zone IDs or birthdate strings (order-independent). The server resolves birthdates automatically.",
         "parameters": [
           {
             "name": "sign1",
             "in": "query",
             "required": true,
-            "description": "第一个人的 48 星区 ID 或生日字符串。支持如 taurus2、05-09、5/9、5月9日。",
+            "description": "The first person's 48 Zodiac ID or birthdate string. Supports formats like taurus2, 05-09, 5/9.",
             "schema": {
               "type": "string"
             }
@@ -53,7 +53,7 @@
             "name": "sign2",
             "in": "query",
             "required": true,
-            "description": "第二个人的 48 星区 ID 或生日字符串。支持如 cancer1、07-01、7/1、7月1日。",
+            "description": "The second person's 48 Zodiac ID or birthdate string. Supports formats like cancer1, 07-01, 7/1.",
             "schema": {
               "type": "string"
             }
@@ -61,7 +61,7 @@
         ],
         "responses": {
           "200": {
-            "description": "查询成功，返回双人的多维度配对评估（含 sign1、sign2、title、score、tags、strengths、risks、suggestions 和 details）"
+            "description": "Success — returns multi-dimensional pairing evaluation including sign1, sign2, title, score, tags, strengths, risks, suggestions, and details."
           }
         }
       }

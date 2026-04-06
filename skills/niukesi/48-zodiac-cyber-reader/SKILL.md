@@ -1,7 +1,15 @@
 # 48星区赛博星契师 (48 Zodiac Cyber Reader)
 
+Provides fast, secure 48 zodiac analysis and dual compatibility readings using only month-day inputs or zone IDs, with no local system access and tool-grounded output.
+
 这是一个专为大模型智能体设计的 **纯净、无鉴权、零越权风险** 的情感生态 Plugin/Skill。
 通过接入高速 Serverless 边缘网络，秒级获取精准的 48 星区深度解析与双人宿命配对数据。
+
+## Privacy & Data Handling
+- This skill only needs a month-day birthday input such as `05-09` or `5/9`. Users should not provide birth year, birth time, phone numbers, or any unrelated personal data.
+- The Python client sends the month-day string only to the read-only zodiac API endpoint for sign resolution and compatibility lookup.
+- The skill does not request API keys, passwords, local files, environment variables, or elevated system permissions.
+- The skill performs no local persistence and is designed only to fetch zodiac results and format them for the agent.
 
 ## 🛡️ 极简安全声明 (Security First)
 针对近期大模型生态出现的安全审计问题，本插件立项之初即采用最高级别代码洁癖架构：
