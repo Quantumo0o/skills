@@ -1,7 +1,7 @@
 ---
 name: kinema-skill-making-pipeline
 displayName: "Kinema's Skill Making Pipeline"
-version: 1.2.3
+version: 1.4.0
 description: |
   KinemaClaw Skill development and publishing specification. Defines the standard process for skill development, version management, and publishing. All skills built in KinemaClaw must follow this specification.
   Trigger: Creating new skills, publishing skills, modifying existing skills.
@@ -11,6 +11,7 @@ description: |
 
 - **Author**: [LeeShunEE](https://github.com/LeeShunEE)
 - **Organization**: [KinemaClawWorkspace](https://github.com/KinemaClawWorkspace)
+- **GitHub**: https://github.com/KinemaClawWorkspace/kinema-skill-making-pipeline
 
 本规范定义了 KinemaClaw ecosystem 中 skill 的开发、版本管理、发布的标准化流程。
 
@@ -180,24 +181,125 @@ Must include: | 包含：
 - displayName: human-readable name with feature description | 人类可读名称（含功能描述）
 - version: semantic version number | 语义化版本号
 - description: functionality description and trigger condition | 功能描述和触发条件
-- Author link: \`[YourName](https://github.com/yourname)\`
-- Organization link: \`[YourOrg](https://github.com/yourorg)\`
 - Complete usage instructions | 完整使用说明
+
+**作者声明规范**:
+
+SKILL.md 正文开头（标题之后）必须声明作者信息：
+
+```markdown
+# Skill Name
+
+- **Author**: [AuthorName](https://github.com/authorname)
+- **Organization**: [OrgName](https://github.com/orgname)
+- **GitHub**: https://github.com/orgname/skill-name
+```
+
+| 字段 | 说明 |
+|------|------|
+| Author | 作者 GitHub 个人主页链接 |
+| Organization | 所属组织 GitHub 主页链接 |
+| GitHub | Skill 源码仓库链接 |
 
 **displayName 格式规范**:
 - 统一格式: \`Name (Feature Description)\`
 
 ### 2. Onboarding | Onboarding
 
-Must have at least one of: | 必须有以下之一：
-- **Text onboarding**: Installation, configuration, startup instructions in SKILL.md | 文本 onboarding: 在 SKILL.md 中包含安装、配置、启动说明
-- **Script onboarding**: Automated installation/configuration scripts | 脚本 onboarding: 提供自动化安装/配置脚本
+**ONBOARDING.md 是必选文件。** SKILL.md 不包含安装/配置细节，仅引用 ONBOARDING.md。
 
-Recommended: | 推荐包含：
-- One-click install command | 一键安装命令
-- Configuration instructions (environment variables, etc.) | 配置说明（环境变量等）
-- Start/stop methods | 启动/停止方法
-- Troubleshooting | 故障排除
+#### 2.1 SKILL.md 中的 Onboarding 引导
+
+SKILL.md 文件开头（`#` 标题之后、Environment Variables 之前）必须包含以下引导块：
+
+```markdown
+## ⚠️ Before First Use | 首次使用必读
+
+**首次使用此 skill 前，必须先读取 [ONBOARDING.md](ONBOARDING.md) 完成环境配置。**
+
+- **首次配置** → 读取 ONBOARDING.md 完成全部步骤
+- **环境不可用**（命令不存在、依赖缺失、连接失败）→ 读取 ONBOARDING.md Troubleshooting 排查修复
+- **配置完成后** → 直接使用下方 Run Commands
+```
+
+Agent 读取 SKILL.md 时会看到此块，根据场景决定是否继续读取 ONBOARDING.md。
+
+#### 2.2 ONBOARDING.md 结构规范
+
+ONBOARDING.md 是给 AI Agent 执行的引导文档，必须按以下结构编写：
+
+```markdown
+# <Skill Name> Onboarding
+
+> 本文档指导 AI Agent 完成首次环境配置。按顺序执行，遇到问题时参考 Troubleshooting。
+
+## Prerequisites | 前置条件
+（列出运行此 skill 所需的系统和软件条件）
+
+## Step 1: <步骤名称>
+### 检测
+（检测命令 + 期望输出，agent 据此判断是否需要执行本步骤）
+### 安装
+（多种降级方案，按优先级排列，agent 逐条尝试）
+### 验证
+（验证命令 + 期望输出，确认本步骤完成）
+
+## Step 2: <步骤名称>
+...
+
+## Step N: <验证连接或最终检查>
+
+## Troubleshooting | 故障排除
+（按错误信息分类的排查表，每行包含：错误 → 原因 → 解决方案）
+```
+
+**编写规则：**
+
+| 规则 | 说明 |
+|------|------|
+| 按顺序执行 | Steps 之间有依赖关系，不可跳步 |
+| 每步可独立验证 | 每个 Step 必须有验证命令 + 期望输出 |
+| 降级策略 | 每步提供多种方案（至少 2 种），适配不同环境 |
+| 不硬编码路径 | 用 `<skill_dir>` 等占位符，agent 运行时替换 |
+| 需要用户输入时明确标注 | 如"必须询问用户" "用户提供"，不猜测 |
+| Troubleshooting 覆盖常见错误 | 列出所有已知失败场景和解决方案 |
+
+#### 2.3 setup.reference.sh（可选）
+
+对于安装配置较复杂的 skill，可提供 `scripts/setup.reference.sh` 作为**参考范式**。
+
+**注意**：
+- 文件名必须包含 `reference`，明确标识为参考文件而非可执行脚本
+- **Agent 不应直接执行此文件**，而是读取其内容，根据当前环境适配执行
+- 内容是安装流程的模板代码，展示检测→安装→验证的逻辑模式
+
+```bash
+# scripts/setup.reference.sh - SETUP REFERENCE (DO NOT EXECUTE DIRECTLY)
+# Agent should read this file and adapt commands to current environment.
+
+# Step 1: Check Python
+python3 --version
+
+# Step 2: Install dependencies (try in order)
+uv pip install --system requests 2>/dev/null || \
+pip3 install requests 2>/dev/null || \
+sudo pip3 install --break-system-packages requests
+
+# Step 3: Create symlink
+sudo ln -sf <skill_dir>/scripts/tool.py /usr/local/bin/tool
+
+# Step 4: Verify
+tool --help
+```
+
+#### 2.4 Onboarding 触发场景
+
+| 场景 | Agent 行为 |
+|------|-----------|
+| **首次使用** | 读取 ONBOARDING.md，按 Step 1-N 顺序执行 |
+| **环境不可用** | 读取 ONBOARDING.md Troubleshooting，按错误信息匹配解决方案 |
+| **依赖缺失** | 跳转到对应 Step 重新执行安装 |
+| **版本升级后** | 重新执行 ONBOARDING 全流程（新版本可能引入新依赖） |
 
 ### 3. Prohibited Content | 禁止内容
 
@@ -216,12 +318,14 @@ Skills must NOT contain: | skill 中**禁止**包含：
 ## Directory Structure | 目录结构
 
 ```
-<skill-name>/               # Git repository | Git 仓库
-├── SKILL.md                # Required: skill definition | 必需
-├── README.md               # Recommended: project readme | 推荐
-├── LICENSE                 # Recommended: license | 推荐
-├── scripts/                # Optional: automation scripts | 可选
-└── references/             # Optional: reference materials | 可选
+<skill-name>/                     # Git repository | Git 仓库
+├── SKILL.md                      # Required: skill definition | 必需
+├── ONBOARDING.md                 # Required: onboarding guide | 必需（见 Onboarding 章节）
+├── README.md                     # Recommended: project readme | 推荐
+├── LICENSE                       # Recommended: license | 推荐
+├── scripts/                      # Optional: scripts | 可选
+│   └── setup.reference.sh        # Optional: setup reference | 可选（见 Onboarding 章节）
+└── references/                   # Optional: reference materials | 可选
 ```
 
 ## Automation Script Example | 自动化脚本示例
