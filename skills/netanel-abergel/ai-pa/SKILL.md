@@ -5,6 +5,13 @@ description: "AI Personal Assistant network skill for multi-agent PA coordinatio
 
 # AI-PA Network Skill
 
+## Load Local Context
+```bash
+CONTEXT_FILE="/opt/ocana/openclaw/workspace/skills/ai-pa/.context"
+[ -f "$CONTEXT_FILE" ] && source "$CONTEXT_FILE"
+# Then use: $OWNER_PHONE, $PA_LIST_FILE, $JID_PA_ONBOARDING, etc.
+```
+
 ## Minimum Model
 Any model that can follow numbered steps and run bash commands.
 
@@ -12,7 +19,15 @@ Any model that can follow numbered steps and run bash commands.
 
 ## Directory Setup
 
-Contact data lives in `data/pa-directory.json`. If this file is missing, create it first.
+**PRIMARY SOURCE:** Always read PA contacts from `/opt/ocana/openclaw/workspace/PA_LIST.md` — this is the live, maintained index.
+
+`data/pa-directory.json` may be used as a secondary/legacy source but PA_LIST.md takes precedence.
+
+**Silence Rules:**
+- Casual acks from PAs (👍, "got it", "thanks", "noted") → **NO_REPLY** unless directly asked
+- "sure thing" rule: if a PA says "thanks" in a DM context → reply "sure thing"
+
+Contact data also lives in `data/pa-directory.json`. If this file is missing, create it first.
 
 ### Schema
 
