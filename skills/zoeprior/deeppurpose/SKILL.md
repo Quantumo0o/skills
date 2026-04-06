@@ -1,9 +1,13 @@
 ---
 name: deeppurpose
 description: Help install, inspect, run, troubleshoot, and adapt the DeepPurpose molecular modeling library for drug-target interaction prediction, compound property prediction, DDI, PPI, protein function prediction, drug repurposing, and virtual screening. Use when the user mentions DeepPurpose, `from DeepPurpose import`, `DTI`, `CompoundPred`, `DDI`, `PPI`, `ProteinPred`, `oneliner`, `data_process`, `generate_config`, DeepPurpose datasets, encodings, pretrained models, toy data, or demo notebooks.
+license: BSD-3-Clause
 ---
 
 # DeepPurpose
+
+This skill is adapted from DeepPurpose, copyright (c) 2020 Kexin Huang,
+Tianfan Fu, licensed under BSD 3-Clause.
 
 Prefer a local DeepPurpose checkout over web summaries. Treat a directory as the
 repo root when it contains `setup.py`, `requirements.txt`, `DeepPurpose/`,
