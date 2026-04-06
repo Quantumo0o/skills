@@ -5,6 +5,8 @@ license: MIT-0
 metadata: {"openclaw":{"plugin":{"name":"MOVA","installCmd":"openclaw plugins install openclaw-mova"},"dataSentToExternalServices":[{"service":"MOVA API (api.mova-lab.eu)","data":"trade ID, wallet address, chain, token pair, order size, leverage, AI analysis results, human decision, audit metadata"},{"service":"Market data connector (read-only)","data":"token pair for price and volatility lookup"},{"service":"Sanctions screening connector (read-only)","data":"wallet address screened against OFAC, EU, UN lists"}]}}
 ---
 
+> **Contract Skill** — A ready-to-use MOVA HITL workflow. Requires the `openclaw-mova` plugin.
+
 # MOVA Crypto Trade Review
 
 Submit a crypto trade order to MOVA for automated risk analysis and a mandatory human decision gate — with a tamper-proof audit trail of every trading decision.
