@@ -1,11 +1,143 @@
 ---
 name: workout-tracker
-description: 个人健身跟踪器 — 根据您的健身房器械情况，通过拍照或文字记录健身器材，自动识别动作并解析组数/次数/重量，实时记录训练数据并写入本地 MySQL 数据库。支持制定符合您需求的专属训练计划、根据本周训练情况智能生成针对性训练计划、查询历史训练记录、追踪进步曲线，以及训练后状态反馈。是一款既专业又温暖的健身陪伴助手。
+description: 个人健身跟踪器 — 通过文字记录健身训练数据，自动解析动作、组数、次数和重量，实时写入本地 MySQL 数据库。支持制定专属训练计划、查询历史记录、追踪进步曲线，以及球类和有氧运动记录。
+metadata: {"clawdbot":{"emoji":"🏋️","requires":{"bins":["python3","mysql"],"env":["MYSQL_USER","MYSQL_PASSWORD","MYSQL_DATABASE","MYSQL_SOCKET"]},"primaryEnv":"MYSQL_PASSWORD"}}
 ---
 
 # Workout Tracker
 
 记录健身数据，自动解析训练内容并写入数据库。
+
+## 🚀 完整安装指南
+
+### 1. 安装依赖
+```bash
+# 安装 Python MySQL 连接器
+pip install mysql-connector-python
+
+# 验证安装
+python3 -c "import mysql.connector; print('✅ mysql-connector-python 已安装')"
+```
+
+### 2. 安全配置环境变量（推荐方法）
+
+#### 方法 A：使用 .env 文件（最安全）
+```bash
+# 创建 .env 配置文件
+cat > .workout-tracker.env << 'EOF'
+MYSQL_SOCKET="/tmp/mysql.sock"
+MYSQL_USER="workout_user"
+MYSQL_PASSWORD="your_secure_password"  # 替换为实际密码
+MYSQL_DATABASE="workout_tracker"
+EOF
+
+# 设置文件权限（仅当前用户可读）
+chmod 600 .workout-tracker.env
+
+# 加载配置
+source .workout-tracker.env
+```
+
+#### 方法 B：临时环境变量（会话有效）
+```bash
+# 仅在当前终端会话中有效
+export MYSQL_SOCKET="/tmp/mysql.sock"
+export MYSQL_USER="workout_user"
+export MYSQL_PASSWORD="your_password"  # 注意：密码会出现在 shell 历史中
+export MYSQL_DATABASE="workout_tracker"
+```
+
+#### 方法 C：交互式输入（最安全，无痕迹）
+```python
+# 使用脚本提示输入密码，不存储在任何地方
+import getpass
+import os
+
+password = getpass.getpass("请输入 MySQL 密码: ")
+os.environ['MYSQL_PASSWORD'] = password
+```
+
+**⚠️ 安全警告**：避免将密码存储在 ~/.bashrc、~/.zshrc 或版本控制的文件中。
+
+### 3. 数据库用户创建
+```sql
+-- 在 MySQL 中执行
+CREATE USER IF NOT EXISTS 'workout_user'@'localhost' IDENTIFIED BY 'your_password';
+GRANT INSERT, SELECT, UPDATE, DELETE ON workout_tracker.* TO 'workout_user'@'localhost';
+FLUSH PRIVILEGES;
+CREATE DATABASE IF NOT EXISTS workout_tracker;
+```
+
+### 4. 初始化数据库（一键脚本）
+```bash
+# 运行初始化脚本
+python3 /path/to/workout-tracker/scripts/init_database.py
+```
+
+### 5. 验证安装
+```bash
+# 运行验证脚本
+python3 /path/to/workout-tracker/scripts/verify_setup.py
+```
+
+### 安全配置（推荐使用 .env 文件）
+```bash
+# 创建安全的 .env 配置文件（不上传至版本控制）
+cat > ~/.workout-tracker.env << 'EOF'
+# Workout Tracker 数据库配置
+# ⚠️ 警告：此文件包含敏感信息，不要上传到版本控制
+MYSQL_SOCKET="/tmp/mysql.sock"
+MYSQL_USER="workout_user"
+MYSQL_PASSWORD="your_secure_password_here"  # 替换为你的实际密码
+MYSQL_DATABASE="workout_tracker"
+EOF
+
+# 设置文件权限（仅当前用户可读）
+chmod 600 ~/.workout-tracker.env
+
+# 在 shell 中加载配置
+source ~/.workout-tracker.env
+```
+
+### 自动化安装脚本（安全版本）
+```bash
+#!/bin/bash
+# workout-tracker-setup-secure.sh
+
+echo "🏋️ Workout Tracker 安全安装"
+
+# 安装 Python 依赖
+echo "📦 安装 Python 依赖..."
+pip install mysql-connector-python
+
+# 创建安全的配置模板
+echo "🔐 创建安全配置模板..."
+cat > workout-tracker-config-template.env << 'EOF'
+# Workout Tracker 配置模板
+# 1. 将此文件复制为 .workout-tracker.env
+# 2. 填写实际的数据库密码
+# 3. 设置文件权限: chmod 600 .workout-tracker.env
+
+MYSQL_SOCKET="/tmp/mysql.sock"
+MYSQL_USER="workout_user"
+MYSQL_PASSWORD=""  # ⬅️ 在此处填写你的 MySQL 密码
+MYSQL_DATABASE="workout_tracker"
+EOF
+
+echo "✅ 安装完成！"
+echo ""
+echo "📋 后续步骤："
+echo "1. 填写数据库密码: cp workout-tracker-config-template.env ~/.workout-tracker.env"
+echo "2. 编辑 ~/.workout-tracker.env 设置密码"
+echo "3. 设置文件权限: chmod 600 ~/.workout-tracker.env"
+echo "4. 加载配置: source ~/.workout-tracker.env"
+echo "5. 验证安装: python3 scripts/verify_setup.py"
+echo ""
+echo "🔒 安全提示："
+echo "- 永远不要在版本控制中包含 .env 文件"
+echo "- 使用强密码并定期更换"
+echo "- 数据库用户仅授予最小必要权限"
+```
 
 ## 本地配置说明
 
@@ -56,13 +188,13 @@ workout_items (id, session_id, exercise_type_id, set_order, reps, weight_kg, dis
 
 用户一次性报完整动作计划 → 我预排所有组 → 用户每完成一组说 done → 我逐条标记完成
 
-**用户指令格式：**
-- `"动作 重量 X组×Y次"` → 预排所有组，notes 标"⏳待完成"，回复"已预排X组，每完成一组说done"
-- `"done"` → 标记当前 session 最新一条"⏳"为"✓完成"，回复"第N组完成，还剩X组"（鼓励概率20%）
-- `"done 这组是X次"` → 同上，并更新该组 reps
-- `"done 加一组"` → 同上，并在该动作下追加一条新的"⏳待完成"记录
-- `"动作名 重量 X组×Y次"` → 切换到新动作，重新预排
-- `"结束了"` → 训练完成，更新 duration，询问状态评分
+**用户命令示例：**
+- 说`"深蹲 60公斤 4组×8次"` → 预排所有组，记录为待完成状态，回复"已预排4组，每完成一组说done"
+- 说`"done"` → 标记当前训练最新一组为完成状态，回复"第1组完成！还剩3组"
+- 说`"done 这组是10次"` → 同上，并更新该组次数为10次
+- 说`"done 加一组"` → 完成当前组，并追加一组相同训练
+- 说`"卧推 40公斤 3组×10次"` → 切换到新动作，重新预排
+- 说`"结束了"` → 训练完成，自动计算时长，询问状态评分
 
 **操作流程（预排模式）：**
 ```
@@ -161,17 +293,13 @@ UPDATE workout_sessions SET notes=? WHERE id=?;  -- score_note, sid
 3. 批量插入 workout_items
 4. 回复汇总
 
-### 模式三：照片识别器械
-
-用户发送健身房照片 → image工具识别 → 录入 gym_equipment 表
-
-### 模式四：制定训练计划（基础版）
+### 模式三：制定训练计划（基础版）
 
 用户说"今天练腿给我一个计划"
 → 根据 gym_equipment 中的器械，生成针对性的训练计划
 → 回复格式：热身 → 主项 → 辅助项 → 拉伸
 
-### 模式五：智能生成训练计划（增强版）
+### 模式四：智能生成训练计划（增强版）
 
 当用户说"今天练X"、"我要练X"、"给我一个X训练计划"时，自动执行：
 
@@ -217,7 +345,7 @@ ORDER BY category;
 💡备注：{上次训练情况及建议}
 ```
 
-### 模式六：查询记录
+### 模式五：查询记录
 
 用户问"今天练了什么"、"上周训练几次"等
 → 执行查询SQL → 整理成表格回复
@@ -296,19 +424,119 @@ UPDATE workout_sessions SET notes = CONCAT('状态评分: ', ?, '/10 | ', ?) WHE
 - "瑜伽"、"拉伸"、"普拉提" → `柔韧`
 - 其他（卧推、深蹲、硬拉、引体等） → `力量`
 
-## 注意事项
+## 模式六：球类/有氧运动记录（简化流程）
 
-## SQL 安全规范
+用户说"网球一小时"、"游泳半小时"等，直接创建 session，不走预排组流程。
 
-所有用户输入必须经过参数化查询，禁止字符串拼接 SQL：
+**识别规则：**
+- 运动名 + 时长（网球/羽毛球/乒乓球/篮球/足球/游泳/跑步/骑行/椭圆机 等）
+- 时长单位：小时/分钟/小时半（1.5小时）
+
+**操作流程：**
+1. 匹配 `exercise_types.name`（模糊匹配 sport_name）
+2. 创建 session，`sport_name` 字段写入运动名，`workout_type` 设为 `有氧`
+3. `duration_min` 写入实际时长（分钟）
+4. 不创建 `workout_items`（这类运动不需要组数记录）
+5. 回复汇总即可
+
+**SQL：**
 ```sql
--- ✅ 正确：参数化查询
-INSERT INTO workout_items (session_id, exercise_type_id, set_order, reps, weight_kg, notes)
-VALUES (?, ?, ?, ?, ?, ?);
-
--- ❌ 错误：字符串拼接（禁止）
-INSERT INTO workout_items ... VALUES (${session_id}, ${exercise_type_id}, ...);
+-- 创建运动记录
+INSERT INTO workout_sessions (user_id, workout_date, sport_name, workout_type, duration_min, start_time)
+VALUES (1, CURDATE(), '网球发球机', '有氧', 60, NOW());
 ```
+
+**回复模板：**
+```
+🎾 网球发球机训练记录完成
+───
+⏱️ 时长：60 分钟
+🏃 类型：有氧
+───
+状态评分 1-10？
+```
+
+## SQL 安全规范（严格禁止 SQL 注入）
+
+**所有用户输入必须经过参数化查询，禁止任何形式的字符串拼接 SQL。**
+
+### ✅ 正确做法（参数化查询）
+```python
+# Python + MySQL Connector 示例
+import mysql.connector
+
+# 使用参数化查询
+cursor.execute(
+    "INSERT INTO workout_items (session_id, exercise_type_id, set_order, reps, weight_kg) VALUES (%s, %s, %s, %s, %s)",
+    (session_id, exercise_type_id, set_order, reps, weight_kg)
+)
+
+# LIKE 查询也必须参数化
+search_term = "深蹲"
+cursor.execute(
+    "SELECT * FROM exercise_types WHERE name LIKE %s",
+    (f"%{search_term}%",)  # 参数化，安全
+)
+```
+
+### ❌ 绝对禁止的做法
+```python
+# ❌ 危险：字符串拼接（极易 SQL 注入）
+cursor.execute(f"INSERT INTO ... VALUES ({session_id}, {exercise_type_id}, ...)")
+
+# ❌ 危险：使用 .format() 或 %
+cursor.execute("SELECT * FROM exercise_types WHERE name LIKE '%{}%'".format(user_input))
+
+# ❌ 危险：直接拼接用户输入到 SQL
+sql = "SELECT * FROM exercise_types WHERE name LIKE '%" + user_input + "%'"
+cursor.execute(sql)
+```
+
+### ⚠️ 特别注意
+1. **LIKE 子句**：必须参数化整个模式，不能只参数化搜索词
+2. **表名/列名**：不能参数化，必须白名单验证
+3. **整数/浮点数**：同样需要参数化，不要以为数字就安全
+4. **Python f-string**：绝对禁止用于 SQL 语句构建
+
+### 🔒 额外防护措施
+1. 数据库用户使用最小权限原则（仅 GRANT INSERT/SELECT/UPDATE/DELETE）
+2. 所有查询记录日志（用于审计异常）
+3. 输入验证：动作名称长度限制、数字范围检查
+4. 错误消息不泄露数据库结构
+
+## 安全审计清单（部署前必须检查）
+
+### 🔍 SQL 注入防护
+- [ ] 所有 SQL 查询使用参数化语句（?, %s 等占位符）
+- [ ] 绝对禁止字符串拼接构建 SQL
+- [ ] LIKE 查询完全参数化（包括通配符 % 和 _）
+- [ ] 整数/浮点数值也使用参数化查询
+
+### 🔐 数据库权限
+- [ ] 创建专用数据库用户（非 root）
+- [ ] 仅授予最小权限：INSERT/SELECT/UPDATE/DELETE
+- [ ] 禁止 DROP、CREATE、ALTER 权限
+- [ ] 定期审计数据库用户权限
+
+### 🛡️ 输入验证
+- [ ] 动作名称长度限制（例如 50 字符）
+- [ ] 数字范围验证（reps: 1-100, weight: 0-500kg）
+- [ ] 时间/日期格式验证
+- [ ] 特殊字符过滤或转义
+
+### 📝 安全配置
+- [ ] 数据库连接使用本地 socket（非 TCP）
+- [ ] 错误消息不泄露数据库结构
+- [ ] 查询日志记录（用于审计异常）
+- [ ] 定期备份数据库
+
+### 🚨 应急响应
+- [ ] 监控异常查询模式
+- [ ] 记录失败登录尝试
+- [ ] 准备数据库恢复方案
+- [ ] 定期安全更新 MySQL
+
+---
 
 ## 注意事项
 
