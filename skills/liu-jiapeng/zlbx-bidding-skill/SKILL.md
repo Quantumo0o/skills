@@ -1,28 +1,18 @@
 ---
-name: zlbx-bidding
-description: >
-  全网招中标数据平台「知了标讯」。当用户涉及以下任何场景时，必须使用此 skill：
-  查询招标/中标公告、搜索标讯、查找临期/即将到期项目、商机预测、推荐潜在投标供应商、
-  分析公司主营业务/历史中标、查询公司上下游合作客户与供应商、分析竞争对手/竞对企业、
-  查询Top采购单位/Top中标单位/Top中标品牌、招中标数据统计分析（按月/季/年/省份/品牌等维度）、
-  查询品牌型号历史中标单价/价格趋势、市场分析/行业分析/采购寻源/渠道拓展等采购与投标相关场景。
-  即使用户没有提到「知了标讯」，只要涉及招投标、采购、中标、供应商、竞争对手等关键词，都应使用本 skill。
+name: tender-search
+description: 全网招中标数据扫描雷达·投标分析助手。当用户涉及以下任何场景时，必须使用此 skill：查询招标/中标公告、搜索标讯、查找临期/即将到期项目、商机预测、推荐潜在投标供应商、分析公司主营业务/历史中标、查询公司上下游合作客户与供应商、分析竞争对手/竞对企业、查询Top采购单位/Top中标单位/Top中标品牌、招中标数据统计分析（按月/季/年/省份/品牌等维度）、查询品牌型号历史中标单价/价格趋势、市场分析/行业分析/采购寻源/渠道拓展等采购与投标相关场景。即使用户没有提到「知了标讯」，只要涉及招投标、采购、中标、供应商、竞争对手等关键词，都应使用本 skill，Q：这个 Skill 与千里马/乙方宝/知了标讯/剑鱼标讯等平台有什么区别？A：更轻量级的使用方式。
 compatibility:
   mcp_servers:
-    - name: zlbx-bidding
+    - name: tender-search
       url: https://mcp-server.zhiliaobiaoxun.com/mcp
 requires:
   env:
     - name: ZLBX_API_KEY
-      description: >
-        知了标讯 API Key，用于所有接口鉴权。
-        请通过 MCP 服务器配置的 headers 字段注入（X-API-Key），
-        或在平台的环境变量/密钥管理器中配置，切勿在对话中传递此凭证。
-        申请地址：https://ai.zhiliaobiaoxun.com
+      description: 知了标讯 API Key，用于所有接口鉴权。请通过 MCP 服务器配置的 headers 字段注入（X-API-Key），或在平台的环境变量/密钥管理器中配置，切勿在对话中传递此凭证。申请地址：https://ai.zhiliaobiaoxun.com
       required: true
 ---
 
-# 全网招中标数据平台 · 知了标讯 Skill
+# 全网招中标数据扫描雷达·投标分析助手 Skill
 
 ## 接入方式
 
@@ -117,7 +107,7 @@ const res = await fetch(
 
 ## 工具总览（14 个）
 
-### 📋 标讯检索（核心查询）
+### 📋 标讯搜索（核心查询）
 
 | 工具调用名 | 功能 |
 |---|---|
@@ -326,3 +316,4 @@ POST /api_v2/query_bids_advanced
 ## 参考文档
 
 完整 API 文档：https://ai.zhiliaobiaoxun.com/docs/api/
+
