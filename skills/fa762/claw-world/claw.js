@@ -22,7 +22,7 @@ const CONTRACTS = NET === 'mainnet' ? {
   pk:     '0xA58e9E0D5f3970d46c9779a9A127DdAc60508dfF',
   market: '0x6e3d89B36a7f396143Ff123e8a40F66FE2382a54',
   world:  '0xC375E0a2f4e06cF79b4571AB4d2f6118482b9FCA',
-  clw:    '0x82404d91cd6b6cb16b58c650a26122bdc0af7777'
+  clw:    '0x3b486c191c74c9945fa944a3ddde24acdd63ffff'
 } : {
   nfa:    '0x1c69be3401a78CFeDC2B2543E62877874f10B135',
   router: '0xA7Ee12C5E9435686978F4b87996B4Eb461c34603',
@@ -309,7 +309,7 @@ async function cmdPkStatus(matchId) {
     matchId: Number(matchId),
     nfaA: m[0].toNumber(),
     nfaB: m[1].toNumber(),
-    stake: ethers.utils.formatUnits(m[6], 0) + ' CLW',
+    stake: ethers.utils.formatUnits(m[6], 0) + ' Claworld',
     phase: phases[phase] || 'UNKNOWN',
     revealedA: m[9],
     revealedB: m[10],
@@ -320,7 +320,7 @@ async function cmdPkStatus(matchId) {
     result.strategyB = strats[m[5]] || m[5];
   }
   if (phase === 4) {
-    result.result = '(check CLW balances to see winner)';
+    result.result = '(check Claworld balances to see winner)';
   }
   console.log(JSON.stringify(result, null, 2));
 }
@@ -513,14 +513,14 @@ async function cmdWorld() {
   if (events.and(4).gt(0)) eventFlags.push('GOLDEN_AGE');
   console.log(JSON.stringify({
     rewardMultiplier: reward.toNumber() / 10000,
-    pkStakeLimit: ethers.utils.formatEther(pkLimit) + ' CLW',
+    pkStakeLimit: ethers.utils.formatEther(pkLimit) + ' Claworld',
     mutationBonus: mutation.toNumber() / 10000,
     dailyCostMultiplier: cost.toNumber() / 10000,
     activeEvents: eventFlags.length ? eventFlags : 'none'
   }, null, 2));
 }
 
-// ─── Deposit CLW/BNB ───
+// ─── Deposit Claworld/BNB ───
 
 async function cmdDeposit(pin, nfaId, amount) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
@@ -544,7 +544,7 @@ async function cmdDeposit(pin, nfaId, amount) {
   const tx = await router.depositCLW(nfaId, wei, { gasLimit: 200000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
-  console.log('DEPOSITED: ' + amount + ' CLW to NFA #' + nfaId);
+  console.log('DEPOSITED: ' + amount + ' Claworld to NFA #' + nfaId);
 }
 
 async function cmdFundBnb(pin, nfaId, bnbAmount) {
@@ -606,7 +606,7 @@ async function cmdMarketSearch() {
   console.log(JSON.stringify(active, null, 2));
 }
 
-// ─── Withdraw CLW ───
+// ─── Withdraw Claworld ───
 
 async function cmdWithdrawRequest(pin, nfaId, amount) {
   const wallet = new ethers.Wallet(decryptKey(pin), provider);
@@ -616,7 +616,7 @@ async function cmdWithdrawRequest(pin, nfaId, amount) {
   const tx = await router.requestWithdrawCLW(nfaId, ethers.utils.parseEther(String(amount)), { gasLimit: 200000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
-  console.log('WITHDRAW_REQUESTED: nfa=' + nfaId + ' amount=' + amount + ' CLW');
+  console.log('WITHDRAW_REQUESTED: nfa=' + nfaId + ' amount=' + amount + ' Claworld');
   console.log('COOLDOWN: 6 hours. Run "claw withdraw-claim <pin> <nfa>" after cooldown.');
 }
 
@@ -628,7 +628,7 @@ async function cmdWithdrawClaim(pin, nfaId) {
   const tx = await router.claimWithdrawCLW(nfaId, { gasLimit: 200000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
-  console.log('WITHDRAW_CLAIMED: CLW transferred to your wallet');
+  console.log('WITHDRAW_CLAIMED: Claworld transferred to your wallet');
 }
 
 async function cmdWithdrawCancel(pin, nfaId) {
@@ -639,7 +639,7 @@ async function cmdWithdrawCancel(pin, nfaId) {
   const tx = await router.cancelWithdraw(nfaId, { gasLimit: 200000 });
   console.log('TX: ' + tx.hash);
   const r = await tx.wait();
-  console.log('WITHDRAW_CANCELLED: CLW returned to NFA balance');
+  console.log('WITHDRAW_CANCELLED: Claworld returned to NFA balance');
 }
 
 async function cmdWithdrawStatus(nfaId) {
@@ -838,7 +838,7 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw status <tokenId>              — read lobster data');
   console.log('  claw wallet                        — show wallet');
   console.log('  claw world                         — world state');
-  console.log('  claw deposit <pin> <nfa> <clwAmount>           — deposit CLW');
+  console.log('  claw deposit <pin> <nfa> <clwAmount>           — deposit Claworld');
   console.log('  claw fund-bnb <pin> <nfa> <bnbAmount>          — fund BNB');
   console.log('  claw upkeep <pin> <nfa>                        — process daily upkeep');
   console.log('  claw market-search                             — browse active listings');
@@ -854,7 +854,7 @@ if (!cmd || !commands[cmd]) {
   console.log('  claw market-buy <pin> <listingId> <priceBNB>    — buy');
   console.log('  claw market-bid <pin> <listingId> <bidBNB>      — bid');
   console.log('  claw market-cancel <pin> <listingId>            — cancel');
-  console.log('  claw withdraw-request <pin> <nfa> <amount>     — request CLW withdraw');
+  console.log('  claw withdraw-request <pin> <nfa> <amount>     — request Claworld withdraw');
   console.log('  claw withdraw-claim <pin> <nfa>                — claim after 6h cooldown');
   console.log('  claw withdraw-cancel <pin> <nfa>               — cancel withdraw');
   console.log('  claw withdraw-status <nfa>                     — check withdraw status');

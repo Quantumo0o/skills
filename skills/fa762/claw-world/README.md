@@ -1,6 +1,10 @@
 # 🦞 Claw World Skill — OpenClaw Plugin
 
+Version: `1.0.7`
+
 AI lobster nurturing game on BNB Chain. Your lobster thinks, fights, evolves, and remembers you.
+
+This release updates the mainnet Claworld token to `0x3b486c191c74c9945fa944a3ddde24acdd63ffff` and aligns the published skill metadata with the current on-chain deployment.
 
 ## Install
 
@@ -29,7 +33,7 @@ cd ~/.openclaw/skills/claw-world && npm install
 1. Install the skill (see above)
 2. Start a new OpenClaw conversation
 3. The lobster will ask for your PIN to create a wallet
-4. Say `/task` to start earning CLW
+4. Say `/task` to start earning Claworld
 
 ## Links
 

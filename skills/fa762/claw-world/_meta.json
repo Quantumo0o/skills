@@ -1,11 +1,17 @@
 {
   "owner": "fa762",
   "slug": "claw-world",
-  "displayName": "Claw Civilization Universe",
+  "displayName": "Claw World Skill",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774793334778,
-    "commit": "https://github.com/openclaw/skills/commit/6dd6941db75369bdeccc25b82eae96eb1a5254ea"
+    "version": "1.0.7",
+    "publishedAt": 1775059859886,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774793334778,
+      "commit": "https://github.com/openclaw/skills/commit/6dd6941db75369bdeccc25b82eae96eb1a5254ea"
+    }
+  ]
 }
