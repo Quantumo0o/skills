@@ -1,18 +1,56 @@
 # DolphinDB 基础操作技能 v1.2.3
 
-## ⚠️ 前置依赖：Python 环境检测（必须首先执行）
+## 🚨 强制流程：使用前必须加载环境
 
-**运行前初始化需确保 Python 环境有 DolphinDB SDK，详细方法可参见 dolphindb-skills 技能。**
+**无论在何种场景下调用此技能（单独运行或被引用），必须先执行环境检测：**
 
 ```bash
-# 加载环境检测器（相对路径，技能安装后自动可用）
-source ../dolphindb-skills/scripts/load_dolphindb_env.sh
+# 方法 1: 在技能目录内运行（推荐）
+cd ~/.jvs/.openclaw/workspace/skills/<skill-name>
+source ../dolphindb-skills/scripts/dolphin_wrapper.sh
 
-# 查看环境信息
-dolphin_env_info
+# 方法 2: 在任何位置运行（推荐）
+source ~/.jvs/.openclaw/workspace/skills/dolphindb-skills/scripts/dolphin_global.sh
 
+# 方法 3: 手动检测
+python3 ~/.jvs/.openclaw/workspace/skills/dolphindb-skills/scripts/init_dolphindb_env.py
+```
+
+**验证环境：**
+```bash
+$DOLPHINDB_PYTHON_BIN -c "import dolphindb; print(dolphindb.__version__)"
+
+# 或使用包装器命令
+dolphin_python -c "import dolphindb; print(dolphindb.__version__)"
+```
+
+**重要**: 详见 [dolphindb-skills/USAGE_GUIDE.md](../dolphindb-skills/USAGE_GUIDE.md)
+
+---
+
+## 🚨 强制流程：使用前必须加载环境
+
+**无论在何种场景下调用此技能（单独运行或被引用），必须先执行环境检测：**
+
+```bash
+# 方法 1: 在技能目录内运行（推荐）
+cd ~/.jvs/.openclaw/workspace/skills/dolphindb-basic
+source ../dolphindb-skills/scripts/dolphin_wrapper.sh
+
+# 方法 2: 在任何位置运行（推荐）
+source ~/.jvs/.openclaw/workspace/skills/dolphindb-skills/scripts/dolphin_global.sh
+
+# 方法 3: 手动检测
+python3 ~/.jvs/.openclaw/workspace/skills/dolphindb-skills/scripts/init_dolphindb_env.py
+```
+
+**验证环境：**
+```bash
 # 验证 SDK 已安装
-dolphin_python -c "import dolphindb; print('SDK 版本:', dolphindb.__version__)"
+$DOLPHINDB_PYTHON_BIN -c "import dolphindb; print(dolphindb.__version__)"
+
+# 或使用包装器命令
+dolphin_python -c "import dolphindb; print(dolphindb.__version__)"
 ```
 
 **统一调用接口：**
@@ -20,6 +58,8 @@ dolphin_python -c "import dolphindb; print('SDK 版本:', dolphindb.__version__)
 dolphin_python script.py    # 运行 Python 脚本
 dolphin_pip install pkg     # 安装包
 ```
+
+**重要**: 详见 [dolphindb-skills/USAGE_GUIDE.md](../dolphindb-skills/USAGE_GUIDE.md)
 
 **重要：所有 DolphinDB 脚本在 Python 中的调用方式**
 
