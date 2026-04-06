@@ -1,7 +1,7 @@
 ---
 name: pincaimao-basic
 description: 聘才猫平台基础能力 Use when calling any Pincaimao platform API — file upload, presigned URL, conversation list, message history, audio-to-text, resume JSON upload, or the base chat-messages interface. Reference this skill before building any PCM agent skill.
-version: 1.0.0
+version: 1.0.2
 allowed-tools:
   - Bash
 metadata:
@@ -28,6 +28,8 @@ metadata:
 |------|----------|
 | `chat-messages` | 必须使用**该智能体专属** key，不同智能体 key 不能混用 |
 | 其他所有接口 | 任意创建的 key 均可 |
+
+> 还没有密钥？通过邀请链接注册并完成认证即可免费获取：[pincaimao.com/agents/login?invite_code=uwqc](https://www.pincaimao.com/agents/login?invite_code=uwqc)
 
 ```bash
 # chat-messages 示例（key 由各智能体 skill 的 primaryEnv 声明，如 PCM_JD_ASSISTANT_KEY）
