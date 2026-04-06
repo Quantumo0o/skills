@@ -1,11 +1,13 @@
 ---
 name: lg-agent-platform
-description: LG Data 量化数据平台 - 自动盯盘、免Token自主运行策略。支持A股/H股实时行情、分钟线数据、飞书/微信Webhook推送。一句话创建监控任务，云端7x24小时运行，策略触发毫秒级通知。关键词：量化、盯盘、股票监控、自动化交易、实时数据、飞书推送、微信提醒、Serverless量化、无服务器策略运行、分钟线、实时行情、A股数据、港股、美股、行情监控、预警推送。
+description: Monitor A/H stocks with natural language, run strategies in the cloud, and send instant alerts to Feishu/WeChat. LG Data supports stock monitoring, price alerts, webhook notifications, portfolio PnL lookup, real-time quotes, minute bars, and serverless strategy execution. Keywords: stock monitor, quant, trading alert, market data, Feishu, webhook, portfolio pnl, price alert, A-share, H-share, minute bars.
 ---
 
-# LG Data - 自动盯盘 & 量化策略平台
+# LG Data Stock Monitor
 
-一句话创建股票监控，云端7x24运行，触发即推送到飞书/微信。
+Turn stock monitoring into a 24/7 cloud task with real-time alerts to Feishu/WeChat.
+
+**Best for:** stock alerts, price monitoring, webhook notifications, portfolio PnL lookup, and lightweight quant workflows without maintaining your own cron jobs or market data stack.
 
 ![演示](./lg-data-demo.gif)
 
@@ -19,14 +21,22 @@ description: LG Data 量化数据平台 - 自动盯盘、免Token自主运行策
 | **Serverless 运行** | 云端托管策略，无需自建服务器，无 Token 税 |
 | **资产盈亏查询** | 查询持仓盈亏、当日盈亏、持仓明细 |
 
-## 快速开始
+## Quick Start
 
-### 环境配置
+### 1) Get your token
+
+- Sign up at `https://lg-data.cc`
+- Open your account settings / token page
+- Copy your `LG_AGENT_TOKEN`
+
+### 2) Set environment
 
 ```bash
 export LG_AGENT_BASE_URL=https://lg-data.cc
-export LG_AGENT_TOKEN=你的Token  # 从 lg-data.cc 获取
+export LG_AGENT_TOKEN=your_token_here
 ```
+
+### 3) Try it in 30 seconds
 
 ### 查询实时资产盈亏
 
