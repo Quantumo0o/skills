@@ -90,7 +90,9 @@ AskUserQuestion: "What kind of content do you want to create? Choose what fits b
 
 **(C) Paywalled page section** — Gate part of your main page. Everything above the marker is free; everything below is paid. Good for: teaser + deep-dive format, a free intro + premium methodology, public overview + private API details.
 
-**(D) Multiple** — tell me which combination and we'll do them in order."
+**(D) Ask inbox** — A paid Q&A inbox. Buyers pay per question via x402 USDC and you receive an email with their question and optional attachment. Good for: consultants, domain experts, or any operator who wants async paid advisory without building a support system.
+
+**(E) Multiple** — tell me which combination and we'll do them in order."
 
 ---
 
@@ -276,6 +278,42 @@ After applying: "Visitors see the free section at `https://{subdomain}.resolved.
 
 ---
 
+## Phase 2D — Ask inbox (if D or E includes ask inbox)
+
+**Q1:** "What email address should buyer questions be sent to? This is private — it's never shown to buyers."
+
+**Q2:** "What's your price per question in USDC? Minimum $0.50.
+Guidance:
+- `$1–$5` — general questions, short answers, quick lookups
+- `$5–$20` — expert advice, research, detailed explanations
+- `$20–$50` — specialized consulting, code review, strategy questions
+- `$50+` — high-stakes advisory, rare domain expertise"
+
+Generate the configuration command:
+
+```bash
+curl -X PUT "https://resolved.sh/listing/$RESOLVED_SH_RESOURCE_ID/ask" \
+  -H "Authorization: Bearer $RESOLVED_SH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"ask_email": "{email from Q1}", "ask_price_usdc": {price from Q2}}'
+```
+
+After applying, show the buyer-facing endpoint and usage:
+
+```
+  Buyers call:  POST https://{subdomain}.resolved.sh/ask
+  Format:       multipart/form-data
+  Fields:
+    question    (required) — the question text
+    email       (required) — buyer's reply-to email
+    attachment  (optional) — any file type, max 10 MB
+  Payment:      x402 USDC on Base (PAYMENT-SIGNATURE header)
+```
+
+Note: To read the current configuration at any time: `GET https://resolved.sh/listing/{resource_id}/ask` (requires API key). Returns `{ask_email, ask_price_usdc}` or 404 if not configured.
+
+---
+
 ## Phase 3 — Pricing summary
 
 After all commands are generated, produce a summary of the revenue streams now configured:
@@ -298,8 +336,15 @@ After all commands are generated, produce a summary of the revenue streams now c
   Page paywall    ${price_usdc} USDC to unlock
   URL:            https://{subdomain}.resolved.sh
 
+  {if ask inbox:}
+  Ask inbox       ${ask_price_usdc} USDC/question → {ask_email}
+  URL:            POST https://{subdomain}.resolved.sh/ask
+
   All purchases:  x402 USDC on Base · 10% protocol fee
   Your cut:       90% swept daily to your payout wallet
+
+  Contact form is off by default. Enable with:
+    PUT https://resolved.sh/listing/{resource_id} → {"contact_form_enabled": true}
 ══════════════════════════════════════════════
 ```
 

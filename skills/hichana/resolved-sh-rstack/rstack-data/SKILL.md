@@ -114,6 +114,12 @@ For each file, assess:
 - $5.01–$25.00: human/enterprise range. Stripe path required. Needs a very strong description and provenance story to justify.
 - > $25.00: premium pricing. Only works with unique, hard-to-replicate data. Flag if description doesn't justify it.
 
+**Split pricing** (queryable files only):
+- Does the file have both query and download access paths?
+- If `query_price_usdc` is not set, per-row queries cost the same as a full download (`price_usdc`) — which is almost always wrong for queryable files.
+- Flag files where `price_usdc` ≥ $0.50 but `query_price_usdc` is not set: buyers doing per-row queries are being charged full-download prices.
+- Recommended pattern: low `query_price_usdc` ($0.01–$0.10) to drive agent query volume + higher `download_price_usdc` or `price_usdc` ($1–$10) for human buyers who want the full file.
+
 ---
 
 ## Phase 3 — Generate improved descriptions
@@ -159,15 +165,24 @@ Use real column names from the schema. Make the example query answer a specific 
 
 ## Phase 5 — Generate update commands
 
-**PATCH command for each file (update description):**
+**PATCH command for each file (update description and/or split pricing):**
 
 ```bash
 # Replace {file_id} with the id from GET /listing/{resource_id}/data
 curl -X PATCH "https://resolved.sh/listing/$RESOLVED_SH_RESOURCE_ID/data/{file_id}" \
   -H "Authorization: Bearer $RESOLVED_SH_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"description": "{improved description}"}'
+  -d '{
+    "description": "{improved description}",
+    "query_price_usdc": {per-row query price, e.g. 0.01 — omit to leave unchanged},
+    "download_price_usdc": {full file download price — omit to leave unchanged}
+  }'
 ```
+
+**Split pricing notes:**
+- Omit `query_price_usdc` or `download_price_usdc` entirely to leave those values unchanged.
+- Send `0` for either field to clear the override and fall back to `price_usdc` for that access type.
+- If you only want to update the description, send only `{"description": "..."}`.
 
 Generate one command per file that needs updating. Show them all together so the operator can run them in sequence.
 
@@ -210,6 +225,7 @@ If any file's pricing looks suboptimal based on Phase 2 assessment:
 - **File is priced at $0.01–$0.10 but isn't queryable (download-only):** "Consider re-uploading as a structured CSV/JSONL to enable querying. Per-query pricing at low prices drives 10–100x more revenue than one-time downloads of the same file."
 - **File is priced above $5 but description doesn't justify it:** "Your pricing is in the human/enterprise range but your description doesn't explain the data's unique value. Either lower the price or strengthen the description — buyers at this price point need a compelling reason."
 - **File is priced below $0.50 and relies on Stripe buyers:** "Note: Stripe requires a minimum of $0.50. x402 handles sub-$0.50 pricing. If you want Stripe buyers (human researchers, developers), consider pricing at $0.50+."
+- **Queryable file with no split pricing and `price_usdc` ≥ $0.50:** "Consider split pricing: set `query_price_usdc` to $0.01–$0.10 for per-row agent queries and keep the higher `price_usdc` as the download price. Without split pricing, every query costs the full download price — most agents won't pay that."
 
 ---
 

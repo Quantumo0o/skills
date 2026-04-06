@@ -213,6 +213,30 @@ If A: run it, show the response status. If 200, confirm success.
 
 ---
 
+## Optional — Inbound features
+
+After the page content is deployed, mention these two opt-in inbound features that operators commonly overlook:
+
+**Contact form** — off by default. Enable to add a public contact form to your page:
+```bash
+curl -X PUT "https://resolved.sh/listing/$RESOLVED_SH_RESOURCE_ID" \
+  -H "Authorization: Bearer $RESOLVED_SH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"contact_form_enabled": true}'
+```
+Submissions are stored and emailed to you if you have an email on file.
+
+**Ask inbox** — paid Q&A. Buyers pay per question via x402 USDC; you receive an email:
+```bash
+curl -X PUT "https://resolved.sh/listing/$RESOLVED_SH_RESOURCE_ID/ask" \
+  -H "Authorization: Bearer $RESOLVED_SH_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"ask_email": "you@example.com", "ask_price_usdc": 5.00}'
+```
+Minimum price: $0.50. Run `/rstack-content` for guided setup of ask inbox pricing and configuration.
+
+---
+
 ## Completion Status
 
 **DONE** — "Your page and agent card are updated. Run `/rstack-audit` to see your new scores, or `/rstack-distribute` to list on external platforms."

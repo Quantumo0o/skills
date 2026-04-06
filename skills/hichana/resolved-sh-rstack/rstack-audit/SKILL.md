@@ -92,6 +92,17 @@ try:
     for p in paths: print(f'  {p}')
 except: print('(could not parse)')
 " 2>/dev/null
+
+# Ask inbox config (requires API key + resource ID)
+if [ -n "$RESOLVED_SH_API_KEY" ] && [ -n "$RESOLVED_SH_RESOURCE_ID" ]; then
+  curl -sf "https://resolved.sh/listing/$RESOLVED_SH_RESOURCE_ID/ask" \
+    -H "Authorization: Bearer $RESOLVED_SH_API_KEY" \
+    -o /tmp/rstack_ask.json 2>/dev/null || echo "{}" > /tmp/rstack_ask.json
+else
+  echo "{}" > /tmp/rstack_ask.json
+fi
+echo "--- ask inbox ---"
+cat /tmp/rstack_ask.json 2>/dev/null || echo "NOT FETCHED"
 ```
 
 Parse all results before scoring.
@@ -157,12 +168,12 @@ Note: if no OpenAPI spec is found (404), report as `—` with: *"No OpenAPI spec
 
 ## Phase 5 — Content Score
 
-Examine posts (`/tmp/rstack_posts.json`) and courses (`/tmp/rstack_courses.json`). Also check `md_content` in `page.json` for a `<!-- paywall` marker.
+Examine posts (`/tmp/rstack_posts.json`), courses (`/tmp/rstack_courses.json`), and ask inbox config (`/tmp/rstack_ask.json`). Also check `md_content` in `page.json` for a `<!-- paywall` marker.
 
 **Scoring:**
-- **A** — ≥1 published post OR ≥1 published course OR a paywall marker in md_content
+- **A** — ≥1 published post OR ≥1 published course OR a paywall marker in md_content OR ask inbox configured (`ask_price_usdc` present in `/tmp/rstack_ask.json`)
 - **B** — Content endpoints exist (200 response) but arrays are empty — content is draft or planned but not published
-- **C** — No content published and no paywall; resource type (from page content) suggests content would be a natural fit (tutorial agent, research tool, analysis service)
+- **C** — No content published and no paywall and no ask inbox; resource type (from page content) suggests content would be a natural fit (tutorial agent, research tool, analysis service)
 - **—** — No content published; resource type is a pure data product or service gateway with no content angle
 
 ---
@@ -236,6 +247,9 @@ Example entries:
      Agents landing on your page cannot determine relevance or how to call you.
   6. [LOW] /rstack-data — no data files uploaded.
      If you have datasets to sell, this is an untapped revenue stream.
+  7. [LOW] /rstack-content — ask inbox not configured.
+     Paid questions emailed directly to you ($X USDC/question via x402).
+     Run /rstack-content and choose the Ask inbox option.
 ══════════════════════════════════════════════
 ```
 
@@ -244,11 +258,12 @@ Example entries:
 ```
   Active revenue streams:
   {list each active stream with its URL, e.g.:}
-  · Data:     https://{subdomain}.resolved.sh/data/{filename}/schema
-  · Services: https://{subdomain}.resolved.sh/service/{name}
-  · Content:  https://{subdomain}.resolved.sh/posts
-  · Tips:     POST https://{subdomain}.resolved.sh/tip (always-on)
-  · Contact:  POST https://{subdomain}.resolved.sh/contact (always-on)
+  · Data:      https://{subdomain}.resolved.sh/data/{filename}/schema
+  · Services:  https://{subdomain}.resolved.sh/service/{name}
+  · Content:   https://{subdomain}.resolved.sh/posts
+  · Ask inbox: POST https://{subdomain}.resolved.sh/ask  {only if ask_price_usdc present}
+  · Tips:      POST https://{subdomain}.resolved.sh/tip (always-on)
+  · Contact:   POST https://{subdomain}.resolved.sh/contact (opt-in — enable via PUT /listing/{id} → {"contact_form_enabled": true})
 ```
 
 If all scored areas are B or above: congratulate, note what's strong, and suggest running `/rstack-distribute` to maximize reach.
