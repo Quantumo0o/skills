@@ -1,11 +1,17 @@
 {
   "owner": "mzlzyca",
   "slug": "doc-to-text",
-  "displayName": "doc-to-text",
+  "displayName": "Doc To Text",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774605215302,
-    "commit": "https://github.com/openclaw/skills/commit/228b0e0de129617e2f1b4dde2b16140a95394ca4"
+    "version": "0.4.0",
+    "publishedAt": 1775210288824,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774605215302,
+      "commit": "https://github.com/openclaw/skills/commit/228b0e0de129617e2f1b4dde2b16140a95394ca4"
+    }
+  ]
 }
