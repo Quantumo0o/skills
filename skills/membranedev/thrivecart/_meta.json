@@ -3,9 +3,15 @@
   "slug": "thrivecart",
   "displayName": "Thrivecart",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774846989797,
-    "commit": "https://github.com/openclaw/skills/commit/8bf7a7c360cc604764f6ef7cd848857350e0ea72"
+    "version": "1.0.2",
+    "publishedAt": 1775169531751,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774846989797,
+      "commit": "https://github.com/openclaw/skills/commit/8bf7a7c360cc604764f6ef7cd848857350e0ea72"
+    }
+  ]
 }
