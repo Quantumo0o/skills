@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-ladder-nhl-hockey-trader",
-  "displayName": "Ladder NHL Hockey Curve Trader",
+  "displayName": "Polymarket Ladder Nhl Hockey Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774713271017,
-    "commit": "https://github.com/openclaw/skills/commit/1b6ab73371c727c2535384f6e2cf895e12ca9326"
+    "version": "1.0.1",
+    "publishedAt": 1775317208026,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774713271017,
+      "commit": "https://github.com/openclaw/skills/commit/1b6ab73371c727c2535384f6e2cf895e12ca9326"
+    }
+  ]
 }
