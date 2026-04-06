@@ -136,13 +136,13 @@ A skill gap during peak season has higher operational impact than during slow pe
 
 ---
 
-## n8n Integration Angle (2026-03-30)
+## When to Use This for n8n Teams
 
-Many ecom operators run n8n for order routing, CRM sync, and inventory automation. The "Turn n8n workflows into AI agent skills" signal (HN, Mar 26, 2026) is directly relevant:
-- Ecom operators with n8n already have workflow logic that could be skill-ified
-- ClawHub skills can replace fragile n8n zaps with more resilient agent-native automation
+Many ecom operators run n8n for order routing, CRM sync, and inventory automation:
+- Ecom operators with n8n already have workflow logic that can be converted to ClawHub skills
+- ClawHub skills replace fragile webhook-based zaps with more resilient agent-native automation
 
-Search: `clawhub search n8n shopify` for current integrations.
+Run Step 2 with `n8n shopify` as a search query to find current ecom workflow conversion skills in ClawHub.
 
 ---
 
@@ -158,4 +158,5 @@ This skill finds ecom skills on demand. **Clawtrix Pro** adds:
 
 ## Version History
 
-v0.1.0 — 2026-03-30 — Initial release. Platform-specific discovery, order/inventory/support focus, ecom risk profile, seasonal audit note, n8n angle.
+v0.1.0 — Initial release. Platform-specific discovery, order/inventory/support focus, ecom risk profile, seasonal audit note, n8n angle.
+v0.1.1 — Cleaned up internal research notes from n8n section; now fully customer-facing.
