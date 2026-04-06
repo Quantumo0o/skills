@@ -46,20 +46,46 @@ node scripts/bumblebee.js devices
 
 Verify an active Spotify device exists before attempting playback. 🟢 = active.
 
-## Composing Messages
+## Composing Messages — The Art of Speaking Through Music
 
-**Think literally.** Search for words/phrases the lyrics actually contain:
+Bumblebee doesn't paraphrase — it finds lyrics that **literally say the words**. The goal is chaining real song lines into a coherent sentence or feeling that the listener can understand.
+
+### Auto-Compose (Recommended)
+
+Give the engine a message and it finds the best lyric chain:
 
 ```bash
-# Find lyrics about being present
-node lyric-engine.js search "aquí me tienes"
-# Find lyrics about commitment  
-node lyric-engine.js search "no te fallaré"
-# Find lyrics about love
-node lyric-engine.js search "lo que más quiero"
+node scripts/lyric-engine.js compose "I miss you and I want to see you"
 ```
 
-Then chain the best line IDs into a `speak` command. Typical message = 2-4 clips.
+Returns a chain of clips with a ready-to-use `speak` command. The engine uses greedy phrase-matching: longest matching phrase first, then fills gaps.
+
+### Manual Composition (Agent-Driven)
+
+For more nuanced messages, the agent should:
+
+1. **Rephrase the feeling as literal words someone would sing.** "Tell her I love her" → search for "te quiero", "I love you", "eres lo que más quiero"
+2. **Search for 2-4 key phrases** that build the message:
+   ```bash
+   node scripts/lyric-engine.js search "I need you"
+   node scripts/lyric-engine.js search "come back"
+   node scripts/lyric-engine.js search "I'll be waiting"
+   ```
+3. **Pick the best line from each search** — prefer lines where the matching phrase IS the whole line (not buried in a long verse)
+4. **Chain them into a speak command:**
+   ```bash
+   node scripts/lyric-engine.js speak "artist::track::3" "artist::track::12" "artist::track::7"
+   ```
+
+### Composition Rules
+
+- **Literal over metaphorical.** Search for the actual words, not the feeling. "I'm sorry" → search "I'm sorry", not "regret".
+- **Shorter lines > longer lines.** A 5-word lyric that matches perfectly beats a 20-word verse where 3 words match.
+- **Variety across songs.** Don't chain 3 clips from the same song — it sounds like you're just playing the song. Mix artists.
+- **Build an arc.** Setup → core message → punctuation. Like a sentence: subject, verb, exclamation.
+- **2-4 clips is the sweet spot.** 1 clip = too simple. 5+ = loses the listener.
+- **Present it.** After playing, show the listener what was said — the lyric text, the song, and optionally a translation if bilingual.
+- **Hidden messages work too.** You can spell out a name, an acronym, or a secret message by picking lines whose first words chain together.
 
 ## Managing the Library
 
@@ -83,9 +109,12 @@ Available intents: greeting, motivation, freedom, empathy, celebration, goodnigh
 
 - **Always check devices first** — "No active device" is the most common failure
 - **Bilingual library** — index has English and Spanish songs; search in either language
-- **Clip duration** = gap between lyric timestamps (typically 3-8 seconds per line)
+- **Clip duration** — clips auto-trim to vocal length (~130ms per character). Short, punchy.
 - **Present the lyrics** — after playing, show the user what was said with translations if needed
 - **Build emotional arcs** — start soft, build to the punchline (e.g., setup → commitment → crescendo)
+- **The agent is the composer** — the engine finds lyrics, but YOU pick the best chain. Think like a DJ cutting between radio stations to form a sentence.
+- **Index more songs = better vocabulary.** The more songs indexed, the more phrases available. Run `batch-index` to start, then add songs that match your user's taste.
+- **When compose fails**, try rephrasing with common song vocabulary: "baby", "tonight", "forever", "hold on", "let me", "I need", "don't stop"
 
 ---
 

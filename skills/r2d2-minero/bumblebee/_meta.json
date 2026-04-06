@@ -1,13 +1,18 @@
 {
   "owner": "r2d2-minero",
   "slug": "bumblebee",
-  "displayName": "Bumblebee",
+  "displayName": "Bumblebee + R2-DJ",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774832716011,
-    "commit": "https://github.com/openclaw/skills/commit/5eac96290375ae98893dc33363c564ee68e71e48"
+    "version": "1.2.0",
+    "publishedAt": 1775231720949,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774832716011,
+      "commit": "https://github.com/openclaw/skills/commit/5eac96290375ae98893dc33363c564ee68e71e48"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774832429965,

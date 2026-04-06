@@ -264,21 +264,56 @@ async function indexSong(artist, track) {
 
 function searchLyrics(phrase) {
   const index = loadIndex();
-  const lower = phrase.toLowerCase();
+  const lower = phrase.toLowerCase().trim();
   const words = lower.split(/\s+/);
   
   const results = [];
   for (const line of index.lines) {
-    // Exact substring match
+    let score = 0;
+    
+    // Exact full substring match (best)
     if (line.textLower.includes(lower)) {
-      results.push({ ...line, score: 100 });
+      // Bonus for shorter lines (more precise match)
+      const ratio = lower.length / Math.max(line.textLower.length, 1);
+      score = 100 + Math.round(ratio * 20); // 100-120
+      results.push({ ...line, score });
       continue;
     }
-    // Word overlap score
+    
+    // Consecutive word match: how many query words appear in order?
     const lineWords = line.textLower.split(/\s+/);
+    let consecutive = 0;
+    let maxConsecutive = 0;
+    let lineIdx = 0;
+    for (const w of words) {
+      let found = false;
+      for (let j = lineIdx; j < lineWords.length; j++) {
+        if (lineWords[j].includes(w)) {
+          consecutive++;
+          lineIdx = j + 1;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        maxConsecutive = Math.max(maxConsecutive, consecutive);
+        consecutive = 0;
+      }
+    }
+    maxConsecutive = Math.max(maxConsecutive, consecutive);
+    
+    // Overall word overlap (any order)
     const overlap = words.filter(w => lineWords.some(lw => lw.includes(w))).length;
-    if (overlap >= Math.ceil(words.length * 0.5)) {
-      results.push({ ...line, score: overlap * 10 });
+    
+    // Score: consecutive matches weighted more
+    if (maxConsecutive >= 2) {
+      score = 60 + maxConsecutive * 10;
+    } else if (overlap >= Math.ceil(words.length * 0.5)) {
+      score = overlap * 10;
+    }
+    
+    if (score > 0) {
+      results.push({ ...line, score });
     }
   }
   
@@ -309,58 +344,127 @@ async function speakLines(lineIds) {
     const target = line || index.lines.find(l => l.id.includes(lineIds[i]));
     if (!target) continue;
     
-    const duration = target.end_ms - target.start_ms;
+    // Estimate vocal duration: ~130ms per character, min 2.5s, max 7s
+    // Add 800ms buffer for Spotify playback latency on track switches
+    // This cuts the clip after the words finish but not too soon
+    const rawDuration = target.end_ms - target.start_ms;
+    const vocalEstimate = Math.max(2500, Math.min(7000, target.text.length * 130 + 800));
+    const duration = Math.min(rawDuration, vocalEstimate);
     console.log(`🎵 "${target.text}"`);
-    console.log(`   ${target.track} — ${target.artist} [${(target.start_ms/1000).toFixed(1)}s]`);
+    console.log(`   ${target.track} — ${target.artist} [${(target.start_ms/1000).toFixed(1)}s → ${((target.start_ms + duration)/1000).toFixed(1)}s]`);
     
     await spotifyRequest('PUT', '/v1/me/player/play', {
       uris: [target.uri],
       position_ms: target.start_ms,
     });
     
-    await sleep(duration + 500);
+    await sleep(duration);
   }
   
   console.log('\n🐝 Message delivered.');
 }
 
 // --- Compose: find lyrics that convey a message ---
+// Strategy: try sliding windows of decreasing size to find the best
+// lyric line for each chunk of the message. Greedily matches the
+// longest phrase first, then moves on to the remainder.
 
 function compose(message) {
-  const words = message.toLowerCase().split(/\s+/);
-  const results = [];
+  const lower = message.toLowerCase().trim();
+  const words = lower.split(/\s+/);
   
-  // Try to find lines that match key phrases
-  // Split message into chunks and find best lyric for each
-  const index = loadIndex();
+  console.log(`\n🐝 Composing: "${message}"\n`);
   
-  // First: try full message match
-  const full = searchLyrics(message);
-  if (full.length > 0 && full[0].score >= 50) {
-    console.log(`\n🐝 Best single-line match:\n`);
-    console.log(`  "${full[0].text}"`);
-    console.log(`  ${full[0].track} — ${full[0].artist}`);
-    console.log(`  ID: ${full[0].id}\n`);
+  // 1. Try full message as a single lyric match
+  const fullMatch = searchLyrics(message);
+  if (fullMatch.length > 0 && fullMatch[0].score >= 80) {
+    console.log(`✅ Single-line match!\n`);
+    console.log(`  🎵 "${fullMatch[0].text}"`);
+    console.log(`     ${fullMatch[0].track} — ${fullMatch[0].artist}`);
+    console.log(`     ID: ${fullMatch[0].id}`);
+    console.log(`\n---JSON_COMPOSE---`);
+    console.log(JSON.stringify({ strategy: 'single', clips: [{ id: fullMatch[0].id, text: fullMatch[0].text, track: fullMatch[0].track, artist: fullMatch[0].artist }] }));
+    return [fullMatch[0]];
   }
   
-  // Then: show top matches for individual key words
-  console.log('🐝 Lyric fragments matching your message:\n');
+  // 2. Greedy phrase-chunking: try largest window first, shrink
+  const selected = [];
+  const usedSongs = new Set(); // Prefer variety across songs
+  let pos = 0;
   
-  const seen = new Set();
-  for (const word of words) {
-    if (word.length < 3) continue; // Skip short words
-    const matches = searchLyrics(word).slice(0, 3);
-    for (const m of matches) {
-      if (seen.has(m.id)) continue;
-      seen.add(m.id);
-      results.push(m);
-      console.log(`  "${m.text}"`);
-      console.log(`  ${m.track} — ${m.artist} | ID: ${m.id}\n`);
-      break; // One per word
+  while (pos < words.length) {
+    let bestMatch = null;
+    let bestLen = 0;
+    
+    // Try windows from full remaining down to 2 words, then 1
+    const maxWin = Math.min(words.length - pos, 8); // cap at 8 words
+    for (let winLen = maxWin; winLen >= 1; winLen--) {
+      const phrase = words.slice(pos, pos + winLen).join(' ');
+      if (phrase.length < 2) continue;
+      
+      const matches = searchLyrics(phrase);
+      // Filter: need decent score and prefer unused songs for variety
+      for (const m of matches.slice(0, 10)) {
+        if (m.score < (winLen === 1 ? 30 : 40)) continue;
+        // Prefer lines from different songs for variety
+        const songPenalty = usedSongs.has(m.songKey) ? -15 : 0;
+        const effectiveScore = m.score + songPenalty + (winLen * 5); // bonus for longer phrase match
+        if (!bestMatch || effectiveScore > bestMatch._effectiveScore) {
+          bestMatch = { ...m, _effectiveScore: effectiveScore, _winLen: winLen };
+          bestLen = winLen;
+        }
+        break; // Take best per window size
+      }
+      
+      // If we got a high-confidence long match, take it
+      if (bestMatch && bestMatch.score >= 80 && bestLen >= 2) break;
+    }
+    
+    if (bestMatch) {
+      selected.push(bestMatch);
+      usedSongs.add(bestMatch.songKey);
+      pos += bestLen;
+    } else {
+      // No match for this word, skip it
+      pos++;
     }
   }
   
-  return results;
+  // 3. Output
+  if (selected.length === 0) {
+    console.log('❌ No lyric matches found. Try indexing more songs or rephrasing.\n');
+    // Still show close matches for inspiration
+    console.log('💡 Closest matches for key words:\n');
+    for (const word of words) {
+      if (word.length < 3) continue;
+      const matches = searchLyrics(word).slice(0, 2);
+      for (const m of matches) {
+        console.log(`  "${m.text}" (${m.track} — ${m.artist}) ID: ${m.id}`);
+      }
+    }
+    return [];
+  }
+  
+  console.log(`🐝 Composed ${selected.length} clips:\n`);
+  const clips = [];
+  for (let i = 0; i < selected.length; i++) {
+    const s = selected[i];
+    console.log(`  ${i + 1}. 🎵 "${s.text}"`);
+    console.log(`     ${s.track} — ${s.artist}`);
+    console.log(`     ID: ${s.id}`);
+    console.log();
+    clips.push({ id: s.id, text: s.text, track: s.track, artist: s.artist });
+  }
+  
+  // Build speak command
+  const ids = selected.map(s => s.id);
+  console.log(`\n▶️  Speak command:`);
+  console.log(`   node lyric-engine.js speak ${ids.map(id => `"${id}"`).join(' ')}`);
+  
+  console.log(`\n---JSON_COMPOSE---`);
+  console.log(JSON.stringify({ strategy: selected.length === 1 ? 'single' : 'multi', clips }));
+  
+  return selected;
 }
 
 // --- CLI ---
