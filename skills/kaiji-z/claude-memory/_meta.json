@@ -3,9 +3,15 @@
   "slug": "claude-memory",
   "displayName": "Claude Memory",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1775053810694,
-    "commit": "https://github.com/openclaw/skills/commit/16df5af6403307a97a40b0ec1d72abc30f277528"
+    "version": "1.2.0",
+    "publishedAt": 1775403335029,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1775053810694,
+      "commit": "https://github.com/openclaw/skills/commit/16df5af6403307a97a40b0ec1d72abc30f277528"
+    }
+  ]
 }

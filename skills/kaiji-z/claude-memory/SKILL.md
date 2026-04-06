@@ -92,7 +92,11 @@ Each feedback entry follows this structure. Two types: **correction** (don't do 
 
 ## Heartbeat Maintenance
 
-Memory is an asset, not a consumable. Memories should not be deleted because they're old. During heartbeat polls, follow this 4-phase care routine:
+Memory is an asset, not a consumable. Memories should not be deleted because they're old.
+
+> ⚠️ **Setup requirement**: This 4-phase routine MUST be written into `HEARTBEAT.md`, NOT `AGENTS.md`. `HEARTBEAT.md` is injected only during heartbeat polls (token-efficient), while `AGENTS.md` is loaded every session (wastes token on every message). Write memory write rules in `AGENTS.md`, write this maintenance routine in `HEARTBEAT.md`.
+
+During heartbeat polls, follow this 4-phase care routine:
 
 ### Phase 1 — Catch-up (补漏)
 - Did the human correct or confirm something this session that isn't recorded in `memory/feedback.md`?
