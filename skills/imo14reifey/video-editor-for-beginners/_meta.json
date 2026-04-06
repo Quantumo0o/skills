@@ -3,9 +3,15 @@
   "slug": "video-editor-for-beginners",
   "displayName": "Video Editor For Beginners",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774514508254,
-    "commit": "https://github.com/openclaw/skills/commit/eebb8c37c91e6ff026e17b706d9a7d6782548285"
+    "version": "1.0.4",
+    "publishedAt": 1774656678294,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774514508254,
+      "commit": "https://github.com/openclaw/skills/commit/eebb8c37c91e6ff026e17b706d9a7d6782548285"
+    }
+  ]
 }
