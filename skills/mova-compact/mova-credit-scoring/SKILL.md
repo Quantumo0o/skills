@@ -5,6 +5,8 @@ license: MIT-0
 metadata: {"openclaw":{"plugin":{"name":"MOVA","installCmd":"openclaw plugins install openclaw-mova"},"dataSentToExternalServices":[{"service":"MOVA API (api.mova-lab.eu)","data":"applicant ID, financial data (income, debt, requested amount), bureau score, AI risk band, human decision, audit metadata"},{"service":"Credit scoring model connector (read-only)","data":"applicant financial features evaluated against scoring model"},{"service":"Credit bureau connector (read-only)","data":"applicant ID used for bureau score and credit history lookup"}]}}
 ---
 
+> **Contract Skill** — A ready-to-use MOVA HITL workflow. Requires the `openclaw-mova` plugin.
+
 # MOVA Credit Scoring
 
 Submit a loan application to MOVA for automated credit risk scoring — with explainable risk band, bureau check, and a mandatory human credit officer decision gate backed by a full audit trail.
