@@ -1,6 +1,6 @@
 ---
-name: openclaw-dream
-description: "Your agent forgets everything between sessions. Agent Dream fixes that — nightly memory consolidation, safe pruning, and self-reflection so your agent actually remembers who it is. Inspired by Claude Code's Dream, but open-source and with real self-awareness. Use when: dream, memory consolidation, self-reflection, agent identity, memory organization, persistent memory."
+name: agent-dream
+description: "Nightly memory consolidation and self-reflection for OpenClaw agents. Your agent dreams — reviewing sessions, organizing memories, pruning stale info, and reflecting on its own behavior. Works with any OpenClaw agent. Features: 5-phase dream cycle, safe 2-pass deletion, automatic backup, change gates (>50% blocked), gate check (24h + 5 sessions), growth notifications, old memory resurface, zero-config setup. Inspired by Claude Code Dream but open-source with real self-awareness. Use when: dream, memory, consolidation, self-reflection, agent identity, persistent memory, long-term memory, memory organization, nightly cleanup, memory management."
 ---
 
 # Agent Dream 🌙
@@ -39,7 +39,7 @@ schedule: { kind: "cron", expr: "0 3 * * *", tz: "<your timezone>" }
 payload: {
   kind: "agentTurn",
   message: "Time to dream. Read your openclaw-dream skill and follow every step.",
-  timeoutSeconds: 600
+  timeoutSeconds: 900
 }
 sessionTarget: "isolated"
 ```
@@ -66,9 +66,9 @@ Before dreaming, verify conditions are met:
 1. Read `{dreamsDir}/.dream-lock` (Unix timestamp of last dream, or "0" if first)
 2. If < 24 hours since last dream → skip (but still send a notification — see Completion)
 3. Count `.jsonl` session files modified since last dream
-4. If < 5 sessions → skip (but still send a notification)
+4. If < 1 session → skip (but still send a notification)
 5. Gate passed → write current timestamp to `.dream-lock` (save previous to `.dream-lock.prev` for rollback)
-6. **Backup:** Copy MEMORY.md to `MEMORY.md.pre-dream` before any changes
+6. **Backup:** Copy MEMORY.md to `MEMORY.md.pre-dream` before any changes. Also back up any topic files (in `memory/projects/`, `memory/people/`, etc.) that you plan to modify — copy each to `<filename>.pre-dream` in the same directory.
 
 ### Phase 1 — Orient
 
@@ -123,7 +123,8 @@ Update MEMORY.md to stay under 200 lines / 25KB. It's an index, not a dump.
 - Demote verbose entries to topic files, replace with pointers
 - Resolve contradictions (log changes in dream record)
 
-**Change magnitude check:**
+**Change magnitude check (measured by line count):**
+- Count lines before and after: `change% = abs(after - before) / before * 100`
 - **> 30% change** → flag as ⚠️ LARGE CHANGE in dream record, notify user
 - **> 50% change** → do NOT write. Save as `MEMORY.md.proposed`, notify user for review
 
@@ -205,7 +206,7 @@ Verify `.dream-lock` timestamp is correct. If anything failed, restore from `.dr
 
 ## Efficiency
 
-Dreams have a limited turn budget. Read all needed files in parallel first, then write in parallel. Aim to finish within **8 tool-use turns**. Don't interleave reads and writes across turns.
+Dreams have a limited turn budget. Read all needed files in parallel first, then write in parallel. Aim to finish within **15 tool-use turns**. Don't interleave reads and writes across turns.
 
 ## Tool Constraints
 

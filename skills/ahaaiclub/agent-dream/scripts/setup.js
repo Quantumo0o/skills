@@ -69,7 +69,7 @@ function findIdentityFiles(workspace) {
 function findAgentSessions(workspace) {
   // Walk up from workspace to find .openclaw/agents/
   let dir = workspace;
-  for (let i = 0; i < 5; i++) {
+  while (true) {
     const agentsDir = path.join(dir, '.openclaw', 'agents');
     if (fs.existsSync(agentsDir)) {
       // Find agent dirs with sessions/
@@ -93,7 +93,7 @@ function findAgentSessions(workspace) {
       }
     }
     const parent = path.dirname(dir);
-    if (parent === dir) break;
+    if (parent === dir) break;  // reached filesystem root
     dir = parent;
   }
   return null;

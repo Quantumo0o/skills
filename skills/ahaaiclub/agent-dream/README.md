@@ -11,6 +11,10 @@ Agent Dream gives your agent a nightly dream cycle: it reviews what happened, or
 ## 30-Second Install
 
 ```bash
+# If you don't have clawhub CLI yet
+npm install -g clawhub
+
+# Install and setup
 clawhub install agent-dream
 node skills/agent-dream/scripts/setup.js   # auto-detects your workspace
 ```
@@ -67,7 +71,7 @@ We built this for agents that handle real personal data. Every safety rail matte
 | Self-reflection | ✅ | ❌ | Partial | ❌ |
 | Identity awareness | ✅ | ❌ | ❌ | ❌ |
 | Safe deletion (2-pass) | ✅ | Partial | N/A | ❌ |
-| Gate check (24h + 5 sessions) | ✅ | ❌ | Timer only | ❌ |
+| Gate check (24h + activity) | ✅ | ❌ | Timer only | ❌ |
 | Growth notifications | ✅ | ✅ | ❌ | ❌ |
 | Old memory resurface | ✅ | ❌ | ❌ | ❌ |
 | Zero-config setup | ✅ | ❌ | ❌ | N/A |

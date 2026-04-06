@@ -3,9 +3,15 @@
   "slug": "agent-dream",
   "displayName": "Agent Dream",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775107204502,
-    "commit": "https://github.com/openclaw/skills/commit/213d3c50147f43d67524cdcf497fe00356597351"
+    "version": "1.0.6",
+    "publishedAt": 1775236889340,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775107204502,
+      "commit": "https://github.com/openclaw/skills/commit/213d3c50147f43d67524cdcf497fe00356597351"
+    }
+  ]
 }
