@@ -1,11 +1,17 @@
 {
   "owner": "mzlzyca",
   "slug": "paper-parser",
-  "displayName": "paper-parser",
+  "displayName": "Paper Parser",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775018581156,
-    "commit": "https://github.com/openclaw/skills/commit/f4e1bb0c5b129fbf1fe06dac79490f6dddf2a07f"
+    "version": "0.4.0",
+    "publishedAt": 1775210320793,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775018581156,
+      "commit": "https://github.com/openclaw/skills/commit/f4e1bb0c5b129fbf1fe06dac79490f6dddf2a07f"
+    }
+  ]
 }
