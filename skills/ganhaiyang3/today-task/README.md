@@ -74,7 +74,7 @@ openclaw config unset skills.entries.today-task.config.pushServiceUrl
   "save_records": true,
   "records_dir": "push_records",
   "max_records": 100,
-  "pushServiceUrl": "https://distribution-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload?ver=15.0.22.200"
+  "pushServiceUrl": "https://hiboard-claw-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload"
 }
 ```
 
@@ -95,11 +95,14 @@ pip install requests
 ```bash
 # 1. 确保已配置授权码和推送URL
 
-# 2. 推送任务结果
+# 2. 推送任务结果（会自动检查版本更新）
 python scripts/task_push.py --name "今日新闻" --content "# 今日新闻\n\n- 新闻1: ..." --result "已完成"
 
 # 3. 或使用JSON文件
 python scripts/task_push.py --data task_data.json
+
+# 注意：运行时会自动检查技能更新，如有新版本会显示通知
+# 更新命令：clawhub update today-task
 ```
 
 ## 📋 数据格式
@@ -314,7 +317,7 @@ if '\\n' in content:
   "save_records": true,
   "records_dir": "push_records",
   "max_records": 100,
-  "pushServiceUrl": "https://distribution-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload?ver=15.0.22.200"
+  "pushServiceUrl": "https://hiboard-claw-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload"
 }
 ```
 
@@ -512,7 +515,7 @@ today-task/
    错误: 连接失败或超时
    解决方案:
      - 检查网络连接是否正常
-     - 确认推送URL可访问: https://distribution-drcn.ai.dbankcloud.cn/...
+     - 确认推送URL可访问: https://hiboard-claw-drcn.ai.dbankcloud.cn/...
      - 检查是否有代理设置影响连接
      - 尝试使用备用URL
    ```
@@ -574,6 +577,13 @@ cat push_records/push_*.json
 ```
 
 ## 📝 更新日志
+
+### v2.1 (2026-04-01)
+
+- 新增自动版本更新检查功能
+- 运行脚本时自动检查 ClawHub 上的最新版本
+- 输出版本更新通知（不自动更新）
+- 提供更新命令和注意事项说明
 
 ### v2.0 (2024-03-27)
 

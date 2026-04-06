@@ -3,9 +3,15 @@
   "slug": "today-task",
   "displayName": "Today Task",
   "latest": {
-    "version": "1.0.13",
-    "publishedAt": 1775015397557,
-    "commit": "https://github.com/openclaw/skills/commit/4106b446bbd3d9cdae617f16954128fe305df3a9"
+    "version": "1.0.17",
+    "publishedAt": 1775183319801,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.13",
+      "publishedAt": 1775015397557,
+      "commit": "https://github.com/openclaw/skills/commit/4106b446bbd3d9cdae617f16954128fe305df3a9"
+    }
+  ]
 }

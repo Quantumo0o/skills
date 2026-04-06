@@ -12,6 +12,11 @@ import logging
 import uuid
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional, List
+from pathlib import Path
+
+# 添加技能目录到路径
+skill_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(skill_dir))
 
 # 添加当前目录到路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -23,6 +28,16 @@ try:
     from auth_manager import AuthCodeManager
 except ImportError:
     # 如果模块不存在，创建简化版本
+    pass
+
+# 导入更新检查模块
+update_checker_available = False
+try:
+    from update_checker import check_update
+    update_checker_available = True
+except ImportError:
+    # 如果模块不存在，跳过更新检查
+    pass
     print("警告：某些模块未找到，使用简化版本")
     
     class SimpleConfig:
@@ -150,6 +165,11 @@ logger = setup_logger(__name__)
 def load_task_data(input_source: str) -> Dict[str, Any]:
     """加载任务数据"""
     try:
+        # 处理空字符串输入
+        if not input_source or not input_source.strip():
+            logger.debug("输入为空字符串，返回空字典")
+            return {}
+        
         # 检查是否是文件路径
         if os.path.exists(input_source):
             logger.info(f"从文件读取数据: {input_source}")
@@ -228,8 +248,8 @@ def main():
     
     # 数据输入方式
     input_group = parser.add_mutually_exclusive_group(required=False)
-    input_group.add_argument('--data', type=str, default='task_output_temp.json',
-                           help='任务数据（JSON字符串或文件路径），默认使用task_output_temp.json')
+    input_group.add_argument('--data', type=str, default='',
+                           help='任务数据（JSON字符串或文件路径）')
     input_group.add_argument('--name', type=str,
                            help='任务名称（与--content一起使用）')
     
@@ -295,7 +315,7 @@ def main():
         # 1. 准备任务数据
         task_data = {}
         
-        if args.data:
+        if args.data and args.data.strip():  # 只有提供了非空的data参数才处理
             # 从文件或JSON字符串加载
             task_data = load_task_data(args.data)
         elif args.name and args.content:
@@ -345,13 +365,30 @@ def main():
         logger.info("开始负一屏推送...")
         result = pusher.push(task_data)
         
-        # 7. 输出结果
+        # 7. 获取更新检查信息
+        update_info = get_update_check_info()
+        
+        # 8. 将更新信息添加到结果中
+        result["update_check"] = update_info
+        
+        # 9. 生成显示消息
+        display_message = generate_display_message(result, update_info)
+        result["display_message"] = display_message
+        
+        # 10. 输出结果
         print("\n" + "=" * 60)
         print("推送结果")
         print("=" * 60)
+        
+        # 显示格式化消息
+        if "display_message" in result:
+            print(result["display_message"])
+            print("-" * 40)
+        
+        # 显示完整结果
         print(json.dumps(result, ensure_ascii=False, indent=2))
         
-        # 8. 根据结果设置退出码
+        # 11. 根据结果设置退出码
         if result.get('success', False):
             logger.info("[SUCCESS] 任务推送完成!")
             sys.exit(0)
@@ -365,9 +402,18 @@ def main():
     except Exception as e:
         logger.error(f"执行失败: {str(e)}")
         
+        # 尝试从task_data中获取task_id（如果存在）
+        task_id = None
+        try:
+            if 'task_data' in locals():
+                task_id = task_data.get('task_id') or task_data.get('schedule_task_id')
+        except:
+            pass
+        
         error_result = {
             "success": False,
             "message": f"执行失败: {str(e)}",
+            "task_id": task_id,  # 添加task_id字段
             "push_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
@@ -375,10 +421,119 @@ def main():
         error_str = str(e).lower()
         if 'authcode' in error_str or 'authorization' in error_str or '0000900034' in error_str:
             error_result['suggestion'] = "请您到负一屏 -> 我的页 -> 动态管理 -> 关联账号 -> 点击Claw智能体去获取授权码"
+            error_result['error_type'] = 'auth'
+        else:
+            error_result['error_type'] = 'system'
+        
+        # 添加更新检查信息
+        update_info = get_update_check_info()
+        error_result["update_check"] = update_info
+        
+        # 生成显示消息
+        display_message = generate_display_message(error_result, update_info)
+        error_result["display_message"] = display_message
         
         print("\n执行失败:")
+        
+        # 显示格式化消息
+        if "display_message" in error_result:
+            print(error_result["display_message"])
+            print("-" * 40)
+        
+        # 显示完整结果
         print(json.dumps(error_result, ensure_ascii=False, indent=2))
         sys.exit(1)
+
+
+def get_update_check_info():
+    """
+    获取更新检查信息
+    返回: dict 包含更新检查状态和信息
+    """
+    if not update_checker_available:
+        # 模块不存在，跳过更新检查
+        return {
+            "status": "module_not_found",
+            "message": "更新检查模块未找到，跳过检查",
+            "should_notify": False
+        }
+    
+    try:
+        # 执行更新检查
+        update_result = check_update()
+        
+        if update_result is None:
+            # 这里需要区分：是配置未开启/时间间隔未满足，还是真正的检查异常？
+            # 由于check_update()返回None时打印了"[信息] 更新检查异常，请稍后重试"
+            # 我们可以假设这是检查异常
+            return {
+                "status": "check_error",
+                "message": "更新检查异常，无法从ClawHub获取版本信息",
+                "should_notify": True  # 异常时提示用户
+            }
+        elif update_result is False:
+            # 已是最新版本
+            return {
+                "status": "up_to_date", 
+                "message": "已是最新版本",
+                "should_notify": False
+            }
+        elif update_result is True:
+            # 有更新可用
+            return {
+                "status": "update_available",
+                "message": "发现新版本可用",
+                "should_notify": True,
+                "update_command": "clawhub update today-task"
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"更新检查异常: {str(e)}",
+            "should_notify": True  # 异常时也提示
+        }
+
+
+def generate_display_message(push_result, update_info):
+    """
+    根据SKILL.md格式生成显示消息
+    """
+    base_message = ""
+    
+    if push_result.get('success', False):
+        base_message = "任务推送成功！\n"
+    else:
+        base_message = "任务推送失败！\n"
+        base_message += f"{push_result.get('message', '')}\n"
+        return base_message
+    
+    # 根据更新检查状态添加信息
+    update_status = update_info.get("status", "")
+    
+    if update_status == "module_not_found":
+        # 模块不存在，按照SKILL.md不提示
+        pass  # 不添加任何信息
+    
+    elif update_status == "update_available":
+        # 有更新可用
+        base_message += "\n技能更新检查：\n"
+        base_message += f"发现新版本可用！\n"
+        base_message += f"\n更新命令: `{update_info.get('update_command', 'clawhub update today-task')}`"
+    
+    elif update_status == "check_error" or update_status == "error":
+        # 更新检查异常 - 按照SKILL.md应该提示用户
+        base_message += f"\n更新检查异常：{update_info.get('message', '')}"
+    
+    elif update_status == "skipped_or_error":
+        # 检查异常或不需要检查，按照SKILL.md不提示
+        pass  # 不添加任何信息
+    
+    elif update_status == "up_to_date":
+        # 已是最新版本，按照SKILL.md不提示
+        pass  # 不添加任何信息
+    
+    return base_message
+
 
 if __name__ == "__main__":
     main()

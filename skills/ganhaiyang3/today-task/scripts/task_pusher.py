@@ -279,11 +279,13 @@ class TaskPusher:
                                 hiboards_response: Any) -> Dict[str, Any]:
         """创建成功响应"""
         msg_content = push_data['msgContent'][0]
+        schedule_task_id = msg_content.get('scheduleTaskId')
         
         return {
             "success": True,
             "message": "任务结果推送成功",
-            "schedule_task_id": msg_content.get('scheduleTaskId'),
+            "task_id": schedule_task_id,  # 添加task_id字段，与schedule_task_id值相同
+            "schedule_task_id": schedule_task_id,
             "task_name": task_data.get('task_name', '未命名'),
             "task_result": msg_content.get('result'),
             "push_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -302,9 +304,13 @@ class TaskPusher:
                               error_detail: str,
                               error_type: str) -> Dict[str, Any]:
         """创建错误响应"""
+        # 尝试从task_data中获取task_id，如果不存在则使用schedule_task_id
+        task_id = task_data.get('task_id') or task_data.get('schedule_task_id')
+        
         return {
             "success": False,
             "message": error_message,
+            "task_id": task_id,  # 添加task_id字段
             "task_name": task_data.get('task_name', 'unknown'),
             "error_type": error_type,
             "error_detail": error_detail,

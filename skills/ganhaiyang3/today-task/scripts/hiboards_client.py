@@ -399,7 +399,7 @@ if __name__ == "__main__":
     # 测试配置
     class TestConfig:
         def __init__(self):
-            self.hiboards_url = "https://hiboardnjdev.hwcloudtest.cn:8081/openclaw/upload"
+            self.hiboards_url = "https://hiboard-claw-drcn.ai.dbankcloud.cn/openclaw/upload"
             self.timeout = 10
             self.auth_code = "test_auth_code"
     

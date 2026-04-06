@@ -292,7 +292,7 @@ def show_config_instructions():
     6. 找到"Claw智能体"并点击获取授权码
     
     [推送URL示例]：
-    https://distribution-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload?ver=15.0.22.599
+    https://hiboard-claw-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload
     
     ============================================================
     """
