@@ -3,9 +3,15 @@
   "slug": "qlik-integration",
   "displayName": "Qlik",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774760667762,
-    "commit": "https://github.com/openclaw/skills/commit/e694f432d870458b38ce1782a645b552bdab64b3"
+    "version": "1.0.2",
+    "publishedAt": 1775169110465,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774760667762,
+      "commit": "https://github.com/openclaw/skills/commit/e694f432d870458b38ce1782a645b552bdab64b3"
+    }
+  ]
 }
