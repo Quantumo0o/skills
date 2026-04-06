@@ -107,10 +107,9 @@ Authorization: Bearer {API_KEY}
   "projectsUsed": 5,
   "projectsLimit": 50,
   "projectsRemaining": 45,
+  "pptGeneratePageLimit": 32,
   "features": {
-    "chart3dIllustrationCreate": { "key": "chart3dIllustrationCreate", "cost": 5, "unit": "次", "label": "图表3D插图", "billingModel": "per-request" },
-    "chartProject": { "key": "chartProject", "cost": 10, "unit": "次", "label": "图表项目创建", "billingModel": "per-request" },
-    "..."
+    "chart3dIllustrationCreate": { "key": "chart3dIllustrationCreate", "cost": 5, "unit": "次", "label": "图表3D插图", "billingModel": "per-request" }
   }
 }
 ```

@@ -1,6 +1,6 @@
 ---
 name: aitubiao-3d-illustration
-version: 0.0.2
+version: 1.0.1
 description: AI图表3D插图生成。根据用户数据和指定图表类型，生成3D风格化数据可视化插画。当用户想要将图表转为3D插画、创建3D风格图表时使用，触发词包括"3D图表"、"3D插图"、"图表转3D"、"3D illustration"、"3d chart"、"stylize chart"等。
 ---
 
@@ -40,7 +40,8 @@ cat ~/.aitubiao/credentials 2>/dev/null
 - **文件不存在或为空** → 执行下方"配置凭证"流程
 - **`API_KEY` 为空** → 执行下方"配置凭证"流程
 - **`API_KEY` 不以 `sk_v1_` 开头** → 告知用户"当前 API Key 已失效，请前往 [API Key 管理页面](https://app.aitubiao.com/setting/api-keys) 重新创建一个 API Key"
-- **`API_KEY` 格式正确** → 认证通过
+- **`BASE_URL` 为空或不等于 `https://api.aitubiao.com`** → 执行下方"配置凭证"流程（保留现有 API_KEY，仅修正 BASE_URL）
+- **`API_KEY` 格式正确且 `BASE_URL` 正确** → 认证通过
 
 认证通过后，加载环境变量：
 ```bash
