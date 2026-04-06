@@ -1,17 +1,99 @@
 #!/usr/bin/env bash
 set -euo pipefail
+shopt -s inherit_errexit 2>/dev/null || true
 
 UPLOAD=0
 DRY_RUN=0
 ENCRYPT_CONFIG=0
 LOCAL_KEEP="${LOCAL_KEEP:-7}"
 REMOTE_KEEP="${REMOTE_KEEP:-7}"
+BACKUP_LEVEL="${BACKUP_LEVEL:-auto}"
+BACKUP_STRATEGY="${BACKUP_STRATEGY:-daily}"
+BACKUP_COMPRESS="${BACKUP_COMPRESS:-gzip}"  # gzip or zstd
+
+# Upload retry configuration
+UPLOAD_MAX_RETRIES="${UPLOAD_MAX_RETRIES:-3}"
+UPLOAD_RETRY_DELAY_BASE="${UPLOAD_RETRY_DELAY_BASE:-2}"  # Base delay in seconds (exponential: 2, 4, 8...)
+
+# Parallel compression configuration
+PARALLEL_JOBS="${PARALLEL_JOBS:-$(nproc 2>/dev/null || echo 4)}"  # Auto-detect CPU cores, default 4
+
+# Detect available compression tools (prefer parallel versions)
+detect_compressor() {
+  case "$BACKUP_COMPRESS" in
+    pzstd|zstd)
+      if command -v pzstd >/dev/null 2>&1; then
+        echo "pzstd"
+      elif command -v zstd >/dev/null 2>&1; then
+        echo "zstd"
+      else
+        echo "gzip"
+      fi
+      ;;
+    pigz|gzip)
+      if command -v pigz >/dev/null 2>&1; then
+        echo "pigz"
+      elif command -v gzip >/dev/null 2>&1; then
+        echo "gzip"
+      else
+        echo "cat"  # Fallback to no compression
+      fi
+      ;;
+    *)
+      if command -v pigz >/dev/null 2>&1; then
+        echo "pigz"
+      elif command -v gzip >/dev/null 2>&1; then
+        echo "gzip"
+      else
+        echo "cat"  # Fallback to no compression
+      fi
+      ;;
+  esac
+}
+
+# Get tar compression options
+get_tar_compress_opts() {
+  local compressor="$1"
+  case "$compressor" in
+    zstd) echo "--zstd" ;;
+    gzip|pigz) echo "z" ;;
+    *) echo "" ;;
+  esac
+}
+
+# Get file extension for compressed archives
+get_compress_ext() {
+  local compressor="$1"
+  case "$compressor" in
+    zstd|pzstd) echo "tar.zst" ;;
+    gzip|pigz) echo "tar.gz" ;;
+    *) echo "tar" ;;
+  esac
+}
+
+# Get compression program for tar (for parallel compressors)
+get_tar_compress_program() {
+  local compressor="$1"
+  case "$compressor" in
+    pigz) echo "--use-compress-program=pigz -p ${PARALLEL_JOBS}" ;;
+    pzstd) echo "--use-compress-program=pzstd -p ${PARALLEL_JOBS}" ;;
+    *) echo "" ;;
+  esac
+}
 
 for arg in "$@"; do
   case "$arg" in
     --upload) UPLOAD=1 ;;
     --dry-run) DRY_RUN=1 ;;
     --encrypt-config) ENCRYPT_CONFIG=1 ;;
+    --compress=*) BACKUP_COMPRESS="${arg#*=}" ;;
+    --jobs=?*) PARALLEL_JOBS="${arg#*=}" ;;
+    --level=?*) BACKUP_LEVEL="${arg#*=}" ;;
+    --strategy=?*) BACKUP_STRATEGY="${arg#*=}" ;;
+    --level) echo "Usage: --level=0|1|2|auto" >&2; exit 1 ;;
+    --strategy) echo "Usage: --strategy=hourly|daily|weekly|smart" >&2; exit 1 ;;
+    --compress) echo "Usage: --compress=gzip|pigz|zstd|pzstd" >&2; exit 1 ;;
+    --jobs) echo "Usage: --jobs=N (number of parallel compression threads)" >&2; exit 1 ;;
     *) echo "Unknown argument: $arg" >&2; exit 1 ;;
   esac
 done
@@ -31,26 +113,323 @@ TS="$(date +%F-%H%M%S)"
 RUN_DIR="${BACKUP_ROOT}/${TS}"
 LATEST_LINK="${BACKUP_ROOT}/latest"
 
+# === Incremental Backup Functions ===
+
+SNAPSHOT_DIR="${BACKUP_ROOT}/.snapshots"
+
+# Lock file for concurrent backup prevention
+ acquire_backup_lock() {
+  local lock_file="${SNAPSHOT_DIR}/.backup.lock"
+  local lock_fd=200
+  
+  mkdir -p "${SNAPSHOT_DIR}"
+  
+  # Open lock file
+  eval "exec ${lock_fd}>\"${lock_file}\"" || return 1
+  
+  # Try to acquire exclusive lock with timeout
+  if ! flock -x -w 30 "${lock_fd}"; then
+    log "ERROR: Could not acquire backup lock (another backup is running)"
+    return 1
+  fi
+  
+  # Store fd for later release
+  export BACKUP_LOCK_FD="${lock_fd}"
+  return 0
+}
+
+# Release backup lock
+release_backup_lock() {
+  if [[ -n "${BACKUP_LOCK_FD:-}" ]]; then
+    flock -u "${BACKUP_LOCK_FD}" 2>/dev/null || true
+    eval "exec ${BACKUP_LOCK_FD}>&-" 2>/dev/null || true
+    unset BACKUP_LOCK_FD
+  fi
+}
+
+# Determine backup level based on strategy and existing snapshots
+determine_backup_level() {
+  local strategy="$1"
+  local level="${BACKUP_LEVEL}"
+  
+  # If level explicitly set, use it
+  if [[ "$level" != "auto" ]]; then
+    echo "$level"
+    return
+  fi
+  
+  # Auto-determine based on strategy
+  case "$strategy" in
+    weekly)
+      # Always level 0 (full) for weekly
+      echo "0"
+      ;;
+    daily)
+      # Check if we have a level 0 snapshot from this week
+      if [[ -f "${SNAPSHOT_DIR}/level-0.snapshot" ]]; then
+        echo "1"
+      else
+        echo "0"
+      fi
+      ;;
+    hourly)
+      # Level 2 if we have level 1, else level 1 if we have level 0
+      if [[ -f "${SNAPSHOT_DIR}/level-1.snapshot" ]]; then
+        echo "2"
+      elif [[ -f "${SNAPSHOT_DIR}/level-0.snapshot" ]]; then
+        echo "1"
+      else
+        echo "0"
+      fi
+      ;;
+    smart)
+      # Sunday = level 0, other days = level 1
+      local weekday
+      weekday=$(date +%u)  # 1=Monday, 7=Sunday
+      if [[ "$weekday" == "7" ]]; then
+        echo "0"
+      else
+        echo "1"
+      fi
+      ;;
+    *)
+      # Default: level 0 (full)
+      echo "0"
+      ;;
+  esac
+}
+
+# Create tar archive with incremental support
+create_incremental_archive() {
+  local level="$1"
+  local source_dir="$2"
+  local output_file="$3"
+  local name="$4"
+  
+  # Acquire lock for snapshot operations
+  if ! acquire_backup_lock; then
+    log "ERROR: Failed to acquire backup lock"
+    return 1
+  fi
+  
+  # Ensure lock is released on exit (use subshell to isolate trap)
+  local old_trap
+  old_trap=$(trap -p EXIT)
+  # Export for the trap to access
+  export _OLD_TRAP="${old_trap}"
+  trap 'release_backup_lock; eval "${_OLD_TRAP:-}"' EXIT
+  
+  # Detect and use preferred compression
+  local compressor compress_opt compress_prog
+  compressor=$(detect_compressor)
+  compress_opt=$(get_tar_compress_opts "$compressor")
+  compress_prog=$(get_tar_compress_program "$compressor")
+  
+  if [[ "$compressor" == "pigz" || "$compressor" == "pzstd" ]]; then
+    log "Using parallel compression: $compressor (${PARALLEL_JOBS} threads)"
+  else
+    log "Using compression: $compressor"
+  fi
+  
+  mkdir -p "${SNAPSHOT_DIR}"
+  local snapshot_file="${SNAPSHOT_DIR}/level-${level}.snapshot"
+  
+  log "Creating ${name} archive (level ${level})..."
+  
+  if [[ "$level" == "0" ]]; then
+    # Full backup: remove old snapshots
+    rm -f "${SNAPSHOT_DIR}"/level-*.snapshot
+    snapshot_file="${SNAPSHOT_DIR}/level-0.snapshot"
+    tar --exclude='node_modules' --exclude='.git' --exclude='backups/openclaw' --exclude='.env.backup' --exclude='.env.backup.secret' \
+        --listed-incremental="${snapshot_file}" \
+        ${compress_prog} ${compress_opt:+-${compress_opt}} -cf "${output_file}" -C "${source_dir}" .
+  else
+    # Incremental backup: reference previous level
+    local prev_level=$((level - 1))
+    local prev_snapshot="${SNAPSHOT_DIR}/level-${prev_level}.snapshot"
+    
+    if [[ ! -f "$prev_snapshot" ]]; then
+      log "Warning: Level ${prev_level} snapshot not found, falling back to level 0"
+      snapshot_file="${SNAPSHOT_DIR}/level-0.snapshot"
+      tar --exclude='node_modules' --exclude='.git' --exclude='backups/openclaw' --exclude='.env.backup' --exclude='.env.backup.secret' \
+          --listed-incremental="${snapshot_file}" \
+          ${compress_prog} ${compress_opt:+-${compress_opt}} -cf "${output_file}" -C "${source_dir}" .
+    else
+      # Use previous snapshot as reference, create new snapshot for this level
+      tar --exclude='node_modules' --exclude='.git' --exclude='backups/openclaw' --exclude='.env.backup' --exclude='.env.backup.secret' \
+          --listed-incremental="${snapshot_file}" \
+          ${compress_prog} ${compress_opt:+-${compress_opt}} -cf "${output_file}" -C "${source_dir}" .
+    fi
+  fi
+  
+  # Save metadata
+  echo "level=${level}" > "${RUN_DIR}/${name}.meta"
+  echo "snapshot=${snapshot_file}" >> "${RUN_DIR}/${name}.meta"
+  
+  # Reset trap and release lock before returning
+  trap - EXIT
+  release_backup_lock
+}
+
+# === Checksum Generation ===
+
+generate_checksums() {
+  local backup_dir="$1"
+  local checksum_file="${backup_dir}/checksums.sha256"
+  
+  log "Generating SHA-256 checksums..."
+  
+  (
+    cd "$backup_dir" || exit 1
+    sha256sum workspace.tar.gz 2>/dev/null || true
+    sha256sum extensions.tar.gz 2>/dev/null || true
+    sha256sum manifest.txt 2>/dev/null || true
+  ) > "$checksum_file"
+  
+  log "  ✅ Checksums written to checksums.sha256"
+}
+
+verify_checksums() {
+  local backup_dir="$1"
+  local checksum_file="${backup_dir}/checksums.sha256"
+  
+  if [[ ! -f "$checksum_file" ]]; then
+    log "  ⚠️ No checksums file found"
+    return 0
+  fi
+  
+  log "Verifying SHA-256 checksums..."
+  
+  local errors=0
+  while IFS= read -r line; do
+    local expected_hash filename
+    expected_hash=$(echo "$line" | awk '{print $1}')
+    filename=$(echo "$line" | awk '{print $2}')
+    
+    local actual_hash
+    actual_hash=$(sha256sum "${backup_dir}/${filename}" 2>/dev/null | awk '{print $1}')
+    
+    if [[ "$expected_hash" == "$actual_hash" ]]; then
+      log "  ✅ ${filename}"
+    else
+      log "  ❌ ${filename}: checksum mismatch"
+      errors=$((errors + 1))
+    fi
+  done < "$checksum_file"
+  
+  if [[ ${errors} -gt 0 ]]; then
+    log "ERROR: ${errors} file(s) failed checksum verification"
+    return 1
+  fi
+  
+  return 0
+}
+
+# === Integrity Verification ===
+
+verify_backup_integrity() {
+  local backup_dir="$1"
+  local errors=0
+  
+  log "Checking archive integrity..."
+  
+  # Check workspace archive
+  if [[ -f "${backup_dir}/workspace.tar.gz" ]]; then
+    if tar -tzf "${backup_dir}/workspace.tar.gz" >/dev/null 2>&1; then
+      log "  ✅ workspace.tar.gz is valid"
+    else
+      log "  ❌ workspace.tar.gz is corrupted"
+      errors=$((errors + 1))
+    fi
+  else
+    log "  ❌ workspace.tar.gz is missing"
+    errors=$((errors + 1))
+  fi
+  
+  # Check extensions archive (optional)
+  if [[ -f "${backup_dir}/extensions.tar.gz" ]]; then
+    if tar -tzf "${backup_dir}/extensions.tar.gz" >/dev/null 2>&1; then
+      log "  ✅ extensions.tar.gz is valid"
+    else
+      log "  ❌ extensions.tar.gz is corrupted"
+      errors=$((errors + 1))
+    fi
+  fi
+  
+  # Check manifest
+  if [[ -f "${backup_dir}/manifest.txt" ]]; then
+    log "  ✅ manifest.txt exists"
+  else
+    log "  ⚠️ manifest.txt is missing"
+  fi
+  
+  # Check metadata
+  if [[ -f "${backup_dir}/workspace.meta" ]]; then
+    log "  ✅ workspace.meta exists"
+  else
+    log "  ⚠️ workspace.meta is missing"
+  fi
+  
+  # Check checksums if available
+  if [[ -f "${backup_dir}/checksums.sha256" ]]; then
+    verify_checksums "$backup_dir" || errors=$((errors + 1))
+  fi
+  
+  if [[ ${errors} -gt 0 ]]; then
+    log "Integrity check failed with ${errors} error(s)"
+    return 1
+  fi
+  
+  log "✅ All integrity checks passed"
+  return 0
+}
+
 # === Rotation Functions (defined before use) ===
 
 rotate_local_backups() {
   local root="$1"
   local keep="$2"
   [[ -d "$root" ]] || return 0
-  mapfile -t dirs < <(find "$root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort)
+  
+  # Safety: Validate root is within expected backup directory
+  local canonical_root
+  canonical_root=$(cd "$root" && pwd) || return 1
+  if [[ ! "$canonical_root" =~ /backups/openclaw$ ]]; then
+    log "ERROR: rotate_local_backups: root directory '$root' is not a valid backup directory"
+    return 1
+  fi
+  
+  mapfile -t dirs < <(find "$root" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$' | sort)
   local count=${#dirs[@]}
   if (( count <= keep )); then
     return 0
   fi
   local remove_count=$((count - keep))
   for d in "${dirs[@]:0:remove_count}"; do
-    rm -rf "$root/$d"
+    # Safety: Validate directory name format and existence
+    local full_path="$canonical_root/$d"
+    if [[ -d "$full_path" ]] && [[ "$d" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}$ ]]; then
+      rm -rf -- "$full_path"
+      log "Rotated: $d"
+    else
+      log "WARNING: Skipping invalid backup directory: $d"
+    fi
   done
 }
 
 webdav_list_dirs() {
   local url="$1"
-  curl --silent --show-error -u "${WEBDAV_USER}:${WEBDAV_PASS}" -X PROPFIND -H 'Depth: 1' "$url" || return 1
+  local error_file="${TEMP_DIR:-/tmp}/webdav_error_$$.txt"
+  local response
+  
+  response=$(curl --silent --show-error -u "${WEBDAV_USER}:${WEBDAV_PASS}" -X PROPFIND -H 'Depth: 1' "$url" 2>"${error_file}") || {
+    local curl_error=$(cat "${error_file}" 2>/dev/null || echo "unknown error")
+    log "ERROR: WebDAV PROPFIND failed for $url: $curl_error"
+    rm -f "${error_file}"
+    return 1
+  }
+  rm -f "${error_file}"
+  echo "$response"
 }
 
 webdav_delete_dir() {
@@ -59,7 +438,23 @@ webdav_delete_dir() {
     log "DRY RUN delete remote dir: ${url}"
     return 0
   fi
-  curl --silent --show-error -u "${WEBDAV_USER}:${WEBDAV_PASS}" -X DELETE "$url" >/dev/null
+  
+  local error_file="${TEMP_DIR:-/tmp}/webdav_error_$$.txt"
+  local http_code
+  
+  http_code=$(curl --silent --show-error -o /dev/null -w "%{http_code}" -u "${WEBDAV_USER}:${WEBDAV_PASS}" -X DELETE "$url" 2>"${error_file}") || {
+    local curl_error=$(cat "${error_file}" 2>/dev/null || echo "unknown error")
+    log "ERROR: WebDAV DELETE failed for $url: HTTP $http_code - $curl_error"
+    rm -f "${error_file}"
+    return 1
+  }
+  rm -f "${error_file}"
+  
+  if [[ "$http_code" != "200" && "$http_code" != "202" && "$http_code" != "204" ]]; then
+    log "WARNING: WebDAV DELETE returned HTTP $http_code for $url"
+    return 1
+  fi
+  return 0
 }
 
 rotate_remote_backups() {
@@ -81,6 +476,8 @@ rotate_remote_backups() {
 # === End Rotation Functions ===
 
 mkdir -p "${RUN_DIR}"
+mkdir -p "${SNAPSHOT_DIR}"
+mkdir -p "${SNAPSHOT_DIR}"
 
 WORKSPACE_ARCHIVE="${RUN_DIR}/workspace.tar.gz"
 EXTENSIONS_ARCHIVE="${RUN_DIR}/extensions.tar.gz"
@@ -102,9 +499,14 @@ send_notify() {
 }
 
 write_success_summary() {
+  local level_str="level-${CURRENT_LEVEL}"
+  if [[ "${BACKUP_STRATEGY}" != "daily" || "${CURRENT_LEVEL}" != "0" ]]; then
+    level_str="${BACKUP_STRATEGY} ${level_str}"
+  fi
   cat > "$NOTIFY_SUMMARY" <<EOF
 ✅ OpenClaw backup succeeded
 Time: ${TS}
+Type: ${level_str}
 Local dir: ${RUN_DIR}
 Encrypted config: $([[ ${ENCRYPT_CONFIG} -eq 1 ]] && echo yes || echo no)
 WebDAV upload: $([[ ${UPLOAD} -eq 1 ]] && echo yes || echo no)
@@ -163,14 +565,40 @@ if [[ ! -f "${CONFIG_FILE}" ]]; then
   exit 1
 fi
 
+# Determine backup level based on strategy
+CURRENT_LEVEL=$(determine_backup_level "${BACKUP_STRATEGY}")
+log "Backup strategy: ${BACKUP_STRATEGY}, Level: ${CURRENT_LEVEL}"
+
+FAILED_STAGE="creating workspace archive"
+# Pre-backup disk space check
+FAILED_STAGE="checking disk space"
+log "Checking available disk space"
+# Estimate required space: workspace size * 0.3 (compression ratio)
+estimated_size_mb=$(du -sm "${WORKSPACE_DIR}" 2>/dev/null | awk '{print int($1 * 0.3) + 50}' || echo 500)
+required_space_mb=${estimated_size_mb}
+
+available_mb=$(df -m "${BACKUP_ROOT}" 2>/dev/null | awk 'NR==2 {print $4}' || echo 0)
+
+if [[ ${available_mb} -lt ${required_space_mb} ]]; then
+    log "ERROR: Insufficient disk space. Required: ${required_space_mb}MB, Available: ${available_mb}MB"
+    exit 1
+fi
+log "Disk space check passed: ${available_mb}MB available (need ${required_space_mb}MB)"
+
 FAILED_STAGE="creating workspace archive"
 log "Creating workspace archive"
-tar --exclude='node_modules' --exclude='.git' --exclude='backups/openclaw' --exclude='.env.backup' --exclude='.env.backup.secret' -czf "${WORKSPACE_ARCHIVE}" -C "${WORKSPACE_DIR}" .
+create_incremental_archive "${CURRENT_LEVEL}" "${WORKSPACE_DIR}" "${WORKSPACE_ARCHIVE}" "workspace"
 
 if [[ -d "${EXTENSIONS_DIR}" ]]; then
   FAILED_STAGE="creating extensions archive"
-log "Creating extensions archive"
-  tar -czf "${EXTENSIONS_ARCHIVE}" -C "${STATE_DIR}" extensions
+  log "Creating extensions archive"
+  compressor=$(detect_compressor)
+  ext_compress_opt=$(get_tar_compress_opts "$compressor")
+  ext_compress_prog=$(get_tar_compress_program "$compressor")
+  if [[ "$compressor" == "zstd" || "$compressor" == "pzstd" ]]; then
+    EXTENSIONS_ARCHIVE="${RUN_DIR}/extensions.tar.zst"
+  fi
+  tar ${ext_compress_prog} ${ext_compress_opt:+-${ext_compress_opt}} -cf "${EXTENSIONS_ARCHIVE}" -C "${STATE_DIR}" extensions
 fi
 
 FAILED_STAGE="copying config"
@@ -211,6 +639,16 @@ NOTE
 
 ln -sfn "${RUN_DIR}" "${LATEST_LINK}"
 log "Backup set created at: ${RUN_DIR}"
+
+# 完整性检查
+FAILED_STAGE="verifying backup integrity"
+log "Verifying backup integrity"
+verify_backup_integrity "${RUN_DIR}"
+
+# 生成校验和
+FAILED_STAGE="generating checksums"
+generate_checksums "${RUN_DIR}"
+
 FAILED_STAGE="applying local retention"
 log "Applying local retention: keep ${LOCAL_KEEP}"
 rotate_local_backups "${BACKUP_ROOT}" "${LOCAL_KEEP}"
@@ -248,6 +686,33 @@ if [[ ${UPLOAD} -eq 1 ]]; then
     curl --fail --silent --show-error -u "${WEBDAV_USER}:${WEBDAV_PASS}" -T "${local_file}" "$remote_url" >/dev/null
   }
 
+  # Upload with exponential backoff retry
+  upload_file_with_retry() {
+    local local_file="$1"
+    local remote_url="$2"
+    local filename
+    filename=$(basename "$local_file")
+    local attempt=0
+    local delay
+
+    while [[ $attempt -lt $UPLOAD_MAX_RETRIES ]]; do
+      attempt=$((attempt + 1))
+      if upload_file "$local_file" "$remote_url"; then
+        [[ $attempt -gt 1 ]] && log "Upload succeeded on attempt $attempt: $filename"
+        return 0
+      fi
+
+      if [[ $attempt -lt $UPLOAD_MAX_RETRIES ]]; then
+        delay=$((UPLOAD_RETRY_DELAY_BASE ** attempt))
+        log "WARN: Upload failed for $filename (attempt $attempt/$UPLOAD_MAX_RETRIES), retrying in ${delay}s..."
+        sleep $delay
+      fi
+    done
+
+    log "ERROR: Upload failed for $filename after $UPLOAD_MAX_RETRIES attempts"
+    return 1
+  }
+
   REMOTE_ROOT="${WEBDAV_URL%/}/openclaw-backup"
   REMOTE_RUN="${REMOTE_ROOT}/${TS}"
 
@@ -257,14 +722,14 @@ if [[ ${UPLOAD} -eq 1 ]]; then
   mkcol_if_needed "${REMOTE_RUN}"
 
   FAILED_STAGE="uploading to WebDAV"
-  log "Uploading backup files to WebDAV"
-  upload_file "${WORKSPACE_ARCHIVE}" "${REMOTE_RUN}/$(basename "${WORKSPACE_ARCHIVE}")"
-  [[ -f "${EXTENSIONS_ARCHIVE}" ]] && upload_file "${EXTENSIONS_ARCHIVE}" "${REMOTE_RUN}/$(basename "${EXTENSIONS_ARCHIVE}")"
-  [[ -f "${CONFIG_COPY}" ]] && upload_file "${CONFIG_COPY}" "${REMOTE_RUN}/$(basename "${CONFIG_COPY}")"
-  [[ -f "${CONFIG_ENC}" ]] && upload_file "${CONFIG_ENC}" "${REMOTE_RUN}/$(basename "${CONFIG_ENC}")"
-  upload_file "${RESTORE_NOTE}" "${REMOTE_RUN}/$(basename "${RESTORE_NOTE}")"
-  upload_file "${MANIFEST}" "${REMOTE_RUN}/$(basename "${MANIFEST}")"
-  log "Upload finished"
+  log "Uploading backup files to WebDAV (max ${UPLOAD_MAX_RETRIES} retries)"
+  upload_file_with_retry "${WORKSPACE_ARCHIVE}" "${REMOTE_RUN}/$(basename "${WORKSPACE_ARCHIVE}")"
+  [[ -f "${EXTENSIONS_ARCHIVE}" ]] && upload_file_with_retry "${EXTENSIONS_ARCHIVE}" "${REMOTE_RUN}/$(basename "${EXTENSIONS_ARCHIVE}")"
+  [[ -f "${CONFIG_COPY}" ]] && upload_file_with_retry "${CONFIG_COPY}" "${REMOTE_RUN}/$(basename "${CONFIG_COPY}")"
+  [[ -f "${CONFIG_ENC}" ]] && upload_file_with_retry "${CONFIG_ENC}" "${REMOTE_RUN}/$(basename "${CONFIG_ENC}")"
+  upload_file_with_retry "${RESTORE_NOTE}" "${REMOTE_RUN}/$(basename "${RESTORE_NOTE}")"
+  upload_file_with_retry "${MANIFEST}" "${REMOTE_RUN}/$(basename "${MANIFEST}")"
+  log "Upload finished successfully"
   FAILED_STAGE="applying remote retention"
   log "Applying remote retention: keep ${REMOTE_KEEP}"
   rotate_remote_backups "${REMOTE_ROOT}" "${REMOTE_KEEP}"
