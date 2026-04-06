@@ -38,7 +38,9 @@ else:
     # 禁用 InsecureRequestWarning (因为 verify=False)
     warnings.filterwarnings("ignore", category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-    API_URL = 'https://skills.mediportal.com.cn/api/skill/list'
+    DEFAULT_API_BASE = 'https://skills.mediportal.com.cn'
+    API_BASE = DEFAULT_API_BASE
+    API_URL = f'{API_BASE.rstrip("/")}/api/skill/list'
 
     parser = argparse.ArgumentParser(description="发现 Skill — 浏览、搜索、查看详情")
     parser.add_argument("--search", "-s", type=str, help="按关键词搜索 Skill")
@@ -56,6 +58,8 @@ else:
         )
         response.raise_for_status()
         result = response.json()
+        if isinstance(result, dict) and result.get("resultCode") not in (None, 1):
+            raise RuntimeError(result.get("resultMsg") or result.get("detailMsg") or response.text)
     except Exception as e:
         print(f"请求失败: {e}", file=sys.stderr)
         sys.exit(1)
@@ -81,5 +85,5 @@ else:
             print(f"  {s.get('code', '')} - {s.get('name', '')} - {(s.get('description') or '')[:40]}")
     else:
         for i, s in enumerate(skills, 1):
-            print(f"  {i}. {s.get('code', '')} ({s.get('name', '')}) v{s.get('clawVersion', '')}")
+            print(f"  {i}. {s.get('code', '')} ({s.get('name', '')}) v{s.get('version', '')}")
         print(f"\n共 {len(skills)} 个 Skill")
