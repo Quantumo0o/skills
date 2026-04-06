@@ -1,129 +1,108 @@
-﻿---
+---
 name: skill-analyst
-description: Analyze OpenClaw skills before installing or publishing. Compare against installed or ClawHub skills, check overlap, run security review, and give a clear go/no-go recommendation. Use when: user wants to evaluate a skill for installation, compare skills on ClawHub, or check if a local skill is ready to publish. Triggers on "analyze skill-name", "evaluate install/publish skill-name", "璇勪及瀹夎/鍙戝竷鏌愭煇鎶€鑳?, "杩欎釜skill鍊煎緱瑁呭悧", "鑳藉彂甯冨悧".
+description: >
+  Analyze and evaluate OpenClaw skills before installing or publishing.
+  Compare against existing or ClawHub skills, check feature overlap,
+  perform security review, and provide clear install/publish recommendations.
+  Requires `clawhub` CLI to be available.
+  Triggers: "analyze skill-name", "evaluate installing/publishing skill",
+  "is this skill worth installing", "can I publish this", "skill comparison".
 ---
 
 # Skill Analyst
 
-鍒嗘瀽鍛樻ā寮忥細鍦ㄤ綘瀹夎鎴栧彂甯?skill 涔嬪墠锛屽府浣犲垎鏋愩€佸姣斻€佹妸鍏炽€?
+Help you analyze, compare, and vet skills before installing or publishing.
+
 ## Prerequisites
 
-- `clawhub` CLI available (for search and inspect)
-- `skill-vetter` optional (for security audit)
+- `clawhub` CLI required
+- `skill-vetter` optional (for security review)
 
-## Tools
+## Workflow: Install Evaluation
 
-Two helper scripts in `scripts/`:
+### Step 1: Search the Target
 
-```
-node <skill-dir>/scripts/analyst-search.mjs <query> [--limit N]
-node <skill-dir>/scripts/analyst-inspect.mjs <skill-name> [--files]
-```
+Search ClawHub for similar skills:
 
-Both output structured JSON.
-
-## Workflow: Install analyst
-
-Trigger: "analyst install <skill-name>" or "杩欎釜skill鍊煎緱瑁呭悧"
-
-### Step 1: analyst the target
-
-```
-node scripts/analyst-search.mjs "<skill-name>"
-node scripts/analyst-inspect.mjs "<top-result>"
+```bash
+clawhub search "<skill-name>"
+clawhub inspect "<best-match>"
 ```
 
-Capture: name, owner, version, summary, license, last updated.
+Get: name, author, version, summary, license, last updated.
 
-### Step 2: Check installed skills
+### Step 2: Check Installed Skills
 
-```
-clawhub list
-```
+Scan `~/.openclaw/skills/` for SKILL.md files, or use `clawhub list`.
 
-Or scan the skills directory for SKILL.md files.
+### Step 3: Find Overlap
 
-### Step 3: Find overlap
-
-Compare target's summary and description against installed skills:
-
-- Search for skills with similar keywords or functionality
+Compare target against installed skills:
+- Search by functionality keywords or use case
 - Rate overlap: HIGH / MEDIUM / LOW / NONE
 - Note key differences
 
-### Step 4: Security check (optional)
+### Step 4: Security Check (optional)
 
-If `skill-vetter` is installed, run it against the target.
+If `skill-vetter` is installed, run security review. Otherwise mark "security check skipped".
 
-If not available, note that security review was skipped.
+### Step 5: Generate Report
 
-### Step 5: Report
-
-Generate a structured report:
-
-```
-## 馃攳 Analysis Report: Install <skill-name>
+```markdown
+## 🔍 Analysis Report: Install <skill-name>
 
 ### Overview
 | Field | Value |
 |-------|-------|
 | Name | ... |
-| Owner | ... |
+| Author | ... |
 | Version | ... |
 | License | ... |
-| Updated | ... |
+| Last Updated | ... |
 
 ### Overlap with Installed Skills
-- skill-a: MEDIUM 鈥?similar purpose but different approach
-- skill-b: NONE 鈥?unrelated
+- skill-a: MEDIUM — Similar use case, different approach
+- skill-b: NONE — Unrelated
 
-### What It Adds
-- Feature X (not covered by any installed skill)
-- Improved Y over existing skill-z
+### Unique Value
+- Feature X (no installed skill covers this)
 
 ### Risks
-- Requires API key for Z
-- No updates in 3 months
+- Requires Z API key
 
 ### Verdict
-鉁?GO 鈥?Unique value, safe to install
-鈿狅笍 HOLD 鈥?Consider X first
-鉂?SKIP 鈥?Redundant with skill-a
+✅ Recommended / ⚠️ Consider / ❌ Not recommended
 ```
 
-## Workflow: Publish analyst
+## Workflow: Publish Evaluation
 
-Trigger: "analyst publish <skill-name>" or "鑳藉彂甯冨悧"
+### Step 1: Read Local Skill
 
-### Step 1: Read local skill
+Read SKILL.md from workspace or skills directory. Extract name, description, features, file list.
 
-Read the SKILL.md from workspace or skills directory.
+### Step 2: Search Competitors
 
-Extract: name, description, functionality, file list.
+Use 2-3 different keywords:
 
-### Step 2: Search for competitors
-
-```
-node scripts/analyst-search.mjs "<skill-name>"
-node scripts/analyst-search.mjs "<keywords-from-description>"
+```bash
+clawhub search "<skill-name>"
+clawhub search "<keywords from description>"
 ```
 
-Use 2-3 query variations to catch overlapping skills.
+### Step 3: Analyze Competitors
 
-### Step 3: Inspect competitors
+For each relevant result:
 
-For each relevant hit:
-
-```
-node scripts/analyst-inspect.mjs "<competitor>"
+```bash
+clawhub inspect "<competitor>"
 ```
 
-Compare: features, version maturity, update frequency, uniqueness.
+Compare: feature coverage, maturity, update frequency, uniqueness.
 
-### Step 4: Report
+### Step 4: Generate Report
 
-```
-## 馃攳 Analysis Report: Publish <skill-name>
+```markdown
+## 🔍 Analysis Report: Publish <skill-name>
 
 ### Your Skill
 | Field | Value |
@@ -132,46 +111,24 @@ Compare: features, version maturity, update frequency, uniqueness.
 | Files | ... |
 | Description | ... |
 
-### Competitors on ClawHub
-| Skill | Owner | Version | Overlap | Updated |
-|-------|-------|---------|---------|---------|
+### ClawHub Competitors
+| Skill | Author | Version | Overlap | Updated |
+|-------|--------|---------|---------|---------|
 | ... | ... | ... | HIGH/MED/LOW | ... |
 
-### Your Edge
-- What makes yours different or better
-- Gaps you fill that competitors don't
+### Your Advantages
+- Key differentiators
 
-### Suggested Improvements
-- Add X for better usability
-- Consider Y before publishing
+### Suggestions
+- Consider adding X before publishing
 
 ### Verdict
-鉁?PUBLISH 鈥?Unique contribution, ready
-鈿狅笍 ITERATE 鈥?Needs X improvements first
-鉂?RETHINK 鈥?Too similar to existing, contribute there instead
+✅ Ready to publish / ⚠️ Optimize first / ❌ Reconsider
 ```
 
-## Config
+## Output Rules
 
-Edit `config.json` to customize:
-
-```json
-{
-  "searchLimit": 8,           // max results per search
-  "overlapThresholds": {      // overlap classification
-    "high": 0.7,
-    "medium": 0.4,
-    "low": 0.2
-  },
-  "securityRequired": false,  // require security audit
-  "securitySkill": "skill-vetter"
-}
-```
-
-## Output Guidelines
-
-- Always use tables for structured comparisons
+- Always use tables for structured comparison
 - Keep analysis concise and actionable
-- End with a clear verdict (GO / HOLD / SKIP / PUBLISH / ITERATE / RETHINK)
-- Use the report templates above 鈥?don't freestyle
-
+- End with a clear verdict
+- Follow the report templates above
