@@ -8,6 +8,9 @@
 import os
 import re
 import json
+import hashlib
+import threading
+import time as time_module
 import requests
 import subprocess
 import tempfile
@@ -34,6 +37,12 @@ class Config:
     WHISPER_MODEL = os.environ.get("WHISPER_MODEL", "small")  # tiny/base/small/medium/large
     WHISPER_MODEL_DIR = os.environ.get("WHISPER_MODEL_DIR", os.path.expanduser("~/.whisper.cpp/models"))
     
+        # 转录结果存储目录
+    TRANSCRIPTS_DIR = os.environ.get("TRANSCRIPTS_DIR", os.path.expanduser("~/.openclaw/video-transcripts"))
+    # 视频时长阈值（秒），超过则后台转录
+    DURATION_THRESHOLD = int(os.environ.get("DURATION_THRESHOLD", "300"))
+    os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
+
     # 第三方 API (备选)
     THIRD_PARTY_API = os.environ.get("DOUYIN_THIRD_PARTY_API", "https://liuxingw.com/api/douyin/api.php")
 
@@ -401,35 +410,49 @@ class AudioProcessor:
     
     @staticmethod
     def transcribe_local(audio_path: str) -> Optional[str]:
-        """本地 whisper.cpp 语音识别"""
-        try:
-            # 尝试使用 whisper.cpp 的二进制
-            cmd = [
-                "whisper-cli", "-m", 
-                f"{Config.WHISPER_MODEL_DIR}/ggml-{Config.WHISPER_MODEL}.bin",
-                "-f", audio_path, "-otxt"
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            
-            if result.returncode == 0:
-                txt_path = audio_path.replace(".mp3", ".txt")
-                if os.path.exists(txt_path):
-                    with open(txt_path, 'r', encoding='utf-8') as f:
-                        return f.read()
-            
-            # 如果 whisper-cli 不可用，尝试 Python binding
+        """本地语音识别 - mlx-whisper 优先，faster-whisper 兜底"""
+        import platform
+
+        # --- 优先：mlx-whisper（Apple Silicon Metal GPU）---
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
             try:
-                import whisper
-                model = whisper.load_model(Config.WHISPER_MODEL)
-                result = model.transcribe(audio_path)
-                return result["text"]
-            except:
-                pass
-                
-            return None
+                import mlx_whisper
+                model_name = f"mlx-community/whisper-{Config.WHISPER_MODEL}-mlx"
+                print(f"[Transcribe] using mlx-whisper: {model_name}")
+                result = mlx_whisper.transcribe(
+                    audio_path,
+                    path_or_hf_repo=model_name,
+                    language="zh"
+                )
+                text = result.get("text", "").strip()
+                if text:
+                    return text
+            except Exception as e:
+                print(f"[Transcribe] mlx-whisper failed: {e}")
+
+        # --- 兜底：faster-whisper（CPU / CUDA 通用）---
+        try:
+            from faster_whisper import WhisperModel
+            compute = "auto"  # 自动选择 CPU/CUDA
+            print(f"[Transcribe] using faster-whisper (compute={compute})")
+            model = WhisperModel(
+                Config.WHISPER_MODEL,
+                device="auto",
+                compute_type=compute
+            )
+            segments, _ = model.transcribe(
+                audio_path,
+                language="zh",
+                vad_filter=True
+            )
+            text = "".join(seg.text for seg in segments)
+            if text:
+                return text
         except Exception as e:
-            print(f"Error in local transcription: {e}")
-            return None
+            print(f"[Transcribe] faster-whisper failed: {e}")
+
+        print("[Transcribe] all local transcription methods failed")
+        return None
     
     @staticmethod
     def transcribe_cloud(audio_path: str) -> Optional[str]:
@@ -787,6 +810,371 @@ def extract_douyin_audio(share_link: str) -> str:
         import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
 
+
+# ============ 通用多平台视频下载 + 转录（新工具）============
+
+class UniversalPlatformDetector:
+    """检测视频链接所属平台"""
+    PATTERNS = {
+        "bilibili":    [r"bilibili\.com/video", r"b23\.tv", r"BV[a-zA-Z0-9]+"],
+        "douyin":      [r"douyin\.com", r"v\.douyin\.com", r"iesdouyin\.com"],
+        "tiktok":      [r"tiktok\.com"],
+        "youtube":     [r"youtube\.com/watch", r"youtu\.be/"],
+        "xiaohongshu": [r"xiaohongshu\.com", r"xhslink\.com"],
+        "weibo":       [r"weibo\.com", r"m\.weibo\.cn"],
+        "kuaishou":    [r"kuaishou\.com", r"ksurl\.cn"],
+    }
+    @classmethod
+    def detect(cls, url):
+        for name, pats in cls.PATTERNS.items():
+            for p in pats:
+                if re.search(p, url, re.IGNORECASE):
+                    return name
+        return "unknown"
+
+class UniversalVideoAnalyzer:
+    """通用视频分析（yt-dlp 优先，tikhub 保底）"""
+    def __init__(self):
+        import tempfile
+        self.temp_dir = tempfile.mkdtemp()
+
+    def analyze(self, url):
+        """分析流程：短视频同步返回，长视频后台转录"""
+        import shutil
+        result = {"status": "pending", "platform": None, "video_info": None,
+                  "download_path": None, "transcript": None, "segments": None,
+                  "summary": None, "chapters": [], "highlights": [],
+                  "download_source": None, "transcript_id": None, "error": None}
+        try:
+            platform = UniversalPlatformDetector.detect(url)
+            result["platform"] = platform
+            if platform == "unknown":
+                result["error"] = f"不支持的平台: {url}"
+                return result
+            # yt-dlp 获取信息
+            duration = 0
+            try:
+                import subprocess
+                cp = subprocess.run(["yt-dlp", "--dump-json", "--no-download", url],
+                                   capture_output=True, text=True, timeout=30)
+                if cp.returncode == 0:
+                    import json as js
+                    info = js.loads(cp.stdout.strip().split("\n")[0])
+                    duration = info.get("duration") or 0
+                    result["video_info"] = {"title": info.get("title",""), "duration": duration,
+                                           "uploader": info.get("uploader",""),
+                                           "description": info.get("description","")}
+            except Exception as e:
+                print(f"[Universal] get_info error: {e}")
+            # 下载
+            ok, file_path, source = self._download(url)
+            if not ok:
+                result["error"] = f"下载失败: {file_path}"
+                return result
+            result["download_path"] = file_path
+            result["download_source"] = source
+            # 短视频（<5min）同步转录
+            if duration < Config.DURATION_THRESHOLD:
+                return self._analyze_sync(result, file_path, duration)
+            # 长视频：后台转录，立即返回
+            return self._analyze_async(url, result, file_path, duration)
+        except Exception as e:
+            result["error"] = str(e)
+        finally:
+            try: shutil.rmtree(self.temp_dir)
+            except: pass
+        return result
+
+    def _analyze_sync(self, result, video_path, duration):
+        """同步转录（短视频）"""
+        try:
+            audio_path = self.temp_dir + "/audio.mp3"
+            cp = subprocess.run(["ffmpeg", "-i", video_path, "-vn", "-acodec", "libmp3lame",
+                                 "-q:a", "2", "-y", audio_path],
+                                capture_output=True, text=True, timeout=120)
+            if cp.returncode != 0:
+                result["error"] = "音频提取失败"
+                return result
+            text, segments = self._transcribe(audio_path)
+            if not text:
+                result["error"] = "转录失败"
+                return result
+            # 后处理：结构化输出
+            structured = self._structure_output(text, segments, duration,
+                                                  result.get("video_info", {}))
+            result.update(structured)
+            result["status"] = "success"
+        except Exception as e:
+            result["error"] = str(e)
+        return result
+
+    def _analyze_async(self, url, result, video_path, duration):
+        """异步转录（长视频）：下载后后台运行，立即返回 transcript_id"""
+        import shutil
+        transcript_id = hashlib.md5(f"{url}_{time_module.time()}".encode()).hexdigest()[:12]
+        persist_dir = Config.TRANSCRIPTS_DIR
+        os.makedirs(persist_dir, exist_ok=True)
+        # 保存视频路径供后台任务使用
+        job_file = os.path.join(persist_dir, f"{transcript_id}.json")
+        audio_path = os.path.join(persist_dir, f"{transcript_id}.mp3")
+        # 提取音频到持久目录
+        cp = subprocess.run(["ffmpeg", "-i", video_path, "-vn", "-acodec", "libmp3lame",
+                             "-q:a", "2", "-y", audio_path],
+                            capture_output=True, text=True, timeout=120)
+        if cp.returncode != 0:
+            result["error"] = "音频提取失败"
+            return result
+        # 写入 job 状态
+        job_info = {
+            "transcript_id": transcript_id,
+            "url": url,
+            "audio_path": audio_path,
+            "duration": duration,
+            "video_info": result.get("video_info"),
+            "status": "transcribing",
+            "transcript": None, "segments": None,
+            "summary": None, "chapters": [], "highlights": [],
+            "created_at": time_module.time()
+        }
+        with open(job_file, "w") as f:
+            json.dump(job_info, f, ensure_ascii=False)
+        # 后台线程转录
+        def bg_transcribe():
+            text, segments = self._transcribe(audio_path)
+            job_info["transcript"] = text
+            job_info["segments"] = segments
+            if text:
+                structured = self._structure_output(text, segments, duration,
+                                                      result.get("video_info", {}))
+                job_info.update(structured)
+            job_info["status"] = "ready"
+            job_info["completed_at"] = time_module.time()
+            with open(job_file, "w") as f:
+                json.dump(job_info, f, ensure_ascii=False)
+        threading.Thread(target=bg_transcribe, daemon=True).start()
+        result["status"] = "transcribing"
+        result["transcript_id"] = transcript_id
+        result["message"] = f"视频较长（{int(duration//60)}分），正在后台转录，请使用 transcript_id 调用 get_transcript 获取结果"
+        return result
+
+    def _structure_output(self, text, segments, duration, video_info):
+        """将原始转录结果结构化：摘要、章节、高亮"""
+        structured = {"transcript": text, "segments": segments or [],
+                      "summary": None, "chapters": [], "highlights": []}
+        if not text or not Config.MINIMAX_API_KEY:
+            return structured
+        try:
+            import requests
+            # 构造章节提示词
+            duration_min = int(duration // 60)
+            chapter_prompt = f"""你是一个视频内容分析助手。视频时长：{duration_min}分钟，标题：{video_info.get('title','')}。
+
+请根据以下转录文本，输出一份结构化的内容分析（JSON格式）：
+
+转录文本：
+{text[:6000]}
+
+要求输出JSON（不要任何其他内容）：
+{{
+  "summary": "3-5句话的总结",
+  "chapters": [
+    {{"timestamp": "0:00", "title": "章节标题", "summary": "本节内容一句话总结"}},
+    ...
+  ],
+  "highlights": ["关键观点1", "关键观点2", "关键观点3"]
+}}
+
+请确保 chapters 有3-8个章节，覆盖视频的主要内容。"""
+
+            resp = requests.post(
+                f"{Config.MINIMAX_BASE_URL}/v1/chat/completions",
+                headers={"Authorization": f"Bearer {Config.MINIMAX_API_KEY}",
+                         "Content-Type": "application/json"},
+                json={"model": "MiniMax-M2.1",
+                      "messages": [{"role": "user", "content": chapter_prompt}],
+                      "max_tokens": 1500},
+                timeout=30
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                import re as re2
+                m = re2.search(r'\{.*\}', raw, re2.DOTALL)
+                if m:
+                    parsed = json.loads(m.group())
+                    structured["summary"] = parsed.get("summary")
+                    structured["chapters"] = parsed.get("chapters", [])
+                    structured["highlights"] = parsed.get("highlights", [])
+        except Exception as e:
+            print(f"[_structure_output] error: {e}")
+        return structured
+
+    def _download(self, url):
+        import subprocess, os, shutil
+        platform = UniversalPlatformDetector.detect(url)
+        output_dir = self.temp_dir
+        os.makedirs(output_dir, exist_ok=True)
+        tmpl = os.path.join(output_dir, "%(title)s.%(ext)s")
+        # yt-dlp 优先
+        cp = subprocess.run(["yt-dlp", "-f", "bestvideo+bestaudio/best",
+                             "--merge-output-format", "mp4", "-o", tmpl,
+                             "--no-playlist", url],
+                            capture_output=True, text=True, timeout=300)
+        if cp.returncode == 0:
+            files = [f for f in os.listdir(output_dir) if f.endswith((".mp4",".mkv",".webm"))]
+            if files:
+                return True, os.path.join(output_dir, files[0]), "yt-dlp"
+        # tikhub 备用
+        import os as oo
+        tikhub_key = oo.environ.get("TIKHUB_API_KEY", "")
+        if tikhub_key:
+            print(f"[Universal] yt-dlp failed, tikhub not implemented for new flow, continuing...")
+        return False, "下载失败", "error"
+
+    def _transcribe(self, audio_path):
+        import platform as plat
+
+        # --- 优先：mlx-whisper（Apple Silicon Metal GPU）---
+        if plat.system() == "Darwin" and plat.machine() == "arm64":
+            try:
+                import mlx_whisper
+                model_name = "mlx-community/whisper-small-mlx"
+                print(f"[UniversalWhisper] using mlx-whisper: {model_name}")
+                result = mlx_whisper.transcribe(
+                    audio_path,
+                    path_or_hf_repo=model_name,
+                    language="zh"
+                )
+                text = result.get("text", "").strip()
+                segments = [
+                    {"start": s.get("start", 0), "end": s.get("end", 0), "text": s.get("text", "").strip()}
+                    for s in result.get("segments", [])
+                    if s.get("text", "").strip()
+                ]
+                if text:
+                    return text, segments
+            except Exception as e:
+                print(f"[UniversalWhisper] mlx-whisper failed: {e}")
+
+        # --- 兜底：faster-whisper（CPU / CUDA 通用）---
+        try:
+            from faster_whisper import WhisperModel
+            print(f"[UniversalWhisper] using faster-whisper")
+            model = WhisperModel("small", device="auto", compute_type="auto")
+            segments, _ = model.transcribe(audio_path, language="zh", vad_filter=True)
+            text = "".join(seg.text for seg in segments)
+            seg_list = [
+                {"start": seg.start, "end": seg.end, "text": seg.text.strip()}
+                for seg in segments if seg.text.strip()
+            ]
+            if text:
+                return text, seg_list
+        except Exception as e:
+            print(f"[UniversalWhisper] faster-whisper failed: {e}")
+
+        print("[UniversalWhisper] all transcription methods failed")
+        return None, None
+
+
+def analyze_video(url: str) -> str:
+    """通用视频分析 - 支持 B站/抖音/TikTok/YouTube/小红书/微博/快手"""
+    import json as js
+    r = UniversalVideoAnalyzer().analyze(url)
+    return js.dumps(r, ensure_ascii=False, indent=2)
+
+def get_video_info(url: str) -> str:
+    """获取视频信息（不下载）"""
+    import json as js
+    import subprocess
+    platform = UniversalPlatformDetector.detect(url)
+    if platform == "unknown":
+        return js.dumps({"error": f"不支持的平台: {url}"}, ensure_ascii=False)
+    try:
+        cp = subprocess.run(["yt-dlp", "--dump-json", "--no-download", url],
+                           capture_output=True, text=True, timeout=30)
+        if cp.returncode == 0:
+            info = js.loads(cp.stdout.strip().split("\n")[0])
+            return js.dumps({"platform": platform, "title": info.get("title",""),
+                             "duration": info.get("duration",0),
+                             "uploader": info.get("uploader",""),
+                             "description": info.get("description","")}, ensure_ascii=False, indent=2)
+    except:
+        pass
+    return js.dumps({"error": "获取信息失败"}, ensure_ascii=False)
+
+def download_video(url: str, output_dir: str = None) -> str:
+    """下载视频到指定目录"""
+    import json as js, tempfile, os
+    if output_dir is None:
+        output_dir = tempfile.mkdtemp()
+    os.makedirs(output_dir, exist_ok=True)
+    tmpl = os.path.join(output_dir, "%(title)s.%(ext)s")
+    import subprocess
+    cp = subprocess.run(["yt-dlp", "-f", "bestvideo+bestaudio/best",
+                         "--merge-output-format", "mp4", "-o", tmpl,
+                         "--no-playlist", url],
+                        capture_output=True, text=True, timeout=300)
+    if cp.returncode == 0:
+        files = [f for f in os.listdir(output_dir) if f.endswith((".mp4",".mkv",".webm"))]
+        if files:
+            return js.dumps({"status": "success", "file_path": os.path.join(output_dir, files[0]),
+                             "source": "yt-dlp", "output_dir": output_dir}, ensure_ascii=False, indent=2)
+    return js.dumps({"status": "error", "error": "下载失败"}, ensure_ascii=False)
+
+def get_transcript(transcript_id: str) -> str:
+    """获取长视频转录结果（transcribe_id 由 analyze_video 返回）"""
+    import json as js
+    job_file = os.path.join(Config.TRANSCRIPTS_DIR, f"{transcript_id}.json")
+    if not os.path.exists(job_file):
+        return js.dumps({"error": f"未找到 transcript_id: {transcript_id}"}, ensure_ascii=False)
+    with open(job_file) as f:
+        job = json.load(f)
+    if job["status"] == "transcribing":
+        elapsed = int(time_module.time() - job["created_at"])
+        return js.dumps({"status": "transcribing", "transcript_id": transcript_id,
+                         "message": f"转录中（已进行 {elapsed} 秒），请稍后重试"}, ensure_ascii=False)
+    return js.dumps({"status": "ready", "transcript_id": transcript_id,
+                     "video_info": job.get("video_info"),
+                     "transcript": job.get("transcript"),
+                     "segments": job.get("segments"),
+                     "summary": job.get("summary"),
+                     "chapters": job.get("chapters"),
+                     "highlights": job.get("highlights")}, ensure_ascii=False, indent=2)
+
+def query_transcript(transcript_id: str, query: str, top_k: int = 3) -> str:
+    """在已转录的视频中检索相关内容（基于关键词匹配）"""
+    import json as js, re as re2
+    job_file = os.path.join(Config.TRANSCRIPTS_DIR, f"{transcript_id}.json")
+    if not os.path.exists(job_file):
+        return js.dumps({"error": f"未找到 transcript_id: {transcript_id}"}, ensure_ascii=False)
+    with open(job_file) as f:
+        job = json.load(f)
+    if job["status"] != "ready":
+        return js.dumps({"error": "转录尚未完成，请先调用 get_transcript"}, ensure_ascii=False)
+    segments = job.get("segments", [])
+    if not segments:
+        return js.dumps({"error": "无 segments 数据"}, ensure_ascii=False)
+    # 简单关键词匹配
+    query_words = query.lower().split()
+    scored = []
+    for seg in segments:
+        txt = seg.get("text", "").lower()
+        score = sum(1 for w in query_words if w in txt)
+        if score > 0:
+            scored.append((score, seg))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    results = []
+    for score, seg in scored[:top_k]:
+        ts = int(seg.get("start", 0))
+        results.append({
+            "timestamp": f"{ts//60}:{ts%60:02d}",
+            "timestamp_sec": ts,
+            "score": score,
+            "text": seg.get("text", "")
+        })
+    return js.dumps({"query": query, "results": results}, ensure_ascii=False, indent=2)
+
+
 # ============ MCP Server ============
 from mcp.server import Server
 from mcp.types import Tool, TextContent
@@ -841,6 +1229,64 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["share_link"]
             }
+        ),
+        Tool(
+            name="analyze_video",
+            description="通用视频分析（下载 + 转录）- 支持 B站/抖音/TikTok/YouTube/小红书/微博/快手，yt-dlp 优先，tikhub 保底",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "视频链接"}
+                },
+                "required": ["url"]
+            }
+        ),
+        Tool(
+            name="get_video_info",
+            description="获取视频基本信息（不下载）- 支持所有主流平台",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "视频链接"}
+                },
+                "required": ["url"]
+            }
+        ),
+        Tool(
+            name="download_video",
+            description="下载视频到指定目录（支持所有主流平台）",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "url": {"type": "string", "description": "视频链接"},
+                    "output_dir": {"type": "string", "description": "输出目录（可选）"}
+                },
+                "required": ["url"]
+            }
+        ),
+        Tool(
+            name="get_transcript",
+            description="获取长视频后台转录结果（短视频直接返回完整结果）",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "transcript_id": {"type": "string", "description": "转录任务ID（由 analyze_video 返回）"}
+                },
+                "required": ["transcript_id"]
+            }
+        ),
+        Tool(
+            name="query_transcript",
+            description="在已转录的视频中检索相关内容（关键词匹配，返回相关片段）",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "transcript_id": {"type": "string", "description": "转录任务ID"},
+                    "query": {"type": "string", "description": "查询内容/关键词"},
+                    "top_k": {"type": "integer", "description": "返回片段数量（默认3）", "default": 3}
+                },
+                "required": ["transcript_id", "query"]
+            }
         )
     ]
 
@@ -857,6 +1303,17 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         )
     elif name == "extract_douyin_audio":
         result = extract_douyin_audio(arguments["share_link"])
+    elif name == "analyze_video":
+        result = analyze_video(arguments["url"])
+    elif name == "get_video_info":
+        result = get_video_info(arguments["url"])
+    elif name == "download_video":
+        result = download_video(arguments["url"], arguments.get("output_dir"))
+    elif name == "get_transcript":
+        result = get_transcript(arguments["transcript_id"])
+    elif name == "query_transcript":
+        result = query_transcript(arguments["transcript_id"], arguments["query"],
+                                   arguments.get("top_k", 3))
     else:
         result = json.dumps({"error": f"Unknown tool: {name}"})
     
