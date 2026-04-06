@@ -1,11 +1,17 @@
 {
   "owner": "liuli4",
   "slug": "stock-entry-analyzer",
-  "displayName": "股票入场分析",
+  "displayName": "Stock Entry Analyzer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775015184585,
-    "commit": "https://github.com/openclaw/skills/commit/188bec94e63bbaf395bbfa795165428f24e0ebdf"
+    "version": "1.0.2",
+    "publishedAt": 1775140498321,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775015184585,
+      "commit": "https://github.com/openclaw/skills/commit/188bec94e63bbaf395bbfa795165428f24e0ebdf"
+    }
+  ]
 }
