@@ -1,14 +1,5 @@
 # Changelog
 
-## [2026.3.27-1] - 2026-03-27
-
-### Changed
-
-- **README.md**: Added `## Authentication & Required Permissions` section listing the exact API Key permission scopes required per signal (S1–S5), including the `Unified:Write` requirement for S5 write operations and a read-only-first recommendation.
-- **README.md**: Added `## Before You Install` pre-install checklist covering credential path, least-privilege key scope, read-only testing first, platform confirmation enforcement, outbound GitHub fetch, and write-operation risk notice — addressing ClawHub registry metadata / documentation inconsistency (credential declaration).
-- **README.md**: Expanded `## Prerequisites` to list Node.js/npx host dependency and outbound HTTPS requirements.
-- **SKILL.md** frontmatter: `version` / `updated` bumped to `2026.3.27-1`.
-
 ## [2026.3.25-1] - 2026-03-25
 
 ### Changed

@@ -79,66 +79,10 @@ gate-exchange-assets-manager/
 - affiliate / rebate / commission / partner status
 - borrow USDT / add margin / set collateral / switch mode / set leverage
 
-## Authentication & Required Permissions
-
-This skill **requires a Gate API Key** configured in the Gate MCP server. All 58 MCP tools require authentication; the skill processes only the authenticated user's own account data.
-
-### Minimum API Key Permissions
-
-| Permission Scope | Required For | Operations |
-|-----------------|--------------|------------|
-| `Alpha:Read` | S1 Asset Overview | Alpha account balances |
-| `Earn:Read` | S3 Earn Snapshot | SimpleEarn / staking positions and interest |
-| `Fx:Read` | S2 Risk / S1 Assets | Futures positions, margin, liquidation prices |
-| `Margin:Read` | S1 Asset Overview | Margin account balances |
-| `Options:Read` | S1 Asset Overview | Options account balances |
-| `Rebate:Read` | S4 Affiliate | Commission history, partner/broker data |
-| `Spot:Read` | S1 Asset Overview | Spot account balances |
-| `Tradfi:Read` | S1 Asset Overview | TradFi asset inventory |
-| `Unified:Read` | S1 / S2 / S5 (read phase) | Unified account, borrowable, transferable |
-| `Wallet:Read` | S1 Asset Overview | Total balance across all accounts |
-| **`Unified:Write`** | **S5 Write Operations** | **Borrow, set collateral, set leverage, switch mode** |
-
-> ⚠️ **`Unified:Write` is required only for S5 borrow/collateral/leverage/mode operations.** For read-only use (S1–S4), you can create a key without `Unified:Write`.
-
-Manage API keys: https://www.gate.io/myaccount/profile/api-key/manage
-
-### How to Supply the API Key
-
-The API Key must be configured in your **Gate MCP server environment**, not pasted into chat. Refer to your IDE's installer skill for setup:
-
-- **Cursor**: `gate-mcp-cursor-installer`
-- **Codex**: `gate-mcp-codex-installer`
-- **Claude**: `gate-mcp-claude-installer`
-- **OpenClaw**: `gate-mcp-openclaw-installer`
-
----
-
-## Before You Install
-
-**Verify the following before enabling this skill:**
-
-1. **Credential path**: Confirm your Gate MCP server is configured with a valid API Key in its environment (not in chat). The skill does not accept keys pasted into the conversation.
-
-2. **Key scope matches your use case**:
-   - For **read-only** use (asset overview, risk check, earn snapshots, affiliate queries): create a key with all `*:Read` scopes listed above, **omit `Unified:Write`**.
-   - For **full functionality** (including borrow / collateral / leverage / mode switching): add `Unified:Write`. Because write operations can change account state, apply least-privilege — do not add scopes beyond those listed.
-
-3. **Test read-only first**: Before granting `Unified:Write`, validate that S1–S4 query flows return correct data using a read-only key. Only escalate to a write-capable key once read-only behavior is confirmed.
-
-4. **Platform confirmation enforcement**: S5 write operations (borrow, set collateral, switch mode) rely on the **Action Draft + single-use explicit confirmation** guardrail in this skill. Confirm that your platform/agent host executes this confirmation flow and does not bypass it via direct tool invocation before enabling write operations in production.
-
-5. **Outbound fetch**: On each session start, this skill reads `gate-runtime-rules.md` from `https://github.com/gate/gate-skills`. Confirm that outbound access to GitHub is acceptable in your deployment environment.
-
-6. **Write operations are account-modifying**: `cex_unified_create_unified_loan` (borrow/repay), `cex_unified_set_unified_mode`, `cex_unified_set_unified_collateral`, and `cex_unified_set_user_leverage_currency_setting` directly affect your unified account state. Review SKILL.md Safety Rules before enabling.
-
----
-
 ## Prerequisites
 
-- Gate MCP server configured and connected with a valid API Key (see **Authentication & Required Permissions** above).
-- Node.js / npx available on the host to run the MCP server package.
-- Outbound HTTPS access to `api.gateio.ws` (Gate API) and `github.com` (runtime rules fetch).
+- Requires Gate MCP server configured and connected with valid authentication (OAuth2 or API Key).
+- All 58 MCP tools require API Key authentication; the skill processes only the authenticated user's own data.
 
 ## Support
 
