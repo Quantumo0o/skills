@@ -3,9 +3,15 @@
   "slug": "fastfield-mobile-forms",
   "displayName": "Fastfield Mobile Forms",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774526619862,
-    "commit": "https://github.com/openclaw/skills/commit/a121bbd0e3a06c87f65c026b381f1f64e4c8d240"
+    "version": "1.0.2",
+    "publishedAt": 1775167915186,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774526619862,
+      "commit": "https://github.com/openclaw/skills/commit/a121bbd0e3a06c87f65c026b381f1f64e4c8d240"
+    }
+  ]
 }
