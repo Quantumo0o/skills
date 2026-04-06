@@ -12,10 +12,14 @@ import requests
 import markdown
 from weasyprint import HTML
 
-API_URL = "https://testapi.aidso.com/openapi/skills/band_report/md"
+API_URL = "https://api.aidso.com/openapi/skills/band_report/md"
+API_KEY_URL = "https://geo.aidso.com/setting?type=apiKey&platform=GEO"
+COMPLETE_ANALYSIS_URL = "https://geo.aidso.com/completeAnalysis"
+GEO_HOME_URL = "https://geo.aidso.com"
+PURCHASE_POINTS_URL = "https://geo.aidso.com"
+
 STATE_DIR = Path(os.environ.get("AIDSO_STATE_DIR", str(Path(__file__).resolve().parent / ".state")))
 STATE_FILE = STATE_DIR / "bindings.json"
-CONSOLE_URL = os.environ.get("AIDSO_CONSOLE_URL", "https://testapi.aidso.com")
 
 CONFIRM_WORDS = {"确认", "是", "好的", "好", "继续", "yes", "y", "ok", "确认使用"}
 CANCEL_WORDS = {"取消", "不", "否", "no", "n"}
@@ -77,8 +81,30 @@ def out_media(path):
 def out_debug(msg):
     print(msg, file=sys.stderr, flush=True)
 
-def binding_prompt():
-    return f"首次使用需要绑定爱搜账号，请输入你在后台创建的API key 完成绑定。附url地址：{CONSOLE_URL}"
+def first_use_upgrade_note():
+    return (
+        "欢迎使用 AIDSO 虾搜GEO品牌诊断技能。后续技能将持续更新，包括："
+        "AI问题生成、GEO持续监测、根据监测优化建议生成素材等，欢迎关注后续更新。"
+    )
+
+def binding_prompt(include_upgrade_note=False):
+    text = f"首次使用需要绑定爱搜账号，请输入你在后台创建的API key 完成绑定。获取地址：{API_KEY_URL}"
+    if include_upgrade_note:
+        text += "\\n\\n" + first_use_upgrade_note()
+    return text
+
+def custom_need_tip():
+    return f"如有其他自定义诊断需求，可前往官网查看：{GEO_HOME_URL}"
+
+def pending_extra_tip():
+    return f"如果报告长时间未生成，也可以前往官网查看：{COMPLETE_ANALYSIS_URL}"
+
+def format_backend_error_message(msg):
+    if not msg:
+        return ""
+    if "积分不足" in msg:
+        return f"{msg}\\n请前往{PURCHASE_POINTS_URL} 购买积分"
+    return msg
 
 def ensure_state():
     STATE_DIR.mkdir(parents=True, exist_ok=True)
@@ -105,7 +131,9 @@ def get_user_state(all_state, user_id):
             "api_key": None,
             "awaiting_api_key": False,
             "awaiting_confirmation": False,
-            "pending_brand": None
+            "pending_brand": None,
+            "pending_check_count": 0,
+            "welcome_shown": False
         }
     return all_state[user_id]
 
@@ -115,6 +143,7 @@ def has_api_key(state):
 
 def clear_pending(state):
     state["pending_brand"] = None
+    state["pending_check_count"] = 0
 
 def safe_report_filename(ext):
     if not ext:
@@ -153,17 +182,57 @@ def normalize_code(code):
     except Exception:
         return code
 
+def get_backend_msg(data):
+    if not isinstance(data, dict):
+        return ""
+    msg = data.get("msg")
+    if isinstance(msg, str) and msg.strip():
+        return msg.strip()
+    message = data.get("message")
+    if isinstance(message, str) and message.strip():
+        return message.strip()
+    return ""
+
 def is_invalid_token_response(data):
     if not isinstance(data, dict):
         return False
-    return normalize_code(data.get("code")) == 401 and "invalid token" in str(data.get("msg") or "").lower()
+    return normalize_code(data.get("code")) == 401 and "invalid token" in get_backend_msg(data).lower()
 
 def is_processing_response(data):
     if not isinstance(data, dict):
         return False
     code = normalize_code(data.get("code"))
-    msg = str(data.get("msg") or "").lower()
+    msg = get_backend_msg(data).lower()
     return code == 200 and ("处理中" in msg or "processing" in msg or "请稍后" in msg)
+
+def is_success_response(data):
+    if not isinstance(data, dict):
+        return False
+    code = normalize_code(data.get("code"))
+    return code in (None, 0, 200, "0", "200")
+
+def raise_backend_error_if_any(data):
+    if not isinstance(data, dict):
+        return
+    if is_invalid_token_response(data) or is_processing_response(data) or is_success_response(data):
+        return
+    msg = get_backend_msg(data)
+    if msg:
+        raise ValueError(format_backend_error_message(msg))
+    raise ValueError(f"API 返回错误：{data}")
+
+def parse_json_utf8(resp):
+    raw = resp.content
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except Exception:
+        pass
+    try:
+        return resp.json()
+    except Exception:
+        pass
+    text = resp.text
+    return json.loads(text)
 
 def extract_file_url_from_json(data):
     if not isinstance(data, dict):
@@ -269,7 +338,7 @@ def looks_like_api_key(message):
     text = message.strip()
     if not text:
         return False
-    if len(text) >= 16 and "\n" not in text and " " not in text:
+    if len(text) >= 16 and "\\n" not in text and " " not in text:
         return True
     if text.lower().startswith(("sk-", "aidso_", "api_")):
         return True
@@ -281,7 +350,7 @@ def request_report(brand, api_key):
     content_type = (resp.headers.get("Content-Type") or "").lower()
     if "application/json" not in content_type:
         return {"kind": "raw", "content_type": content_type, "bytes": resp.content}
-    return {"kind": "json", "data": resp.json()}
+    return {"kind": "json", "data": parse_json_utf8(resp)}
 
 def build_success_file(payload, api_key):
     headers = build_auth_headers(api_key)
@@ -291,6 +360,9 @@ def build_success_file(payload, api_key):
     data = payload["data"]
     file_url = extract_file_url_from_json(data)
     if not file_url:
+        backend_msg = get_backend_msg(data)
+        if backend_msg:
+            raise ValueError(format_backend_error_message(backend_msg))
         raise ValueError(f"接口未返回有效文件链接：{data}")
     if looks_like_pdf_link(file_url):
         return download_remote_file(file_url, auth_headers=headers)
@@ -313,7 +385,7 @@ def handle_one_query(state):
     if not api_key:
         state["awaiting_api_key"] = True
         clear_pending(state)
-        return ("text", "当前绑定的 API key 已失效，请重新输入你在后台创建的 API key 完成绑定。")
+        return ("text", f"当前绑定的 API key 已失效，请重新输入你在后台创建的 API key 完成绑定。获取地址：{API_KEY_URL}")
 
     result = request_report(brand, api_key)
     if result["kind"] == "json":
@@ -322,9 +394,15 @@ def handle_one_query(state):
             state["api_key"] = None
             state["awaiting_api_key"] = True
             clear_pending(state)
-            return ("text", "当前绑定的 API key 已失效，请重新输入你在后台创建的 API key 完成绑定。")
+            return ("text", f"当前绑定的 API key 已失效，请重新输入你在后台创建的 API key 完成绑定。获取地址：{API_KEY_URL}")
         if is_processing_response(data):
-            return ("text", "诊断报告生成中，大约需要3~10分钟，请稍后...")
+            state["pending_check_count"] = int(state.get("pending_check_count") or 0) + 1
+            msg = "诊断报告生成中，大约需要3~10分钟，请稍后..."
+            if state["pending_check_count"] >= 3:
+                msg += "\\n\\n" + pending_extra_tip()
+            return ("text", msg)
+        raise_backend_error_if_any(data)
+
     local_file = build_success_file(result, api_key)
     clear_pending(state)
     return ("media", local_file)
@@ -354,7 +432,10 @@ def main():
 
         if state.get("awaiting_api_key"):
             if not looks_like_api_key(user_message):
-                out_text(binding_prompt())
+                include_upgrade_note = not state.get("welcome_shown")
+                state["welcome_shown"] = True
+                save_state(all_state)
+                out_text(binding_prompt(include_upgrade_note=include_upgrade_note))
                 return
             state["api_key"] = user_message.strip()
             state["awaiting_api_key"] = False
@@ -363,7 +444,7 @@ def main():
             if state["awaiting_confirmation"]:
                 out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能，此次诊断将消耗20积分，是否确认？")
             else:
-                out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能。")
+                out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能。\\n\\n" + custom_need_tip())
             return
 
         if lower_msg in {w.lower() for w in CHECK_RESULT_WORDS} and state.get("pending_brand"):
@@ -379,8 +460,10 @@ def main():
             if not has_api_key(state):
                 state["awaiting_api_key"] = True
                 state["awaiting_confirmation"] = False
+                include_upgrade_note = not state.get("welcome_shown")
+                state["welcome_shown"] = True
                 save_state(all_state)
-                out_text(binding_prompt())
+                out_text(binding_prompt(include_upgrade_note=include_upgrade_note))
                 return
             if lower_msg in {w.lower() for w in CONFIRM_WORDS}:
                 kind, payload = handle_one_query(state)
@@ -398,11 +481,14 @@ def main():
         brand = extract_brand_from_message(user_message)
         if brand:
             state["pending_brand"] = brand
+            state["pending_check_count"] = 0
             if not has_api_key(state):
                 state["awaiting_api_key"] = True
                 state["awaiting_confirmation"] = False
+                include_upgrade_note = not state.get("welcome_shown")
+                state["welcome_shown"] = True
                 save_state(all_state)
-                out_text(binding_prompt())
+                out_text(binding_prompt(include_upgrade_note=include_upgrade_note))
                 return
             state["awaiting_confirmation"] = True
             save_state(all_state)
@@ -417,16 +503,21 @@ def main():
             if state["awaiting_confirmation"]:
                 out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能，此次诊断将消耗20积分，是否确认？")
             else:
-                out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能。")
+                out_text("绑定成功，以后可直接使用AIDSO 虾搜GEO品牌诊断技能。\\n\\n" + custom_need_tip())
             return
 
         if lower_msg in {"继续", "确认", "yes", "y", "ok"} and not has_api_key(state):
             state["awaiting_api_key"] = True
+            include_upgrade_note = not state.get("welcome_shown")
+            state["welcome_shown"] = True
             save_state(all_state)
-            out_text(binding_prompt())
+            out_text(binding_prompt(include_upgrade_note=include_upgrade_note))
             return
 
-        out_text("请输入类似“帮我做一个露露的GEO诊断报告”的请求。")
+        out_text("请输入类似“帮我做一个露露的GEO诊断报告”的请求。\\n\\n" + custom_need_tip())
+    except ValueError as e:
+        out_text(str(e))
+        return
     except Exception as e:
         print(f"技能执行失败：{e}", file=sys.stderr, flush=True)
         sys.exit(2)

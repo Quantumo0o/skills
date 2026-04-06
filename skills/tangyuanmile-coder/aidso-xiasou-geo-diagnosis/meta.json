@@ -5,9 +5,6 @@
       "anyBins": [
         "python3"
       ]
-    },
-    "env": [
-      "AIDSO_CONSOLE_URL"
-    ]
+    }
   }
 }
