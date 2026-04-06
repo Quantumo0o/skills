@@ -29,14 +29,3 @@ Only GitHub is supported for Git integration:
 - **Non-TTY**: exits with error and prints the Console URL to authorize
 
 **GitLab, Gitee, and other Git platforms** are not supported for Git deploy — the CLI falls back to upload deploy silently.
-
-## Deployment Output
-
-On success:
-
-```
-✔ Project deployed!
-  Project ID  : proj_xxxx
-  Console     : https://console.volcengine.com/dcdn/pages/detail/proj_xxxx
-  Preview URL : https://xxx.iga-pages.com?iga_token=<token>&iga_time=<timestamp>
-```

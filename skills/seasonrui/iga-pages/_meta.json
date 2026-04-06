@@ -3,11 +3,16 @@
   "slug": "iga-pages",
   "displayName": "IGA Pages",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774594562753,
-    "commit": "https://github.com/openclaw/skills/commit/fb179808635f0c65d9102def11f002c82563eb36"
+    "version": "1.0.3",
+    "publishedAt": 1774944296645,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774594562753,
+      "commit": "https://github.com/openclaw/skills/commit/fb179808635f0c65d9102def11f002c82563eb36"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774340337428,
