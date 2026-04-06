@@ -1,11 +1,17 @@
 {
   "owner": "mzlzyca",
   "slug": "formula-ocr",
-  "displayName": "formula-ocr",
+  "displayName": "Formula Ocr",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774605261251,
-    "commit": "https://github.com/openclaw/skills/commit/cdf78bef45654e8e15c1b12e218f34f4c8dd7b34"
+    "version": "0.4.0",
+    "publishedAt": 1775210298122,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774605261251,
+      "commit": "https://github.com/openclaw/skills/commit/cdf78bef45654e8e15c1b12e218f34f4c8dd7b34"
+    }
+  ]
 }
