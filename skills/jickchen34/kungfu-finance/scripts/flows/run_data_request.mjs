@@ -27,6 +27,12 @@ import { getHighFrequencyNews } from "../products/high_frequency_news.mjs";
 import { getUnusualMovementContext } from "../products/unusual_movement_context.mjs";
 import { getInstrumentConcepts } from "../products/instrument_concepts.mjs";
 import { getMoneyFlow } from "../products/money_flow.mjs";
+import { getLushanShadow } from "../products/lushan_shadow.mjs";
+import { getLushan4Season } from "../products/lushan_4season.mjs";
+import { getShuanglun } from "../products/shuanglun.mjs";
+import { getLiumai } from "../products/liumai.mjs";
+import { getSmartMoney } from "../products/smart_money.mjs";
+import { getFinanceScore } from "../products/finance_score.mjs";
 import { getResolveSector } from "../products/resolve_sector.mjs";
 import { getSimilarSectors } from "../products/similar_sectors.mjs";
 import { getSectorConstituents } from "../products/sector_constituents.mjs";
@@ -49,6 +55,12 @@ const productHandlers = {
   unusual_movement_context: getUnusualMovementContext,
   instrument_concepts: getInstrumentConcepts,
   money_flow: getMoneyFlow,
+  lushan_shadow: getLushanShadow,
+  lushan_4season: getLushan4Season,
+  shuanglun: getShuanglun,
+  liumai: getLiumai,
+  smart_money: getSmartMoney,
+  finance_score: getFinanceScore,
   resolve_sector: getResolveSector,
   similar_sectors: getSimilarSectors,
   sector_constituents: getSectorConstituents,
@@ -73,7 +85,13 @@ const STOCK_PRODUCTS = new Set([
   "price_levels",
   "instrument_concepts",
   "money_flow",
-  "unusual_movement_context"
+  "unusual_movement_context",
+  "lushan_shadow",
+  "lushan_4season",
+  "shuanglun",
+  "liumai",
+  "smart_money",
+  "finance_score"
 ]);
 
 function validateProductRequest(product, request) {

@@ -29,10 +29,19 @@ Kungfu Finance (`kungfu_finance`) is a mainland China A-share skill for:
 
 The skill is designed as a thin local wrapper around these fixed endpoints.
 It does not download extra code at runtime.
-It does not write local output files during normal execution.
 It does not use arbitrary user-supplied base URLs.
-It does not spawn subprocesses.
 The bucket and strategy capabilities are implemented as thin API orchestration and do not persist local state.
+
+### Indicator Chart Flow — File Writes & Subprocess
+
+The `indicator-chart` command renders SVG charts and writes them to `~/.openclaw/workspace/finance-master/charts/`.
+When `inkscape` is available on the system, it is invoked via `execFileSync` (not shell — no injection risk) to convert SVG to PNG for chat delivery.
+If `inkscape` is not installed, the flow still succeeds and returns the SVG path only (`png_path` will be `null`).
+
+### Health Check & Config — File Writes
+
+The `config-openkey` command validates an OpenKey against the backend and writes it to `~/.openclaw/.env`.
+The `health` command only reads environment variables and makes a single POST to the Tianshan API — it does not write any files.
 
 ## Authentication
 
@@ -120,15 +129,29 @@ The `KUNGFU_OPENKEY` is only sent to `tianshan-api.kungfu-trader.com` (the publi
 
 - All outbound network endpoints are listed in the table above — the code contacts no other hosts
 - Required runtime: Node.js 22.24.0+
+- Optional runtime: `inkscape` (for SVG→PNG chart conversion; gracefully degrades if absent)
 - The package contains bundled `.mjs` scripts (not instruction-only) with zero npm dependencies
+- File writes are limited to: `~/.openclaw/workspace/finance-master/charts/` (indicator charts) and `~/.openclaw/.env` (config-openkey only)
+- The only subprocess invocation is `execFileSync("inkscape", [...])` — uses `execFileSync` (not shell `exec`) with fixed arguments, no user input in the command
 
 If you are reviewing this skill for installation or registry approval, inspect:
 
 **Network I/O files (these are the ONLY files that make outbound HTTP requests):**
 
 - `scripts/core/http_client.mjs` — Tianshan API client (uses `KUNGFU_OPENKEY`, contacts only `tianshan-api.kungfu-trader.com`)
+- `scripts/flows/run_health_flow.mjs` — Health check client (uses `KUNGFU_OPENKEY`, contacts only `tianshan-api.kungfu-trader.com/api/openclaw/keys/test`)
+- `scripts/flows/run_check_update_flow.mjs` — ClawHub version check (no auth, contacts `wry-manatee-359.convex.site` or `clawhub.ai`)
 - `scripts/flows/research_shared/public_api.mjs` — EastMoney/Tencent public API client (no auth, contacts only `push2.eastmoney.com`, `push2his.eastmoney.com`, `qt.gtimg.cn`, `ifzq.gtimg.cn`)
 - `scripts/flows/research_shared/search_runtime.mjs` — Optional search client (contacts only user-configured `KUNGFU_RESEARCH_SEARCH_ENDPOINT`, gated by `KUNGFU_ENABLE_RESEARCH_SEARCH=1`)
+
+**File write locations (complete list):**
+
+- `scripts/flows/run_indicator_chart_flow.mjs` — writes SVG/PNG to `~/.openclaw/workspace/finance-master/charts/`
+- `scripts/flows/run_health_flow.mjs` — writes `KUNGFU_OPENKEY` to `~/.openclaw/.env` (config-openkey command only)
+
+**Subprocess invocation (complete list):**
+
+- `scripts/flows/charts/svg_to_png.mjs` — `execFileSync("inkscape", [svgPath, "--export-type=png", ...])` with fixed arguments, called by `run_indicator_chart_flow.mjs`
 
 **Entry point files:**
 
@@ -140,5 +163,6 @@ If you are reviewing this skill for installation or registry approval, inspect:
 - `scripts/flows/run_bayesian_monitor_flow.mjs`
 - `scripts/flows/run_stock_research_flow.mjs`
 - `scripts/flows/run_sector_research_flow.mjs`
+- `scripts/flows/run_health_flow.mjs`
 
 **Quick network audit**: Run `grep -rn 'https://' scripts/ | grep -v 'svg\|xmlns\|comment'` to verify no unlisted hosts are contacted.

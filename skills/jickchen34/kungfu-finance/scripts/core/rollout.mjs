@@ -8,7 +8,13 @@ const STABLE_PRODUCTS = new Set([
   "price_levels",
   "finance_basic_indicators",
   "sector_constituents",
-  "sector_performance"
+  "sector_performance",
+  "lushan_shadow",
+  "lushan_4season",
+  "shuanglun",
+  "liumai",
+  "smart_money",
+  "finance_score"
 ]);
 
 const EXPERIMENTAL_PRODUCT_MESSAGE =

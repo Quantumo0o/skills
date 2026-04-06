@@ -3,7 +3,7 @@ name: kungfu_finance
 description: Mainland China A-share stock and sector analysis tool (中国A股个股与板块分析). Current repo build focuses on stable deterministic products for stock snapshots, basic finance indicators, chip/price levels, sector detail lookup, plus bucket, phase-2 strategy, researcher, bayesian monitor, and preview stock/sector deep research flows.
 user-invocable: true
 disable-model-invocation: false
-metadata: {"openclaw":{"skillKey":"kungfu_finance","always":false,"requires":{"bins":["node"],"env":["KUNGFU_OPENKEY"]},"primaryEnv":"KUNGFU_OPENKEY","install":{"node":{"packageManager":"none","bundledScripts":true}},"runtime":"bundled-node-scripts","networkSurface":["tianshan-api.kungfu-trader.com","push2.eastmoney.com","push2his.eastmoney.com","qt.gtimg.cn","ifzq.gtimg.cn"],"homepage":"https://github.com/kungfu-trader/kungfu-skills","publisher":{"name":"kungfu-trader","contact":"https://github.com/kungfu-trader"}}}
+metadata: {"openclaw":{"skillKey":"kungfu_finance","always":false,"requires":{"bins":["node"],"optionalBins":["inkscape"],"env":["KUNGFU_OPENKEY"]},"primaryEnv":"KUNGFU_OPENKEY","install":{"node":{"packageManager":"none","bundledScripts":true}},"runtime":"bundled-node-scripts","networkSurface":["tianshan-api.kungfu-trader.com","push2.eastmoney.com","push2his.eastmoney.com","qt.gtimg.cn","ifzq.gtimg.cn","wry-manatee-359.convex.site","clawhub.ai"],"fileWrites":["~/.openclaw/workspace/finance-master/charts/","~/.openclaw/.env"],"subprocesses":["inkscape (execFileSync, fixed args, SVG→PNG conversion only)"],"homepage":"https://github.com/kungfu-trader/kungfu-skills","publisher":{"name":"kungfu-trader","contact":"https://github.com/kungfu-trader"}}}
 ---
 
 # 功夫财经 | KungfuFinance
@@ -21,10 +21,11 @@ metadata: {"openclaw":{"skillKey":"kungfu_finance","always":false,"requires":{"b
   - `https://tianshan-api.kungfu-trader.com` — deterministic products (snapshot, finance, bucket, strategy, researcher, bayesian monitor)
   - `https://push2.eastmoney.com` / `https://push2his.eastmoney.com` — stock/sector deep research market data (free public API, no key required)
   - `https://ifzq.gtimg.cn` / `https://qt.gtimg.cn` — fallback market data via Tencent Finance (free public API, no key required)
-- **Authentication**: `KUNGFU_OPENKEY` environment variable, sent as `Authorization: Bearer <token>` (Tianshan API only; EastMoney/Tencent APIs require no authentication)
+  - `https://wry-manatee-359.convex.site` / `https://clawhub.ai` — check-update version query (ClawHub registry, public, no key required)
+- **Authentication**: `KUNGFU_OPENKEY` environment variable, sent as `Authorization: Bearer <token>` (Tianshan API only; EastMoney/Tencent/ClawHub APIs require no authentication)
 - **Platform header**: `KUNGFU_PLATFORM` (optional, defaults to `openclaw`)
-- **File I/O**: reads bundled assets only, does not write local files
-- **Subprocesses**: none — does not shell out, install dependencies, or fetch code at runtime
+- **File I/O**: reads bundled assets; indicator-chart flow writes SVG/PNG to `~/.openclaw/workspace/finance-master/charts/`
+- **Subprocesses**: indicator-chart flow invokes `inkscape` for SVG→PNG conversion; no other subprocesses
 
 All environment variables are read from the host process; none are accepted from user prompts.
 
@@ -221,12 +222,57 @@ Default behavior:
 - when task selector is missing or ambiguous, return a structured `needs_input` response so the host can continue the dialogue
 - when the current user has no tasks, return a structured `blocked` response instead of pretending the task exists
 
+### 8. Indicator Chart
+
+Use when the user wants to see one A-share stock's technical indicator chart. The script automatically renders SVG, converts to PNG via inkscape, and returns file paths (no SVG text in stdout). Supported chart types:
+
+- `kline` — K线图 (candlestick chart with optional chip distribution overlay, price level lines, and custom annotations)
+- `lushan_shadow` — 庐山照影图 (CM mountain + FC shadow dual-bar chart)
+- `lushan_4season` — 庐山四季图 (GG/HY/DP lines + RS bars + bottom resonance/strong markers)
+- `shuanglun` — 双轮驱动图 (K-wheel + R-wheel stacked bars with trend coloring)
+- `liumai` — 六脉神剑图 (6-signal heatmap matrix with buy/sell signal row)
+- `smart_money` — 聪明钱图 (smart money vs follow money dual-line chart)
+- `finance_score` — 个股综合得分 (radar chart with 行业统治力/财务健康度/发展前景 three-dimensional scoring)
+
+K-line chart additional options:
+- `--with-chip-peak true` — overlay chip distribution (筹码峰) on the right side
+- `--with-price-levels true` — draw support/resistance/concentration price level lines (阻力位/支撑位)
+- `--annotations '[{"date":"20260328","price":15.5,"type":"buy","label":"买入点","color":"#ef4444"}]'` — mark custom points on the chart
+
+### 9. Finance Score
+
+Use when the user wants one A-share stock's comprehensive scoring across three dimensions:
+- 行业统治力 (Industry Dominance) — scored 0-5 with S/A/B/C/D/E grade
+- 财务健康度 (Financial Health) — scored 0-5 with S/A/B/C/D/E grade
+- 发展前景 (Growth Potential) — scored 0-5 with S/A/B/C/D/E grade
+- 综合得分 (Total Score) — 0-15
+
+Available as both a data product (`finance_score`) and a rendered SVG chart (`indicator-chart --chart-type finance_score`).
+
+### 10. Subscription Flow (自选)
+
+Use when the user wants to:
+
+- view current-user subscribed instruments (自选列表)
+- add instruments to subscription (加自选)
+- remove instruments from subscription (删自选)
+- view anomaly report for one subscribed instrument (异动报告)
+- view aggregate anomaly summary (异动汇总)
+
+Default behavior:
+
+- only operate on the current authenticated user's own subscriptions
+- when adding, resolve instrument names first and skip invalid or duplicate entries
+- `list` groups subscriptions by instrument and shows instrument name, code, auto-update status
+- `anomaly` returns unusual movements sorted by date descending, plus signals count and analysis
+- `summary` returns aggregate UM_ct (异动数量) and UM_SG_ct (异动信号) counts
+- when required information is missing, return a structured `needs_input` response
+
 ### Not Yet Enabled In Experience Build
 
 The following capabilities are still under route-contract cleanup and should not be used in the current public rollout:
 
 - full finance-analysis bundles
-- unusual movement analysis bundle
 - money flow
 - fuzzy sector resolution / similar sectors
 - market news lookup
@@ -248,12 +294,32 @@ Pick one default route from the list below.
   Route to `Bucket Flow`
 - User asks "有哪些策略 / 看看我的私人策略 / 某个策略今天有没有买卖点 / 庐山升龙今天选了哪些股票 / 某个策略最近一周选股结果 / 用某个策略扫一组股票":
   Route to `Strategy Flow`
+- User asks "画一下贵州茅台的K线图 / 庐山照影 / 庐山四季 / 双轮驱动 / 六脉神剑 / 聪明钱 / 带筹码峰的K线 / 标注买卖点":
+  Route to `Indicator Chart`
+- User asks "贵州茅台的综合得分 / 行业统治力 / 财务健康度 / 发展前景":
+  Route to `Finance Score`
 - User asks "评分最高的研究员有哪些 / 某个股票有哪些研究员和研报 / 某个研究员写过哪些研报":
   Route to `Researcher Flow`
 - User asks "看看我的贝叶斯监控 / 某个贝叶斯监控任务的报告 / 某个主题最近的贝叶斯监控记录":
   Route to `Bayesian Monitor Flow`
+- User asks "功夫财经连接正常吗 / OpenKey 配置对吗 / health check / 检查配置":
+  Route to `Health Check`
+- User asks "配置 OpenKey / 设置 OpenKey / 我的 key 是 kf_xxx":
+  Route to `Config OpenKey`
+- User asks "看看我的自选 / 自选列表 / 我订阅了哪些股票":
+  Route to `Subscription Flow` (action: list)
+- User asks "把贵州茅台加入自选 / 加自选 / 订阅这些标的":
+  Route to `Subscription Flow` (action: add)
+- User asks "从自选中移除平安银行 / 取消订阅 / 删除自选":
+  Route to `Subscription Flow` (action: delete)
+- User asks "贵州茅台有什么异动 / 查看异动 / 最近的异动报告":
+  Route to `Subscription Flow` (action: anomaly)
+- User asks "自选整体异动情况 / 今天有多少异动 / 异动汇总":
+  Route to `Subscription Flow` (action: summary)
+- User asks "功夫财经有更新吗 / 检查更新 / check update / 升级 skill":
+  Route to `Check Update`
 
-If the user asks for arbitrary whole-market screening, movement-analysis bundles, or market-news bundles, do not use this skill in the current release build.
+If the user asks for arbitrary whole-market screening or market-news bundles, do not use this skill in the current release build.
 
 ## Input Rules
 
@@ -410,6 +476,66 @@ node scripts/router/run_router.mjs stock-research --instrument-name 贵州茅台
 node scripts/router/run_router.mjs sector-research --sector-name 机器人 --target-date 20260331 --visual-days-len 780
 ```
 
+### Indicator Chart — K-line
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type kline --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Indicator Chart — K-line with Chip Peak and Price Levels
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type kline --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120 --with-chip-peak true --with-price-levels true
+```
+
+### Indicator Chart — K-line with Annotations
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type kline --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 60 --annotations '[{"date":"20260310","type":"buy","label":"买入"},{"date":"20260325","type":"sell","label":"卖出"}]'
+```
+
+### Indicator Chart — 庐山照影图
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type lushan_shadow --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Indicator Chart — 庐山四季图
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type lushan_4season --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Indicator Chart — 双轮驱动图
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type shuanglun --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Indicator Chart — 六脉神剑图
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type liumai --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Indicator Chart — 聪明钱图
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type smart_money --instrument-name 贵州茅台 --target-date 20260331 --visual-days-len 120
+```
+
+### Finance Score (data only)
+
+```bash
+node scripts/flows/run_data_request.mjs --product finance_score --instrument-name 贵州茅台 --target-date 20260331
+```
+
+### Finance Score (SVG radar chart)
+
+```bash
+node scripts/router/run_router.mjs indicator-chart --chart-type finance_score --instrument-name 贵州茅台 --target-date 20260331
+```
+
 ### Researcher Rank
 
 ```bash
@@ -427,3 +553,57 @@ node scripts/router/run_router.mjs researcher --researcher-action stock-reports 
 ```bash
 node scripts/router/run_router.mjs researcher --researcher-action author-reports --researcher-author-id author-1
 ```
+
+### Health Check
+
+```bash
+node scripts/router/run_router.mjs health
+```
+
+Returns `{ healthy: true/false, checks: { openkey, api_test } }`. Verifies KUNGFU_OPENKEY is set and authenticates against the backend.
+
+### Config OpenKey
+
+```bash
+node scripts/router/run_router.mjs config-openkey --openkey kf_ok_live_xxxxx
+```
+
+Validates the key against the backend, then writes it to `~/.openclaw/.env`. Returns user_id and plan_code on success.
+
+### Subscription List (自选列表)
+
+```bash
+node scripts/router/run_router.mjs subscription --subscription-action list
+```
+
+### Subscription Add (加自选)
+
+```bash
+node scripts/router/run_router.mjs subscription --subscription-action add --subscription-instrument 贵州茅台 --subscription-instrument 平安银行
+```
+
+### Subscription Delete (删自选)
+
+```bash
+node scripts/router/run_router.mjs subscription --subscription-action delete --subscription-instrument 贵州茅台
+```
+
+### Subscription Anomaly Report (异动报告)
+
+```bash
+node scripts/router/run_router.mjs subscription --subscription-action anomaly --instrument-name 贵州茅台 --target-date 20260401
+```
+
+### Subscription Summary (异动汇总)
+
+```bash
+node scripts/router/run_router.mjs subscription --subscription-action summary
+```
+
+### Check Update
+
+```bash
+node scripts/router/run_router.mjs check-update
+```
+
+Checks ClawHub registry for a newer version. Returns `{ update_available, local_version, remote_version, update_command }`. When an update is available, the agent should run the returned `update_command` (`clawhub update kungfu-finance`) in a shell to apply it.

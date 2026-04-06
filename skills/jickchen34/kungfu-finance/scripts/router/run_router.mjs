@@ -7,6 +7,11 @@ import { runResearcherFlow } from "../flows/run_researcher_flow.mjs";
 import { runMovementAnalysis } from "../flows/run_movement_analysis.mjs";
 import { runStockResearchFlow } from "../flows/run_stock_research_flow.mjs";
 import { runSectorResearchFlow } from "../flows/run_sector_research_flow.mjs";
+import { runIndicatorChartFlow } from "../flows/run_indicator_chart_flow.mjs";
+import { runHealthFlow } from "../flows/run_health_flow.mjs";
+import { runConfigOpenKeyFlow } from "../flows/run_config_openkey_flow.mjs";
+import { runCheckUpdateFlow } from "../flows/run_check_update_flow.mjs";
+import { runSubscriptionFlow } from "../flows/run_subscription_flow.mjs";
 
 export async function runRouter(positionals, values) {
   const command = positionals[0] ?? "data-request";
@@ -41,6 +46,26 @@ export async function runRouter(positionals, values) {
 
   if (command === "sector-research") {
     return runSectorResearchFlow(values);
+  }
+
+  if (command === "indicator-chart") {
+    return runIndicatorChartFlow(values);
+  }
+
+  if (command === "health") {
+    return runHealthFlow();
+  }
+
+  if (command === "config-openkey") {
+    return runConfigOpenKeyFlow(values);
+  }
+
+  if (command === "check-update") {
+    return runCheckUpdateFlow();
+  }
+
+  if (command === "subscription") {
+    return runSubscriptionFlow(values);
   }
 
   throw new Error(`Unsupported router command: ${command}`);

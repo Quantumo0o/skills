@@ -37,7 +37,15 @@ export const commonOptions = {
   query: { type: "string" },
   "target-date": { type: "string" },
   "target-time": { type: "string" },
-  "visual-days-len": { type: "string" }
+  "visual-days-len": { type: "string" },
+  "chart-type": { type: "string" },
+  "with-chip-peak": { type: "string" },
+  "with-price-levels": { type: "string" },
+  annotations: { type: "string" },
+  "subscription-action": { type: "string" },
+  "subscription-instrument": { type: "string", multiple: true },
+  "subscription-instruments": { type: "string" },
+  openkey: { type: "string" }
 };
 
 export function parseCommonArgs({ allowPositionals = false, options = {} } = {}) {
