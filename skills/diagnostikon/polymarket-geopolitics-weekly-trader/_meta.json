@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-geopolitics-weekly-trader",
-  "displayName": "Geopolitics Weekly Pattern Trader",
+  "displayName": "Polymarket Geopolitics Weekly Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774680685939,
-    "commit": "https://github.com/openclaw/skills/commit/aa5c912623e44af79740692e1d1a674a6edfb660"
+    "version": "1.0.2",
+    "publishedAt": 1775317177051,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774680685939,
+      "commit": "https://github.com/openclaw/skills/commit/aa5c912623e44af79740692e1d1a674a6edfb660"
+    }
+  ]
 }
