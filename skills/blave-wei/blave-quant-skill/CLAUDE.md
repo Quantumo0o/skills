@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This repo contains one skill covering three capabilities:
+This repo contains one skill covering four capabilities:
 1. **Blave** — Agent calls the Blave REST API directly for crypto market alpha data
 2. **BitMart Futures** — Agent calls the BitMart API for perpetual futures trading
 3. **BitMart Spot** — Agent calls the BitMart API for spot trading
+4. **Bybit** — Agent calls the Bybit API for spot and derivatives/perpetual swap trading
 
 No CLI or wrapper involved. All API calls are made directly by the agent.
 
@@ -15,6 +16,8 @@ No CLI or wrapper involved. All API calls are made directly by the agent.
 
 - `blave_api_key`, `blave_secret_key` — Blave API auth
 - `BITMART_API_KEY`, `BITMART_API_SECRET`, `BITMART_API_MEMO` — BitMart API auth
+- `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` — OKX API auth
+- `BYBIT_API_KEY`, `BYBIT_API_SECRET` — Bybit API auth
 
 ## Files
 
@@ -49,6 +52,17 @@ Base URL: `https://api.blave.org`
 - `whale_hunter/get_symbols` / `get_alpha` — 巨鯨警報 Whale Hunter; supports `score_type`
 - `squeeze_momentum/get_symbols` / `get_alpha` — 擠壓動能 Squeeze Momentum + scolor; period fixed to `1d`
 - `blave_top_trader/get_exposure` — Blave頂尖交易員 Top Trader Exposure (BTCUSDT)
+- `screener/get_saved_conditions` — user's saved screener conditions
+- `screener/get_saved_condition_result` — symbols matching a saved condition (`condition_id` required)
+- `hyperliquid/leaderboard` — top 100 Hyperliquid traders (`sort_by` param)
+- `hyperliquid/traders` — Blave-curated tracked trader list with names/descriptions
+- `hyperliquid/trader_position` — perp/spot positions + net equity (`address` required)
+- `hyperliquid/trader_history` — fill history (`address` required)
+- `hyperliquid/trader_performance` — cumulative PnL chart (`address` required)
+- `hyperliquid/trader_open_order` — open orders (`address` required)
+- `hyperliquid/top_trader_position` — aggregated long/short positions of top 100 traders
+- `hyperliquid/top_trader_exposure_history` — historical net exposure (`symbol`, `period` required)
+- `hyperliquid/bucket_stats` — profit/loss stats + positions by account value bucket
 
 ## BitMart Futures
 
@@ -65,3 +79,14 @@ Base URL: `https://api-cloud.bitmart.com`
 ## BitMart Broker ID
 
 Always include `X-BM-BROKER-ID: BlaveData666666` on **all** BitMart API requests (both futures and spot, regardless of auth level).
+
+## Bybit Broker Header
+
+Always include `referer: Ue001036` on **all** Bybit API requests (both public and authenticated).
+
+## Bybit
+
+Base URL: `https://api.bybit.com` | Backup: `https://api.bytick.com` | Testnet: `https://api-testnet.bybit.com`
+
+Signature: `HMAC-SHA256(secret, {timestamp}{apiKey}{recvWindow}{queryString|jsonBody})`
+Headers: `X-BAPI-API-KEY`, `X-BAPI-TIMESTAMP`, `X-BAPI-SIGN`, `X-BAPI-RECV-WINDOW: 5000`, `referer: Ue001036`
