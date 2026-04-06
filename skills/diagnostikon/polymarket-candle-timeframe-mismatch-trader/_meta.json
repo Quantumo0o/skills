@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-candle-timeframe-mismatch-trader",
-  "displayName": "Candle Timeframe Mismatch Trader",
+  "displayName": "Polymarket Candle Timeframe Mismatch Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774856021342,
-    "commit": "https://github.com/openclaw/skills/commit/80bced4b43e59b5f80973b163f860ea02de7a074"
+    "version": "1.0.1",
+    "publishedAt": 1775317069051,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774856021342,
+      "commit": "https://github.com/openclaw/skills/commit/80bced4b43e59b5f80973b163f860ea02de7a074"
+    }
+  ]
 }
