@@ -1,0 +1,11 @@
+{
+  "owner": "peand-rover",
+  "slug": "subtitle-video-generator",
+  "displayName": "Subtitle Video Generator",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1775443089339,
+    "commit": null
+  },
+  "history": []
+}
