@@ -1,8 +1,11 @@
 import { readFile, writeFile, readdir } from "fs/promises";
 import { join } from "path";
+import { homedir } from "os";
 import { acquireLock, releaseLock } from "./lock.js";
 import { loadState, saveState } from "./state.js";
 import { DreamConfig } from "./scheduler.js";
+import { readRecentTranscripts } from "./transcript.js";
+import { STAGING_FILE } from "./capture.js";
 
 async function readMemoryFile(workspaceDir: string, filename: string): Promise<string | null> {
   try {
@@ -42,9 +45,16 @@ async function readLcmSummaries(agentDir: string): Promise<string> {
 function buildConsolidationPrompt(
   filename: string,
   content: string,
-  lcmSummaries: string
+  lcmSummaries: string,
+  transcripts: string,
+  staging: string
 ): string {
   const currentDate = new Date().toISOString().split("T")[0];
+
+  const stagingSection = staging.trim()
+    ? `\nIn-session captured signals (new, not yet integrated):\n${staging}\n`
+    : "";
+
   return `You are consolidating an AI agent's memory files. Your job is to make them more useful, not smaller — keep everything important.
 
 Current date: ${currentDate}
@@ -54,15 +64,19 @@ Rules:
 - Remove entries that are clearly stale or superseded by newer information
 - Resolve contradictions — keep the most recent/accurate version
 - Preserve relationship history, decisions, and learned preferences
+- Integrate any new signals from the captured staging section below
 - Do NOT summarize away specific details that might matter later
 - Return ONLY the updated file content, no commentary
 
 Current content of ${filename}:
 ${content}
 
-Recent session history (for context on what's still relevant):
+Recent session history (LCM summaries, for context on what's still relevant):
 ${lcmSummaries}
 
+Recent high-value transcript moments:
+${transcripts}
+${stagingSection}
 Return the consolidated content for ${filename}. Keep the same format and headers.`;
 }
 
@@ -130,8 +144,19 @@ export async function consolidate(
 
     logger.info("[memory-dream] Starting memory consolidation");
 
-    // Step 3: Read LCM summaries for context (from agent state dir, not workspace)
+    // Step 3: Gather context — LCM summaries, transcripts, and staging
     const lcmSummaries = await readLcmSummaries(stateDir);
+
+    const agentBaseDir = join(homedir(), ".openclaw", agentId);
+    const transcripts = await readRecentTranscripts(agentBaseDir);
+
+    const stagingPath = join(workspaceDir, STAGING_FILE);
+    let stagingContent = "";
+    try {
+      stagingContent = await readFile(stagingPath, "utf-8");
+    } catch {
+      // No staging file — that's fine
+    }
 
     const updatedFiles: string[] = [];
     const skippedFiles: string[] = [];
@@ -148,7 +173,7 @@ export async function consolidate(
       logger.info(`[memory-dream] Consolidating ${filename}`);
 
       try {
-        const prompt = buildConsolidationPrompt(filename, content, lcmSummaries);
+        const prompt = buildConsolidationPrompt(filename, content, lcmSummaries, transcripts, stagingContent);
         const consolidated = await callLlm(prompt, config, api, agentId);
 
         if (consolidated && consolidated.trim().length > 0) {
@@ -169,7 +194,17 @@ export async function consolidate(
       }
     }
 
-    // Step 5: Update state — success
+    // Step 5: Clear staging file — its content has been absorbed into memory files
+    if (stagingContent.trim()) {
+      try {
+        await writeFile(stagingPath, "", "utf-8");
+        logger.info("[memory-dream] Cleared memory-staging.md (absorbed into consolidation)");
+      } catch {
+        // Best-effort — don't fail consolidation over this
+      }
+    }
+
+    // Step 6: Update state — success
     const summary = buildSummary(updatedFiles, skippedFiles);
     const finalState = await loadState(stateDir);
     finalState.sessionCount = 0;

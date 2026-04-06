@@ -4,15 +4,20 @@ import { isLocked } from "./lock.js";
 export interface DreamConfig {
   minSessions: number;
   minHours: number;
+  intervalHours: number;  // alias for minHours
   memoryFiles: string[];
   model?: string;
+  captureModel?: string;
+  enableCapture: boolean;
   enabled: boolean;
 }
 
 export const defaultConfig: DreamConfig = {
   minSessions: 5,
   minHours: 24,
+  intervalHours: 24,
   memoryFiles: ["MEMORY.md"],
+  enableCapture: true,
   enabled: true,
 };
 
@@ -46,7 +51,7 @@ export async function shouldTrigger(
 }
 
 export function mergeConfig(config: Record<string, unknown> = {}): DreamConfig {
-  return {
+  const merged: DreamConfig = {
     ...defaultConfig,
     ...(config as Partial<DreamConfig>),
     memoryFiles:
@@ -54,6 +59,15 @@ export function mergeConfig(config: Record<string, unknown> = {}): DreamConfig {
         ? (config.memoryFiles as string[])
         : defaultConfig.memoryFiles,
   };
+
+  // intervalHours is an alias for minHours — whichever is set wins, intervalHours takes priority
+  if (config.intervalHours !== undefined) {
+    merged.minHours = merged.intervalHours;
+  } else {
+    merged.intervalHours = merged.minHours;
+  }
+
+  return merged;
 }
 
 export function hoursUntilNextTrigger(state: DreamState, config: DreamConfig): number | null {

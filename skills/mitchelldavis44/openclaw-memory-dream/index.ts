@@ -6,6 +6,7 @@ import { loadState, detectAndCountSession, saveState } from "./src/state.js";
 import { isLocked } from "./src/lock.js";
 import { shouldTrigger, hoursUntilNextTrigger, mergeConfig } from "./src/scheduler.js";
 import { consolidate } from "./src/consolidate.js";
+import { captureFromTurn } from "./src/capture.js";
 
 /** Stable per-agent state dir derived from agentId or a fallback */
 function resolveStateDir(agentId?: string): string {
@@ -58,6 +59,32 @@ export default definePluginEntry({
               "[memory-dream] Last consolidation interrupted (status=running, no lock) — marking failed"
             );
             await saveState(stateDir, { ...state, lastRunStatus: "failed" });
+          }
+        }
+
+        // Capture phase: scan the last exchange for memory-worthy signals
+        if (cfg.enableCapture) {
+          const rawCtx = ctx as Record<string, unknown>;
+          const lastUser = rawCtx.lastUserMessage ?? rawCtx.userMessage ?? rawCtx.message;
+          const lastAssistant = rawCtx.lastAssistantMessage ?? rawCtx.assistantMessage;
+          if (lastUser || lastAssistant) {
+            const conversationText = [
+              lastUser ? `User: ${String(lastUser)}` : null,
+              lastAssistant ? `Assistant: ${String(lastAssistant)}` : null,
+            ]
+              .filter(Boolean)
+              .join("\n");
+
+            const workspaceDir = api.runtime.agent.resolveAgentWorkspaceDir(
+              api.config,
+              agentId ?? "main"
+            );
+
+            captureFromTurn(stateDir, workspaceDir, conversationText, cfg, api, agentId ?? "main").catch(
+              (err: unknown) => {
+                api.logger.warn(`[memory-dream] Capture error (non-blocking): ${String(err)}`);
+              }
+            );
           }
         }
 
