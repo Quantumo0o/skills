@@ -3,11 +3,16 @@
   "slug": "eq-training",
   "displayName": "Eq Coach Skill",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774896408727,
-    "commit": "https://github.com/openclaw/skills/commit/b75148937bb17fbe61d3b17b8a28c5e3066f2d08"
+    "version": "1.0.5",
+    "publishedAt": 1775320522013,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774896408727,
+      "commit": "https://github.com/openclaw/skills/commit/b75148937bb17fbe61d3b17b8a28c5e3066f2d08"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774324078257,
