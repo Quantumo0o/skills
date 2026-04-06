@@ -12,7 +12,9 @@ import json
 import time
 from pathlib import Path
 
-from common import PROJECT_ROOT, create_client, default_output_path, generate_image_with_fallback, get_trace_id, log_params, save_image_results, setup_logging
+from volcenginesdkarkruntime.types.images import OptimizePromptOptions, SequentialImageGenerationOptions
+
+from common import create_client, default_output_path, generate_image_with_fallback, get_trace_id, log_params, save_image_results, setup_logging
 
 setup_logging()
 
@@ -28,6 +30,7 @@ DEFAULT_PROMPT = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="豆包文生图")
     parser.add_argument("--prompt", default=DEFAULT_PROMPT, help="提示词")
+    parser.add_argument("--name", default="", help="文件名描述，不超过 10 个中文字")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="模型 ID")
     parser.add_argument("--size", default="2K", help="输出尺寸，如 2K、3K、4K 或 2048x2048，默认 2K")
     parser.add_argument(
@@ -65,9 +68,9 @@ def main() -> None:
     pipeline_start = time.monotonic()
     args = parse_args()
     trace_id = get_trace_id()
-    log_params("文生图开始", model=args.model, size=args.size, prompt=args.prompt)
+    log_params("文生图开始", model=args.model, size=args.size, prompt=args.prompt, name=args.name)
     client = create_client()
-    output_path = args.output or default_output_path("images", "text_to_image")
+    output_path = args.output or default_output_path("images", "text_to_image", name=args.name)
 
     # Build kwargs
     kwargs: dict = {
@@ -78,9 +81,9 @@ def main() -> None:
         "sequential_image_generation": args.sequential_image_generation,
     }
     if args.sequential_image_generation == "auto" and args.max_images is not None:
-        kwargs["sequential_image_generation_options"] = {"max_images": args.max_images}
+        kwargs["sequential_image_generation_options"] = SequentialImageGenerationOptions(max_images=args.max_images)
     if args.optimize_prompt is not None:
-        kwargs["optimize_prompt_options"] = {"mode": args.optimize_prompt}
+        kwargs["optimize_prompt_options"] = OptimizePromptOptions(mode=args.optimize_prompt)
     if args.web_search:
         kwargs["tools"] = [{"type": "web_search"}]
     if args.guidance_scale is not None:

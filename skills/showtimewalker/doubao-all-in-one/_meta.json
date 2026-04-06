@@ -1,11 +1,17 @@
 {
   "owner": "showtimewalker",
   "slug": "doubao-all-in-one",
-  "displayName": "豆包全家桶",
+  "displayName": "豆包全家桶（视频图片生成）",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774934295868,
-    "commit": "https://github.com/openclaw/skills/commit/dfdde6ee6beb73a20e1b7f13fbe3d827c863eaba"
+    "version": "1.0.2",
+    "publishedAt": 1775311667963,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774934295868,
+      "commit": "https://github.com/openclaw/skills/commit/dfdde6ee6beb73a20e1b7f13fbe3d827c863eaba"
+    }
+  ]
 }

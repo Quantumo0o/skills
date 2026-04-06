@@ -20,9 +20,9 @@
 设 `DOUBAO_SKILL_DIR` 为 `.claude/skills/doubao-all-in-one` 的绝对路径，从项目根目录执行：
 
 ```shell
-uv run --no-project --python python $DOUBAO_SKILL_DIR/scripts/text_to_image.py --prompt "..."
-uv run --no-project --python python $DOUBAO_SKILL_DIR/scripts/image_to_image.py --image resources/images/climb1.jpeg --prompt "..."
-uv run --no-project --python python $DOUBAO_SKILL_DIR/scripts/create_video_task.py --prompt "..." --poll
+uv run --python python $DOUBAO_SKILL_DIR/scripts/text_to_image.py --prompt "..."
+uv run --python python $DOUBAO_SKILL_DIR/scripts/image_to_image.py --image resources/images/climb1.jpeg --prompt "..."
+uv run --python python $DOUBAO_SKILL_DIR/scripts/create_video_task.py --prompt "..." --poll
 ```
 
 ## 输出约定
@@ -33,7 +33,6 @@ uv run --no-project --python python $DOUBAO_SKILL_DIR/scripts/create_video_task.
   - 文生视频：`outputs/doubao/videos/text_to_video/`
   - 首帧图生视频：`outputs/doubao/videos/first_frame_to_video/`
   - 首尾帧图生视频：`outputs/doubao/videos/first_last_frame_to_video/`
-  - 参考图生视频：`outputs/doubao/videos/reference_image_to_video/`
 - 输出字段：
   - `provider=doubao`
   - `scene`

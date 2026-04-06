@@ -15,7 +15,7 @@ import time
 from typing import Any
 
 from common import (
-    PROJECT_ROOT,
+    OUTPUT_ROOT,
     create_client,
     create_video_task,
     default_output_path,
@@ -50,13 +50,27 @@ def get_local_ip() -> str:
         return "127.0.0.1"
 
 
+def _read_webhook_token() -> str | None:
+    """Read the webhook token from the file written by webhook_server.py."""
+    token_path = OUTPUT_ROOT / "outputs" / "doubao" / ".webhook_token"
+    if token_path.exists():
+        token = token_path.read_text(encoding="utf-8").strip()
+        if token:
+            return token
+    return None
+
+
 def resolve_callback_url(manual_url: str | None) -> str | None:
     """Resolve callback URL: manual > env var > auto-detect local IP."""
     if manual_url:
         return manual_url
     base = os.getenv("VIDEO_CALLBACK_BASE_URL")
     if base:
-        return f"{base.rstrip('/')}/webhook/callback"
+        base = base.rstrip("/")
+        token = _read_webhook_token()
+        if token:
+            return f"{base}/webhook/callback/{token}"
+        return f"{base}/webhook/callback"
     # Auto-detect: check if webhook server is running on default port
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -64,6 +78,9 @@ def resolve_callback_url(manual_url: str | None) -> str | None:
         s.connect(("127.0.0.1", DEFAULT_CALLBACK_PORT))
         s.close()
         ip = get_local_ip()
+        token = _read_webhook_token()
+        if token:
+            return f"http://{ip}:{DEFAULT_CALLBACK_PORT}/webhook/callback/{token}"
         return f"http://{ip}:{DEFAULT_CALLBACK_PORT}/webhook/callback"
     except OSError:
         return None
@@ -72,6 +89,7 @@ def resolve_callback_url(manual_url: str | None) -> str | None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="豆包 Seedance 视频生成")
     parser.add_argument("--prompt", default=DEFAULT_PROMPT, help="提示词")
+    parser.add_argument("--name", default="", help="文件名描述，不超过 10 个中文字")
     parser.add_argument("--model", default=DEFAULT_MODEL, help="模型 ID")
     parser.add_argument(
         "--image-url",
@@ -86,7 +104,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--role",
         default="first_frame",
-        choices=["first_frame", "last_frame", "reference_image"],
+        choices=["first_frame", "last_frame"],
         help="图片角色（需配合 --image-url）",
     )
     parser.add_argument("--ratio", default=DEFAULT_RATIO, help="宽高比：16:9, 4:3, 1:1, 3:4, 9:16, 21:9, adaptive")
@@ -194,8 +212,6 @@ def determine_scene(
 ) -> str:
     if not image_urls and not last_frame_url:
         return "text_to_video"
-    if role == "reference_image":
-        return "reference_image_to_video"
     if last_frame_url or role == "last_frame" or (len(image_urls) > 1):
         return "first_last_frame_to_video"
     return "first_frame_to_video"
@@ -211,7 +227,7 @@ def main() -> None:
     if args.last_frame_url:
         image_refs.append(args.last_frame_url)
     log_params(
-        "视频任务开始", scene=scene, model=args.model, prompt=args.prompt,
+        "视频任务开始", scene=scene, model=args.model, prompt=args.prompt, name=args.name,
         ratio=args.ratio, duration=args.duration, resolution=args.resolution or "480p",
         generate_audio=args.generate_audio or "(API默认true)",
         service_tier=args.service_tier or "(API默认default/在线)",
@@ -297,9 +313,7 @@ def main() -> None:
     print(f"视频生成成功，开始下载...")
     log_params("视频生成成功", task_id=task_id, poll_elapsed=round(poll_elapsed, 3))
 
-    output_path = default_output_path("videos", scene, suffix=".mp4")
-    # Use task_id as part of filename for traceability
-    output_path = output_path.with_stem(f"{output_path.stem}_{task_id[:12]}")
+    output_path = default_output_path("videos", scene, suffix=".mp4", name=args.name)
     download_file(video_url, output_path)
     log_params("视频下载完成", path=str(output_path.name))
 
@@ -310,7 +324,7 @@ def main() -> None:
         "trace_id": trace_id,
         "task_id": task_id,
         "used_model": args.model,
-        "local_path": str(output_path.relative_to(PROJECT_ROOT)),
+        "local_path": str(output_path.relative_to(OUTPUT_ROOT)),
         "source_url": video_url,
         "resolution": final.get("resolution", ""),
         "ratio": final.get("ratio", ""),

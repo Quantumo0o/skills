@@ -12,6 +12,7 @@ metadata:
         - py
       env:
         - ARK_API_KEY
+        - OUTPUT_ROOT
     primaryEnv: ARK_API_KEY
     pythonDeps:
       - "volcengine-python-sdk[ark]"
@@ -52,7 +53,8 @@ metadata:
 
 ```shell
 uv run python $DOUBAO_SKILL_DIR/scripts/text_to_image.py \
-  --prompt "一张电影感写实人像海报，光影强烈，构图干净"
+  --prompt "一张电影感写实人像海报，光影强烈，构图干净" \
+  --name "写实人像海报"
 ```
 
 ### 图生图
@@ -60,7 +62,8 @@ uv run python $DOUBAO_SKILL_DIR/scripts/text_to_image.py \
 ```shell
 uv run python $DOUBAO_SKILL_DIR/scripts/image_to_image.py \
   --image resources/images/climb1.jpeg \
-  --prompt "保留主体动作，改为日落暖光的写实摄影风格"
+  --prompt "保留主体动作，改为日落暖光的写实摄影风格" \
+  --name "日落暖光人像"
 ```
 
 ### 文生视频（创建 + 轮询 + 下载一步完成）
@@ -68,6 +71,7 @@ uv run python $DOUBAO_SKILL_DIR/scripts/image_to_image.py \
 ```shell
 uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
   --prompt "写实风格，晴朗的蓝天之下，一大片白色的雏菊花田，镜头逐渐拉近，最终定格在一朵雏菊花的特写上，花瓣上有几颗晶莹的露珠" \
+  --name "雏菊花田特写" \
   --ratio 16:9 --duration 5 --poll
 ```
 
@@ -76,6 +80,7 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 ```shell
 uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
   --prompt "女孩抱着狐狸，女孩睁开眼，温柔地看向镜头" \
+  --name "女孩抱狐狸" \
   --image-url "https://example.com/first_frame.png" \
   --role first_frame --ratio adaptive --duration 5 --poll
 ```
@@ -84,7 +89,7 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 
 ```shell
 uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
-  --prompt "小猫对着镜头打哈欠" --ratio 16:9 --duration 5
+  --prompt "小猫对着镜头打哈欠" --name "猫咪打哈欠" --ratio 16:9 --duration 5
 ```
 
 ### 创建任务 + Webhook 回调（替代轮询）
@@ -95,7 +100,7 @@ uv run python $DOUBAO_SKILL_DIR/scripts/webhook_server.py
 
 # 再创建任务，传入回调地址（不传则自动检测本机 8888 端口）
 uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
-  --prompt "小猫对着镜头打哈欠" --ratio 16:9 --duration 5
+  --prompt "小猫对着镜头打哈欠" --name "猫咪打哈欠" --ratio 16:9 --duration 5
 ```
 
 ---
@@ -107,6 +112,7 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 | 参数 | 说明 | 文生图 | 图生图 |
 |------|------|--------|--------|
 | `--prompt` | 提示词 | 是 | 是 |
+| `--name` | 文件名描述（不超过 10 个中文字） | 否 | 否 |
 | `--model` | 模型 ID，默认 `doubao-seedream-5-0-260128` | 否 | 否 |
 | `--image` | 输入图片路径或 URL，可多次传 | - | 是 |
 | `--size` | 输出尺寸：2K / 3K / 4K / 2048x2048，默认 2K | 否 | 否 |
@@ -121,6 +127,8 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 | `--output` | 输出文件路径 | 否 | 否 |
 
 ### 本地输出目录
+
+所有路径相对于 `OUTPUT_ROOT`（由环境变量注入，兜底为用户主目录）：
 
 - `outputs/doubao/images/text_to_image/`
 - `outputs/doubao/images/image_to_image/`
@@ -149,9 +157,10 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 | 参数 | 说明 | 必需 |
 |------|------|------|
 | `--prompt` | 提示词 | 是 |
+| `--name` | 文件名描述（不超过 10 个中文字） | 否 |
 | `--model` | 模型 ID，默认 `doubao-seedance-1-5-pro-251215` | 否 |
 | `--image-url` | 图片 URL（可多次传），配合 `--role` 使用 | 否 |
-| `--role` | 图片角色：`first_frame` / `last_frame` / `reference_image` | 否 |
+| `--role` | 图片角色：`first_frame` / `last_frame` | 否 |
 | `--ratio` | 宽高比：16:9, 4:3, 1:1, 3:4, 9:16, 21:9, adaptive | 否，默认 16:9 |
 | `--duration` | 视频时长（秒）：2~12（1.5 pro 支持 -1 由模型自选） | 否，默认 5 |
 | `--resolution` | 分辨率：480p, 720p, 1080p（1.0 lite 参考图不支持 1080p） | 否，默认 480p |
@@ -171,10 +180,11 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 
 ### 本地输出目录
 
+所有路径相对于 `OUTPUT_ROOT`（由环境变量注入，兜底为用户主目录）：
+
 - `outputs/doubao/videos/text_to_video/`
 - `outputs/doubao/videos/first_frame_to_video/`
 - `outputs/doubao/videos/first_last_frame_to_video/`
-- `outputs/doubao/videos/reference_image_to_video/`
 
 ### 视频脚本输出 JSON
 
@@ -263,9 +273,12 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
    优化说明：
    - [具体补充了什么，如"补充了风格描述：莫奈油画风格"]
 
+   文件名标题：[不超过 10 个中文字的内容简述，如"雪中小猫玩耍"]
+
    优化后提示词：
    [完整提示词]
    ```
+   - **文件名标题**：在优化提示词时同时生成一个简短标题，不超过 10 个中文字，**调用脚本时必须通过 `--name` 参数传入**。标题应概括画面核心内容，如"雪中小猫玩耍""金色麦田奔跑""日落海边漫步"
 
 ### 提示词质量检查清单
 
@@ -321,9 +334,12 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
    - [具体补充了什么，如"补充了运动描述：金毛犬在麦田中快速奔跑"]
    - [具体补充了什么，如"补充了环境描述：金色麦田，阳光从侧面照射"]
 
+   文件名标题：[不超过 10 个中文字的内容简述，如"金毛麦田奔跑"]
+
    优化后提示词：
    [完整提示词]
    ```
+   - **文件名标题**：在优化提示词时同时生成一个简短标题，不超过 10 个中文字，**调用脚本时必须通过 `--name` 参数传入**。标题应概括画面核心内容，如"金毛麦田奔跑""猫咪打哈欠""海边日落漫步"
 ### 必须拒绝的情况
 
 - 主体完全缺失（如"生成一个视频""做个动画"）
@@ -342,6 +358,24 @@ uv run python $DOUBAO_SKILL_DIR/scripts/create_video_task.py \
 ## 配置
 
 - 环境变量：`ARK_API_KEY`（必需，未设置时直接报错）
+- 环境变量：`OUTPUT_ROOT`（可选，输出根目录，支持 `~` 展开，默认为用户主目录）
+
+## 短剧批量视频生成
+
+当用户请求为短剧的多个 clip（C01、C02…）批量生成视频时，遵循以下规则：
+
+### 一 clip 一请求
+
+- 每个 clip（CXX）是**一个完整的视频生成请求**，不得按分镜（sub-shot）拆分为多次请求
+- 分镜仅用于提示词规划（描述运镜变化、景别切换等），最终合并为一条 prompt 提交给模型
+- 示例：C01 有 2 个分镜（C01-1、C01-2），仍只调用一次 `create_video_task.py --duration 8`
+
+### 输出目录与文件名
+
+- 视频生成完成后，**必须**将文件从脚本默认输出目录复制到项目的视频生成目录
+- 输出路径：`outputs/scripts/{项目名}/video_generation/{篇章}/CXX.MP4`
+  - 例如：`outputs/scripts/chong_sheng_zhui_qi_20260401/video_generation/nightmare/C01.MP4`
+- 项目名和篇章名从用户提供的视频生成指令文档路径中推断
 
 ## 协作方式
 

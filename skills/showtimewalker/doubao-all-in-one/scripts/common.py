@@ -24,9 +24,9 @@ logger = logging.getLogger("doubao")
 
 
 def log_params(event: str, **kwargs: Any) -> None:
-    """Log an event with a JSON payload after the pipe: 'event | {"key": "value", ...}'."""
+    """Log an event with a provider prefix and JSON payload."""
     params_str = json.dumps(kwargs, ensure_ascii=False, default=str)
-    logger.info("%s | %s", event, params_str)
+    logger.info("火山引擎 - %s | %s", event, params_str)
 
 # Per-execution trace ID, generated on first import
 _trace_id: str = ""
@@ -53,10 +53,10 @@ class _TraceIdFilter(logging.Filter):
         return True
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+OUTPUT_ROOT = Path(os.environ.get("OUTPUT_ROOT", "~/")).expanduser().resolve()
 BASE_URL = "https://ark.cn-beijing.volces.com/api/v3"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "doubao"
-LOG_DIR = PROJECT_ROOT / "outputs" / "logs"
+DEFAULT_OUTPUT_DIR = OUTPUT_ROOT / "outputs" / "doubao"
+LOG_DIR = OUTPUT_ROOT / "outputs" / "logs"
 
 
 def setup_logging() -> None:
@@ -110,9 +110,10 @@ def ensure_output_dir(*parts: str) -> Path:
     return target_dir
 
 
-def default_output_path(*parts: str, suffix: str = ".png") -> Path:
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return ensure_output_dir(*parts) / f"{timestamp}{suffix}"
+def default_output_path(*parts: str, suffix: str = ".png", name: str = "") -> Path:
+    timestamp = datetime.now().strftime("%Y%m%d%H%M")
+    stem = f"{name}_{timestamp}" if name else timestamp
+    return ensure_output_dir(*parts) / f"{stem}{suffix}"
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +246,7 @@ def save_image_results(
         saved = save_image_payload(item, path)
         results.append({
             "index": index,
-            "local_path": str(saved.relative_to(PROJECT_ROOT)),
+            "local_path": str(saved),
             "size": str(size) if size else "",
         })
     return results
