@@ -3,9 +3,15 @@
   "slug": "amazonasinanalysis",
   "displayName": "Novai360 跨境电商智能分析",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775037172555,
-    "commit": "https://github.com/openclaw/skills/commit/0f5c00c1ca36ebd867be9c979809752206319f0b"
+    "version": "1.0.2",
+    "publishedAt": 1775121947827,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775037172555,
+      "commit": "https://github.com/openclaw/skills/commit/0f5c00c1ca36ebd867be9c979809752206319f0b"
+    }
+  ]
 }
