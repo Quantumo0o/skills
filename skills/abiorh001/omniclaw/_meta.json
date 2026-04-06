@@ -1,11 +1,17 @@
 {
   "owner": "abiorh001",
   "slug": "omniclaw",
-  "displayName": "OmniClaw",
+  "displayName": "omniClaw",
   "latest": {
-    "version": "0.0.2",
-    "publishedAt": 1774868288093,
-    "commit": "https://github.com/openclaw/skills/commit/90b403d1de3f7667b292822e2078baab0d82be7f"
+    "version": "0.0.4",
+    "publishedAt": 1775301356281,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.0.2",
+      "publishedAt": 1774868288093,
+      "commit": "https://github.com/openclaw/skills/commit/90b403d1de3f7667b292822e2078baab0d82be7f"
+    }
+  ]
 }
