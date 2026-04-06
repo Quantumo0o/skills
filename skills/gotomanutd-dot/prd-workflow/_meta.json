@@ -1,0 +1,11 @@
+{
+  "owner": "gotomanutd-dot",
+  "slug": "prd-workflow",
+  "displayName": "Prd Workflow",
+  "latest": {
+    "version": "4.2.0",
+    "publishedAt": 1775401228798,
+    "commit": null
+  },
+  "history": []
+}
