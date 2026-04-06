@@ -1,8 +1,9 @@
 /**
- * 太乙神数 Skill - 核心算法（第一版简化）
+ * 太乙神数 Skill - 核心算法
  * 作者：天工长老
- * 版本：v1.0
+ * 版本：v1.1
  * 创建：2026 年 3 月 29 日
+ * 更新：2026 年 3 月 30 日 - 完整十六神将、太乙九宫、大势断语
  */
 
 // 十六神将（简化版）
@@ -172,6 +173,80 @@ module.exports = {
   paiShenJiang,
   calcZhuKeSuan,
   zhuKePanDuan,
+  // v1.1 新增
+  getTaiYiJiuGong,
+  getDaShiDuanYu,
   SHI_LIU_SHEN_JIANG,
-  SHEN_JIANG_HAN_YI
+  SHEN_JIANG_HAN_YI,
+  JIU_GONG
 };
+
+// ========== v1.1 新增：太乙九宫排布 ==========
+
+// 太乙九宫排布
+function getTaiYiJiuGong(year) {
+  const jiNian = calcTaiYiJiNian(year);
+  const yinYangDun = getYinYangDun(6, 15); // 简化：以年中为基准
+  const juShu = calcJuShu(year, 6, 15);
+  
+  // 太乙落宫（简化计算）
+  const taiYiGong = (jiNian + juShu) % 9;
+  
+  // 十六神将落宫
+  const shenJiangLuoGong = {};
+  SHI_LIU_SHEN_JIANG.forEach((shenJiang, index) => {
+    const gongIndex = (taiYiGong + index) % 9;
+    shenJiangLuoGong[shenJiang] = JIU_GONG[gongIndex];
+  });
+  
+  return {
+    太乙落宫：JIU_GONG[taiYiGong],
+    遁局：yinYangDun,
+    局数：juShu,
+    神将落宫：shenJiangLuoGong
+  };
+}
+
+// 大势断语库
+function getDaShiDuanYu(shenJiangList, zhuKePD, question = 'general') {
+  const duanYu = {
+    general: [],
+    guoYun: [],
+    tianZai: [],
+    jingJi: []
+  };
+  
+  // 根据神将位置判断
+  const taiYiPos = shenJiangList.findIndex(sj => sj.includes('太乙'));
+  const wenChangPos = shenJiangList.findIndex(sj => sj.includes('文昌'));
+  const zhuSuanPos = shenJiangList.findIndex(sj => sj.includes('主算'));
+  
+  // 太乙得位
+  if (taiYiPos >= 0 && taiYiPos < 4) {
+    duanYu.general.push('太乙得位，大局稳定');
+    duanYu.guoYun.push('国运昌隆，政通人和');
+  } else {
+    duanYu.general.push('太乙失位，需防变动');
+  }
+  
+  // 文昌得地
+  if (wenChangPos >= 0 && wenChangPos < 6) {
+    duanYu.general.push('文运昌盛，利文化教育事业');
+  }
+  
+  // 主算吉凶
+  if (zhuKePD.includes('吉')) {
+    duanYu.jingJi.push('经济平稳发展，宜稳健经营');
+  } else if (zhuKePD.includes('平')) {
+    duanYu.jingJi.push('经济平稳，不宜冒进');
+  } else {
+    duanYu.jingJi.push('经济有波动，需谨慎');
+  }
+  
+  // 按问事类型返回
+  if (question === '国运') return duanYu.guoYun;
+  if (question === '天灾') return ['需结合天目、地目神将详细分析'];
+  if (question === '经济') return duanYu.jingJi;
+  
+  return duanYu.general;
+}
