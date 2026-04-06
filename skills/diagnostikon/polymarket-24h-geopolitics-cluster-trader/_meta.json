@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-24h-geopolitics-cluster-trader",
-  "displayName": "24h Geopolitics Cluster Trader",
+  "displayName": "Polymarket 24h Geopolitics Cluster Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774629272495,
-    "commit": "https://github.com/openclaw/skills/commit/6d0d818c4458925fbaecfcd03758be82bd9e58c1"
+    "version": "1.0.1",
+    "publishedAt": 1775316840648,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774629272495,
+      "commit": "https://github.com/openclaw/skills/commit/6d0d818c4458925fbaecfcd03758be82bd9e58c1"
+    }
+  ]
 }
