@@ -22,9 +22,9 @@ Drop `SKILL.md` into your AI agent's context window. Works with any LLM — Clau
 
 ## Full Version
 
-This is a free preview. The full skill (with color palette, evaluation criteria, exemplar works analysis, and complete markdown) is available at [InspiredHub](https://inspiredhub.ai/taste).
+This is a free preview. The full skill (with color palette, evaluation criteria, exemplar works analysis, and complete markdown) is available at [InspiredHub](https://inspiredhub.ai/taste/shakespeare-william-literary)
 
-Explore 86 aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste).
+Explore 86 aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste)
 
 ## License
 

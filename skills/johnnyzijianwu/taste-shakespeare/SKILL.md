@@ -1,3 +1,11 @@
+---
+name: taste-shakespeare
+version: 2.0.0
+description: Aesthetic skill for AI agents — Shakespeare's literary voice and dramatic language. Style tokens and creative direction distilled from 111 works.
+author: InspiredHub
+tags: [literature, aesthetics, shakespeare, literary, baroque, writing, taste, ai-agents]
+---
+
 # Shakespeare, William — Literary Voice
 
 > Eloquent, dramatic verse and prose, rich with rhetorical flourish, vivid imagery, and profound human conflict.
@@ -5,6 +13,8 @@
 **Type:** Literary | **Domain:** Literature | **Era:** Baroque | **Period:** 1564–1616 | **Origin:** English
 
 **Works in archive:** 111
+
+---
 
 ## Style Tokens
 
@@ -82,8 +92,10 @@ This is a **preview** of the Shakespeare Taste Skill. The full version includes:
 - **Exemplar works** with analysis (37 plays, 154 sonnets, and more)
 - **Full markdown** for direct agent ingestion
 
-**Unlock the complete skill at [InspiredHub](https://inspiredhub.ai/taste)**
+**Unlock the complete skill at [InspiredHub](https://inspiredhub.ai/taste/shakespeare-william-literary)**
 
 Explore 86 aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste)
+
+---
 
 _Distilled by [InspiredHub](https://inspiredhub.ai) from real Gutenberg texts — style tokens grounded in actual verse and prose analysis._
