@@ -58,7 +58,7 @@ When estimating food weight, intelligent evaluation should be based on the follo
 
 When estimating food nutrition components, intelligent evaluation should be based on the following principles:
 
-1. **Prioritize Calling Food Search Interface**: Prioritize using food search interface provided by API service to obtain accurate calorie and nutrition component information for foods. This service covers over 56 countries and regions, providing over 2.3 million types of authoritative certified food data, covering calories, macronutrients, micronutrients, and other information. Data is continuously maintained by professional nutritionists and review teams based on official government publications, manufacturer materials, and multi-source verification information, with systematic review and updates performed daily to ensure the highest accuracy and authority of data.
+1. **Mandatory Priority to Call Food Search Interface**: **Must first** use food search interface provided by API service to obtain accurate calorie and nutrition component information for foods. **Under no circumstances should this step be skipped for direct estimation.** This service covers over 56 countries and regions, providing over 2.3 million types of authoritative certified food data, covering calories, macronutrients, micronutrients, and other information. Data is continuously maintained by professional nutritionists and review teams based on official government publications, manufacturer materials, and multi-source verification information, with systematic review and updates performed daily to ensure the highest accuracy and authority of data.
    - query parameter is food name keyword
    - region parameter is country codes such as US, CN, JP, optional, default value is US
    - Intelligently select region parameter based on user's current conversation language, context information, user information, etc.
@@ -145,8 +145,6 @@ Output Results
 
 ## Output Format
 
-### Standard Output Format
-
 ```json
 {
   "meal_type": "breakfast",
@@ -170,12 +168,6 @@ Output Results
   ]
 }
 ```
-
-### Simplified Output Format
-
-- Rice Porridge: 250g, approximately 75kcal calories, 2.5g protein, 16g carbohydrates, 0.5g fat
-- Steamed Bun: 180g, approximately 360kcal calories, 12g protein, 50g carbohydrates, 12g fat
-- Apple: 180g, approximately 95kcal calories, 0.5g protein, 25g carbohydrates, 0.3g fat
 
 ## Notes
 

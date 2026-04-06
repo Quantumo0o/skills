@@ -114,8 +114,6 @@ Output Results
 
 ## Output Format
 
-### Standard Output Format
-
 ```json
 {
   "items": [
@@ -130,11 +128,6 @@ Output Results
 }
 ```
 
-### Simplified Output Format
-
-- Weight: 60 kg, BMI: 22.5, Status: Normal
-- Weight: 130 jin, BMI: 22.5, Status: Normal
-- Weight: 180 lbs, BMI: 22.5, Status: Normal
 
 ## Notes
 

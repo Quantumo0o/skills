@@ -154,8 +154,6 @@ Output Results
 
 ## Output Format
 
-### Standard Output Format
-
 ```json
 {
   "items": [
@@ -168,12 +166,6 @@ Output Results
   ]
 }
 ```
-
-### Simplified Output Format
-
-- Running: 30 minutes, approximately 300kcal consumed, medium intensity
-- Swimming: 1 hour, approximately 600kcal consumed, medium intensity
-- Yoga: 45 minutes, approximately 135kcal consumed, low intensity
 
 ## Notes
 

@@ -62,7 +62,42 @@ Agents should access the above API specification addresses in real-time to obtai
       - **Privacy Protection**: X-User-ID is only sent when user identity needs to be confirmed, and is not associated with users' real identity information.
 
 4. **Time Handling**
-   - API service uniformly uses UTC time, all time-related fields (e.g., created_at, timestamp, etc.) are based on UTC timezone, formatted as ISO 8601 standard format (e.g., 2024-01-15T10:30:00.000Z).
-   - Consider conversion between user local time and UTC time: users typically use local time when inputting, and local time should be used when displaying information to users.
+   ### 4.1 Principles
+   - **Unified Standard**: API service uniformly uses UTC time, all time-related fields (e.g., created_at, timestamp, etc.) are based on UTC timezone
+   - **Format Specification**: Time format adopts ISO 8601 standard (e.g., 2024-01-15T10:30:00.000Z)
+   - **User Interaction**: Use local time for user input and display, time zone conversion is required
+   
+   ### 4.2 Conversion Rules
+   - **Querying Records**:
+     1. Calculate local time range
+     2. Convert to UTC time
+     3. Format as ISO 8601 format
+     4. Build API request
+   - **Storing Records**:
+     1. User not specifying time: Use current UTC time
+     2. User specifying local time: Convert to UTC time before storing
+   - **Displaying Records**:
+     1. Convert UTC time to local time
+     2. Display in user-familiar format
+   
+   ### 4.3 Implementation Guide
+   **Querying today's records**:
+   - Local time range: 00:00:00 to 23:59:59.999 of the current day
+   - Convert to UTC time and format as ISO 8601 standard format
+   - Use the converted time range as `start_date` and `end_date` parameters
+   
+   **Example**:
+   - User in Beijing time (UTC+8) asks about today's diet records at 18:30
+   - Local today range: 2026-03-30 00:00:00 to 2026-03-30 23:59:59.999
+   - Convert to UTC time: 2026-03-29 16:00:00 to 2026-03-30 15:59:59.999
+   - API request: `?start_date=2026-03-29T16:00:00.000Z&end_date=2026-03-30T15:59:59.999Z`
+
+5. **Unit Specifications**
+   - **Calories**: Unified use of kilocalories (kcal) as the standard unit
+   - **Food Weight**: Unified use of grams (g) as the standard unit
+   - **Nutrition Components**: Protein, carbohydrates, and fat all use grams (g) as the standard unit
+   - **Exercise Duration**: Unified use of minutes (minute) as the standard unit
+   - **Weight**: Unified use of kilograms (kg) as the standard unit
+   - **Height**: Unified use of centimeters (cm) as the standard unit
 
 
