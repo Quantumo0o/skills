@@ -31,7 +31,7 @@ from typing import List, Optional, Tuple
 # ===== 路径解析 =====
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CONFIG_FILE = SKILL_DIR / "config" / "voices.json"
-DEFAULT_OUTPUT_DIR = os.path.expanduser("~/.openclaw/workspace/tmp")
+DEFAULT_OUTPUT_DIR = "/tmp/openclaw"
 
 # ===== 速率控制 =====
 # 每 3 秒一个桶，避免超过 Edge-TTS 的 20次/分钟限制

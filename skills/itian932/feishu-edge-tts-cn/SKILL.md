@@ -1,5 +1,5 @@
 ---
-name: feishu-edge-tts
+name: feishu-edge-tts-cn
 description: Edge-TTS 在线语音合成 skill。基于微软 Edge TTS 引擎，生成速度快（1-2秒），支持多种音色和输出格式，默认输出 OGG/Opus。默认音色 xiaoxiao_lively。需联网。
 ---
 
@@ -8,7 +8,7 @@ description: Edge-TTS 在线语音合成 skill。基于微软 Edge TTS 引擎，
 ## 概述
 
 - **引擎**: edge-tts 7.2.8
-- **路径**: `~/.openclaw/workspace/skills/feishu-edge-tts/`
+- **路径**: `~/.openclaw/workspace/skills/feishu-edge-tts-cn/`
 - **入口脚本**: `scripts/engine.py`
 - **音色配置**: `config/voices.json`
 - **速度**: 1-2 秒生成
@@ -65,29 +65,39 @@ description: Edge-TTS 在线语音合成 skill。基于微软 Edge TTS 引擎，
 
 ```bash
 # 默认音色（xiaoxiao_lively），默认 .ogg 输出
-python3 scripts/engine.py --text "你好"
+python3 scripts/engine.py --text "你好呀"
 
 # 指定音色
-python3 scripts/engine.py --text "早上好" --voice xiaoyi
+python3 scripts/engine.py --text "你好呀" --voice xiaoyi
 
 # 指定输出格式（.ogg / .mp3 / .wav / .flac）
-python3 scripts/engine.py --text "记得喝水哦" --voice xiaoxiao_gentle --output /tmp/reply.mp3
-python3 scripts/engine.py --text "晚安" --output /tmp/goodnight.wav
+python3 scripts/engine.py --text "你好呀" --voice xiaoxiao_gentle --output /tmp/reply.mp3
+python3 scripts/engine.py --text "你好呀" --output /tmp/goodnight.wav
 
 # 列出全部音色
 python3 scripts/engine.py --list-voices
 ```
 
-### Python API
+### Python API & 飞书发送
 
 ```python
 import sys, os
-sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace/skills/feishu-edge-tts/scripts"))
+sys.path.insert(0, os.path.expanduser("~/.openclaw/workspace/skills/feishu-edge-tts-cn/scripts"))
 from engine import generate
 
-code, path = generate("你好", voice_id="xiaoxiao_lively")
-# 发送语音: message.send(filePath=path)
+# 1. 生成语音，建议输出到 workspace 目录下
+code, path = generate("你好呀", voice_id="xiaoxiao_lively")
+
+# 2. 使用 OpenClaw message 工具发送（支持绝对路径，无需上传云空间）
+# message.send(filePath=path)
 ```
+
+> **💡 核心提示**：在 OpenClaw 环境中，生成 `.ogg` 文件后，直接使用 `message.send(filePath="/绝对路径/文件.ogg")` 即可实现语音消息推送。**不需要**先上传到飞书云空间再发送，这是最高效的用法！
+>
+> **📝 参数对比与推荐**：
+> *   **`filePath` (🏆 强烈推荐)**：语义最清晰，专为本地文件设计，最稳定。
+> *   **`path` (✅ 可用)**：`filePath` 的简写别名，功能一致。
+> *   **`media` (⚠️ 慎用)**：通常用于网络 URL，虽然支持本地绝对路径，但在某些环境下可能触发“Invalid URL”警告。
 
 ## 输出格式
 
@@ -102,13 +112,19 @@ code, path = generate("你好", voice_id="xiaoxiao_lively")
 | `.aac` | aac | 48kHz | mono | 64kbps |
 | 未知 | 自动回退 `.ogg` | 48kHz | mono | 打印警告 |
 
-## 输出路径
+## 输出路径与存放规范
 
-> ⚠️ **建议音频文件保存在 `~/.openclaw/workspace/` 目录下。**
+> ⚠️ **重要：OpenClaw 媒体发送安全限制**
 >
-> 飞书消息发送（`message.send(filePath=...)`）要求文件路径在 OpenClaw 工作区内，才能正确识别和发送。
+> 飞书消息发送（`message.send(filePath=...)`）仅允许读取以下“白名单”目录下的文件：
+> 1. `/tmp/openclaw` (**推荐默认路径**)
+> 2. `~/.openclaw/media`
+> 3. `~/.openclaw/workspace`
+> 4. `~/.openclaw/sandboxes`
+>
+> 请使用**绝对路径**发送文件，无需上传云空间。
 
-默认路径：`~/.openclaw/workspace/tmp/edge_{音色ID}_{时间戳}.ogg`
+默认路径：`/tmp/openclaw/edge_{音色ID}_{时间戳}.ogg`
 
 飞书发送推荐格式：**OGG/Opus**
 
