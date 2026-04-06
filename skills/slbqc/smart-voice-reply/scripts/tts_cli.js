@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const { parseArgs } = require("node:util");
-const path = require("node:path");
-const fs = require("node:fs/promises");
-const { execFile } = require("node:child_process");
+import { parseArgs } from "node:util";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { execFile } from "node:child_process";
 
 const DASHSCOPE_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation";
 
@@ -339,10 +339,10 @@ async function run(argv = process.argv.slice(2), deps = {}) {
   }
 }
 
-if (require.main === module) {
+if (import.meta.main) {
   run().then((code) => {
     process.exitCode = code;
   });
 }
 
-module.exports = { run };
+export { run };
