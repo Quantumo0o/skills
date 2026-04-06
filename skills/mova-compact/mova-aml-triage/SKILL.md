@@ -5,6 +5,8 @@ license: MIT-0
 metadata: {"openclaw":{"plugin":{"name":"MOVA","installCmd":"openclaw plugins install openclaw-mova"},"dataSentToExternalServices":[{"service":"MOVA API (api.mova-lab.eu)","data":"alert ID, rule ID, risk score, customer data, transaction list, PEP/sanctions flags, human decision, audit metadata"},{"service":"Sanctions screening connector (read-only)","data":"customer ID and transaction data screened against OFAC, EU, UN lists"},{"service":"Customer risk connector (read-only)","data":"customer ID for risk rating and prior alert history lookup"}]}}
 ---
 
+> **Contract Skill** — A ready-to-use MOVA HITL workflow. Requires the `openclaw-mova` plugin.
+
 # MOVA AML Alert Triage
 
 Submit a transaction monitoring alert to MOVA for automated L1 triage — with typology matching, sanctions screening, and a human compliance decision gate backed by a tamper-proof audit trail.
