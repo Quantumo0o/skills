@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-bundle-dota2-bo3-trader",
-  "displayName": "Bundle Dota 2 BO3 Structure Trader",
+  "displayName": "Polymarket Bundle Dota2 Bo3 Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774735894848,
-    "commit": "https://github.com/openclaw/skills/commit/9f4892f2021235e87aa85015c9bb9aa58e9912ac"
+    "version": "1.0.1",
+    "publishedAt": 1775316991835,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774735894848,
+      "commit": "https://github.com/openclaw/skills/commit/9f4892f2021235e87aa85015c9bb9aa58e9912ac"
+    }
+  ]
 }
