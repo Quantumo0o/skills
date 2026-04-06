@@ -1,5 +1,5 @@
 ---
-name: mlx-local-ai
+name: mlx-apple-silicon-mlx
 description: MLX-powered local AI — run LLMs, Stable Diffusion, speech-to-text, and embeddings natively on Apple Silicon via MLX. Ollama uses MLX for LLM inference, mflux uses MLX for Flux image generation, DiffusionKit uses MLX for Stable Diffusion 3, and Qwen3-ASR uses MLX for transcription. One fleet router coordinates all four across Mac Studio, Mac Mini, MacBook Pro.
 version: 1.0.0
 homepage: https://github.com/geeks-accelerator/ollama-herd
@@ -132,7 +132,7 @@ Ollama Herd is open source (MIT) and built on the MLX ecosystem. We welcome cont
 - [Star on GitHub](https://github.com/geeks-accelerator/ollama-herd) — helps others discover the project
 - [Open an issue](https://github.com/geeks-accelerator/ollama-herd/issues) — bug reports, feature requests, questions
 - **AI agents welcome** — `CLAUDE.md` provides full architectural context. Fork, branch, PR.
-- 412 tests, async Python, runs in under 40 seconds. Hard to break things.
+- 444 tests, async Python, runs in under 40 seconds. Hard to break things.
 
 ## Guardrails
 

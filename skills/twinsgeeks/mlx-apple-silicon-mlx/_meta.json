@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "mlx-apple-silicon-mlx",
-  "displayName": "MLX Local AI — LLM, Image Gen, STT, Embeddings Native on Apple Silicon",
+  "displayName": "Mlx Apple Silicon Mlx",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774940059416,
-    "commit": "https://github.com/openclaw/skills/commit/ee4a7183b9eeb1aab9098eefe940d2fe42aa49c1"
+    "version": "1.0.1",
+    "publishedAt": 1775254709250,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774940059416,
+      "commit": "https://github.com/openclaw/skills/commit/ee4a7183b9eeb1aab9098eefe940d2fe42aa49c1"
+    }
+  ]
 }
