@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-geopolitics-deadline-cascade-trader",
-  "displayName": "Geopolitics Deadline Cascade Trader",
+  "displayName": "Polymarket Geopolitics Deadline Cascade Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774695160775,
-    "commit": "https://github.com/openclaw/skills/commit/c7a810469cdd460375531ba51140d212eaf8e014"
+    "version": "1.0.1",
+    "publishedAt": 1775317157473,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774695160775,
+      "commit": "https://github.com/openclaw/skills/commit/c7a810469cdd460375531ba51140d212eaf8e014"
+    }
+  ]
 }
