@@ -3,11 +3,16 @@
   "slug": "booth-script-generator",
   "displayName": "Booth Script Generator",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774425889787,
-    "commit": "https://github.com/openclaw/skills/commit/11a24ef1ee63d89f0315fc5c942e496bf661709c"
+    "version": "1.2.0",
+    "publishedAt": 1775030049805,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774425889787,
+      "commit": "https://github.com/openclaw/skills/commit/11a24ef1ee63d89f0315fc5c942e496bf661709c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774342961268,
