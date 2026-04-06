@@ -9,11 +9,13 @@ Publish the repository root:
 - `SKILL.md`
 - `agents/`
 - `references/`
+- lightweight public helper scripts such as `scripts/*.sh`
 - public skill folders such as `ppt-maker/`, `social-account-ops/`, and `promo-video-maker/`
 
 Do not publish:
 
 - backend services
+- backend implementation code
 - customer files
 - generated artifacts
 - local test harnesses
@@ -33,12 +35,13 @@ Before publishing:
 
 1. Confirm every referenced file in every `SKILL.md` actually exists.
 2. Confirm no private customer names, reverse-engineered assets, or generated deliverables remain in the repo.
-3. Confirm the root hub files are up to date:
+3. Confirm every published helper script is a thin public wrapper and does not contain backend-only business logic.
+4. Confirm the root hub files are up to date:
    - `README.md`
    - `SKILL.md`
    - `agents/openai.yaml`
    - `references/routing-map.md`
-4. Run:
+5. Run:
 
 ```bash
 cd /Users/xiexiongjie/code/skills-hub/skills

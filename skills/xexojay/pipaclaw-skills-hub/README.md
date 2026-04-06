@@ -7,12 +7,13 @@ It should contain only publishable skill packages:
 - `SKILL.md`
 - `agents/`
 - `references/`
+- optional lightweight public helper scripts such as `scripts/*.sh`
 - skill subdirectories such as `ppt-maker/`
 
 It should not contain implementation-specific material:
 
 - backend services
-- local runtimes or exporters
+- backend implementations or thick local runtimes
 - test scripts
 - sample customer files
 - private assets or reverse-engineered templates
@@ -38,6 +39,8 @@ pipaclaw-skills-hub/
 ├── social-account-ops/
 ├── ppt-maker/
 └── promo-video-maker/
+    ├── references/
+    └── scripts/
 ```
 
 Repository rule:
@@ -49,6 +52,6 @@ Recommended publish flow:
 
 1. Treat this `skills/` directory as the GitHub repo root.
 2. Keep execution backends in separate private or implementation repos.
-3. Review each skill package for customer data, generated assets, and non-markdown implementation files before release.
+3. Review each skill package for customer data, generated assets, and any helper script that has grown beyond public-safe transport logic.
 4. Follow [PUBLISHING.md](/Users/xiexiongjie/code/skills-hub/skills/PUBLISHING.md) for login, version bumps, proxy handling, and ClawHub publish commands.
 5. Use [bin/clawhub-release](/Users/xiexiongjie/code/skills-hub/skills/bin/clawhub-release) as the standard release entrypoint.

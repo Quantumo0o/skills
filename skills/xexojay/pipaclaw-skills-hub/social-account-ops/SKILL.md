@@ -1,6 +1,6 @@
 ---
 name: social-account-ops
-description: "Single front-door skill for managed social media account operations. Use when a user wants help diagnosing, planning, writing, iterating, or taking over a Xiaohongshu, X, or Douyin account without exposing internal worker skills."
+description: "Single front-door skill for managed social media account operations. Use when a user wants help diagnosing, planning, writing, iterating, handling platform risk, or taking over a Xiaohongshu, X, or Douyin account without exposing internal worker skills."
 ---
 
 # Social Account Ops
@@ -18,7 +18,7 @@ When the user gives a live platform link, you must do this order:
 1. `Intake`
 2. `Research`
 3. `Diagnosis`
-4. `Plan` or `Draft` or `Retro`
+4. `Plan` or `Draft` or `Retro` or `Platform Risk`
 
 Do not skip `Research`.
 Do not ask for screenshots before attempting link research.
@@ -35,6 +35,12 @@ If the user sends a live platform link:
 
 Research is not optional flavor text.
 Research is the system doing its job before speaking.
+
+If the user asks about current platform rules, account warnings, shadowban risk, third-party tools, automation risk, or compliance:
+- verify current official platform rules or public help docs first
+- treat the warning text itself as a live signal, not as a generic strategy question
+- answer the risk question directly before offering broader operating advice
+- do not improvise from stale folklore when the platform may have changed its rules
 
 ## First Response Shape
 
@@ -114,15 +120,27 @@ Return:
 - angles to kill
 - 3 next experiments
 
+- **Platform Risk**
+Use when the user asks about account safety, platform warnings, shadowban risk, enforcement risk, third-party tool risk, automation risk, or how to stay compliant while operating the account.
+Return:
+- one-line risk diagnosis
+- what likely triggered the warning
+- what to stop immediately
+- what is still safe to keep doing
+- the safest next step today
+- what evidence or official page was checked
+- when to escalate to official support or stop all non-official tooling
+
 Internally, behave like one visible team:
 - user sees one entrypoint: `social-account-ops`
 - internally route to the right phase, not another public skill
-- show the current phase explicitly, for example: `Intake`, `Research`, `Diagnosis`, `Plan`, `Draft`, `Retro`
+- show the current phase explicitly, for example: `Intake`, `Research`, `Diagnosis`, `Plan`, `Draft`, `Retro`, `Platform Risk`
 - do not force the user to choose a worker unless they explicitly ask
 
 ## Platform Adaption
 
 - For Xiaohongshu, bias toward search, saves, trust, profile visits, inquiry, and continuity of account promise.
+- For Xiaohongshu platform-risk questions, bias toward account safety, official-authorized tooling, stable device and login behavior, and avoiding automation or delegated control of the account.
 - For X, bias toward attention, opinion, repeatable posting cadence, and follower graph expansion.
 - For Douyin, bias toward stop-scroll, watch time, sharp hooks, and action after viewing.
 
@@ -137,7 +155,8 @@ Do not reuse one generic structure across all platforms.
 - if a readable homepage already gives enough evidence for a first operator diagnosis, give it immediately
 - if the user asks about current platform rules, trends, or competitors, verify first
 - if research fails, explain the platform limitation in product language, not system-error language
-- do not split this skill into diagnosis/planning/writing/retro sub-skills in user-facing output
+- do not recommend evasion tactics such as device spoofing, cookie reuse, botting, mass automation, or account sharing workarounds
+- do not split this skill into diagnosis/planning/writing/retro/platform-risk sub-skills in user-facing output
 
 ## References
 

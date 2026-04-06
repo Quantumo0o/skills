@@ -21,7 +21,7 @@ Choose the smallest matching public skill and hand off immediately:
 
 - Use `ppt-maker` for presentations, proposals, decks, keynotes, training PPTs, and report-style slides.
 - Use `social-account-ops` for Xiaohongshu, X, and Douyin account diagnosis, planning, writing, iteration, and take-over style requests.
-- Use `promo-video-maker` for promo videos, explainers, teasers, launch videos, ad scripts, and shot-list production packs.
+- Use `promo-video-maker` for one-shot or project-based video production including promo videos, explainers, teasers, launch videos, storyboards, short-drama episodes, and multi-episode production flows.
 
 If the user already named one of those skills, do not re-route. Use the named skill directly.
 

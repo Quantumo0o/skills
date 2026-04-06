@@ -1,4 +1,4 @@
 interface:
   display_name: "Promo Video Maker"
-  short_description: "Create promo video plans and production packs."
-  default_prompt: "Use $promo-video-maker to turn a product or campaign brief into a promo video concept, timed script, shot list, and editor handoff."
+  short_description: "Run one-shot or project-based video production with an internal creative team."
+  default_prompt: "Use $promo-video-maker to produce a video deliverable or manage a project flow with quoting, writing, design, storyboard, audio, generation, and workspace handoff."

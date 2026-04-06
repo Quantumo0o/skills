@@ -7,6 +7,8 @@
 - Use formats such as problem/solution, checklist, comparison, diary, and before/after.
 - Structure each post as promise, context, 3 to 5 concrete points, proof, and CTA.
 - Track saves, shares, profile visits, and inbound messages.
+- For account-risk questions, prioritize official-authorized tooling, manual control of publishing and messaging, stable device and login behavior, and immediate rollback of any automation or delegated account access that is not explicitly platform-approved.
+- When the user receives a warning, answer in this order: what was checked, first risk judgment, safest next step today.
 
 ## X
 
@@ -30,3 +32,4 @@
 - Match tone and pacing to the platform's native behavior.
 - Reuse the same core idea only after adapting hook, structure, and CTA.
 - Favor proof and specificity over brand adjectives.
+- For live rule, enforcement, or compliance questions, verify before advising and avoid folklore-based workarounds.
