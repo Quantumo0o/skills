@@ -3,11 +3,16 @@
   "slug": "coding-plan-usage",
   "displayName": "Coding Plan Usage",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774858614222,
-    "commit": "https://github.com/openclaw/skills/commit/d99e7a55c006752de95422d01c1f0d1408268885"
+    "version": "1.0.3",
+    "publishedAt": 1775106352125,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774858614222,
+      "commit": "https://github.com/openclaw/skills/commit/d99e7a55c006752de95422d01c1f0d1408268885"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774401077607,
