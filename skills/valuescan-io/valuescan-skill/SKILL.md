@@ -1,7 +1,7 @@
 ---
 name: valuescan-skill
 description: ValueScan 加密货币主力资金流分析工具。支持资金异动监控、主力动向追踪、鲸鱼地址分析、板块轮动、机会/风险代币识别、大户成本分析。
-version: 1.0.3
+version: 1.0.4
 user-invocable: true
 category: Data Analysis
 license: MIT
