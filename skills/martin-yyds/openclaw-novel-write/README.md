@@ -22,6 +22,7 @@
 | `/novel specify` | "定义故事规格"、"开始specify" |
 | `/novel clarify` | "澄清关键决策"、"clarify" |
 | `/novel plan` | "制定创作计划"、"生成章节大纲" |
+| `/novel timeline` | "生成时间线"、"创建时间线文档" |
 | `/novel track-init` | "初始化追踪系统" |
 | `/novel tasks` | "分解任务清单"、"生成写作任务" |
 | `/novel write [章节]` | "写第X章"、"开始第一章"、"继续写" |
@@ -113,7 +114,41 @@
 
 ---
 
-### 第六步：初始化追踪系统
+### 第六步：生成时间线
+
+```
+/novel timeline
+```
+
+**触发示例**：
+```
+用户: 开始生成时间线
+```
+
+**流程**：
+1. 从创作计划中提取所有事件
+2. 按真实时间顺序排列，生成 `timeline.md`
+3. 与创作计划互相校验（关键情节点必须在时间线中，时间线事件必须在计划中能找到）
+4. 校验通过后保存
+
+**时间线文档格式**：
+```markdown
+| 序号 | 时间点 | 事件 | 章节对应 | 重要程度 |
+|------|--------|------|---------|---------|
+| 001 | 第1年3月 | 主角出生 | 序章 | ⭐⭐⭐ |
+| 002 | 第1年7月 | 主角离家 | 第1章 | ⭐⭐⭐ |
+```
+
+**校验失败**：
+```
+❌ 时间线与创作计划不一致
+问题类型：[冲突类型]
+请修复后再继续。
+```
+
+---
+
+### 第七步：初始化追踪系统
 
 ```
 /novel track-init
@@ -128,7 +163,7 @@
 
 ---
 
-### 第七步：生成任务清单
+### 第八步：生成任务清单
 
 ```
 /novel tasks
@@ -172,8 +207,9 @@ stories/<项目>/
 | 3 | `/novel specify` | `stories/*/specification.md` | ✅ |
 | 4 | `/novel clarify` | `stories/*/clarify-answers.md` | ✅ |
 | 5 | `/novel plan` | `stories/*/creative-plan.md` | ✅ |
-| 6 | `/novel track-init` | `spec/tracking/*.json` | ✅ |
-| 7 | `/novel tasks` | `stories/*/tasks.md` + `tasks-volume-*.md` | ✅ |
+| 6 | `/novel timeline` | `stories/*/timeline.md` | ✅ |
+| 7 | `/novel track-init` | `spec/tracking/*.json` | ✅ |
+| 8 | `/novel tasks` | `stories/*/tasks.md` + `tasks-volume-*.md` | ✅ |
 
 如果任何检查项未通过，`/novel write` 会报错并提示缺少哪一步。
 
@@ -217,14 +253,22 @@ stories/<项目>/
       → 触发 /novel plan
       → AI 生成：章节架构、线索分布、伏笔设计、节奏规划
 
-用户: 开始分解任务
-      → 触发 /novel track-init + /novel tasks
+用户: 生成时间线
+      → 触发 /novel timeline
+      → AI 生成：时间线文档 + 与计划互相校验
+      → 校验通过
+
+用户: 开始初始化追踪系统
+      → 触发 /novel track-init
       → AI 初始化追踪系统
+
+用户: 开始分解任务
+      → 触发 /novel tasks
       → AI 生成任务清单（tasks.md 总纲 + tasks-volume-*.md 分卷）
 
 用户: 开始写第一章
       → 触发 /novel write
-      → ⚠️ 前置检查（前7步）→ 全部通过
+      → ⚠️ 前置检查（前8步）→ 全部通过
       → AI 开始写作
       → 完成后自动 /novel track --check
       → AI: ✅ 章节写作完成，字数 3,256 字，追踪验证通过

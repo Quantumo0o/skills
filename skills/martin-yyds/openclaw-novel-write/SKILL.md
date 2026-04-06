@@ -1,6 +1,6 @@
 ---
 name: openclaw-novel-write
-version: 0.0.3
+version: 0.0.8
 description: OpenClaw 小说创作 Skill - 基于七步方法论的 AI 辅助写作系统
 tags:
   - novel
@@ -42,14 +42,15 @@ acknowledgments: |
 3. /novel specify        → 定义规格 + AI分析类型（自动加载知识库）
 4. /novel clarify       → 澄清关键决策
 5. /novel plan          → 制定创作计划
-6. /novel track-init    → 初始化追踪系统
-7. /novel tasks         → 分解任务清单
+6. /novel timeline      → 生成时间线 + 互相校验（新增）
+7. /novel track-init    → 初始化追踪系统
+8. /novel tasks         → 分解任务清单
                           ↓
 开始写作 ↓
           ↓
-8. /novel write [章节]  → 执行写作（⚠️ 强制检查前7步）
-9. /novel track --check → 自动追踪验证
-10. /novel analyze      → 每5章质量分析
+9. /novel write [章节]  → 执行写作（⚠️ 强制检查前8步）
+10. /novel track --check → 自动追踪验证
+11. /novel analyze      → 每5章提醒触发质量分析
 ```
 
 ## 核心命令
@@ -65,6 +66,7 @@ acknowledgments: |
 | `/novel plan` | "制定创作计划"、"生成章节大纲" |
 | `/novel track-init` | "初始化追踪系统" |
 | `/novel tasks` | "分解任务清单"、"生成写作任务" |
+| `/novel timeline` | "生成时间线"、"创建时间线文档" |
 | `/novel write [章节]` | "写第X章"、"开始第一章"、"继续写" |
 | `/novel track --check` | "追踪验证"、"检查状态" |
 | `/novel analyze` | "质量分析"、"分析章节" |
@@ -101,7 +103,7 @@ acknowledgments: |
 
 ### /novel write [章节编号]
 执行章节写作。
-- **必须先完成前7步**（init → constitution → specify → clarify → plan → track-init → tasks）
+- **必须先完成前8步**（init → constitution → specify → clarify → plan → timeline → track-init → tasks）
 - **写完后强制检查**：字数验证 → 追踪验证 → 每5章质量分析，**任一失败阻断写作**
 - 自动加载风格和规范
 - 遵循反AI写作规范
@@ -162,6 +164,7 @@ AI 分析用户描述的故事，自动判断：
 │       ├── specification.md     # 故事规格
 │       ├── clarify-answers.md  # 关键决策澄清
 │       ├── creative-plan.md     # 创作计划
+│       ├── timeline.md          # 时间线文档（新增）
 │       ├── tasks.md             # 任务总纲（索引）
 │       ├── tasks-volume-1.md    # 第1卷任务
 │       ├── tasks-volume-2.md    # 第2卷任务
@@ -236,6 +239,4 @@ AI 分析用户描述的故事，自动判断：
 - OpenClaw
 - bash（用于辅助脚本）
 
-## 版本
 
-- v0.0.1-alpha：首次发布（alpha）

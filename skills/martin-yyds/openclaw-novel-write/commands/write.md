@@ -25,8 +25,9 @@
 | 3 | `/novel specify` | `stories/*/specification.md` |
 | 4 | `/novel clarify` | `stories/*/clarify-answers.md` |
 | 5 | `/novel plan` | `stories/*/creative-plan.md` |
-| 6 | `/novel track-init` | `spec/tracking/*.json`（填充追踪系统） |
-| 7 | `/novel tasks` | `stories/*/tasks.md` + `stories/*/tasks-volume-*.md` |
+| 6 | `/novel timeline` | `stories/*/timeline.md` |
+| 7 | `/novel track-init` | `spec/tracking/*.json`（填充追踪系统） |
+| 8 | `/novel tasks` | `stories/*/tasks.md` + `stories/*/tasks-volume-*.md` |
 
 **如果任何步骤未完成，禁止执行写作！**
 
@@ -41,6 +42,7 @@ REQUIRED_FILES=(
   "stories/*/specification.md"
   "stories/*/clarify-answers.md"
   "stories/*/creative-plan.md"
+  "stories/*/timeline.md"
   "stories/*/tasks.md"
 )
 
@@ -61,8 +63,9 @@ for f in "${REQUIRED_FILES[@]}"; do
     echo "  3. /novel specify"
     echo "  4. /novel clarify"
     echo "  5. /novel plan"
-    echo "  6. /novel track-init"
-    echo "  7. /novel tasks"
+    echo "  6. /novel timeline"
+    echo "  7. /novel track-init"
+    echo "  8. /novel tasks"
     echo ""
     echo "必须全部完成后才能执行 /novel write"
     exit 1
@@ -94,6 +97,7 @@ done
 **再查（规格和计划）**：
 - `stories/*/specification.md` - 故事规格
 - `stories/*/creative-plan.md` - 创作计划
+- `stories/*/timeline.md` - 时间线（写作前必须对照）
 - `stories/*/tasks.md` - 当前任务
 
 **自动加载写作风格和规范**：
@@ -139,7 +143,29 @@ writing-requirements:
 
 ---
 
-### 3. 写作前提醒
+### 3. 写作前时间线对照（必须）
+
+在动笔之前，必须对照 `timeline.md` 确认本章的时间节点：
+
+1. **确认本章时间点**：从 timeline.md 找到本章对应的事件，记录时间点
+2. **确认事件顺序**：本章的事件在时间线中的位置，前后的时间节点是什么
+3. **检查是否有矛盾**：如果本章需要描写的事件发生在其他事件之前或之后，需严格遵守
+
+```
+🎯 时间线对照：
+- 本章：第3章
+- 对应事件：003（第3年5月 - 遇到恩师）
+- 前后事件：
+  - 前：002（第1年7月 - 主角离家）
+  - 后：004（第5年2月 - 恩师去世）
+- 注意：第3年5月的事件不能出现第5年的描写
+```
+
+**如果发现时间顺序有问题**：停止写作，提示用户修正内容或时间线。
+
+---
+
+### 4. 写作前提醒
 
 **基于宪法原则**：
 - 核心价值观要点
@@ -168,15 +194,16 @@ writing-requirements:
 
 ---
 
-### 4. 分段格式规范
+### 5. 分段格式规范
 
 - ⛔ **禁止使用**："一"、"二"、"三"等数字标记分段
 - ✅ **使用方式**：场景转换时用两个空行分隔
 - 📖 **原因**：数字标记过于生硬，破坏阅读沉浸感
+- ⛔ **行间非必要不添加空行**：段落之间除非场景转换，否则不插空行
 
 ---
 
-### 5. 反AI检测写作规范
+### 6. 反AI检测写作规范
 
 #### 段落结构（关键）
 
@@ -218,7 +245,7 @@ writing-requirements:
 
 ---
 
-### 6. 章节结构
+### 7. 章节结构
 
 ```
 ### 开场
@@ -242,15 +269,16 @@ writing-requirements:
 
 ---
 
-### 7. 保存和更新
+### 8. 保存和更新
 
 - 章节内容保存到 `stories/*/content/volumeX/chapter-XX.md`
 - **必须等第8步全部检查通过后**才更新任务状态为 `completed`
 - 记录完成时间和字数
+- ⚠️ **章节正文内不得包含质量追踪结果、分析报告等元数据**，只输出纯小说内容
 
 ---
 
-### 8. 完成后行动（强制检查）
+### 9. 完成后行动（强制检查）
 
 **必须按顺序执行，全部通过才算章节完成。任一失败则章节标记为未完成，阻断后续写作。**
 
@@ -322,7 +350,7 @@ bash <skill>/scripts/bash/count-chinese-words.sh <文件路径>
 
 ---
 
-### 9. 输出完成报告
+### 10. 输出完成报告
 
 ```
 ✅ 章节写作完成
