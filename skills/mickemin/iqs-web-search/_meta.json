@@ -1,0 +1,11 @@
+{
+  "owner": "mickemin",
+  "slug": "iqs-web-search",
+  "displayName": "Web Search powered by Aliyun IQS",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774716655550,
+    "commit": null
+  },
+  "history": []
+}
