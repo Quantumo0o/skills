@@ -100,26 +100,15 @@ By default, stats show all accounts. Use `settings default-accounts` to set your
 
 ```bash
 # Set default accounts (your main portfolio)
-python scripts/cli.py --database ../data/avanza/asset_data.db settings default-accounts "7485280,Sparkonto,7485272"
+python scripts/cli.py --database ../data/avanza/asset_data.db settings default-accounts "1234567,Savings Account,9876543"
 
 # View stats for default accounts only
 python scripts/cli.py --database ../data/avanza/asset_data.db stats --account default
 
 # Or specify accounts directly
-python scripts/cli.py stats --account "7485280,Sparkonto"
+python scripts/cli.py stats --account "1234567,Savings Account"
 
 # View all accounts
 python scripts/cli.py stats --account all
 ```
 
-A `config.json` can be stored in your data directory for reference (not auto-loaded):
-
-```json
-{
-  "excluded_accounts": ["Henrys Sparande", "6122238"],
-  "excluded_reason": {
-    "Henrys Sparande": "Son's account",
-    "6122238": "Old tjänstepension"
-  }
-}
-```
