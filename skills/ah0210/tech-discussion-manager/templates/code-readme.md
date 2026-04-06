@@ -2,7 +2,7 @@
 
 ## 基本信息
 - 创建时间：{{DATE}}
-- 相关讨论：/memory/tech-discussions/{{DISCUSSION_FILE}}
+- 相关讨论：{{DISCUSSION_FILE}}
 - 版本：v1.0
 
 ## 目录结构
