@@ -1,53 +1,169 @@
-# SKILL.md — CEO小茂能力包
+---
+name: ceo-xiaomao
+description: CEO小茂聚合技能包。用于外贸 CEO/业务负责人场景：协调汇报、Google Maps 商务联系人收集、OneABC 模型调用、邮件发送、WhatsApp 消息发送、WhatsApp 会话助理，并支持一键初始化模板文件。适用于想安装后快速搭建一套可配置业务工作流的人。
+---
 
-> AI团队协调总控 / CEO助理技能包
-> 可在任何 OpenClaw 节点上安装使用
+# CEO小茂
 
-## 是什么
+Use this skill as a packaged capability bundle for a foreign-trade CEO assistant workflow.
 
-CEO小茂是 AI 外贸团队的**协调总控**，负责调度、检查、汇报。
-不是执行者，而是让团队分工接起来、让任务形成闭环的那个人。
+## Included capabilities
 
-## 安装
+- Coordination-style capability inventory and task breakdown
+- Google Maps business contact collection for B2B prospecting
+- OneABC model wrapper via environment variable
+- Email sending with optional attachments
+- WhatsApp message sending
+- WhatsApp conversation assistant workflow
+- One-click workspace initialization templates
+
+## Setup
+
+Before using the bundled scripts, set environment variables.
+
+### Mail service
+
+- `MAIL_ACCOUNT`
+- `MAIL_CREDENTIAL`
+- optional: `FROM_NAME`
+
+### OneABC
+
+- `ONEABC_ACCESS_CREDENTIAL`
+- optional: `ONEABC_BASE_URL`
+
+### WhatsApp service
+
+- `GREEN_API_URL`
+- `GREEN_API_INSTANCE_ID`
+- `GREEN_API_CREDENTIAL`
+
+### Assistant binding
+
+- `OPENCLAW_AGENT` default: `sales_agent`
+- `XIAONENG_DIR` default: current script directory or chosen workspace
+
+## Coordination method
+
+When the user wants CEO-style orchestration, read:
+
+- `references/coordination-method.md`
+
+Use it for:
+- boss-facing reporting
+- task routing
+- progress summaries
+- risk tracking
+
+## Quick start
+
+### 1. Initialize workspace files
 
 ```bash
-# 克隆本 skill 到新环境
-clawhub install ceo-xiaomao
-
-# 或手动复制整个目录到 skills/ 下
+python3 scripts/init_workspace.py
 ```
 
-## 快速启动
+This creates:
+- `.known_customers.json`
+- `.product_db.json`
+- `.boss_notifications.json`
+- `.auto_state_v3.json`
+- `body.txt`
+- `customers.example.csv`
+- `leads.example.csv`
+- `send_log.csv`
+- `README-SETUP.md`
 
-1. 读取 `SETUP.md` 完成首次配置
-2. 读取 `SOUL.md` 理解角色定位
-3. 读取 `WORKFLOW.md` 掌握工作流程
-4. 按需使用 `TEMPLATES/` 中的模板文件
+### 2. Edit product and message templates
 
-## 文件清单
+- fill `.product_db.json`
+- update `body.txt`
+- prepare your customer CSVs
 
-| 文件 | 用途 |
-|------|------|
-| `SOUL.md` | 角色灵魂：定位、人格、说话风格 |
-| `WORKFLOW.md` | 工作流程 SOP：任务分配、跟进、汇报 |
-| `RULES.md` | 团队协作规则：边界、分工、记忆管理 |
-| `SETUP.md` | 首次配置指南 |
-| `TEMPLATES/日报.md` | 日报模板 |
-| `TEMPLATES/周报.md` | 周报模板 |
-| `TEMPLATES/任务派发.md` | 任务派发模板 |
-| `TEMPLATES/客户跟进.md` | 客户跟进状态记录模板 |
+## Bundled scripts
 
-## 团队架构
+### Google Maps business contacts
 
-| 角色 | 名字 | 功能 | 比喻 |
-|------|------|------|------|
-| 协调总控 | CEO小茂 | 协调、分配、汇报 | 指挥官/参谋 |
-| 市场侦探 | 小探 | 找客户 | 侦察兵 |
-| 商务跟单 | 小能 | 执行触达 | 前线推进兵 |
-| 文案官 | 小内 | 写文案 | 宣传官 |
+```bash
+python3 scripts/get_google_maps_leads.py "shower head distributor" "USA" 50
+```
 
-## 核心原则
+### Email sending
 
-- 只做协调，不做执行
-- 给结论，不绕弯子
-- 关注"当前进展 / 下一步 / 风险点"
+```bash
+python3 scripts/send_emails.py leads.csv --subject "Hello" --body-file body.txt --log-file send_log.csv
+```
+
+Optional attachments:
+
+```bash
+python3 scripts/send_emails.py leads.csv --subject "Hello" --body-file body.txt --attachments catalog1.pdf catalog2.pdf
+```
+
+Expected CSV column for recipient email: first matching field from:
+- `email`
+- `邮箱`
+- `真实邮箱`
+
+### WhatsApp single message
+
+```bash
+python3 scripts/send_whatsapp.py 8613129530892 "Hello from supplier"
+```
+
+### WhatsApp CSV message dispatch
+
+```bash
+python3 scripts/send_whatsapp_batch.py customers.csv 5
+```
+
+CSV format:
+- column 1: phone
+- column 2: message
+
+### WhatsApp conversation assistant
+
+Prepare a working directory with:
+- `.known_customers.json` initial contact list
+- optional `.product_db.json` product metadata and files
+
+You can start from:
+- `python3 scripts/init_workspace.py`
+- `assets/product_db.example.json`
+
+Run:
+
+```bash
+python3 scripts/auto_reply.py
+```
+
+Features:
+- auto-detect replied contacts and add them into contact list
+- multilingual reply routing
+- image-message handling
+- product PDF/image/video sending
+- intent note recording into `.boss_notifications.json`
+
+### OneABC models
+
+```bash
+node scripts/oneabc.js models
+node scripts/oneabc.js chat gpt-4o "Hello"
+node scripts/oneabc.js image "a product photo on white background"
+```
+
+## Assets
+
+- `assets/product_db.example.json`
+- `assets/.known_customers.json.example`
+- `assets/body.example.txt`
+- `assets/customers.example.csv`
+- `assets/leads.example.csv`
+
+## Notes
+
+- Never hardcode secrets into the installed skill files.
+- Stop and report missing environment variables instead of guessing.
+- For Google Maps collection, use moderate result sizes.
+- For WhatsApp messaging, keep safe pacing.
+- The conversation assistant is a configurable template; adapt product assets and agent binding for your environment.
