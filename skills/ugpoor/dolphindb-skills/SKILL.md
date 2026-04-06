@@ -1,4 +1,4 @@
-# DolphinDB 技能套件 v1.3.5
+# DolphinDB 技能套件 v1.4.0
 
 > 📘 DolphinDB 数据库套件的入口文件
 
@@ -12,32 +12,58 @@
 
 ---
 
-## ⚠️ 前置依赖：Python 环境检测（必须首先执行）
+## 🚨 强制流程：每次调用 DolphinDB 技能前必须执行
 
-**在任何 DolphinDB Python 操作之前，必须先检测并加载正确的 Python 环境：**
+**所有 DolphinDB 相关操作，必须遵循以下流程：**
+
+```
+1. 环境检测 → 2. 加载环境 → 3. 验证 SDK → 4. 执行操作
+```
+
+### 第一步：环境检测（必须）
 
 ```bash
-# 加载环境检测器（相对路径，技能安装后自动可用）
-source scripts/load_dolphindb_env.sh
+# 方法 1: 使用包装器脚本（推荐）
+cd ~/.jvs/.openclaw/workspace/skills/dolphindb-skills
+source scripts/dolphin_wrapper.sh
 
-# 查看环境信息
-dolphin_env_info
+# 方法 2: 手动检测
+python3 scripts/init_dolphindb_env.py --export
+```
 
+### 第二步：验证环境
+
+```bash
 # 验证 SDK 已安装
-dolphin_python -c "import dolphindb; print('SDK 版本:', dolphindb.__version__)"
+$DOLPHINDB_PYTHON_BIN -c "import dolphindb; print(dolphindb.__version__)"
+
+# 或
+dolphin_python -c "import dolphindb; print(dolphindb.__version__)"
+```
+
+### 第三步：执行 Python 脚本
+
+```bash
+# 使用包装器
+dolphin_python your_script.py
+
+# 或直接使用检测到的 Python
+$DOLPHINDB_PYTHON_BIN your_script.py
 ```
 
 **环境检测逻辑：**
 1. 扫描 conda 环境列表 → 检查每个环境的 `pip list`，查找 `dolphindb`
-2. 扫描 Anaconda/Miniconda 路径 → 检查 `$CONDA_BASE_1`, `$CONDA_BASE_2` 等
-3. 扫描系统 Python 环境 → 检查 `$SYS_PYTHON_1`, `$SYS_PYTHON_2` 等
-4. 决策：找到已安装 → 导出 `DOLPHINDB_PYTHON_BIN`；未找到 → 自动安装到 Python 3.13
+2. 扫描 Anaconda/Miniconda 路径 → 检查 `$CONDA_BASE` 等
+3. 扫描系统 Python 环境 → 检查 `/usr/bin/python3` 等
+4. 决策：找到已安装 → 导出 `DOLPHINDB_PYTHON_BIN`；未找到 → 自动安装
 
 **统一调用接口：**
 ```bash
 dolphin_python script.py    # 运行 Python 脚本
 dolphin_pip install pkg     # 安装包
 ```
+
+**重要**: 详见 [USAGE_GUIDE.md](USAGE_GUIDE.md) 和 [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)
 
 **重要：所有 DolphinDB 脚本在 Python 中的调用方式**
 
