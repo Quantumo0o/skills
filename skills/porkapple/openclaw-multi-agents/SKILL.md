@@ -468,6 +468,22 @@ Reply to Manager confirming receipt
 > Waiting for the user to ask = Pure Relay failure.
 
 Always notify user FIRST, then (optionally) confirm to Manager. Never the reverse.
+
+**How to notify the user (use `message` tool, let OpenClaw auto-route):**
+```javascript
+// ✅ Correct: omit channel/to — OpenClaw routes to wherever the user is (WeChat, Feishu, etc.)
+message({
+  action: "send",
+  message: "甘特汇报内容，整理后转达给用户"
+})
+
+// ❌ Wrong: hardcoding channel breaks users on other platforms
+message({
+  action: "send",
+  channel: "openclaw-weixin",  // ← don't hardcode!
+  message: "..."
+})
+```
 ```
 
 ---
