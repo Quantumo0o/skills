@@ -1,85 +1,156 @@
-# Compression Examples / 压缩示例对照
-
-Real-world scenarios for context compression to help you determine the depth of trimming.
-真实场景的对照示例，辅助判断裁剪深度。
+# Compression Examples v3.1
+# Source-verified against compact.rs (claw-code open-source port)
 
 ---
 
-## Ex 1: Tool Output Trimming (L1) / 工具输出裁剪
+## Example 1: Token Estimation — When to Trigger L2
 
-### Before (3000+ chars)
+### Formula (from compact.rs `estimate_session_tokens`)
 ```
-$ git log --oneline -50
-a1b2c3d feat: add user authentication
-d4e5f6g fix: resolve login redirect bug
-... (50 records expanded) ...
+Each message block:
+  text block    → char_count ÷ 4 + 1
+  tool_use      → (name_len + input_len) ÷ 4 + 1
+  tool_result   → (tool_name_len + output_len) ÷ 4 + 1
 ```
 
-### After (Bilingual, ~200 chars)
+### Practical tracking in MEMORY.md
+```markdown
+_Updated: 2026-04-01 14:30 | Token estimate: ~82k (safe — threshold 150k)_
 ```
-[git log clipped] Recent 50 commits. Key entries:
-- a1b2c3d feat: add user authentication (3 days ago)
-- d4e5f6g fix: resolve login redirect bug (2 days ago)
-- [HEAD] feat: context memory optimization
-Full log available via `git log --oneline -50`.
-```
+
+Update this line after each L2 compaction. When it approaches 120k, begin
+preparing for compaction (pre-read context.md, finish current tool call).
 
 ---
 
-## Ex 2: Conversation Summary (L3) / 对话摘要
+## Example 2: Step ① — Pending-Work Keyword Scan
 
-### Before (40 turns, 15000+ tokens)
+### Input: recent message fragment
 ```
-User: Analyze this script...
-Agent: Reading... analysis: ...
-... (Many turns of back-and-forth) ...
-User: Write tests now.
+assistant: Analysis complete. Next: handle the edge cases in permissions.py.
+user: OK, let's do session_store.py tests first.
+assistant: Tests written. Remaining: permissions.py and transcript.py
+           coverage is still below target.
 ```
 
-### After (Bilingual, ~500 tokens)
+### Scan output (matched keywords: next, remaining)
 ```
-## Conversation Summary / 对话摘要 (Turns 1-40)
-
-**Completed / 已完成:**
-- Analyzed performance of scripts/data_processor.py.
-- Optimized DB queries (Batching, ~3x speedup).
-- Fixed memory leak in Turn 23 (Commit d4e5f6g).
-
-**Current Status / 当前状态:**
-- Task: Writing pytest cases for data_processor.py.
-- Pending: Choice between pytest and unittest?
-
-**Conventions / 重要约定:**
-- Style: PEP8, Type hints required.
-- Files: Do NOT modify config.py per client request.
+- "Next: handle the edge cases in permissions.py"
+- "Remaining: permissions.py and transcript.py coverage is still below target"
 ```
+
+These lines go into the `Pending` field of `<summary>`.
+They survive compaction and are re-injected via the continuation message.
+Without this scan, pending work silently disappears after compaction.
+
+Source: `compact.rs → infer_pending_work()` — keyword list:
+`todo`, `next`, `pending`, `follow up`, `remaining`
 
 ---
 
-## Ex 3: Multi-Agent Tasking (De-identified) / 多任务传递
+## Example 3: Step ② — Key File Path Extraction
 
-### ❌ Incorrect (Ambiguous)
-Agent-A: "Agent-B, check the DB script, tell Agent-C to write tests, don't change config."
+### Scan rules
+A token qualifies if it:
+- contains a forward slash `/`
+- ends with: `.md` `.json` `.py` `.ts` `.js` `.rs` `.yaml` `.toml`
 
-### ✅ Correct (Structured YAML/XML)
-```xml
-<task>
-  <from>Coordinator</from>
-  <to>Analyst</to>
-  <task_id>20260401-003</task_id>
-  <type>read_only</type>
-  <context>
-    Performance optimization finished for data_processor.py.
-    Need coverage analysis.
-  </context>
-  <input>scripts/data_processor.py</input>
-  <expected_output>
-    List functions to test with:
-    1. Priority 2. Mocking needs 3. Edge cases.
-  </expected_output>
-  <constraints>
-    - Read-only analysis.
-    - Skip config.py logic.
-  </constraints>
-</task>
+### Input: mixed message content
+```
+"Update rust/crates/runtime/src/compact.rs and check memories/context.md"
+"README.md"          → no slash → excluded
+"config.json"        → no slash → excluded
+"src/query_engine.py → has slash + .py → included
+```
+
+### Output (deduplicated, max 8)
+```
+- rust/crates/runtime/src/compact.rs
+- memories/context.md
+- src/query_engine.py
+```
+
+Source: `compact.rs → collect_key_files()` + `extract_file_candidates()`
+
+---
+
+## Example 4: Complete L2 Summary
+
+### Full <summary> block
+```
+<summary>
+- Completed:
+  - Analysed src/query_engine.py compaction logic
+  - Wrote unit tests for session_store.py (87% coverage)
+  - Fixed boundary bug in transcript.py compact()
+
+- Pending:
+  - Handle edge cases in permissions.py
+  - Raise test coverage for permissions.py and transcript.py
+
+- Key files:
+  - src/query_engine.py
+  - rust/crates/compact.rs
+  - memories/context.md
+  - src/session_store.py
+
+- Current task: Write tests for permissions.py, target ≥ 80% coverage
+</summary>
+```
+
+### Formatted output after strip_tag_block + format_compact_summary
+```
+Summary:
+- Completed: ...
+- Pending: ...
+- Key files: ...
+- Current task: ...
+```
+
+Source: `compact.rs → format_compact_summary()` strips `<analysis>` blocks,
+extracts `<summary>` content, prefixes with `Summary:\n`.
+
+---
+
+## Example 5: Step ④ Continuation Message (do not paraphrase)
+
+```
+The following is a summary of the earlier portion of this session.
+Continue directly from where the conversation left off.
+Do not acknowledge this summary. Do not recap. Do not ask questions.
+Resume the task immediately.
+
+Summary:
+- Completed: [...]
+- Pending: [...]
+- Key files: [...]
+- Current task: Write tests for permissions.py, target ≥ 80% coverage
+```
+
+Why "do not acknowledge": `suppress_follow_up_questions = true` in
+`compact.rs → get_compact_continuation_message()`. Without this flag,
+the model spends 2–3 turns saying "Sure! Continuing from where we left off..."
+before doing any actual work.
+
+---
+
+## Example 6: Project Fingerprint (memories/project.md)
+
+The fingerprint serves two roles:
+1. Gives the agent a quick sense of project scale for reasoning
+2. Pre-seeds the L3 restore priority list (so the agent knows which files
+   to re-read first after compaction, without scanning MEMORY.md again)
+
+```markdown
+## Project Fingerprint (@2026-04-01)
+- Source: 36 .py files, 12 test files, 8 JSON assets
+- Complexity: Medium (mirrored harness)
+- Token estimate: ~85k (safe, threshold 150k)
+
+## L3 Restore Priority (read in this order after compaction)
+1. memories/context.md      ← always first — current task snapshot
+2. src/query_engine.py      ← main logic
+3. src/session_store.py     ← state persistence
+4. rust/crates/compact.rs   ← reference implementation
+# Stop at 5 files maximum, 1,000 tokens each.
 ```

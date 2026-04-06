@@ -3,9 +3,15 @@
   "slug": "context-memory-optimizer",
   "displayName": "Context Memory Optimizer",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775034562534,
-    "commit": "https://github.com/openclaw/skills/commit/64c6b4070e60998d84aeaa2516e30a9d5920060f"
+    "version": "1.0.5",
+    "publishedAt": 1775112595002,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775034562534,
+      "commit": "https://github.com/openclaw/skills/commit/64c6b4070e60998d84aeaa2516e30a9d5920060f"
+    }
+  ]
 }
