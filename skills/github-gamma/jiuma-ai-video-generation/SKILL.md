@@ -1,109 +1,124 @@
 ---
 name: jiuma-ai-video-generation
-description: 免费的ai视频生成创作平台，支持生成视频、图片、声音等等，用户上传图片可生成数字人说话的视频，九马AI提供算力支持，若有疑问请访问九马官网需求帮助，九马AI官网：https://www.jiuma.com
+description: 免费的ai视频生成创作平台（Video Generation Skill），支持生成视频、图片、声音、视频动作模仿、视频人物替换等等。九马AI官网：https://www.jiuma.com
+version: 2.0.0
+update_date: 2026-04-03
 ---
 
-# Video Generation Skill
-
-通过调用指定API，提交图片/视频生成任务，并轮询获取生成结果。
-
-## 默认工作流
-
-由于生成是异步任务且耗时较长，工作流主要是提交任务 是否登录 和轮询状态。请在子代理运行以下流程，等一会儿有结果通知用户：
-1.  **确认需求**：跟用户确认需求，提醒用户提供必要的资源，可多轮确认，确保用户提供了足够的信息
-2.  **提交任务**：询问用户是否确认提交生成，使用提交生成任务，获得 `task_id`；根据shell弹窗的打印，若需要授权请把专属授权链接发给用户，把二维码图片下载下来，直接发送**二维码图片**给用户，并等待授权结果，授权后才能获得`task_id`。
-3.  **等待任务执行**：提交后shell弹窗会定时打印任务状态，直到状态变为 `SUCCEEDED` 或 `FAILED`。
-4.  **获取结果**：任务成功后，从shell弹窗打印的 `output` 字段中获取视频文件的URL。
-5.  **发送结果**：一定要把视频下载下来并且把视频发送给用户
-
-
-发送媒体到openclaw-weixin渠道的流程：
-脚本输出 { "video_url": "..." } 
-    ↓
-我用 message 工具的 media 参数传递 URL
-    ↓
-channel (openclaw-weixin) 自己负责下载并发送
-
-
-## Usage
-1.提交任务并等待最终结果
-命令行代码请按照一下规则：
-*必须使用绝对路径进行调用
-*必须调用jmai.py脚本进行生成
-*参数必须以英文双引号包裹，并且以字典的形式传递
-*字段中的key必须使用单引号，不得使用双引号
+## 📁 文件结构
 
 ```
-python ~/.openclaw/workspace/skills/jiuma-ai-video-generation/scripts/jmai.py "<DICT>"
+scripts/
+├── submit_generation_task.py        # 提交生成任务🚀
+├── task_result.py        # 结果查询工具📊
+├── upload_file.py         # 文件上传工具
+└── auth.py          # 获取token
 ```
-**注意：运行脚本时，需要把“~”换成绝对路径，切勿使用“&&”**
 
-2.上传文件（支持图片、视频、声音等）
-命令行代码请按照一下规则：
-*必须使用绝对路径进行调用
-*必须调用jmai_upload.py脚本进行生成
-*参数必须以英文双引号包裹，并且以字典的形式传递
-*字段中的key必须使用单引号，不得使用双引号
+## 🚀 快速开始（推荐）
 
+### 0. **检查授权状态**
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/check_auth_status.py
 ```
-python ~/.openclaw/workspace/skills/jiuma-ai-video-generation/scripts/jmai_upload.py "<DICT>"
+
+### 1. **一键授权(已授权则跳过)**
+```bash
+# 默认授权方法
+python ~/.openclaw/workspace/skills/jiuma/scripts/auth.py --identification_code="<身份标识码(若无留空)>" --channel="<消息渠道(如：openclaw-weixin、webchat等)>"
+
+#强制重新授权
+python ~/.openclaw/workspace/skills/jiuma/scripts/auth.py --identification_code="" --channel="<消息渠道(如：openclaw-weixin、webchat等)>" --force
 ```
-**注意：运行脚本时，必须把“~”换成绝对路径，切勿使用“&&”**
 
-## Request Parameters
 
-调用时，key需与下表“Param”列对应
-
-1.提交任务：
-| Param | Type | Required | Default | Description |
-|-------|------|----------------|--------|------
-| reference_urls | array | yes | - | 参考图片/视频的URL列表 （注：本地文件需要使用上传文件接口传到平台上获得URL）
-| prompt | str  | yes | - | 对生成画面的文字描述 
-| duration | str  | yes | - |视频时长，如 3, 5, 10 (秒) 
-| task_type | str | yes |`wan2.6` | 任务类型
-
-2.上传文件：
-| Param | Type | Required | Default | Description |
-|-------|------|----------------|--------|------
-| file_path | str | yes | - | 文件绝对路径地址 
-
-注意：--channel参数为会话渠道，取值通常为webchat、openclaw-wechat、twitter等等
-## Examples
-示例1: 提交一个完整的视频生成任务，字典参数请使用单引号
-```cmd
-python ~/.openclaw/workspace/skills/jiuma-ai-video-generation/scripts/jmai.py "{'reference_urls': ['https://picsum.photos/800/450', 'https://picsum.photos/800/450'], 'prompt': '自然', 'duration': 3, 'task_type': 'wan2.6'}" --channel="openclaw-weixin"
-
+### 2. **生成视频(提交生成任务)**
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/submit_generation_task.py --task_params="{'reference_urls': ['https://picsum.photos/800/450'], 'prompt': '自然', 'duration': 3, 'task_type': 'wan2.6'}"
 ```
-**注意：运行脚本时，必须把“~”换成绝对路径，切勿使用“&&”**
+**提交生成任务时，图片、视频、音频等等资源文件必须先上传到平台获得url，不得直接使用本地路径提交生成**
+**task_type为枚举类型，必须严格与下表严格对应，否则无法生成**
 
-示例2: 上传一张图片
-```cmd
-python ~/.openclaw/workspace/skills/jiuma-ai-video-generation/scripts/jmai_upload.py "{'file_path': '文件绝对路径'}" --channel="openclaw-weixin"
-
+### 3. **查询任务结果**
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/task_result.py  --task_id=<任务ID>
 ```
-**注意：运行脚本时，必须把“~”换成绝对路径，切勿使用“&&”**
 
-## 输出说明
-1.任务结果
-查询状态跟获取结果，脚本的输出为JSON格式，
-data关键字段说明：
-- `task_id`: 任务唯一标识。
-- `task_status`: 任务状态，可能值为 `PENDING`（排队中）, `RUNNING`（处理中）, `SUCCEEDED`（成功）, `FAILED`（失败）, `CANCELED`（已取消）, `UNKNOWN`（未知）。
-- 当 `task_status` 为 `SUCCEEDED` 时，`output` 字段中会包含结果URL：
-    - `output.video_url`: 生成的视频地址。
-    - `output.image_url`: 生成的图片地址。
-    - `output.video_first_frame_url`: 视频首帧图片地址。
+### 4. **上传本地文件(获得url)**
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/upload_file.py --file_path=<文件路径>
+```
 
-2.上传结果
-data关键字段说明：
+### 支持的任务类型(task_type)
+|task_type(必须严格对应,枚举类型)|名称|功能描述|任务参数|提示词要求|提示词示例|
+|---------|----|--------|--------|---------|----------|
+|"wan2.6"|万象2.6模型|图像生成视频（可控制说话、动作、运镜、画面内容）|reference_urls:array,参考图片或者视频的url;prompt:string,动作描述+画面描述+运镜描述+说话内容;duration:int,视频秒数,取值2~10,最大10秒，最小2秒|同一段提示词里面包含：动作描述+画面描述+运镜描述+说话内容，提示词通过“character1、character2”这类标识引用角色。角色顺序与 reference_urls 数组一一对应，即第 1 个 URL 为 character1，第 2 个为 character2，依此类推。|character2 坐在靠窗的椅子上，手持 character3，在 character4 旁演奏一首舒缓的美国乡村民谣。character1 对character2开口说道：“听起来不错”。|
+|"wan2.6-t2v"|万象2.6文生视频|模型可自动进行分镜切换，例如从全景切换到特写，适合制作MV等场景。|任务参数|同一段提示词里面包含：动作描述+画面描述+运镜描述+说话内容|一段紧张刺激的侦探追查故事，展现电影级叙事能力。第1个镜头[0-3秒] 全景：雨夜的纽约街头，霓虹灯闪烁，一位身穿黑色风衣的侦探快步行走。 第2个镜头[3-6秒] 中景：侦探进入一栋老旧建筑，雨水打湿了他的外套，门在他身后缓缓关闭。 第3个镜头[6-9秒] 特写：侦探的眼神坚毅专注，远处传来警笛声，他微微皱眉思考。 第4个镜头[9-12秒] 中景：侦探在昏暗走廊中小心前行，手电筒照亮前方。 第5个镜头[12-15秒] 特写：侦探发现关键线索，脸上露出恍然大悟的表情。|
+|"action_imitation_user_background_onetoall(prompt)"|动作模仿(用户特别要求适配身高时使用)|自动适配角色的身高，特别是针对小朋友、卡通角色等等动作模仿|image_url:url,角色图片;video_url,url,参考动作视频;prompt,text,动作提示词|一个角色在跳舞|
+|"action_imitation_user_background(prompt)"|动作模仿(常用)|图片中的人物模仿视频中的角色的动作|image_url:url,角色图片;video_url,url,参考动作视频;prompt,text,动作提示词|一个角色在跳舞|
+|"action_imitation_video_backgound(prompt)"|人物替换/角色替换|把视频中的角色换成图片中的角色|image_url:url,角色图片;video_url,url,参考动作视频;prompt,text,动作提示词|一个角色在跳舞|
+
+注意：task_type需要严格对应，否则无法制作
+
+
+## 🎬 完整示例：制作短视频
+
+### 步骤0：检测授权状态
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/check_auth_status.py
+```
+
+### 步骤1：授权(已授权则跳过)
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/auth.py --identification_code="58fe87fb26b579b309ad782afb7a157155d338f31ad2a26419ae8550cda16747" --channel="openclaw-weixin"
+```
+
+### 步骤2：生成分镜
+```bash
+# 分镜1：开场特效（3秒）
+python ~/.openclaw/workspace/skills/jiuma/scripts/submit_generation_task.py --task_params="{'reference_urls': ['https://picsum.photos/800/450'], 'prompt': '纯黑背景，白色发光文字快速闪现，科技感光晕', 'duration': 3, 'task_type': 'wan2.6'}"
+
+# 分镜2：情感铺垫（9秒）
+python ~/.openclaw/workspace/skills/jiuma/scripts/submit_generation_task.py --task_params="{'reference_urls': ['https://picsum.photos/800/450'], 'prompt': '年轻人拿着泛黄老照片，表情落寞，怀旧色调', 'duration': 9, 'task_type': 'wan2.6'}"
+
+# 分镜3：AI处理（10秒）
+python ~/.openclaw/workspace/skills/jiuma/scripts/submit_generation_task.py --task_params="{'reference_urls': ['https://picsum.photos/800/450'], 'prompt': '照片被AI扫描处理，科技感特效，代码流动画', 'duration': 10, 'task_type': 'wan2.6'}"
+```
+
+### 步骤3：检查进度
+```bash
+python ~/.openclaw/workspace/skills/jiuma/scripts/task_result.py  --task_id=ai-69cf39df3e61e1280
+```
+
+
+
+## 📄 输出说明
+
+### 任务结果
+JSON格式输出，关键字段：
+- `task_id`: 任务唯一标识
+- `task_status`: 任务状态（`PENDING`、`RUNNING`、`SUCCEEDED`、`FAILED`、`CANCELED`）
+- `video_url`: 生成的视频地址（任务成功时）
+- `image_url`: 生成的图片地址（任务成功时）
+
+### 上传结果
 - `file_url`: 上传的文件地址
 
-## 当前状态
+## 🏆 总结
 
-功能完整，已实现任务提交、状态轮询与结果获取。
+**改进版技能优势：**
+1. ✅ **快速上手** - 新用户5分钟内开始生成视频
+2. ✅ **稳定运行** - 减少授权相关问题  
+3. ✅ **方便管理** - 随时查看任务状态
+4. ✅ **批量处理** - 支持多任务工作流
+
+---
+
+**💡 提示**: 首次使用建议运行 `python ~/.openclaw/workspace/skills/jiuma/scripts/auth.py --identification_code="<身份标识码(会话历史中无则留空)>" --channel="<消息渠道(如：openclaw-weixin、webchat等)>"` 完成授权，后续使用会非常顺畅！
+
 
 ## Installation
-
-```cmd
+``` cmd
 pip install keyring
+pip install keyrings.alt
 ```
