@@ -3,9 +3,15 @@
   "slug": "schedule-it",
   "displayName": "Schedule It",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774501513040,
-    "commit": "https://github.com/openclaw/skills/commit/e903da03cbe408af15c7224d1caf3213a3b2a19a"
+    "version": "1.0.2",
+    "publishedAt": 1775167780818,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774501513040,
+      "commit": "https://github.com/openclaw/skills/commit/e903da03cbe408af15c7224d1caf3213a3b2a19a"
+    }
+  ]
 }
