@@ -1,11 +1,17 @@
 {
   "owner": "simonstang",
   "slug": "bowlong-quant-aio",
-  "displayName": "波龙量化AIO系统",
+  "displayName": "波龙股神量化交易系统",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1774627817865,
-    "commit": "https://github.com/openclaw/skills/commit/c93384139c9dfb11d4172ed4cca881703e02404b"
+    "version": "2.1.0",
+    "publishedAt": 1774698828615,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1774627817865,
+      "commit": "https://github.com/openclaw/skills/commit/c93384139c9dfb11d4172ed4cca881703e02404b"
+    }
+  ]
 }
