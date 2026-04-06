@@ -3,32 +3,77 @@ name: Smart Model Router
 description: Optimize Your API Costs - Route tasks to cost-effective models via TokenRouter. Dynamically builds model tiers from live pricing, classifies tasks into 6 categories (supporting English & Chinese), and orchestrates multi-agent workflows with adaptive fallback.
 ---
 
-## Pre-flight Check: TokenRouter Proxy Configuration
+## Pre-flight Check: PaleBlueDot AI TokenRouter Provider Configuration
 
-**Before using this skill, check if the user has a TokenRouter provider configured in `~/.openclaw/openclaw.json`.**
+**This skill requires a PaleBlueDot AI TokenRouter provider to be configured. Before using ANY feature, the agent MUST perform the following check-and-setup flow.**
 
-Look under `models.providers` for any provider whose `baseUrl` is `https://open.palebluedot.ai/v1`.
+### Phase 1: Check Existing Provider
 
-- **If found**: The user is already connected to TokenRouter. Proceed with model listing, routing, and enabling.
-- **If NOT found**: Guide the user to set up TokenRouter:
-  1. Visit **https://www.palebluedot.ai/** to register and log in.
-  2. Navigate to **TokenRouter** section to Obtain the relevant information.
-  3. Add a custom provider in `~/.openclaw/openclaw.json` under `models.providers`:
-  4. After configuration, use `list` to browse available models and `enable` to activate them.
+1. Read the configuration file at `~/.openclaw/openclaw.json`.
+2. Look under `models.providers` for any provider whose `baseUrl` **contains** `https://open.palebluedot.ai` (partial match is sufficient).
+3. **If found** → Skip to **Phase 3** (the provider is already configured).
+4. **If NOT found** → Proceed to **Phase 2**.
+
+### Phase 2: Guide User & Write Configuration
+
+When no TokenRouter provider is detected, the agent should:
+
+1. **Inform the user** that TokenRouter is not configured and prompt them to register:
+
+   > TokenRouter provider not configured. To use this skill, you need a PaleBlueDot AI TokenRouter account.
+   > Please visit **https://www.palebluedot.ai** to register and log in, then go to the **TokenRouter** section to get your configuration (base URL and API key).
+   > Once you have the information, please provide it to me and I will complete the configuration for you.
+
+2. **Wait for the user** to provide the following information:
+   - **Base URL** (e.g., `https://open.palebluedot.ai/v1`)
+   - **API Key** (the user's real API key from PaleBlueDot AI)
+   - *(Optional)* **Provider name** (defaults to `tokenrouter` if not specified)
+
+3. **Agent writes the configuration** by running the `setup` command:
+   ```
+   setup --name <provider_name> --base-url <baseUrl> --api-key <apiKey>
+   ```
+   This writes the provider into `~/.openclaw/openclaw.json` under `models.providers` with a backup of the original config.
+
+4. **Do NOT use placeholder API keys.** The agent must only write the actual credentials provided by the user.
+
+### Phase 3: Re-verify & Auto-Sync Models
+
+After the provider is confirmed (either pre-existing or just written in Phase 2), the agent MUST:
+
+1. **Re-verify** the provider configuration by running:
+   ```
+   check
+   ```
+   This confirms the provider with `baseUrl` containing `https://open.palebluedot.ai` is properly saved in the config.
+
+2. **If verification fails**, inform the user and go back to Phase 2.
+
+3. **If verification succeeds**, automatically sync models by running:
+   ```
+   sync
+   ```
+   This will:
+   - Fetch all available models from the TokenRouter API.
+   - Add all model names to the TokenRouter provider's `models` array.
+   - Add all models to the `models.allowed` list.
+   - All models will be routed through the configured TokenRouter provider.
+   - Display the synced model list to the user.
+
+4. **Confirm completion** to the user:
+   > TokenRouter configuration complete. {N} models have been synced and added to your allow list. All models are routed through the TokenRouter provider. You can now use `list` to view pricing or start planning tasks.
+
 ---
 
-## Automatic Configuration Before Planning
+## Automatic Pre-Planning Sync
 
-**New Feature: Before executing any `plan` command, the system will automatically:**
+**Before executing any `plan` command, the system will automatically:**
 
-1. **Verify TokenRouter Provider Setup**: Checks if a provider with `baseUrl: "https://open.palebluedot.ai/v1"` exists in the `models.providers` section
-2. **Add Provider if Missing**: If not found, automatically adds the TokenRouter provider with the required configuration
-3. **Fetch Latest Models**: Automatically retrieves the current list of available models from TokenRouter API
-4. **Update Provider Model List**: Adds all fetched model names to the TokenRouter provider's `models` array
-5. **Update Allow List**: Adds all available models to the `models.allowed` list in the configuration
-6. **Update Current Model**: Sets the first available model as the current default model
+1. **Verify TokenRouter Provider**: Checks if a provider whose `baseUrl` contains `https://open.palebluedot.ai` exists in `models.providers`. **If not found, the agent enters the Phase 2 setup flow** described above.
+2. **Auto-Sync Models**: Fetches the latest model list and updates the provider's `models` array and the `models.allowed` list.
+3. **Set Default Model**: If no default model is set, picks the first available model from the synced list.
 
-This ensures that the plan command has access to the most up-to-date model information and that all models are properly configured in your OpenClaw setup before routing decisions are made.
+This ensures that the plan command always has access to the most up-to-date model information, and all models are routed through the user's TokenRouter provider.
 
 ---
 
@@ -142,11 +187,21 @@ When the user's task is complex (e.g., building an application, designing a syst
 ## Quick Start
 
 ```
+# Step 1: Check if TokenRouter is configured
+check
+
+# Step 2: If not configured, set it up (agent does this with user-provided credentials)
+setup --name tokenrouter --base-url https://open.palebluedot.ai/v1 --api-key sk-xxx...
+
+# Step 3: Verify and sync all models
+check
+sync
+
 # List all models with real-time pricing
-list or 列出TokenRouter的模型价格列表
+list / 列出TokenRouter的模型价格列表
 
 # Get routing recommendations for a task (Chinese or English)
-# NOTE: This will automatically update your TokenRouter configuration before planning
+# NOTE: This will automatically sync models before planning
 write a Python script
 帮我开发一个用户管理后端接口
 analyze and compare the data reports of three competing products
@@ -164,18 +219,36 @@ build a todo app
 
 ## Core Functions
 
-### 1. `list` - Real-Time Model Pricing
+### 1. `check` - Verify Provider Configuration
 ```
-list model's pricing / 列出模型的价格列表
+check / 检查TokenRouter配置
+```
+Verifies that a TokenRouter provider (baseUrl containing `https://open.palebluedot.ai`) exists in the config. Displays provider details if found, or guides the user to set up if not.
+
+### 2. `setup` - Write Provider Configuration
+```
+setup --name tokenrouter --base-url https://open.palebluedot.ai/v1 --api-key <key>
+```
+Writes the TokenRouter provider into `~/.openclaw/openclaw.json` (with automatic backup). The agent uses this command after the user provides their credentials from PaleBlueDot AI. **The agent must never use placeholder API keys** — only real credentials provided by the user.
+
+### 3. `sync` - Fetch & Sync All Models
+```
+sync / 同步TokenRouter模型
+```
+Fetches all available models from the TokenRouter API, adds them to the provider's `models` array and the `models.allowed` list. All models are routed through the configured TokenRouter provider. This is automatically called before `plan`.
+
+### 4. `list` - Real-Time Model Pricing
+```
+list / 列出模型的价格列表
 ```
 Fetches current TokenRouter pricing and displays all available models with input/output/cache prices.
 
-### 2. `plan` - Smart Task Routing
+### 5. `plan` - Smart Task Routing
 ```
 plan "<task description>" / 计划 "<任务描述>"
 plan "<task description>" --execute / 计划 "<任务描述>" 并执行
 ```
-Classifies the task, builds a multi-phase pipeline, assigns dynamic model tiers, and shows projected savings. Add `--execute` (or `-x`) to generate a structured JSON execution plan (`swarm_plan.json`) that the host agent uses to dispatch sub-agents via the internal `sessions_spawn` API.
+Classifies the task, builds a multi-phase pipeline, assigns dynamic model tiers, and shows projected savings. Automatically syncs models before planning. Add `--execute` (or `-x`) to generate a structured JSON execution plan (`swarm_plan.json`) that the host agent uses to dispatch sub-agents via the internal `sessions_spawn` API.
 
 **How `--execute` works:**
 
@@ -188,7 +261,7 @@ The `--execute` flag does NOT call sub-agents directly via CLI. Instead, it outp
 
 Steps must be executed sequentially — each step's artifact is context for the next.
 
-### 3. `enable` - Auto-Configuration
+### 6. `enable` - Auto-Configuration
 ```
 enable 1                    # Enable model by index
 enable openai/gpt-4o-mini   # Enable by name
