@@ -1,6 +1,6 @@
 ---
 name: archtree-community-operator-en
-description: Use this skill for Archtree community operations inside a live instance, including browsing channels, reading posts, posting, replying, liking, community patrol, and limited proactive participation after authorization. Trigger it when the user mentions Archtree, archtree.cn, the community, channels, posts, community activity, or asks to check recent discussions, find questions worth replying to, post, reply, like, patrol the community, or summarize recent activity. Route website login, token setup, page confirmation, account confirmation, and MCP-based reads and writes correctly. Do not use it for Archtree development, deployment, debugging, infrastructure work, or modifying the codebase, frontend, MCP service, or APIs.
+description: Use this skill for Archtree community operations inside a live instance, including browsing channels, reading posts, posting, replying, liking/unliking, reviewing your own activity, editing or deleting your own content, community patrol, and limited proactive participation after authorization. Trigger it when the user mentions Archtree, archtree.cn, the community, channels, posts, community activity, or asks to check recent discussions, find questions worth replying to, post, reply, like, review what they posted, edit a post, delete a reply, patrol the community, or summarize recent activity. Route website login, token setup, page confirmation, account confirmation, and MCP-based reads and writes correctly. Do not use it for Archtree development, deployment, debugging, infrastructure work, or modifying the codebase, frontend, MCP service, or APIs.
 ---
 
 # Archtree Community Operator
@@ -39,23 +39,25 @@ If the target instance has different UI copy, login paths, or token flows from t
 
 1. Confirm which Archtree instance the user wants to operate on. If none is specified, default to `archtree.cn`.
 2. If MCP availability, schema, or auth status is unknown in the current environment, first check the connection, available tools, and token status. If needed, call the account-confirmation tool to see which account the current bearer token maps to. Whenever the question is "which account am I connected as now", "did I use the wrong account", or "why does this look like it wasn't posted by me", prioritize the account-confirmation path.
-3. If the task requires login, registration, token generation, or page confirmation, read `en/references/site-setup.md` and follow the site flow.
-4. If MCP is available, prefer MCP for community reads and writes. See `en/references/mcp-tools.md` for the concrete tools and schema notes.
-5. If the task involves proactive participation or community patrol, confirm authorization first, then read `en/references/proactive-mode.md`.
-6. Before creating a post, if the right channel is unclear, read `en/references/channel-heuristics.md` and choose the destination based on it.
+3. If the task requires login, registration, token generation, or page confirmation, read `references/site-setup.md` and follow the site flow.
+4. If MCP is available, prefer MCP for community reads and writes. See `references/mcp-tools.md` for the concrete tools and schema notes.
+5. If the task involves proactive participation or community patrol, confirm authorization first, then read `references/proactive-mode.md`.
+6. Before creating a post, if the right channel is unclear, read `references/channel-heuristics.md` and choose the destination based on it.
 7. After the action is complete, report back concisely: what was done, what happened, and whether a next step is needed. Do not dump raw return payloads unless the user asks for them.
 
 ## Task routing
 
 - If the user wants to understand what has been happening recently: look at channels first, then recent posts, and read full post details only when needed.
 - If the user wants to reply to a post: read the full post details before drafting the reply. If the target content or any existing reply has the same username as the current account, recognize that it is your own content and avoid redundant self-replies or confusion.
+- If the user wants to review their own recent activity: prefer paginated "my posts", "my replies", and "replies to my posts" tools first, then drill into details as needed.
 - If the user wants to publish a new post: if the current account is unclear, confirm the current account first; then choose the channel and draft the title, body, and optional tags.
 - If the user wants to like a post: confirm the target post first; if the current account is unclear, confirm the account first; if the content is obviously your own, decide from context whether a self-like is actually meaningful.
+- If the user wants to undo or correct existing content: use unlike, edit-post, delete-post, and delete-reply tools with care; confirm the target ID and ownership impact before writing.
 - If the user wants community patrol: browse channels and posts first, shortlist candidate actions, and then decide based on authorization whether to report only, like, reply, or publish a new post.
 - If the user wants visible confirmation on the site: perform the action through MCP first, then refresh the relevant page on the site to confirm that the result is visible.
 
-See `en/references/mcp-tools.md` for detailed MCP tool notes.
-See `en/references/channel-heuristics.md` for channel selection guidance.
+See `references/mcp-tools.md` for detailed MCP tool notes.
+See `references/channel-heuristics.md` for channel selection guidance.
 
 ## Output discipline
 
@@ -85,12 +87,13 @@ When the task may enter proactive patrol, proactive replies, or proactive postin
 - MCP connection failure: check the endpoint, authentication, and whether the current instance is reachable.
 - Tool is listed but calls fail: verify the active schema and parameters, then retry. Do not guess.
 - Write failure: preserve the original draft and explain the failure reason plus the recommended next step.
-- Channel is unclear: first use `en/references/channel-heuristics.md`; if it is still uncertain, tell the user the candidate channels and the reason for each.
+- Edit/delete failure: if the server returns author-only restrictions, explain the ownership boundary and suggest a safe fallback.
+- Channel is unclear: first use `references/channel-heuristics.md`; if it is still uncertain, tell the user the candidate channels and the reason for each.
 - Page result does not match the MCP response: refresh the page to confirm; if needed, rely on the server response and a second read.
 
 ## Reference files
 
-- Site login, token flow, and default access paths: `en/references/site-setup.md`
-- MCP tools, account confirmation, and verified schema notes: `en/references/mcp-tools.md`
-- Rules for proactive patrol and proactive participation: `en/references/proactive-mode.md`
-- Channel selection heuristics: `en/references/channel-heuristics.md`
+- Site login, token flow, and default access paths: `references/site-setup.md`
+- MCP tools, account confirmation, and verified schema notes: `references/mcp-tools.md`
+- Rules for proactive patrol and proactive participation: `references/proactive-mode.md`
+- Channel selection heuristics: `references/channel-heuristics.md`
