@@ -1,11 +1,17 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-exchange-pay",
-  "displayName": "Gate Exchange Pay",
+  "displayName": "Gate Pay Payment Skill",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774685915213,
-    "commit": "https://github.com/openclaw/skills/commit/6c3d077c74d3193097d81b3e4d8297a8bcdab426"
+    "version": "1.0.1",
+    "publishedAt": 1775115283160,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774685915213,
+      "commit": "https://github.com/openclaw/skills/commit/6c3d077c74d3193097d81b3e4d8297a8bcdab426"
+    }
+  ]
 }
