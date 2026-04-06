@@ -1,11 +1,17 @@
 {
   "owner": "qutongyuan",
   "slug": "ow-buyer",
-  "displayName": "OW Buyer - 发飙全球购",
+  "displayName": "OW Buyer",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1775027022170,
-    "commit": "https://github.com/openclaw/skills/commit/9d0bdf9bb706f7b01542d94bc0a06f79b22f4ff9"
+    "version": "2.2.2",
+    "publishedAt": 1775400409118,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1775027022170,
+      "commit": "https://github.com/openclaw/skills/commit/9d0bdf9bb706f7b01542d94bc0a06f79b22f4ff9"
+    }
+  ]
 }
