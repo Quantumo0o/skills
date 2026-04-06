@@ -109,11 +109,13 @@ TickerAPI never returns raw indicator values. All data uses categorical bands:
 - **Volume context (scans only):** `spike`, `above_average`, `normal`, `below_average`
 - **Breakout type (scans only):** `resistance_break`, `resistance_test`, `support_break`, `support_test`
 - **Squeeze context (scans only):** `active_squeeze`, `squeeze_released`, `no_squeeze`
+- **Performance:** `sharp_decline`, `moderate_decline`, `slight_decline`, `flat`, `slight_gain`, `moderate_gain`, `sharp_gain` (per-ticker percentile-based)
 - **Price direction on volume:** `up`, `down`, `flat`
 - **Insider activity zone (stocks only):** `heavy_buying`, `moderate_buying`, `neutral`, `moderate_selling`, `heavy_selling`, `no_activity`
 - **Insider net direction (stocks only):** `strong_buying`, `buying`, `neutral`, `selling`, `strong_selling`
 - **Market cap tier:** `nano`, `micro`, `small`, `mid`, `large`, `mega`, `ultra_mega`
 - **Condition rarity:** `extremely_rare`, `very_rare`, `rare`, `uncommon`, `occasional`, `common`
+- **Stability (Plus/Pro only):** `fresh` (just changed), `holding` (changed recently, staying put), `established` (held for a long time), `volatile` (flipping back and forth frequently)
 
 ---
 
@@ -138,7 +140,7 @@ Find assets in oversold conditions with per-asset historical context. Strategy: 
 
 **Free tier fields:** `ticker`, `asset_class`, `rsi_zone`, `condition_rarity`, `sector`, `valuation_zone` (stocks only)
 
-**Plus adds:** `stochastic_zone`, `days_in_oversold`, `oversold_streaks_count`, `volume_context` (`spike`/`above_average`/`normal`/`below_average`), `volume_ratio_band`, `trend_context`, `nearest_support_distance`, `sector_rsi_zone`, `earnings_proximity` (stocks), `growth_zone` (stocks), `analyst_consensus` (stocks)
+**Plus adds:** `stochastic_zone`, `days_in_oversold`, `oversold_streaks_count`, `volume_context` (`spike`/`above_average`/`normal`/`below_average`), `volume_ratio_band`, `trend_context`, `nearest_support_distance`, `sector_rsi_zone`, `earnings_proximity` (stocks), `growth_zone` (stocks), `analyst_consensus` (stocks), `rsi_zone_stability`, `rsi_zone_flips_recent`
 
 **Pro adds:** `accumulation_state`, `historical_median_oversold_days`, `historical_max_oversold_days`, `sector_agreement` (boolean), `sector_oversold_count`, `sector_total_count`
 
@@ -169,7 +171,7 @@ Assets testing or breaking key levels with volume confirmation. Strategy: moment
 
 **Free tier fields:** `ticker`, `asset_class`, `breakout_type` (`resistance_break`/`support_break`/`resistance_test`/`support_test`), `condition_rarity`, `sector`
 
-**Plus adds:** `level_price`, `level_type` (`horizontal`/`trendline`/`ma_derived`), `level_touch_count`, `held_count`, `broke_count`, `volume_ratio_band`, `rsi_zone`, `trend_context`, `earnings_proximity` (stocks), `growth_zone` (stocks)
+**Plus adds:** `level_price`, `level_type` (`horizontal`/`trendline`/`ma_derived`), `level_touch_count`, `held_count`, `broke_count`, `volume_ratio_band`, `rsi_zone`, `trend_context`, `earnings_proximity` (stocks), `growth_zone` (stocks), `breakout_type_stability`, `breakout_type_flips_recent`
 
 **Pro adds:** `squeeze_context` (`active_squeeze`/`squeeze_released`/`no_squeeze`), `volume_vs_prior_breakouts` (`stronger`/`similar`/`weaker`), `sector_breakout_count`, `sector_total_count`
 
@@ -200,7 +202,7 @@ Assets at significantly abnormal volume levels. Strategy: volume anomaly detecti
 
 **Free tier fields:** `ticker`, `asset_class`, `volume_ratio_band`, `condition_rarity`, `sector`
 
-**Plus adds:** `volume_percentile`, `price_direction_on_volume` (`up`/`down`/`flat`), `consecutive_elevated_days`, `rsi_zone`, `trend_context`, `nearest_level_distance`, `nearest_level_type` (`support`/`resistance`), `earnings_proximity` (stocks), `last_earnings_surprise` (stocks)
+**Plus adds:** `volume_percentile`, `price_direction_on_volume` (`up`/`down`/`flat`), `consecutive_elevated_days`, `rsi_zone`, `trend_context`, `nearest_level_distance`, `nearest_level_type` (`support`/`resistance`), `earnings_proximity` (stocks), `last_earnings_surprise` (stocks), `volume_stability`, `volume_flips_recent`
 
 **Pro adds:** `accumulation_state`, `historical_avg_elevated_streak`, `sector_elevated_volume_count`, `sector_total_count`
 
@@ -230,7 +232,7 @@ Stocks at historically abnormal valuations. Strategy: value / mean reversion. **
 
 **Free tier fields:** `ticker`, `sector`, `valuation_zone`, `valuation_rarity`, `growth_zone`, `analyst_consensus`
 
-**Plus adds:** `revenue_growth_direction`, `eps_growth_direction`, `earnings_proximity`, `rsi_zone`, `trend_context`, `sector_valuation_zone`, `sector_agreement` (boolean)
+**Plus adds:** `revenue_growth_direction`, `eps_growth_direction`, `earnings_proximity`, `rsi_zone`, `trend_context`, `sector_valuation_zone`, `sector_agreement` (boolean), `valuation_stability`, `valuation_flips_recent`
 
 **Pro adds:** `pe_vs_historical_zone`, `pe_vs_sector_zone`, `pb_vs_historical_zone`, `last_earnings_surprise`, `analyst_consensus_direction`
 
@@ -260,7 +262,7 @@ Stocks with significant insider buying or selling (SEC Form 4 filings). **Stocks
 
 **Free tier fields:** `ticker`, `sector`, `insider_activity_zone`, `net_direction`
 
-**Plus adds:** `quarter`, `buy_count`, `sell_count`, `shares_bought`, `shares_sold`, `rsi_zone`, `trend_context`, `volume_ratio_band`, `valuation_zone`, `earnings_proximity`
+**Plus adds:** `quarter`, `buy_count`, `sell_count`, `shares_bought`, `shares_sold`, `rsi_zone`, `trend_context`, `volume_ratio_band`, `valuation_zone`, `earnings_proximity`, `insider_activity_stability`, `insider_activity_flips_recent`
 
 **Example:**
 ```
@@ -284,10 +286,13 @@ Comprehensive factual snapshot for a single asset. Every field is a verifiable f
 | `timeframe` | string | `daily` | `daily` or `weekly` |
 | `date` | string | latest | Plus: 2 years. Pro: 5 years. |
 
-**Tier access:** Free gets core technical (trend, momentum, extremes, volatility, volume). Plus adds support/resistance and basic fundamentals. Pro adds sector_context and advanced fundamentals.
+**Tier access:** Free gets core technical (performance, trend, momentum, extremes, volatility, volume). Plus adds support/resistance, basic fundamentals, and band stability metadata (`_meta` sibling objects). Pro adds sector_context and advanced fundamentals.
+
+**Band stability metadata (Plus/Pro only):** Each categorical band field (e.g. `rsi_zone`, `trend_direction`) may include a sibling `_meta` object (e.g. `rsi_zone_meta`) with: `stability` (`fresh`/`holding`/`established`/`volatile`), `periods_in_current_state` (int), `flips_recent` (int), `flips_lookback` (e.g. `"30d"`), `timeframe`. Only appears when transition history exists for the field.
 
 **Response sections:**
 
+- `performance` — Candle performance vs. asset's own history: `sharp_decline` through `sharp_gain`. Per-ticker percentile-based.
 - `trend` — `direction`, `duration_days`, `ma_alignment`, `distance_from_ma_band` (ma_20, ma_50, ma_200), `volume_confirmation` (`confirmed`/`diverging`/`neutral`)
 - `momentum` — `rsi_zone`, `stochastic_zone`, `rsi_stochastic_agreement`, `macd_state`, `direction`, `divergence_detected`, `divergence_type` (`bullish_divergence`/`bearish_divergence`/null)
 - `extremes` — `condition` (`deep_oversold` through `deep_overbought` or `normal`), `days_in_condition`, `historical_median_duration`, `historical_max_duration`, `occurrences_1yr`, `condition_percentile`, `condition_rarity`
@@ -320,7 +325,7 @@ Side-by-side factual comparison of 2–50 assets. Plus: up to 25 tickers. Pro: u
 
 **Response structure:**
 - `summaries` — Object keyed by ticker, each a full summary object. Missing tickers return `null`.
-- `comparison` — Side-by-side fields: `rsi_zones`, `trend_directions`, `volume_ratio_bands`, `extremes_conditions`, `range_positions`, `condition_percentiles`, `valuation_zones` (stocks), `growth_zones` (stocks), `analyst_consensuses` (stocks)
+- `comparison` — Side-by-side fields: `performances`, `rsi_zones`, `trend_directions`, `volume_ratio_bands`, `extremes_conditions`, `range_positions`, `condition_percentiles`, `valuation_zones` (stocks), `growth_zones` (stocks), `analyst_consensuses` (stocks)
 - `comparison.divergences` — Array of objects with `type` (e.g. `rsi_divergence`, `trend_divergence`, `valuation_divergence`) and `description` (human-readable)
 - Envelope: `tickers_requested`, `tickers_found`, `data_status`
 
@@ -351,6 +356,7 @@ Returns live snapshot data for all saved tickers.
     {
       "ticker": "AAPL",
       "asset_class": "stock",
+      "performance": "slight_gain",
       "trend_direction": "uptrend",
       "rsi_zone": "neutral_high",
       "volume_ratio_band": "normal",
@@ -456,11 +462,11 @@ Returns structured, field-level diffs for your saved watchlist tickers since the
   "run_date": "2026-03-28",
   "changes": {
     "AAPL": [
-      {"field": "rsi_zone", "from": "neutral", "to": "oversold"},
+      {"field": "rsi_zone", "from": "neutral", "to": "oversold", "stability": "fresh", "periods_in_current_state": 1, "flips_recent": 2, "flips_lookback": "30d"},
       {"field": "fundamentals.earnings_proximity", "from": "next_month", "to": "within_days"}
     ],
     "BTCUSD": [
-      {"field": "squeeze_active", "from": false, "to": true}
+      {"field": "squeeze_active", "from": false, "to": true, "stability": "volatile", "periods_in_current_state": 1, "flips_recent": 5, "flips_lookback": "30d"}
     ]
   },
   "tickers_checked": 5,
@@ -468,11 +474,57 @@ Returns structured, field-level diffs for your saved watchlist tickers since the
 }
 ```
 
-Only tickers with at least one field change are included in `changes`. If no tickers changed, `changes` is `{}`. If the watchlist is empty, `tickers_checked` is 0.
+Only tickers with at least one field change are included in `changes`. If no tickers changed, `changes` is `{}`. If the watchlist is empty, `tickers_checked` is 0. Plus/Pro users also get stability metadata on each change object: `stability`, `periods_in_current_state`, `flips_recent`, `flips_lookback`. Free tier gets `field`, `from`, and `to` only.
 
 **Example:**
 ```
 curl https://api.tickerapi.ai/v1/watchlist/changes?timeframe=daily \
+  -H "Authorization: Bearer $TICKERAPI_KEY"
+```
+
+---
+
+### GET /v1/events
+
+Search for historical band transition events for a ticker. Returns when a categorical band value changed (e.g. RSI entering deep_oversold), how long the ticker stayed in that band, and what happened afterward (aftermath performance bands). Use this to answer "when was AAPL last deep_oversold?" or "how did TSLA perform after entering overbought?".
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `ticker` | string | — | Required. Asset ticker symbol (e.g. `AAPL`) |
+| `field` | string | — | Required. Band field name (e.g. `rsi_zone`, `trend_direction`, `valuation_zone`) |
+| `timeframe` | string | `daily` | `daily` or `weekly` |
+| `band` | string | all | Filter to a specific band value (e.g. `deep_oversold`) |
+| `limit` | int | 10 | Max results (1-100) |
+| `before` | string | — | Return events before this date (YYYY-MM-DD) |
+| `after` | string | — | Return events after this date (YYYY-MM-DD) |
+| `context_ticker` | string | — | Cross-asset correlation: a second ticker to filter against (e.g. `SPY`). Requires `context_field` and `context_band`. Plus/Pro only. 2 credits |
+| `context_field` | string | — | Band field to check on the context ticker (e.g. `trend_direction`) |
+| `context_band` | string | — | Only return events where the context ticker was in this band on the event date (e.g. `downtrend`) |
+
+**Tier access:**
+- **Free:** Technical fields only (rsi_zone, trend_direction, etc.), no aftermath data, 90-day lookback
+- **Plus:** Adds basic fundamental fields (valuation_zone, growth_zone, etc.) + aftermath performance bands + cross-asset correlation, 2-year lookback
+- **Pro:** All fields including advanced fundamentals + aftermath + cross-asset correlation, 5-year lookback
+
+**Cross-asset correlation:** Filter events by what a second ticker was doing on the same date. For example, "when was AAPL oversold while SPY was in downtrend?" All three `context_*` params must be provided together. Costs 2 credits per request (1 per ticker queried). The context ticker's band is determined from its most recent transition on or before the event date.
+
+**Available fields:** All categorical band fields from [bands reference](https://tickerapi.ai/docs/bands) except scan-contextual fields (breakout_type, squeeze_context, volume_context).
+
+**Response:** `ticker`, `field`, `timeframe`, `events` array, `total_occurrences`, `query_range`. When cross-asset correlation is used, also includes `context` object with `ticker`, `field`, and `band`.
+
+Each event includes: `date`, `band`, `prev_band`, `duration_days` (or `duration_weeks`), `aftermath` object with lookahead performance bands (5d/10d/20d/50d/100d for daily, 2w/4w/8w/12w/16w for weekly). Plus/Pro also get `stability_at_entry` (stability label when the band was entered), `flips_recent_at_entry` (flip count), and `flips_lookback` (lookback window).
+
+**Examples:**
+```
+curl "https://api.tickerapi.ai/v1/events?ticker=AAPL&field=rsi_zone&band=deep_oversold&limit=5" \
+  -H "Authorization: Bearer $TICKERAPI_KEY"
+```
+
+With cross-asset correlation:
+```
+curl "https://api.tickerapi.ai/v1/events?ticker=AAPL&field=rsi_zone&band=deep_oversold&context_ticker=SPY&context_field=trend_direction&context_band=downtrend&limit=5" \
   -H "Authorization: Bearer $TICKERAPI_KEY"
 ```
 
@@ -632,10 +684,10 @@ When the daily or weekly pipeline completes, TickerAPI's engine POSTs payloads t
     "timeframe": "daily",
     "run_date": "2026-03-27",
     "changes": {
-      "AAPL": [{ "field": "rsi_zone", "from": "neutral", "to": "oversold" }],
+      "AAPL": [{ "field": "rsi_zone", "from": "neutral", "to": "oversold", "stability": "fresh", "periods_in_current_state": 1, "flips_recent": 2, "flips_lookback": "30d" }],
       "TSLA": [
-        { "field": "squeeze_active", "from": false, "to": true },
-        { "field": "fundamentals.analyst_consensus", "from": "hold", "to": "buy" }
+        { "field": "squeeze_active", "from": false, "to": true, "stability": "holding", "periods_in_current_state": 3, "flips_recent": 1, "flips_lookback": "30d" },
+        { "field": "fundamentals.analyst_consensus", "from": "hold", "to": "buy", "stability": "established", "periods_in_current_state": 45, "flips_recent": 0, "flips_lookback": "30d" }
       ]
     },
     "tickers_checked": 15,
@@ -712,19 +764,23 @@ TickerAPI has three tiers: **Free**, **Plus**, and **Pro**. Each tier unlocks mo
 
 | Feature | Free | Plus | Pro |
 |---------|------|------|-----|
+| **Band stability metadata** | None | Full (`_meta` objects, scan stability fields, event/change stability) | Full |
 | **Scan result detail** | Basic (5–7 fields) | Detailed (15+ fields) | Complete (all fields) |
 | **Asset summary depth** | Technical only | + support/resistance, basic fundamentals | + sector context, advanced fundamentals |
 | **Compare tickers** | 2 | 25 | 50 |
 | **Watchlist tickers** | 5 | 50 | 100 |
 | **Historical snapshots** | 3 months lookback | 2 years lookback | 5 years lookback |
+| **Cross-asset correlation** | No | Yes | Yes |
 | **Webhooks** | None | 1 URL, all events | 1 URL, all events |
 | **Daily request limit** | 100 | 50,000 | 100,000 |
 | **Support** | None | Email (48hr) | Email (48hr) |
 
 ### Key Plus-only features (not available on Free)
+- Band stability metadata on summaries (`_meta` sibling objects with `stability`, `periods_in_current_state`, `flips_recent`, `flips_lookback`), scans (`*_stability`, `*_flips_recent`), events (`stability_at_entry`, `flips_recent_at_entry`), and watchlist changes
 - Support/resistance levels on summaries
 - Fundamental data on summaries (valuation, growth, earnings, analyst consensus)
 - Detailed scan fields: `stochastic_zone`, `days_in_condition`, `volume_context`, `trend_context`, `level_price`, `level_touch_count`, `earnings_proximity`, etc.
+- Cross-asset event correlation (`context_ticker`, `context_field`, `context_band` on events endpoint)
 - Historical date snapshots beyond 3 months (`date` parameter — Free gets 3 months, Plus gets 2 years)
 - Hourly rate limit bucket (5,000/hr vs 50/hr on Free)
 
@@ -761,8 +817,9 @@ All data is pre-computed after market close. Daily timeframe refreshes ~5:15 PM 
 8. **Historical snapshots** — Free tier gets 3 months of lookback. Plus gets 2 years. Pro gets 5 years.
 9. **Data refreshes EOD** — don't poll for intraday changes.
 10. **Link to https://tickerapi.ai/pricing when users ask about upgrading, plans, or hit tier/rate limits.** Don't guess at prices — just send the link.
-11. **Use webhooks for event-driven workflows** — instead of polling `/watchlist` on a cron, register a webhook and get notified only when something actually changes. This is ideal for AI agents that need to react to market shifts.
-12. **Match natural language to endpoints:**
+11. **Band stability metadata (Plus/Pro)** tells you how much to trust a band value: `fresh` = just changed, `holding` = recent change that's staying, `established` = held a long time, `volatile` = flipping frequently. Use this to qualify signals (e.g. "AAPL entered oversold, but this field has been volatile with 5 flips in 30 days").
+12. **Use webhooks for event-driven workflows** — instead of polling `/watchlist` on a cron, register a webhook and get notified only when something actually changes. This is ideal for AI agents that need to react to market shifts.
+13. **Match natural language to endpoints:**
     - "What's oversold?" -> `/scan/oversold`
     - "What's breaking out?" -> `/scan/breakouts`
     - "Unusual activity?" -> `/scan/unusual-volume`
@@ -774,6 +831,10 @@ All data is pre-computed after market close. Daily timeframe refreshes ~5:15 PM 
     - "How's AAPL?" -> `/summary/AAPL`
     - "Compare NVDA vs AMD" -> `/compare?tickers=NVDA,AMD`
     - "Check my portfolio" -> GET `/watchlist` (if they have a saved watchlist)
+    - "When was AAPL last oversold?" -> `/events?ticker=AAPL&field=rsi_zone&band=oversold`
+    - "How many times has TSLA been deep_oversold?" -> `/events?ticker=TSLA&field=rsi_zone&band=deep_oversold`
+    - "What happened after NVDA entered strong_uptrend?" -> `/events?ticker=NVDA&field=trend_direction&band=strong_uptrend`
+    - "When was AAPL oversold while SPY was in downtrend?" -> `/events?ticker=AAPL&field=rsi_zone&band=oversold&context_ticker=SPY&context_field=trend_direction&context_band=downtrend`
     - "Add AAPL to my watchlist" -> POST `/watchlist` with `{"tickers": ["AAPL"]}`
     - "Remove TSLA from my watchlist" -> DELETE `/watchlist` with `{"tickers": ["TSLA"]}`
     - "What tickers are available?" -> `/assets`
@@ -885,6 +946,9 @@ Users can invoke this skill directly with `/tickerapi` followed by a command:
 - `/tickerapi watchlist remove MSFT` — remove tickers from saved watchlist (DELETE)
 - `/tickerapi watchlist changes` — field-level state changes since last run (GET)
 - `/tickerapi watchlist changes weekly` — week-over-week state changes (GET)
+- `/tickerapi events AAPL rsi_zone` — band transition history for a field
+- `/tickerapi events AAPL rsi_zone deep_oversold` — when was it last deep_oversold?
+- `/tickerapi events AAPL rsi_zone deep_oversold --context SPY trend_direction downtrend` — AAPL oversold while SPY was in downtrend
 - `/tickerapi assets` — list available tickers
 
 When a slash command is used, skip confirmation and go straight to the API call.
