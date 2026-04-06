@@ -3,9 +3,15 @@
   "slug": "saaspass",
   "displayName": "Saaspass",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774771451142,
-    "commit": "https://github.com/openclaw/skills/commit/503913aafc485609f412f234141a2fd6f461a5aa"
+    "version": "1.0.2",
+    "publishedAt": 1775169177047,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774771451142,
+      "commit": "https://github.com/openclaw/skills/commit/503913aafc485609f412f234141a2fd6f461a5aa"
+    }
+  ]
 }
