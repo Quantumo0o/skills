@@ -3,9 +3,15 @@
   "slug": "free-ride-prefix-fix",
   "displayName": "FreeRide Prefix Fix - Free AI for OpenClaw",
   "latest": {
-    "version": "1.0.0-fix.2",
-    "publishedAt": 1775036373627,
-    "commit": "https://github.com/openclaw/skills/commit/2ecf859c1bba7b42514701fa6c8ad8d41d1cc68b"
+    "version": "1.0.8",
+    "publishedAt": 1775396131324,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0-fix.2",
+      "publishedAt": 1775036373627,
+      "commit": "https://github.com/openclaw/skills/commit/2ecf859c1bba7b42514701fa6c8ad8d41d1cc68b"
+    }
+  ]
 }

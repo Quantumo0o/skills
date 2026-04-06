@@ -60,6 +60,19 @@ def get_api_key() -> Optional[str]:
         except (json.JSONDecodeError, KeyError):
             pass
 
+    # Try agent auth-profiles.json (where OpenClaw stores actual API keys)
+    for agent_dir in (Path.home() / ".openclaw" / "agents").glob("*/agent/auth-profiles.json"):
+        if agent_dir.exists():
+            try:
+                auth = json.loads(agent_dir.read_text())
+                profile = auth.get("profiles", {}).get("openrouter:default", {})
+                if profile.get("provider") == "openrouter":
+                    key = profile.get("key")
+                    if key:
+                        return key
+            except (json.JSONDecodeError, KeyError):
+                pass
+
     return None
 
 
