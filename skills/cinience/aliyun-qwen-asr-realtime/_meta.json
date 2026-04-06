@@ -1,0 +1,11 @@
+{
+  "owner": "cinience",
+  "slug": "aliyun-qwen-asr-realtime",
+  "displayName": "Aliyun Qwen Asr Realtime",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775046524339,
+    "commit": null
+  },
+  "history": []
+}
