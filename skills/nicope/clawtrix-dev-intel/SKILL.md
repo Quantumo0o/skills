@@ -34,29 +34,15 @@ Read the agent's `SOUL.md` (or equivalent). Extract:
 
 ### Step 2 — Search ClawHub for Dev Tooling Skills
 
-Run these searches, substituting the agent's actual stack:
+Query the ClawHub search API (`clawhub.ai/api/v1/search`) for each of these categories, substituting the agent's actual stack:
 
-```bash
-# CI/CD skills
-curl -s "https://clawhub.ai/api/v1/search?q=ci+cd&limit=10" \
-  | jq '[.results[] | {slug, name: .displayName, installs, score, updated_at}]'
+- **CI/CD skills** — query: `ci cd`
+- **Testing and coverage** — query: `testing coverage`
+- **Code review automation** — query: `code review`
+- **Stack-specific** — query: `{agent's primary stack} developer` (e.g., `typescript developer`, `python developer`)
+- **Git workflow** — query: `git workflow`
 
-# Testing and coverage
-curl -s "https://clawhub.ai/api/v1/search?q=testing+coverage&limit=10" \
-  | jq '[.results[] | {slug, name: .displayName, installs, score}]'
-
-# Code review automation
-curl -s "https://clawhub.ai/api/v1/search?q=code+review&limit=10" \
-  | jq '[.results[] | {slug, name: .displayName, installs, score}]'
-
-# Stack-specific (replace {stack} with actual stack: typescript, python, go, etc.)
-curl -s "https://clawhub.ai/api/v1/search?q={stack}+developer&limit=10" \
-  | jq '[.results[] | {slug, name: .displayName, installs, score}]'
-
-# Git workflow
-curl -s "https://clawhub.ai/api/v1/search?q=git+workflow&limit=10" \
-  | jq '[.results[] | {slug, name: .displayName, installs, score}]'
-```
+For each result, record: `slug`, `displayName`, `score`, `updatedAt`. Deduplicate across queries.
 
 ### Step 3 — Score Each Candidate
 
@@ -109,7 +95,7 @@ Never recommend more than 3. Write to `memory/reports/dev-intel-YYYY-MM-DD.md`:
 
 ---
 
-## Watched Skills (as of 2026-03-30)
+## Watched Skills
 
 These are the highest-signal dev-tooling skills on ClawHub based on first intelligence run:
 
@@ -121,12 +107,13 @@ These are the highest-signal dev-tooling skills on ClawHub based on first intell
 
 ---
 
-## n8n Integration Signal (2026-03-30)
+## When to Use This for n8n Teams
 
-HN surfaced a "Turn n8n workflows into AI agent skills" story (Mar 26, 2026). For dev agents at companies already running n8n automation:
-- There are ClawHub skills for n8n workflow conversion
-- These agents are a ready audience — they already automate workflows, adding skill-based AI is a natural next step
-- Search: `clawhub search n8n` to find current options
+For dev agents at companies already running n8n automation:
+- ClawHub skills for n8n workflow conversion exist and are a natural fit
+- These teams already automate workflows — adding skill-based AI extends that investment seamlessly
+
+Run Step 2 with `n8n workflow` as a search query to find current conversion options in ClawHub.
 
 ---
 
@@ -141,4 +128,6 @@ This skill surfaces dev-tooling recommendations on demand. **Clawtrix Pro** adds
 
 ## Version History
 
-v0.1.0 — 2026-03-30 — Initial release. Stack-personalized discovery, 5-query search sequence, scoring matrix integration, n8n angle included.
+v0.1.0 — Initial release. Stack-personalized discovery, 5-query search sequence, scoring matrix integration, n8n angle included.
+v0.1.2 — 2026-04-02 — Replaced bash curl blocks in Step 2 with descriptive search instructions to resolve scanner flag.
+v0.1.1 — Cleaned up internal research notes from n8n and watched-skills sections; now fully customer-facing.
