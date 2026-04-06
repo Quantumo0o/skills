@@ -56,7 +56,7 @@ THEMES = {
         "code_bg": "#FFF7FA",         # 很浅的粉背景
     },
     "metal": {
-        "bg": "#0D1117",              # 深金属黑背景
+        "bg": "#0A1F33",              
         "card": "#2A3440",
         "accent": "#8FA3B8",          # 冷钢蓝主色
         "accent_light": "#2A3440",    # 深灰金属辅助
@@ -419,7 +419,7 @@ def crop_image(image_path: str) -> None:
         # Find last non-white row (approximate)
         #bg_color = (255, 248, 240)  # warm bg
         bg_color = detect_background_color_robust(image_path)
-        print(bg_color)
+        
         for y in range(h - 1, 0, -1):
             row_pixels = [pixels[x, y] for x in range(0, w, 50)]
             # Check if any pixel differs from background significantly

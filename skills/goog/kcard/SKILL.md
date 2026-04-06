@@ -1,6 +1,6 @@
 ---
 name: kcard
-description: Knowledge Card (知识卡片) generator. Extracts key knowledge from user-provided material (text, files, URLs), determines optimal card type (concept/备忘/流程/对比), applies cognitive science principles (chunking, dual coding, elaboration), outputs structured Markdown, and renders it into a beautiful image. Use when user says "知识卡片", "kcard", "make a card", "学习卡片", "knowledge card", or wants to turn notes/articles into memorable visual cards.
+description: Knowledge Card generator. Extracts key knowledge from user-provided material (text, files, URLs), determines optimal card type (concept/备忘/流程/对比), applies cognitive science principles (chunking, dual coding, elaboration), outputs structured Markdown, and renders it into a beautiful image. Use when user says "知识卡片", "kcard", "make a card", "学习卡片", "knowledge card", or wants to turn notes/articles into memorable visual cards.
 ---
 
 # Knowledge Card Generator
@@ -11,11 +11,10 @@ description: Knowledge Card (知识卡片) generator. Extracts key knowledge fro
 
 Accept any of: pasted text, file path, URL, or image.
 
-- If URL → fetch and extract main content
+- If URL → fetch and extract main content by `web_fetch` tool
 - If file → read it
-- If image → OCR or analyze visually
 
-Extract 3–7 core knowledge points. Prioritize: definitions > mechanisms > examples > trivia.
+Extract 3–7 core knowledge points. Prioritize: definitions > mechanisms > examples > details.
 
 ### 2. Determine Card Type
 
@@ -53,7 +52,7 @@ Save to user's specified path or default: `~/.openclaw/workspace/kcards/`
 Run the rendering script to convert the Markdown into a PNG:
 
 ```bash
-python <skill-dir>/scripts/render_card.py <path-to-markdown> [--output <output.png>] [--theme <warm|cool|minimal>] [--width 800]
+python <skill-dir>/scripts/render_card.py <path-to-markdown> [--output <output.png>] [--theme <warm|cool|girly|tech>] [--width 800]
 ```
 
 Default theme: `warm`. Default output: same path with `.png` extension.
