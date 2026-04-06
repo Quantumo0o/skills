@@ -2,7 +2,15 @@
 name: gate-exchange-activitycenter
 version: "2026.3.23-1"
 updated: "2026-03-23"
-description: "Activity center for platform campaigns. Use this skill whenever the user asks about platform activities, activity recommendations, or my activities. Trigger phrases include: recommend activities, what activities, airdrop activities, trading competition, VIP activities, my activities. MCP tools: cex_activity_list_activity_types, cex_activity_list_activities, cex_activity_get_my_activity_entry."
+description: "Gate platform activity and campaign hub skill. Use when the user asks about trading competitions, airdrops, or their enrolled activities. Triggers on 'recommend activities', 'trading competition', 'my activities', 'airdrop campaign'."
+required_credentials:
+  - gate_api_key
+  - gate_api_secret
+required_env_vars:
+  - GATE_API_KEY
+  - GATE_API_SECRET
+required_permissions:
+  - Activity:Read
 ---
 
 # gate-exchange-activitycenter
@@ -39,9 +47,11 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
 - cex_activity_list_activity_types
 
 ### Authentication
-- API Key Required: Yes (see skill doc/runtime MCP deployment)
+- Credentials Source: Local Gate MCP deployment (`GATE_API_KEY`, `GATE_API_SECRET`)
+- API Key Required: Yes
 - Permissions: Activity:Read
-- Get API Key: https://www.gate.io/myaccount/profile/api-key/manage
+- Never ask the user to paste secrets into chat; rely on the configured MCP session only.
+- API Key Provisioning Reference: https://www.gate.com/myaccount/profile/api-key/manage (create or rotate keys outside the chat when the local MCP setup requires them).
 
 ### Installation Check
 - Required: Gate (main)
@@ -50,6 +60,13 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
   - Codex: `gate-mcp-codex-installer`
   - Claude: `gate-mcp-claude-installer`
   - OpenClaw: `gate-mcp-openclaw-installer`
+
+## MCP Mode
+
+**Read and strictly follow** [`references/mcp.md`](./references/mcp.md), then execute this skill's activity-center workflow.
+
+- `SKILL.md` keeps routing and recommendation logic.
+- `references/mcp.md` is the authoritative MCP execution layer for entry/list/type queries, filter handling, and degraded output behavior.
 
 ## Routing Rules
 
