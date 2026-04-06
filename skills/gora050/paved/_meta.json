@@ -3,9 +3,15 @@
   "slug": "paved",
   "displayName": "Paved",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774789482881,
-    "commit": "https://github.com/openclaw/skills/commit/b9204f8a0267414d31337b8f6ee6210ff041c677"
+    "version": "1.0.2",
+    "publishedAt": 1775169275655,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774789482881,
+      "commit": "https://github.com/openclaw/skills/commit/b9204f8a0267414d31337b8f6ee6210ff041c677"
+    }
+  ]
 }
