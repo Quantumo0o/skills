@@ -1,13 +1,18 @@
 {
   "owner": "mzlzyca",
   "slug": "html-to-html",
-  "displayName": "html-to-html",
+  "displayName": "HTML to HTML",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774605315200,
-    "commit": "https://github.com/openclaw/skills/commit/06d10b8511a11dc091565c6709095c1e57a00400"
+    "version": "0.4.0",
+    "publishedAt": 1775210313893,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774605315200,
+      "commit": "https://github.com/openclaw/skills/commit/06d10b8511a11dc091565c6709095c1e57a00400"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774602370950,
