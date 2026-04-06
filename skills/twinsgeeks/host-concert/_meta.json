@@ -3,9 +3,15 @@
   "slug": "host-concert",
   "displayName": "Host Concerts — Create AI Music Experiences with Visual DJ & Setlists",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1774851827396,
-    "commit": "https://github.com/openclaw/skills/commit/3ae41d3560697e18a6461c68b1d9267c6cb0a982"
+    "version": "2.1.0",
+    "publishedAt": 1775147109662,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1774851827396,
+      "commit": "https://github.com/openclaw/skills/commit/3ae41d3560697e18a6461c68b1d9267c6cb0a982"
+    }
+  ]
 }
