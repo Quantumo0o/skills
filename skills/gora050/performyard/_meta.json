@@ -3,9 +3,15 @@
   "slug": "performyard",
   "displayName": "Performyard",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775048711103,
-    "commit": "https://github.com/openclaw/skills/commit/f2a89a6c021cc35fa3720885eabe402726dc81af"
+    "version": "1.0.3",
+    "publishedAt": 1775170589246,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775048711103,
+      "commit": "https://github.com/openclaw/skills/commit/f2a89a6c021cc35fa3720885eabe402726dc81af"
+    }
+  ]
 }
