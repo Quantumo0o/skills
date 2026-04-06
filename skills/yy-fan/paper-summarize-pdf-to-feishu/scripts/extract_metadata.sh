@@ -1,92 +1,98 @@
 #!/bin/bash
-# extract_metadata.sh - 提取 PDF 元数据用于去重
-# 用法：./extract_metadata.sh <pdf_path> [output_json_path]
+# extract_metadata.sh - 提取 PDF 论文元数据
+# 用法：./extract_metadata.sh <input.pdf> <output.json> <paper_dir>
 
 set -e
 
-PDF_PATH="$1"
-OUTPUT="${2:-/dev/stdout}"
+INPUT_PDF="$1"
+OUTPUT_JSON="$2"
+PAPER_DIR="$3"
 
-if [ ! -f "$PDF_PATH" ]; then
-    echo "Error: PDF file not found: $PDF_PATH" >&2
+# 日志配置
+LOG_FILE="$PAPER_DIR/logs/scripts/extract_metadata.log"
+LOG_PREFIX="[extract_metadata]"
+
+mkdir -p "$(dirname "$LOG_FILE")"
+
+log() {
+    echo "[$(date +%H:%M:%S)] $LOG_PREFIX $1" | tee -a "$LOG_FILE"
+}
+
+if [[ -z "$INPUT_PDF" || -z "$OUTPUT_JSON" ]]; then
+    echo "❌ 用法：$0 <input.pdf> <output.json> <paper_dir>"
     exit 1
 fi
 
-# 检查依赖
-for cmd in pdfinfo pdftotext jq; do
-    if ! command -v $cmd &> /dev/null; then
-        echo "Error: $cmd not found. Please install poppler-utils and jq." >&2
-        exit 1
-    fi
-done
+if [[ ! -f "$INPUT_PDF" ]]; then
+    log "❌ 文件不存在：$INPUT_PDF"
+    exit 1
+fi
 
-# 临时文件
-TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+log "🚀 开始执行 extract_metadata.sh"
+log "📄 输入 PDF: $INPUT_PDF"
+log "📝 输出 JSON: $OUTPUT_JSON"
 
-TXT_FILE="$TEMP_DIR/metadata.txt"
+log "📄 正在提取 PDF 元数据..."
 
-# 1. 提取 PDF 内置元数据
-PDFINFO=$(pdfinfo "$PDF_PATH" 2>/dev/null || echo "")
+# 使用 pdfinfo 提取元数据
+PDFINFO=$(pdfinfo "$INPUT_PDF" 2>/dev/null)
 
-# 从 pdfinfo 提取字段
+# 提取各个字段
 TITLE=$(echo "$PDFINFO" | grep -i "^Title:" | sed 's/^Title:[[:space:]]*//' | head -1)
 AUTHOR=$(echo "$PDFINFO" | grep -i "^Author:" | sed 's/^Author:[[:space:]]*//' | head -1)
-CREATION_DATE=$(echo "$PDFINFO" | grep -i "^CreationDate:" | sed 's/^CreationDate:[[:space:]]*//' | head -1)
+SUBJECT=$(echo "$PDFINFO" | grep -i "^Subject:" | sed 's/^Subject:[[:space:]]*//' | head -1)
+KEYWORDS=$(echo "$PDFINFO" | grep -i "^Keywords:" | sed 's/^Keywords:[[:space:]]*//' | head -1)
+PRODUCER=$(echo "$PDFINFO" | grep -i "^Producer:" | sed 's/^Producer:[[:space:]]*//' | head -1)
+CREATEDATE=$(echo "$PDFINFO" | grep -i "^CreationDate:" | sed 's/^CreationDate:[[:space:]]*//' | head -1)
 PAGES=$(echo "$PDFINFO" | grep -i "^Pages:" | sed 's/^Pages:[[:space:]]*//' | head -1)
 
-# 2. 从 PDF 内容中提取 DOI（前 10 页足够）
-pdftotext -l 10 "$PDF_PATH" "$TXT_FILE" 2>/dev/null || true
-# DOI 格式：10.xxxx/xxxxx，可能包含连字符、点号等
-DOI=$(grep -oE "10\.[0-9]{4,}/[a-zA-Z0-9._-]+" "$TXT_FILE" 2>/dev/null | head -1 || echo "")
+# 尝试从文件名或内容提取 DOI
+DOI=""
+# 方法 1：从文件名提取（常见格式：10.xxxx_xxxxxx.pdf）
+FILENAME=$(basename "$INPUT_PDF")
+DOI=$(echo "$FILENAME" | grep -oE '10\.[0-9]{4,}/[^_[:space:]]+' | head -1 || echo "")
 
-# 3. 如果元数据中没有标题，从内容中提取（第一行非空文本）
-if [ -z "$TITLE" ]; then
-    TITLE=$(grep -v '^$' "$TXT_FILE" | head -1 | cut -c1-200)
+# 方法 2：从 PDF 内容提取（如果文件名没有 DOI）
+if [[ -z "$DOI" ]]; then
+    DOI=$(pdftotext "$INPUT_PDF" - 2>/dev/null | grep -oE '10\.[0-9]{4,}/[^[:space:]]+' | head -1 || echo "")
 fi
 
-# 4. 清理标题（去除换行和多余空格）
-TITLE=$(echo "$TITLE" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-# 5. 提取第一作者（如果有多个作者）
-FIRST_AUTHOR=""
-if [ -n "$AUTHOR" ]; then
-    FIRST_AUTHOR=$(echo "$AUTHOR" | sed 's/;.*$//' | sed 's/,.*$//' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-fi
-
-# 6. 提取发表年份
-YEAR=""
-if [ -n "$CREATION_DATE" ]; then
-    YEAR=$(echo "$CREATION_DATE" | grep -oE '[0-9]{4}' | head -1)
-fi
-
-# 7. 生成 paper_id（唯一标识符）
-if [ -n "$DOI" ]; then
-    # 有 DOI：用 DOI 作为 ID（替换 / 为 - 以适配文件系统）
-    PAPER_ID=$(echo "$DOI" | sed 's/\//_/g')
-    ID_TYPE="doi"
+# 生成 paper_id（使用 DOI 或文件名哈希）
+if [[ -n "$DOI" ]]; then
+    # DOI 转 paper_id：10.1038/s41591-025-04176-7 → 10_1038_s41591-025-04176-7
+    # 替换 / 和 . 为 _
+    PAPER_ID=$(echo "$DOI" | sed 's/\//_/g' | sed 's/\./_/g')
 else
-    # 无 DOI：用标题哈希 + 第一作者 + 年份
-    FINGERPRINT="${TITLE}|${FIRST_AUTHOR}|${YEAR}"
-    HASH=$(echo -n "$FINGERPRINT" | md5sum | cut -c1-12)
-    PAPER_ID="hash_${HASH}"
-    ID_TYPE="fingerprint"
+    # 使用文件名哈希
+    PAPER_ID="paper_$(md5sum "$INPUT_PDF" | cut -c1-12)"
 fi
 
-# 8. 输出 JSON
-cat > "$OUTPUT" << EOF
+# 计算文件哈希
+PDF_HASH=$(md5sum "$INPUT_PDF" | cut -d' ' -f1)
+
+# 生成 JSON 输出
+cat > "$OUTPUT_JSON" << EOF
 {
   "paper_id": "$PAPER_ID",
-  "id_type": "$ID_TYPE",
   "doi": "$DOI",
   "title": "$TITLE",
-  "author": "$AUTHOR",
-  "first_author": "$FIRST_AUTHOR",
-  "year": "$YEAR",
-  "pages": "$PAGES",
-  "pdf_path": "$PDF_PATH",
-  "pdf_hash": "$(md5sum "$PDF_PATH" | cut -d' ' -f1)"
+  "authors": "$AUTHOR",
+  "subject": "$SUBJECT",
+  "keywords": "$KEYWORDS",
+  "producer": "$PRODUCER",
+  "created_date": "$CREATEDATE",
+  "pages": $PAGES,
+  "pdf_hash": "$PDF_HASH",
+  "source_file": "$INPUT_PDF",
+  "extracted_at": "$(date -Iseconds)"
 }
 EOF
 
-echo "Metadata extracted: $PAPER_ID ($ID_TYPE)" >&2
+log "✅ 元数据提取完成"
+log "📝 Paper ID: $PAPER_ID"
+if [[ -n "$DOI" ]]; then
+    log "🔗 DOI: $DOI"
+fi
+log "📄 页数：$PAGES"
+log "💾 输出：$OUTPUT_JSON"
+log "🎉 脚本执行完成"

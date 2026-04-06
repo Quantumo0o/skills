@@ -1,109 +1,155 @@
 #!/bin/bash
-# check_duplicate.sh - 检查 PDF 是否已处理过，处理去重逻辑
-# 用法：./check_duplicate.sh <metadata_json> [papers_base_dir]
-# 输出：JSON 格式，包含处理建议
+# check_duplicate.sh - 检查论文是否已处理（去重）
+# 用法：./check_duplicate.sh <metadata.json> <papers_dir>
+# 返回：
+#   0 - 新论文（需要处理）
+#   1 - 完全重复（停止处理）
+#   2 - 补充材料（需要合并）
 
 set -e
 
 METADATA_JSON="$1"
-# 使用 OPENCLAW_WORKSPACE 环境变量，或回退到默认路径
-PAPERS_DIR="${2:-${OPENCLAW_WORKSPACE:-$HOME/.openclaw/workspace}/papers}"
+PAPERS_DIR="$2"
 
-if [ ! -f "$METADATA_JSON" ]; then
-    echo "Error: Metadata JSON not found: $METADATA_JSON" >&2
+if [[ -z "$METADATA_JSON" || -z "$PAPERS_DIR" ]]; then
+    echo "❌ 用法：$0 <metadata.json> <papers_dir>"
     exit 1
 fi
 
-# 解析元数据
+if [[ ! -f "$METADATA_JSON" ]]; then
+    echo "❌ 元数据文件不存在：$METADATA_JSON"
+    exit 1
+fi
+
+# 提取元数据
 PAPER_ID=$(jq -r '.paper_id' "$METADATA_JSON")
-ID_TYPE=$(jq -r '.id_type' "$METADATA_JSON")
-DOI=$(jq -r '.doi' "$METADATA_JSON")
-TITLE=$(jq -r '.title' "$METADATA_JSON")
+DOI=$(jq -r '.doi // empty' "$METADATA_JSON")
 PDF_HASH=$(jq -r '.pdf_hash' "$METADATA_JSON")
-PDF_PATH=$(jq -r '.pdf_path' "$METADATA_JSON")
+TITLE=$(jq -r '.title // empty' "$METADATA_JSON")
 
-# 创建 papers 目录
-mkdir -p "$PAPERS_DIR"
-
-# 索引文件：记录所有已处理的论文
-INDEX_FILE="$PAPERS_DIR/.index.json"
-if [ ! -f "$INDEX_FILE" ]; then
-    echo '{"papers":{}}' > "$INDEX_FILE"
+echo "🔍 正在检查去重..."
+echo "📝 Paper ID: $PAPER_ID"
+if [[ -n "$DOI" ]]; then
+    echo "🔗 DOI: $DOI"
 fi
+echo "📄 PDF Hash: $PDF_HASH"
 
-# 检查是否存在
-PAPER_DIR="$PAPERS_DIR/$PAPER_ID"
-EXISTS="false"
-if [ -d "$PAPER_DIR" ]; then
-    EXISTS="true"
-fi
-
-# 判断文件类型（主文章 or 补充材料）
-FILE_TYPE="main"
-FILE_NAME=$(basename "$PDF_PATH")
-
-# 补充材料判断规则：
-# 1. 文件名包含 supplement/suppl/si/supporting/appendix/moesm/esm
-# 2. DOI 包含 .supp 或类似后缀
-if echo "$FILE_NAME" | grep -qiE "supplement|suppl|_si_|supporting|appendix|moesm|_esm|supplementary"; then
-    FILE_TYPE="supplement"
-elif echo "$DOI" | grep -qiE "\.supp|supplementary"; then
-    FILE_TYPE="supplement"
-fi
-
-# 如果已存在，检查是否是同一文件（PDF 哈希相同）
-ACTION="process_new"
-MESSAGE="新论文，开始处理"
-SUPPLEMENT_COUNT=0
-
-if [ "$EXISTS" = "true" ]; then
-    # 读取已有的元数据
-    EXISTING_META="$PAPER_DIR/metadata.json"
-    
-    if [ -f "$EXISTING_META" ]; then
-        EXISTING_PDF_HASH=$(jq -r '.pdf_hash' "$EXISTING_META" 2>/dev/null || echo "")
+# 检查 0：全局搜索 PDF 哈希（最可靠的查重方式）
+echo "🔎 全局搜索 PDF 哈希..."
+for dir in "$PAPERS_DIR"/*/; do
+    if [[ -d "$dir" ]]; then
+        dir_name=$(basename "$dir")
+        # 跳过临时目录
+        if [[ "$dir_name" == "temp"* || "$dir_name" == "test"* ]]; then
+            continue
+        fi
         
-        # 完全相同的 PDF
-        if [ "$PDF_HASH" = "$EXISTING_PDF_HASH" ]; then
-            ACTION="skip_duplicate"
-            MESSAGE="完全相同的 PDF 已处理过，跳过"
-        else
-            # DOI 相同但内容不同 → 可能是新版本
-            if [ "$ID_TYPE" = "doi" ] && [ -n "$DOI" ]; then
-                ACTION="update_version"
-                MESSAGE="检测到同 DOI 的不同版本，建议更新"
-            else
-                # 指纹相同但 PDF 不同 → 可能是重新生成的
-                ACTION="update_version"
-                MESSAGE="检测到同论文的不同版本，建议更新"
+        # 检查该目录的 metadata.json
+        if [[ -f "$dir/metadata.json" ]]; then
+            existing_hash=$(jq -r '.pdf_hash // empty' "$dir/metadata.json" 2>/dev/null)
+            if [[ -n "$existing_hash" && "$existing_hash" == "$PDF_HASH" ]]; then
+                echo "❌ 发现完全重复的论文（PDF 哈希匹配）："
+                echo "   目录：$dir"
+                if [[ -f "$dir/feishu_doc_token.txt" ]]; then
+                    existing_token=$(cat "$dir/feishu_doc_token.txt")
+                    echo "   飞书文档：https://feishu.cn/docx/$existing_token"
+                fi
+                echo "RESULT=duplicate"
+                exit 1
             fi
         fi
     fi
+done
+
+# 检查 1：检查 paper_id 目录是否存在
+PAPER_DIR="$PAPERS_DIR/$PAPER_ID"
+if [[ -d "$PAPER_DIR" ]]; then
+    echo "⚠️  发现已存在的论文目录：$PAPER_DIR"
     
-    # 如果是补充材料，计数
-    if [ "$FILE_TYPE" = "supplement" ]; then
-        SUPPLEMENT_DIR="$PAPER_DIR/supplements"
-        if [ -d "$SUPPLEMENT_DIR" ]; then
-            SUPPLEMENT_COUNT=$(ls -1 "$SUPPLEMENT_DIR"/*.pdf 2>/dev/null | wc -l || echo 0)
+    # 检查是否已有飞书文档
+    if [[ -f "$PAPER_DIR/feishu_doc_token.txt" ]]; then
+        EXISTING_TOKEN=$(cat "$PAPER_DIR/feishu_doc_token.txt")
+        echo "📋 已存在飞书文档 token: $EXISTING_TOKEN"
+        
+        # 检查 PDF 哈希是否相同（尝试多个可能的文件名）
+        FOUND_PDF=false
+        for pdf_name in "paper.pdf" "paper_official.pdf"; do
+            if [[ -f "$PAPER_DIR/$pdf_name" ]]; then
+                EXISTING_HASH=$(md5sum "$PAPER_DIR/$pdf_name" | cut -d' ' -f1)
+                echo "📄 找到 PDF 文件：$pdf_name (哈希：$EXISTING_HASH)"
+                FOUND_PDF=true
+                
+                if [[ "$EXISTING_HASH" == "$PDF_HASH" ]]; then
+                    echo "❌ 完全重复：PDF 文件哈希相同"
+                    echo "RESULT=duplicate"
+                    exit 1
+                else
+                    echo "⚠️  相同论文的不同版本（PDF 哈希不同）"
+                    echo "RESULT=new_version"
+                    exit 0
+                fi
+            fi
+        done
+        
+        # 如果没找到 PDF 文件，但有 token，说明之前处理过
+        if [[ "$FOUND_PDF" == "false" ]]; then
+            echo "⚠️  未找到 PDF 文件，但已存在飞书文档"
+            echo "💡 建议：手动检查是否重复"
+            echo "RESULT=possible_duplicate"
+            exit 0
         fi
-        ACTION="add_supplement"
-        MESSAGE="补充材料，将合并到主文档（已有 $SUPPLEMENT_COUNT 个补充文件）"
     fi
 fi
 
-# 输出结果 JSON
-cat << EOF
-{
-  "paper_id": "$PAPER_ID",
-  "paper_dir": "$PAPER_DIR",
-  "exists": $EXISTS,
-  "file_type": "$FILE_TYPE",
-  "action": "$ACTION",
-  "message": "$MESSAGE",
-  "supplement_count": $SUPPLEMENT_COUNT,
-  "existing_pdf_hash": "${EXISTING_PDF_HASH:-null}",
-  "current_pdf_hash": "$PDF_HASH"
-}
-EOF
+# 检查 2：通过 DOI 检查（如果没有 paper_id 目录）
+if [[ -n "$DOI" ]]; then
+    # DOI 转目录名
+    DOI_DIR=$(echo "$DOI" | sed 's/\//_/g')
+    DOI_PAPER_DIR="$PAPERS_DIR/$DOI_DIR"
+    
+    if [[ -d "$DOI_PAPER_DIR" && "$DOI_PAPER_DIR" != "$PAPER_DIR" ]]; then
+        echo "⚠️  发现相同 DOI 的论文目录：$DOI_PAPER_DIR"
+        
+        if [[ -f "$DOI_PAPER_DIR/feishu_doc_token.txt" ]]; then
+            EXISTING_TOKEN=$(cat "$DOI_PAPER_DIR/feishu_doc_token.txt")
+            echo "📋 已存在飞书文档 token: $EXISTING_TOKEN"
+            echo "❌ 完全重复：DOI 相同"
+            echo "RESULT=duplicate"
+            exit 1
+        fi
+    fi
+fi
 
-echo "Duplicate check: $ACTION - $MESSAGE" >&2
+# 检查 3：判断是否为补充材料
+# 补充材料特征：文件名包含 "supplement", "suppl", "additional", "extended" 等
+INPUT_FILE=$(jq -r '.source_file' "$METADATA_JSON")
+FILENAME=$(basename "$INPUT_FILE")
+
+if echo "$FILENAME" | grep -qiE '(supplement|suppl|additional|extended|appendix)'; then
+    echo "📎 检测到补充材料特征"
+    
+    # 尝试查找主论文目录（通过 DOI 前缀匹配）
+    if [[ -n "$DOI" ]]; then
+        # 提取 DOI 前缀（如 10.1038/s41591-025-04176-7 → 10_1038_s41591-025-04176）
+        DOI_PREFIX=$(echo "$DOI" | sed 's/-[^-]*$//' | sed 's/\//_/g')
+        
+        # 在 papers 目录中查找匹配的主论文
+        for dir in "$PAPERS_DIR"/*/; do
+            dir_name=$(basename "$dir")
+            if [[ "$dir_name" == "$DOI_PREFIX"* ]]; then
+                echo "📄 找到主论文目录：$dir"
+                echo "RESULT=supplement"
+                echo "MAIN_PAPER_DIR=$dir"
+                exit 2
+            fi
+        done
+    fi
+    
+    echo "⚠️  补充材料但未找到主论文，作为新论文处理"
+fi
+
+# 通过：新论文
+echo "✅ 新论文，可以处理"
+echo "RESULT=new"
+echo "PAPER_DIR=$PAPER_DIR"
+exit 0
