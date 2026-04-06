@@ -3,9 +3,15 @@
   "slug": "hotjar",
   "displayName": "Hotjar",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774466574716,
-    "commit": "https://github.com/openclaw/skills/commit/69afa23aa87be8aedf6db33bea0d5387eeb880f8"
+    "version": "1.0.2",
+    "publishedAt": 1775167492929,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774466574716,
+      "commit": "https://github.com/openclaw/skills/commit/69afa23aa87be8aedf6db33bea0d5387eeb880f8"
+    }
+  ]
 }
