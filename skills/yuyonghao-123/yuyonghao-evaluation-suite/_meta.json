@@ -3,11 +3,16 @@
   "slug": "yuyonghao-evaluation-suite",
   "displayName": "Evaluation Suite",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774925746431,
-    "commit": "https://github.com/openclaw/skills/commit/2886d544707bbf00766c735739572ea359f6c1ec"
+    "version": "0.1.2",
+    "publishedAt": 1775022724709,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774925746431,
+      "commit": "https://github.com/openclaw/skills/commit/2886d544707bbf00766c735739572ea359f6c1ec"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1774584236555,
