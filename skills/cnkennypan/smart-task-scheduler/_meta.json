@@ -3,9 +3,15 @@
   "slug": "smart-task-scheduler",
   "displayName": "Smart Task Scheduler",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775040146843,
-    "commit": "https://github.com/openclaw/skills/commit/0ed7b6ee8be76667cc59531a3fec9e46839b616e"
+    "version": "1.0.6",
+    "publishedAt": 1775096054198,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775040146843,
+      "commit": "https://github.com/openclaw/skills/commit/0ed7b6ee8be76667cc59531a3fec9e46839b616e"
+    }
+  ]
 }
