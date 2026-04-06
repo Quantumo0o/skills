@@ -1,77 +1,39 @@
 # Evolution Audit
 
-Playbook para migraciones, versionado y auditoria de artefactos.
+Modelar migraciones, versionado y auditoria de artefactos con foco en preservacion estructural.
 
-## Migracion como adjuncion
+## Migration as Adjunction
 
-Modela el cambio entre esquemas con uno de estos operadores:
+Elegir un operador dominante:
 
-- `Delta`: reestructurar sin cambiar esencia
-- `Sigma`: fusionar, generalizar o agregar
-- `Pi`: restringir o especializar
+- `Delta` para reestructurar o renombrar preservando forma;
+- `Sigma` para fusionar, generalizar o agregar aceptando posible perdida;
+- `Pi` para restringir o especializar aceptando descarte.
 
-Para cada migracion reporta:
-- morfismo estructural
-- operador elegido
-- propiedades preservadas
-- propiedades perdidas
+Reportar siempre:
 
-## Categoria de versiones
+- morfismo estructural;
+- operador elegido;
+- propiedades preservadas;
+- propiedades perdidas;
+- riesgo de informacion.
 
-Piensa las versiones como objetos y las migraciones como morfismos.
+## Audit Modes
 
-Auditar una cadena implica verificar:
-- composicion valida
-- preservacion de restricciones criticas
-- deuda acumulada por perdida de estructura
+- `STATIC` para schemas y DDLs;
+- `TEMPORAL` para cadenas de version y migraciones;
+- `BEHAVIORAL` para APIs y componentes observables;
+- `KB_GLOBAL` para corpus, URNs y referencias;
+- `DAL_INTEGRATED` para storage, API, ORM, repositorios y pipelines.
 
-## Modos de auditoria
+## Severity Scale
 
-### STATIC
+- `CRITICAL` invalida el artefacto;
+- `HIGH` rompe integridad antes de produccion;
+- `MEDIUM` es suboptimo pero recuperable;
+- `LOW` es mejora incremental.
 
-Verifica:
-- identidades
-- composicion
-- path equations
-- referencias y foreign keys
-
-### TEMPORAL
-
-Verifica:
-- cadena de migraciones
-- constraint preservation
-- debt estructural
-
-### BEHAVIORAL
-
-Verifica:
-- conformancia de interfaz
-- bisimulacion
-- trazabilidad de acciones
-
-### KB_GLOBAL
-
-Verifica:
-- referencias no colgantes
-- URNs unicas
-- grafo de dependencias sano
-
-### DAL_INTEGRATED
-
-Verifica:
-- alineacion storage-model
-- preservacion API-functor
-- drift ORM
-- conmutatividad de pipelines
-
-## Severidades
-
-- `CRITICAL`: invalida el artefacto
-- `HIGH`: rompe integridad antes de produccion
-- `MEDIUM`: suboptimo pero recuperable
-- `LOW`: mejora incremental
-
-## Patrones de correccion
+## Repair Patterns
 
 - `BROKEN-DIAGRAM`
 - `ORPHAN-OBJECT`
@@ -80,7 +42,17 @@ Verifica:
 - `NON-FUNCTORIAL`
 - `REDUNDANT-BISIMILAR`
 
-## Firma sugerida
+## Deepen Only If Needed
+
+Ir a `kb-map.md` y cargar estas fuentes de solo lectura cuando haga falta:
+
+- `schema-evolution.md` para evolucion temporal de esquemas;
+- `audit-patterns.md` para catalogo de fallas y sintomas;
+- `mbse-consistency.md` para consistencia entre modelos;
+- `formal-framework-multimodel-data-transformations.md` si la migracion cruza modelos;
+- `kb-category.md` cuando la auditoria recaiga sobre el corpus o sus URNs.
+
+## Signature
 
 ```text
 Modo: STATIC | TEMPORAL | BEHAVIORAL | KB_GLOBAL | DAL_INTEGRATED

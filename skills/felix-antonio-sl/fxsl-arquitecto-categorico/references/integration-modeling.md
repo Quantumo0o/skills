@@ -1,61 +1,61 @@
 # Integration Modeling
 
-Playbook para integracion de fuentes heterogeneas.
+Integrar fuentes heterogeneas sin perder trazabilidad estructural.
 
-## Objetivo
-
-Unificar esquemas distintos sin perder trazabilidad estructural.
-
-## Patrones principales
+## Patrones Principales
 
 ### Grothendieck `int F`
 
-Usar cuando hay:
-- federacion
-- multi-tenant
-- versiones temporales
-- zonas de data lake
+Usar cuando el indice importa:
 
-Construccion:
-- indice `I`: fuentes, tenants, versiones o zonas
-- `F(i)`: schema de cada indice
-- `F(f)`: traduccion entre esquemas
-- `int F`: espacio global de objetos y morfismos
+- federacion por sistema;
+- multi-tenant;
+- versiones temporales;
+- zonas de data lake.
+
+Definir:
+
+- `I` como categoria indice;
+- `F(i)` como schema por indice;
+- `F(f)` como traduccion entre esquemas;
+- `int F` como espacio global de objetos y morfismos.
 
 ### Multimodel
 
-Usar cuando conviven:
-- SQL
-- documentos
-- grafos
-- key-value
+Usar cuando conviven SQL, documentos, grafos o key-value.
 
-Normaliza cada fuente a un lenguaje comun:
-- objetos: tablas, colecciones, nodos, keyspaces
-- morfismos: foreign keys, refs, edges, paths
+Normalizar cada fuente a un lenguaje comun:
 
-## Query as functor
+- objetos: tablas, colecciones, nodos, keyspaces;
+- morfismos: FKs, refs, edges, paths.
 
-Trata la consulta como un funtor desde el schema global al tipo de salida:
-- relacional
-- documental
-- grafo
-- flat
+### Query as Functor
 
-## Proveniencia
+Tratar la consulta como un funtor desde el schema global al output deseado:
 
-Preservar siempre:
-- fuente de origen
-- transformacion aplicada
-- equivalencia semantica usada
+- relacional;
+- documental;
+- grafo;
+- flat.
 
-## Preguntas de colapso utiles
+## Integration Procedure
 
-- federacion o esquema global consolidado
-- salida target relacional, documental, grafo o flat
-- integridad estricta o compatibilidad flexible
+1. Inventariar fuentes y decidir si el problema es indice, heterogeneidad o ambos.
+2. Elegir entre federacion y esquema global consolidado.
+3. Declarar equivalencias semanticas y wrappers por fuente.
+4. Preservar proveniencia: origen, transformacion y criterio de equivalencia.
 
-## Firma sugerida
+## Deepen Only If Needed
+
+Ir a `kb-map.md` y cargar estas fuentes de solo lectura cuando haga falta:
+
+- `cql-data-integration.md` para integracion functorial y CQL;
+- `data-lakes-ct.md` y `formal-framework-data-lakes-ct.md` para lakes y zonas;
+- `unified-multimodel.md` para unificacion multimodelo;
+- `unified-representation-transformation-multimodel.md` para transformaciones entre modelos;
+- `algebraic-model-management.md` o `multicategory-multimodel-query-processing.md` cuando la consulta o el cambio de modelo sea el problema central.
+
+## Signature
 
 ```text
 Fuentes: [...]

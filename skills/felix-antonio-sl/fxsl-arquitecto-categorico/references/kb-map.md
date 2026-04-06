@@ -1,62 +1,75 @@
-# KB Map
+# FXSL Corpus Map
 
-Mapa de lectura del conocimiento ya condensado dentro del bundle. Carga solo el bloque relevante al problema.
+Usar este mapa para cargar el corpus teorico de solo lectura bajo:
 
-## 1. Fundamentos de estructuras
+`{baseDir}/references/kb`
 
-Usar para modelado estatico, restricciones y representacion de schemas.
+No editar esos archivos desde esta skill. Tratarlos como autoridad de dominio del workspace.
 
-- `static-modeling.md`
-  - schema como categoria
-  - instancia como funtor a `Set`
-  - restricciones como path equations
-  - accion como primary key cuando la identidad es transicional
+## Static Modeling
 
-## 2. Comportamiento y sistemas
+- `{baseDir}/references/kb/categorical-data-structures.md`
+  Usar para schema como categoria, instancia como funtor y C-Sets.
+- `{baseDir}/references/kb/constraint-logic.md`
+  Usar para path equations, constraints y preservacion por migraciones.
+- `{baseDir}/references/kb/action-primary-key.md`
+  Usar cuando la identidad real sea la accion o el episodio.
+- `{baseDir}/references/kb/seven-sketches.md`
+  Usar para el modelo clasico de bases como funtores y Delta/Sigma/Pi.
 
-Usar para APIs stateful, eventos, observacion y sustituibilidad.
+## Dynamic Modeling
 
-- `dynamic-modeling.md`
-  - coalgebras
-  - bisimulacion
-  - equivalencia comportamental
-  - lenses, monadas y DAL
+- `{baseDir}/references/kb/coalgebras.md`
+  Usar para comportamiento observable, final coalgebra y bisimulacion.
+- `{baseDir}/references/kb/categorical-systems-theory.md`
+  Usar para lenses, sistemas dinamicos y wiring.
+- `{baseDir}/references/kb/cognitive-toolkit.md`
+  Usar cuando el problema mezcle agentes, episodios o razonamiento operacional.
+- `{baseDir}/references/kb/data-access-layers.md`
+  Usar cuando el foco sea storage/API/repository/ORM/pipeline.
 
-## 3. Integracion multimodelo
+## Integration and Lakes
 
-Usar para fusion de fuentes, data lakes, traduccion entre modelos y query functorial.
+- `{baseDir}/references/kb/cql-data-integration.md`
+  Usar para integracion algebraica y CQL.
+- `{baseDir}/references/kb/data-lakes-ct.md`
+  Usar para enfoque categorico de lakes.
+- `{baseDir}/references/kb/formal-framework-data-lakes-ct.md`
+  Usar para formalizacion adicional de zonas y flujos.
+- `{baseDir}/references/kb/unified-multimodel.md`
+  Usar para unificacion de modelos heterogeneos.
+- `{baseDir}/references/kb/unified-representation-transformation-multimodel.md`
+  Usar para transformaciones entre representaciones.
+- `{baseDir}/references/kb/algebraic-model-management.md`
+  Usar cuando el cambio de modelo sea parte del problema.
+- `{baseDir}/references/kb/multicategory-multimodel-query-processing.md`
+  Usar si la consulta multimodelo es el centro.
 
-- `integration-modeling.md`
-  - CQL
-  - migracion functorial
-  - proveniencia
-  - Grothendieck
-  - multimodel wrappers
+## Evolution and Audit
 
-## 4. Evolucion y auditoria
+- `{baseDir}/references/kb/schema-evolution.md`
+  Usar para evolucion temporal de esquemas.
+- `{baseDir}/references/kb/audit-patterns.md`
+  Usar para sintomas y patrones de reparacion.
+- `{baseDir}/references/kb/mbse-consistency.md`
+  Usar para consistencia entre modelos y vistas.
+- `{baseDir}/references/kb/formal-framework-multimodel-data-transformations.md`
+  Usar para migraciones entre modelos distintos.
+- `{baseDir}/references/kb/kb-category.md`
+  Usar para auditar el propio corpus, URNs, manifests y relaciones.
 
-Usar para diagnostico, versionado, debt estructural y drift.
+## Meta and Foundations
 
-- `evolution-audit.md`
-  - categoria de versiones
-  - Delta/Sigma/Pi
-  - auditoria temporal
-  - patrones de falla
-  - formato de reporte
+- `{baseDir}/references/kb/algebraic-databases.md`
+  Usar para profunctors, bimodules, Data double category y queries.
+- `{baseDir}/references/kb/exploring-category-theoretic-approaches-to-databases.md`
+  Usar para comparativas y contexto de bases.
+- `{baseDir}/references/kb/mathematical-modelling.md`
+  Usar para justificar la formalizacion matematica.
 
-## 5. Meta-arquitectura
+## Loading Rule
 
-Usar para explicar por que los artefactos se tratan como estructuras composicionales.
-
-- `static-modeling.md`
-  - categorias, objetos, morfismos, limites y colimites
-- `integration-modeling.md`
-  - schema global, wrappers y query as functor
-- `evolution-audit.md`
-  - invariantes, cadena temporal y debt
-
-## 6. Regla de Lectura
-
-- Si el pedido es operativo, empieza por `engine-map.md` y luego baja al playbook minimo.
-- Si el pedido es teorico, empieza por este mapa y carga solo 1 a 2 playbooks.
-- Si el pedido es auditoria o migracion, prioriza `evolution-audit.md`.
+- Empezar siempre por un playbook del bundle.
+- Cargar del corpus solo 1 a 3 archivos por turno.
+- Preferir archivos directamente conectados con el modo activo.
+- Si el pedido es teorico, cargar corpus primero y luego volver al playbook operativo minimo.

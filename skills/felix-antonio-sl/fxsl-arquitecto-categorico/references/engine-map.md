@@ -1,87 +1,40 @@
 # Engine Map
 
-Usa este mapa para decidir que playbook interno cargar. El bundle ya incluye el contenido operativo; no requiere archivos externos.
+Usar este mapa para despachar la solicitud al playbook minimo.
 
-## 1. Static
+## Dispatch Table
 
-Usar cuando el objetivo es schema, DDL o estructura declarativa.
+| Modo | Senal dominante | Leer primero | Leer despues | Salida principal |
+|---|---|---|---|---|
+| `static` | entidades, constraints, schema, DDL, tipos declarativos | `static-modeling.md` | `artifact-mappings.md` | modelo + DDL/schema/diagrama |
+| `dynamic` | estado, transiciones, observaciones, API stateful, DAL | `dynamic-modeling.md` | `artifact-mappings.md` | modelo dinamico + API/DAL |
+| `integration` | multiples fuentes, tenants, zonas, multimodelo, lake | `integration-modeling.md` | `artifact-mappings.md` | esquema global + wrappers/query |
+| `audit` | diagnostico, drift, inconsistencias, versionado, deuda | `evolution-audit.md` | `kb-map.md` si audita corpus | informe por severidad |
+| `consult` | duda teorica o justificativa | `kb-map.md` | uno o dos playbooks maximo | explicacion formal corta |
 
-- Playbook: `static-modeling.md`
-- Preguntas de colapso utiles:
-  - entidad o evento
-  - esquema relacional o documento
-  - limite o colimite
-- Artefactos tipicos:
-  - PostgreSQL DDL
-  - JSON Schema
-  - GraphQL SDL
-  - Prisma
-  - Mermaid
+## Dispatch Rules
 
-## 2. Dynamic
+- Elegir `static` cuando el problema central sea un modelo declarativo o un schema.
+- Elegir `dynamic` cuando importe el comportamiento observable mas que la estructura interna.
+- Elegir `integration` cuando el reto sea componer o federar esquemas heterogeneos.
+- Elegir `audit` cuando el usuario entregue artefactos existentes y pida diagnostico o migracion.
+- Elegir `consult` cuando la salida principal sea una explicacion teorica y no un artefacto.
 
-Usar cuando hay estado, transiciones, observaciones o comportamiento de API.
+## Mode Hand-Offs
 
-- Playbook: `dynamic-modeling.md`
-- Decide entre:
-  - lens: lectura/escritura bidireccional
-  - coalgebra: comportamiento reactivo o sustituibilidad
-  - monada: efectos, fallo, no determinismo, estado
+- Saltar de `static` a `dynamic` si aparecen estados, observaciones o efectos.
+- Saltar de `dynamic` a `integration` si el comportamiento depende de multiples fuentes o modelos.
+- Mantener `audit` si ya existe un artefacto; solo cambiar de modo para proponer la correccion.
+- Entrar a `consult` solo para justificar o desambiguar; volver luego al modo operativo.
 
-## 3. Integration
+## Clarification Gate
 
-Usar cuando hay multiples fuentes, tenants, zonas de lake o esquemas heterogeneos.
+Si faltan decisiones de alto impacto, leer `clarification-taxonomy.md` y preguntar una sola cosa:
 
-- Playbook: `integration-modeling.md`
-- Patrones principales:
-  - construccion de Grothendieck `int F`
-  - wrappers functoriales por fuente
-  - query as functor
-- Preguntas de colapso utiles:
-  - federacion o esquema global
-  - integridad estricta o flexibilidad
-  - salida relacional, documental, grafo o flat
+- entidad vs evento
+- SQL vs documento
+- lens vs coalgebra vs monada
+- federacion vs esquema global
+- fusion vs restriccion
 
-## 4. Audit
-
-Usar cuando el usuario trae artefactos existentes y pide diagnostico, consistencia o mejoras.
-
-- Playbook: `evolution-audit.md`
-- Modos de auditoria:
-  - `STATIC`
-  - `TEMPORAL`
-  - `BEHAVIORAL`
-  - `KB_GLOBAL`
-  - `DAL_INTEGRATED`
-- Salida esperada:
-  - issues por severidad
-  - patron de correccion
-  - mejora priorizada
-
-## 5. Clarification
-
-Usar cuando la solicitud es ambigua o faltan decisiones que afectan la forma del artefacto.
-
-- Reglas incluidas en `static-modeling.md`, `dynamic-modeling.md` e `integration-modeling.md`
-- Taxonomia:
-  - `A1` ser
-  - `A2` devenir
-  - `A3` conocer
-  - `A4` expresar
-- Regla:
-  - formular una pregunta socratica breve
-  - no avanzar a emision estructural sin colapso suficiente
-
-## 6. Migration
-
-Usar cuando el cambio principal es entre versiones de esquema o de representacion.
-
-- Playbook: `evolution-audit.md`
-- Operadores:
-  - `Delta`: reestructurar preservando forma
-  - `Sigma`: fusionar o generalizar
-  - `Pi`: restringir o especializar
-- Reportar siempre:
-  - que preserva
-  - que pierde
-  - riesgo de informacion
+No emitir el artefacto final hasta colapsar esa tension.

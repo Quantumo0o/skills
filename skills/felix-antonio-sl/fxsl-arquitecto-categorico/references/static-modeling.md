@@ -1,62 +1,58 @@
 # Static Modeling
 
-Playbook para modelado estructural.
-
-## Objetivo
-
 Formalizar dominios como categorias y emitir artefactos declarativos sin contaminar el modelo con logica procedimental.
 
-## Modelo minimo
+## Modelo Minimo
 
-Para cada dominio, define:
-- objetos: entidades o tipos
-- morfismos: relaciones tipadas
-- identidades: `id_A`
-- composicion: cadenas `g o f`
-- path equations: restricciones de coherencia
+Definir siempre:
 
-## Construcciones utiles
+- objetos: entidades, tipos o agregados;
+- morfismos: relaciones tipadas, atributos funcionales o referencias;
+- identidades: `id_A` por objeto;
+- composicion: cadenas `g o f`;
+- path equations: restricciones que deben conmutar.
 
-### Limites
+## Construcciones Universales
 
-Usar cuando importa integridad, composicion fuerte y joins.
+Usar limites cuando importe integridad y composicion fuerte:
 
-- producto: combinacion estructural
-- pullback: join sobre clave compartida
-- equalizer: restriccion donde dos caminos deben coincidir
+- producto para combinacion estructural;
+- pullback para joins por clave comun;
+- equalizer para exigir igualdad de dos caminos.
 
-### Colimites
+Usar colimites cuando importe fusion o flexibilidad:
 
-Usar cuando importa fusion, union o flexibilidad.
+- coproducto para union tipada;
+- pushout para merge por parte comun;
+- coequalizer para identificar equivalencias.
 
-- coproducto: union tipada
-- pushout: merge por parte comun
-- coequalizer: identificacion de equivalencias
+## Decision Procedure
 
-## Tensiones frecuentes
+1. Identificar si el dominio es de entidades persistentes, eventos o ambos.
+2. Elegir si el target favorece limites fuertes o colimites flexibles.
+3. Expresar restricciones como path equations antes de pensar en columnas o campos.
+4. Emitir el schema solo cuando la categoria ya este fijada.
 
-- entidad vs evento
-- token vs tipo
-- todo vs partes
-- formal vs informal
+## Tensiones Tipicas
 
-Si una tension cambia el schema resultante, pide una sola aclaracion antes de emitir.
+- entidad vs evento;
+- token vs type;
+- SQL vs documento;
+- todo vs partes;
+- formal vs informal.
 
-## Mapeo a artefactos
+Si alguna tension cambia llaves, cardinalidades o fronteras del esquema, pedir una sola aclaracion.
 
-| Categorico | SQL | GraphQL | OpenAPI | JSON Schema | Prisma |
-|---|---|---|---|---|---|
-| objeto | tabla | type | schema component | object | model |
-| morfismo | foreign key | field tipado | `$ref` | `$ref` | `@relation` |
-| identidad | primary key | `id: ID!` | propiedad requerida | propiedad requerida | `@id` |
-| limite | join/check | nested type | `allOf` | `allOf` | unique compuesto |
-| colimite | union | union | `oneOf` | `oneOf` | patron explicito |
+## Deepen Only If Needed
 
-## Regla de emision
+Ir a `kb-map.md` y cargar estas fuentes de solo lectura cuando haga falta justificar el diseno:
 
-Primero presenta el modelo sintetico si el dominio es ambiguo. Emite DDL/schema final cuando la estructura ya esta fijada.
+- `categorical-data-structures.md` para schema como categoria e instancia como funtor;
+- `constraint-logic.md` para restricciones, monomorfismos, epimorfismos y auditoria de theories;
+- `action-primary-key.md` si la identidad real esta en la accion y no en el estado;
+- `seven-sketches.md` para migraciones functoriales y uso clasico de limites/colimites.
 
-## Firma sugerida
+## Signature
 
 ```text
 Categoria: C_dom

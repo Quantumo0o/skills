@@ -1,75 +1,66 @@
 # Dynamic Modeling
 
-Playbook para comportamiento, APIs stateful y capas de acceso.
+Modelar comportamiento, APIs stateful y DALs cuando la dinamica importa mas que la forma estatica.
 
-## Decision principal
+## Decision Principal
 
-Selecciona la estructura segun el tipo de dinamica:
+Elegir una sola estructura dominante:
 
-- `lens`: lectura/escritura entre dos vistas
-- `coalgebra`: comportamiento observable, reactivo o sustituible
-- `monada`: efectos, fallo, no determinismo, estado o trazas
+- `lens` para exponer y actualizar entre dos vistas;
+- `coalgebra` para comportamiento observable y sustituibilidad;
+- `monada` para efectos, fallo, no determinismo, estado o trazas.
+
+## Lens
+
+Usar `expose: S -> O` y `update: S x I -> S` cuando haya:
+
+- CQRS o read model derivado;
+- sincronizacion SQL a documento;
+- interfaces que leen y reescriben el mismo estado.
 
 ## Coalgebra
 
-Modelo:
-- estado oculto `U`
-- interfaz `F`
-- comportamiento `c: U -> F(U)`
+Usar `c: U -> F(U)` cuando haya:
 
-Usar para:
-- APIs con estado
-- servicios reactivos
-- comparacion de componentes por equivalencia externa
+- servicios reactivos;
+- objetos con estado oculto;
+- componentes que deban compararse por comportamiento externo.
 
-### Bisimulacion
+Verificar bisimulacion si la pregunta real es sustituibilidad.
 
-Dos componentes son sustituibles si producen observaciones indistinguibles y preservan transiciones relevantes.
+## Monada
 
-## Lenses
+Usar una monada dominante si el sistema se organiza por efecto:
 
-Modelo:
-- `expose: S -> O`
-- `update: S x I -> S`
+- `Maybe` para fallo;
+- `List` para no determinismo;
+- `Dist` para probabilidad;
+- `State` para estado mutable;
+- `Writer` para trazabilidad y auditoria.
 
-Usar para:
-- vistas derivadas
-- CQRS
-- document view sobre SQL
+## DAL Guidance
 
-## Monadas
+- `SQL` cuando mandan limites, integridad y joins;
+- `NoSQL` cuando mandan colimites, fusion y flexibilidad;
+- `Mixto` cuando conviene un lens asimetrico entre write model y read model.
 
-Usar cuando la dinamica central es un efecto:
-- `Maybe`: fallo
-- `List`: multiples resultados
-- `Dist`: probabilidad
-- `State`: estado mutable
-- `Writer`: auditoria o log
+Tratar:
 
-## DAL categorico
+- la API como un funtor del dominio al estilo de interfaz elegido;
+- el repository como coalgebra;
+- el ORM como adjuncion cuyo drift aparece cuando el round-trip deja de aproximar identidad.
 
-### Storage
+## Deepen Only If Needed
 
-- limites -> SQL cuando importa integridad y joins
-- colimites -> NoSQL cuando importa flexibilidad y fusion
-- mixto -> lens asimetrico entre write model y read model
+Ir a `kb-map.md` y cargar estas fuentes de solo lectura cuando haga falta:
 
-### API
+- `coalgebras.md` para comportamiento, final coalgebra y bisimulacion;
+- `categorical-systems-theory.md` para lenses, wiring diagrams y sistemas dinamicos;
+- `cognitive-toolkit.md` si la interfaz modela episodios, agentes o reasoning operacional;
+- `data-access-layers.md` cuando el foco real sea la DAL;
+- `action-primary-key.md` si la accion estructura la identidad del sistema.
 
-- REST: recursos y morfismos CRUD
-- GraphQL: tipos y pullbacks de consulta
-- gRPC: servicios y RPCs como morfismos
-- streams: comportamiento continuo
-
-### Repository
-
-Tratalo como coalgebra. Si dos repositorios son bisimilares, son intercambiables.
-
-### ORM
-
-Pensarlo como adjuncion entre dominio y schema. Drift aparece cuando el round-trip deja de aproximar identidad.
-
-## Firma sugerida
+## Signature
 
 ```text
 Subsistema: Lens | Coalgebra | Monada

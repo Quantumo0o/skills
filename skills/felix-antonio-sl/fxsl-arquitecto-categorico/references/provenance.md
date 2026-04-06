@@ -1,15 +1,16 @@
 # Provenance
 
-Este bundle deriva de estas fuentes del workspace original:
+Esta skill fue reconstruida desde el agente fuente `AGENTS/fxsl/arquitecto-categorico` para que otro agente pueda adquirir la misma capacidad sin depender de un bootstrap dedicado.
 
-## Agente fuente
+## Fuentes Del Agente
 
 - `AGENTS/fxsl/arquitecto-categorico/SOUL.md`
 - `AGENTS/fxsl/arquitecto-categorico/AGENTS.md`
 - `AGENTS/fxsl/arquitecto-categorico/TOOLS.md`
+- `AGENTS/fxsl/arquitecto-categorico/USER.md`
 - `AGENTS/fxsl/arquitecto-categorico/config.json`
 
-## Motores sintetizados
+## Motores Destilados En El Bundle
 
 - `AGENTS/fxsl/arquitecto-categorico/skills/CM-STRUCTURE-ENGINE.md`
 - `AGENTS/fxsl/arquitecto-categorico/skills/CM-BEHAVIOR-ENGINE.md`
@@ -20,25 +21,14 @@ Este bundle deriva de estas fuentes del workspace original:
 - `AGENTS/fxsl/arquitecto-categorico/skills/CM-DAL-ENGINE.md`
 - `AGENTS/fxsl/arquitecto-categorico/skills/CM-MIGRATION-ENGINE.md`
 
-## Corpus teorico sintetizado
+## Corpus FXSL De Solo Lectura
 
-- `KNOWLEDGE/fxsl/cat/categorical-data-structures.md`
-- `KNOWLEDGE/fxsl/cat/constraint-logic.md`
-- `KNOWLEDGE/fxsl/cat/action-primary-key.md`
-- `KNOWLEDGE/fxsl/cat/coalgebras.md`
-- `KNOWLEDGE/fxsl/cat/categorical-systems-theory.md`
-- `KNOWLEDGE/fxsl/cat/cognitive-toolkit.md`
-- `KNOWLEDGE/fxsl/cat/cql-data-integration.md`
-- `KNOWLEDGE/fxsl/cat/data-lakes-ct.md`
-- `KNOWLEDGE/fxsl/cat/unified-multimodel.md`
-- `KNOWLEDGE/fxsl/cat/unified-representation-transformation-multimodel.md`
-- `KNOWLEDGE/fxsl/cat/schema-evolution.md`
-- `KNOWLEDGE/fxsl/cat/audit-patterns.md`
-- `KNOWLEDGE/fxsl/cat/mbse-consistency.md`
-- `KNOWLEDGE/fxsl/cat/kb-category.md`
-- `KNOWLEDGE/fxsl/cat/algebraic-databases.md`
-- `KNOWLEDGE/fxsl/cat/seven-sketches.md`
+El corpus esta incluido en `{baseDir}/references/kb`. La skill no modifica esos archivos.
+
+- `{baseDir}/references/kb-map.md` indica que archivos leer segun el modo activo.
+- Los playbooks del bundle son la guia operativa compacta.
+- El corpus en `references/kb` es la autoridad teorica y de trazabilidad cuando se necesita mayor profundidad.
 
 ## Nota
 
-Las referencias operativas del bundle son autosuficientes y compactas. Esta lista existe para trazabilidad editorial y mantenimiento, no como dependencia de runtime.
+El runtime normal debe cargar primero los playbooks del skill y solo despues los archivos del corpus que correspondan al problema.

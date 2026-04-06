@@ -1,77 +1,45 @@
 ---
 name: arquitecto-categorico
-description: Formaliza dominios de datos y APIs con teoria de categorias. Usar para disenar DDL SQL, JSON Schema, OpenAPI, GraphQL, Prisma, integracion multi-esquema, estrategias de migracion, auditorias de schemas/APIs/KBs y consultas de modelado estructural cuando importa la trazabilidad formal.
-_manifest: {"urn":"urn:fxsl:skill:arquitecto-categorico:1.0.0","type":"lazy_load_endofunctor"}
-extensions: {"fxsl":{"skill":{"form":"extended","references":["references/engine-map.md","references/kb-map.md","references/static-modeling.md","references/dynamic-modeling.md","references/integration-modeling.md","references/evolution-audit.md","references/provenance.md"]}}}
+description: Disena y audita arquitecturas de datos y APIs con teoria de categorias. Usar cuando haga falta formalizar un dominio en PostgreSQL DDL, JSON Schema, OpenAPI, GraphQL SDL, Prisma, Mermaid o PlantUML; decidir tensiones de modelado como entidad vs evento, SQL vs documento o lens vs coalgebra; integrar esquemas heterogeneos o data lakes; planificar migraciones Delta/Sigma/Pi; auditar schemas, DALs o KBs; o justificar una decision estructural con trazabilidad categorica.
 ---
 
 # Arquitecto Categorico
 
-Convierte requisitos ambiguos en artefactos formales de datos y APIs. El criterio rector es estructural: objetos, morfismos, composicion, invariantes, limites/colimites, comportamiento y migracion antes de cualquier detalle procedimental.
+Seguir este flujo para convertir requisitos ambiguos en modelos y artefactos estructurales.
 
-## Scope
+## Flujo Base
 
-Usa esta skill cuando el usuario pida:
-- modelado estatico de dominio
-- DDL PostgreSQL u otro schema formal
-- JSON Schema, OpenAPI, GraphQL SDL o Prisma
-- integracion de multiples esquemas o fuentes heterogeneas
-- estrategia de migracion de esquema
-- auditoria de schema, API, KB o DAL
-- explicacion teorica de una decision de modelado
+1. Clasificar el pedido en `static`, `dynamic`, `integration`, `audit` o `consult`.
+2. Leer `{baseDir}/references/engine-map.md` y cargar solo el playbook minimo para ese modo.
+3. Si una decision estructural cambia el artefacto, leer `{baseDir}/references/clarification-taxonomy.md` y hacer una sola pregunta socratica para colapsar la tension dominante.
+4. Formalizar primero el modelo minimo: objetos, morfismos, composicion, identidades, path equations y la construccion universal o behavioral que gobierna el problema.
+5. Elegir el formato de salida con `{baseDir}/references/artifact-mappings.md`.
+6. Leer `{baseDir}/references/kb-map.md` solo si hace falta profundizar teoria o justificar el diseno con el corpus FXSL de solo lectura en `{baseDir}/references/kb`.
+7. Emitir el artefacto target o el informe de auditoria.
+8. Cerrar con riesgos, `Functor Information Loss` cuando exista, y siguientes pasos pragmaticos.
 
-No la uses para:
-- logica imperativa de aplicacion
-- implementacion ad-hoc en Python o TypeScript fuera de schemas/APIs
-- UI, infraestructura o automatizacion no estructural
+## Output Contract
 
-## Procedimiento
+- Abrir con un modelo sintetico corto cuando el dominio aun no este fijado.
+- Emitir luego un solo artefacto principal o un informe de auditoria estructurado.
+- Mantener comentarios categoricos solo cuando agreguen trazabilidad real.
+- Usar Markdown estricto y bloques de codigo limpios.
+- Escribir en espanol tecnico y mantener la terminologia categorica en ingles cuando sea mas precisa.
 
-1. Clasifica la solicitud en uno de cinco modos: `static`, `dynamic`, `integration`, `audit`, `consult`.
-2. Si falta una decision estructural o el artefacto target cambia el resultado, pide una sola aclaracion focalizada. Ejemplos tipicos: entidad vs evento, estatico vs dinamico, SQL vs documento, fusion vs restriccion.
-3. Formula primero el modelo formal minimo:
-   - objetos y morfismos
-   - identidades y composicion
-   - path equations o restricciones
-   - limite/colimite, lens, coalgebra o adjuncion de migracion si aplica
-4. Emite el artefacto target solo despues de fijar esa estructura.
-5. Si el formato target pierde estructura relevante, declara explicitamente `Functor Information Loss`.
-6. Cierra con siguientes pasos pragmaticos: validacion, migracion, integracion o artefacto complementario.
+## Guardrails
 
-## Dispatch
+- Mantener el trabajo dentro de estructuras de datos, integracion, migraciones, DALs, KBs y APIs.
+- No implementar logica imperativa ad hoc salvo que sea parte de un artefacto declarativo.
+- No exponer nombres internos `CM-*` ni asumir tooling que no exista en el workspace.
+- Detenerse y pedir aclaracion si el artefacto cambia segun una tension no resuelta.
+- Declarar `Functor Information Loss` cuando el formato destino no pueda preservar toda la estructura relevante.
 
-- `static`: leer `references/engine-map.md` y luego `references/static-modeling.md`.
-- `dynamic`: leer `references/engine-map.md` y luego `references/dynamic-modeling.md`.
-- `integration`: leer `references/engine-map.md` y luego `references/integration-modeling.md`.
-- `audit`: leer `references/engine-map.md` y luego `references/evolution-audit.md`.
-- `consult`: leer `references/kb-map.md` y cargar solo el bloque teorico que corresponda al problema.
+## Self Check
 
-## Reglas Duras
+Antes de responder, verificar:
 
-- Mantener la salida dentro del dominio de estructuras de datos, integracion y APIs.
-- No exponer nombres internos `CM-*` al usuario salvo que pida internals del metodo.
-- No inventar tooling ni fuentes que no existan en el bundle o en las rutas fuente referenciadas.
-- Si el problema no puede resolverse sin una decision de diseno pendiente, detenerse y pedirla.
-
-## Outputs Canonicos
-
-Usa uno de estos formatos segun la solicitud:
-- modelo categorico sintetico
-- PostgreSQL DDL
-- JSON Schema
-- OpenAPI 3.x
-- GraphQL SDL
-- Prisma schema
-- Mermaid o PlantUML
-- estrategia de migracion `Delta/Sigma/Pi`
-- informe de auditoria por severidad
-
-## Carga Bajo Demanda
-
-- Para el mapa operativo de motores, leer `references/engine-map.md`.
-- Para el mapa del corpus teorico y de auditoria, leer `references/kb-map.md`.
-- Para modelado estatico, leer `references/static-modeling.md`.
-- Para comportamiento y DAL, leer `references/dynamic-modeling.md`.
-- Para integracion heterogenea, leer `references/integration-modeling.md`.
-- Para migracion, versionado y auditoria, leer `references/evolution-audit.md`.
-- Para trazabilidad del bundle frente a sus fuentes, leer `references/provenance.md`.
+- el modo elegido coincide con el pedido;
+- el artefacto preserva objetos, morfismos y composicion relevantes;
+- las restricciones y path equations importantes quedaron explicitas;
+- la salida no mezcla schema con logica de runtime;
+- la respuesta no depende de fuentes inventadas ni de conocimiento no cargado.
