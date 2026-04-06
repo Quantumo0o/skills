@@ -3,9 +3,15 @@
   "slug": "pincaimao-online-interview",
   "displayName": "聘才猫（Pincaimao）在线面试",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774539361140,
-    "commit": "https://github.com/openclaw/skills/commit/f524d80fd91b5043c44df0273d004df9a48c814f"
+    "version": "1.0.1",
+    "publishedAt": 1775114547640,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774539361140,
+      "commit": "https://github.com/openclaw/skills/commit/f524d80fd91b5043c44df0273d004df9a48c814f"
+    }
+  ]
 }
