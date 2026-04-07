@@ -21,7 +21,7 @@ log() { echo "[$(date '+%H:%M:%S')] $*" | tee -a "$LOG"; }
 cleanup() {
     rm -f "$LOCK" "$OOM_PROTECT" 2>/dev/null
     # Kill any lingering python index process
-    pkill -f "index.py" 2>/dev/null || true
+    pkill -f "lookupmark-local-rag/scripts/index.py" 2>/dev/null || true
 }
 trap cleanup EXIT
 

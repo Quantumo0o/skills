@@ -27,6 +27,17 @@ EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 DB_DIR = os.path.expanduser("~/.local/share/local-rag/chromadb")
 QUERY_LOG = os.path.expanduser("~/.local/share/local-rag/queries.log")
+MAX_QUERY_LEN = 2000
+
+# Singleton model cache — avoids reloading on repeated calls
+_model_cache = {}
+
+
+def get_embed_model():
+    """Get or create cached embedding model."""
+    if "embed" not in _model_cache:
+        _model_cache["embed"] = SentenceTransformer(EMBED_MODEL)
+    return _model_cache["embed"]
 
 
 def log_query(question: str, n_results: int, elapsed: float, top_score: float | None):
@@ -34,7 +45,7 @@ def log_query(question: str, n_results: int, elapsed: float, top_score: float | 
     os.makedirs(os.path.dirname(QUERY_LOG), exist_ok=True)
     entry = {
         "ts": datetime.now().isoformat(),
-        "q": question[:200],
+        "q": question[:80],  # Truncate for privacy
         "results": n_results,
         "elapsed_s": round(elapsed, 2),
         "top_score": top_score,
@@ -45,15 +56,18 @@ def log_query(question: str, n_results: int, elapsed: float, top_score: float | 
 
 def query(question: str, top_k: int = 20, top_n: int = 3, timeout: int = 120, as_json: bool = False):
     """Search children → rerank → resolve parents."""
+    # Sanitize input
+    question = question[:MAX_QUERY_LEN].strip()
+    if not question:
+        return {"error": "Empty query"}
+
     t0 = time.time()
 
-    # Step 1: Embed query
-    model = SentenceTransformer(EMBED_MODEL, trust_remote_code=True)
+    # Step 1: Embed query (cached model)
+    model = get_embed_model()
     q_embedding = model.encode([question], show_progress_bar=False).tolist()
 
-    # Free embedding model to save RAM before loading reranker
-    del model
-    gc.collect()
+    # Do NOT free model — keep cached for next query
 
     # Open DB
     client = chromadb.PersistentClient(path=DB_DIR)
@@ -81,9 +95,11 @@ def query(question: str, top_k: int = 20, top_n: int = 3, timeout: int = 120, as
         for doc, meta in zip(results["documents"][0], results["metadatas"][0])
     ]
 
-    # Step 2: Rerank with cross-encoder (load AFTER freeing embedding model)
+    # Step 2: Rerank with cross-encoder (cached for reuse)
     try:
-        reranker = CrossEncoder(RERANKER_MODEL)
+        if "reranker" not in _model_cache:
+            _model_cache["reranker"] = CrossEncoder(RERANKER_MODEL)
+        reranker = _model_cache["reranker"]
         pairs = [[question, c["text"]] for c in children]
         scores = reranker.predict(pairs)
 
@@ -91,9 +107,6 @@ def query(question: str, top_k: int = 20, top_n: int = 3, timeout: int = 120, as
             c["score"] = float(score)
 
         children.sort(key=lambda x: x["score"], reverse=True)
-
-        del reranker
-        gc.collect()
     except Exception as e:
         print(f"Warning: Reranker failed ({e}), using vector search order", file=sys.stderr)
         for c in children:
@@ -152,7 +165,7 @@ def main():
     parser.add_argument("--timeout", type=int, default=120, help="Max seconds per query")
     args = parser.parse_args()
 
-    result = query(args.question, args.top_k, args.top_n, args.json)
+    result = query(args.question, args.top_k, args.top_n, args.timeout)
 
     if "error" in result:
         print(f"ERROR: {result['error']}", file=sys.stderr)

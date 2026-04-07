@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Index local files into ChromaDB with BGE-M3 embeddings and parent-child chunking.
+"""Index local files into ChromaDB with all-MiniLM-L6-v2 embeddings and parent-child chunking.
 
 Parent chunks (large) are stored as documents for retrieval.
 Child chunks (small) are embedded for precise semantic search.
@@ -31,8 +31,16 @@ EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 PARENT_SIZE = 768       # words per parent chunk
 CHILD_SIZE = 128        # words per child chunk
 CHILD_OVERLAP = 24      # overlap between children
-MAX_FILE_SIZE_MB = 30
-BATCH_SIZE = 1          # embedding batch size (conservative for 4GB RAM)
+MAX_FILE_SIZE_MB = 25  # Max file size for PDFs (raised from 5 to support larger slides)
+# Auto-detect batch size based on available RAM
+import struct
+try:
+    with open('/proc/meminfo') as _f:
+        _memline = _f.readline()
+        _total_kb = int(_memline.split()[1])
+    BATCH_SIZE = 1  # Forced to 1 — Pi 5 has limited RAM, larger batches cause OOM
+except Exception:
+    BATCH_SIZE = 1
 
 # Security: only allow indexing under these directories
 ALLOWED_ROOTS = [
@@ -50,9 +58,8 @@ DEFAULT_PATHS = [
 ]
 
 TEXT_EXTENSIONS = {
-    ".txt", ".md", ".rst", ".csv", ".tsv",
-    ".yaml", ".yml", ".json", ".toml", ".cfg", ".ini", ".xml", ".html", ".css",
-    ".tex", ".bib", ".log",
+    ".txt", ".md", ".rst",
+    ".tex", ".bib",
 }
 
 DOCUMENT_EXTENSIONS = {
@@ -110,14 +117,14 @@ def extract_text(filepath: str) -> str | None:
 
     if ext == ".pdf":
         try:
-            # Skip PDFs > 5MB to avoid OOM on 4GB RAM
-            if os.path.getsize(filepath) > 5 * 1024 * 1024:
-                print(f"    Skipping {filepath}: PDF too large for RAM ({os.path.getsize(filepath)//1024//1024}MB > 5MB limit)")
+            # Skip PDFs > MAX_FILE_SIZE_MB to avoid OOM
+            if os.path.getsize(filepath) > MAX_FILE_SIZE_MB * 1024 * 1024:
+                print(f"    Skipping {filepath}: PDF too large ({os.path.getsize(filepath)//1024//1024}MB > {MAX_FILE_SIZE_MB}MB limit)")
                 return None
             from pdfminer.high_level import extract_text
             text = extract_text(filepath) or ""
-            if len(text) > 5 * 1024 * 1024:
-                print(f"    Skipping {filepath}: extracted text too large ({len(text)//1024//1024}MB)")
+            if len(text) > 10 * 1024 * 1024:
+                print(f"    Skipping {filepath}: extracted text too large ({len(text)//1024//1024}MB > 10MB)")
                 return None
             return text
         except Exception:
@@ -128,12 +135,8 @@ def extract_text(filepath: str) -> str | None:
             from docx import Document
             return "\n".join(p.text for p in Document(filepath).paragraphs)
         except ImportError:
-            import subprocess
-            subprocess.check_call([
-                "uv", "pip", "install", "-p", sys.executable, "python-docx",
-            ])
-            from docx import Document
-            return "\n".join(p.text for p in Document(filepath).paragraphs)
+            print(f"    Skipping {filepath}: python-docx not installed. Install with: pip install python-docx", file=sys.stderr)
+            return None
         except Exception:
             return None
 
@@ -175,7 +178,36 @@ def crawl(root: str) -> list[str]:
 LOCK_FILE = os.path.expanduser("~/.local/share/local-rag/index.lock")
 
 
+def check_memory():
+    """Check available memory. Returns available MB."""
+    try:
+        with open("/proc/meminfo") as f:
+            for line in f:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) // 1024
+    except Exception:
+        pass
+    return 999  # If we can't read, assume OK
+
+
+def gc_and_check(min_mb=150):
+    """Force GC and check memory. Returns True if OK, False if low."""
+    import gc; gc.collect()
+    avail = check_memory()
+    if avail < min_mb:
+        print(f"  WARNING: Low memory ({avail}MB available). Flushing and continuing carefully.")
+        return False
+    return True
+
+
 def main():
+    # Check available memory before doing anything heavy
+    avail = check_memory()
+    if avail < 200:
+        print(f"ERROR: Insufficient memory ({avail}MB available, need 200MB). Aborting.", file=sys.stderr)
+        sys.exit(1)
+    print(f"Memory check: {avail}MB available")
+
     # Prevent concurrent runs
     import fcntl
     os.makedirs(os.path.dirname(LOCK_FILE), exist_ok=True)
@@ -189,10 +221,16 @@ def main():
     parser = argparse.ArgumentParser(description="Index local files with parent-child chunking")
     parser.add_argument("--reindex", action="store_true", help="Drop existing data and re-index")
     parser.add_argument("--paths", nargs="+", default=DEFAULT_PATHS, help="Directories to index")
+    parser.add_argument("--max-files", type=int, default=0, help="Stop after N new/updated files (0=unlimited)")
+    parser.add_argument("--text-only", action="store_true", help="Index only text files (md, txt, tex, bib)")
+    parser.add_argument("--pdf-only", action="store_true", help="Index only PDF files")
     args = parser.parse_args()
 
     print(f"Loading embedding model: {EMBED_MODEL}...")
-    model = SentenceTransformer(EMBED_MODEL, trust_remote_code=True)
+    model = SentenceTransformer(EMBED_MODEL)
+
+    # Force garbage collection after model load
+    import gc; gc.collect()
 
     print(f"Opening ChromaDB at {DB_DIR}...")
     client = chromadb.PersistentClient(path=DB_DIR)
@@ -208,18 +246,34 @@ def main():
     parents_col = client.get_or_create_collection("parents", metadata={"hnsw:space": "cosine"})
     children_col = client.get_or_create_collection("children", metadata={"hnsw:space": "cosine"})
 
+    # Track changes
+    added_files = []
+    updated_files = []
+    removed_files = []
+    skipped_unchanged = 0
     total_parents = 0
     total_children = 0
-    total_files = 0
+    stopped_early = False
 
     for root in args.paths:
         print(f"\nScanning {root}...")
         files = crawl(root)
         print(f"  Found {len(files)} files to index")
 
+        # Collect ALL filepaths found on disk for this root (for orphan detection)
+        all_disk_paths = set(files)
+
         for filepath in files:
+
             text = extract_text(filepath)
             if not text or not text.strip():
+                continue
+
+            # Filter by mode
+            ext = Path(filepath).suffix.lower()
+            if args.text_only and ext not in {".txt", ".md", ".rst", ".tex", ".bib"}:
+                continue
+            if args.pdf_only and ext != ".pdf":
                 continue
 
             fhash = file_hash(filepath)
@@ -233,11 +287,16 @@ def main():
             if existing["metadatas"]:
                 old_hash = existing["metadatas"][0].get("file_hash")
                 if old_hash == fhash:
+                    skipped_unchanged += 1
                     continue  # Unchanged
 
                 # File changed — remove old chunks
                 parents_col.delete(where={"filepath": filepath})
                 children_col.delete(where={"filepath": filepath})
+                updated_files.append(filepath)
+
+            else:
+                added_files.append(filepath)
 
             words = split_words(text)
             parents = make_parent_chunks(words)
@@ -283,19 +342,72 @@ def main():
 
                 embeddings = model.encode(batch_texts, show_progress_bar=False).tolist()
                 children_col.add(ids=batch_ids, embeddings=embeddings, documents=batch_texts, metadatas=batch_metas)
+                del embeddings
+                gc.collect()
 
             total_parents += len(parent_ids)
             total_children += len(all_child_ids)
-            total_files += 1
 
-            if total_files % 50 == 0:
-                print(f"  Progress: {total_files} files, {total_parents} parents, {total_children} children")
+            # Free memory per-file
+            del all_child_texts, all_child_ids, all_child_metas, parent_ids, parent_docs, parent_metas, words, parents, text
+            gc.collect()
 
-    print(f"\nDone! Indexed {total_files} files.")
-    print(f"  Parents: {total_parents} (stored as full context)")
-    print(f"  Children: {total_children} (embedded for search)")
-    print(f"  Parents collection: {parents_col.count()} chunks")
-    print(f"  Children collection: {children_col.count()} chunks")
+            # Check memory every 10 files — stop gracefully if low
+            processed = len(added_files) + len(updated_files)
+            if processed % 10 == 0:
+                if not gc_and_check(100):
+                    print(f"  Memory low after {processed} files. Stopping gracefully.")
+                    print(f"  Remaining files will be indexed in next run.")
+                    stopped_early = True
+                    break
+
+            # Stop after max-files if set
+            if args.max_files > 0 and processed >= args.max_files:
+                print(f"  Reached --max-files limit ({args.max_files}). Stopping.")
+                print(f"  Remaining files will be indexed in next run.")
+                stopped_early = True
+                break
+
+        # Detect orphaned files (indexed but no longer on disk under this root)
+        # Only do this if we're not running in batch mode (--max-files not hit)
+        if not stopped_early:
+            all_indexed = parents_col.get(include=["metadatas"])
+            if all_indexed["metadatas"]:
+                indexed_paths = set(m["filepath"] for m in all_indexed["metadatas"] if "filepath" in m)
+                orphaned = indexed_paths - all_disk_paths
+                for orphan in orphaned:
+                    parents_col.delete(where={"filepath": orphan})
+                    children_col.delete(where={"filepath": orphan})
+                    removed_files.append(orphan)
+
+    # --- Summary Report ---
+    total_files = len(added_files) + len(updated_files)
+    print(f"\n{'='*60}")
+    print(f"INDICIZZAZIONE COMPLETATA")
+    print(f"{'='*60}")
+    print(f"  Totale file scansionati: {len(added_files) + len(updated_files) + skipped_unchanged + len(removed_files)}")
+    print(f"  Nuovi indicizzati:       {len(added_files)}")
+    print(f"  Aggiornati:              {len(updated_files)}")
+    print(f"  Rimossi (orfani):        {len(removed_files)}")
+    print(f"  Immobili (unchanged):    {skipped_unchanged}")
+    print(f"  Parent chunks:           {total_parents}")
+    print(f"  Child chunks:            {total_children}")
+    print(f"  Collection parents:      {parents_col.count()}")
+    print(f"  Collection children:     {children_col.count()}")
+
+    if added_files:
+        print(f"\n  File aggiunti:")
+        for f in added_files:
+            print(f"    + {os.path.relpath(f, os.path.expanduser('~'))}")
+    if updated_files:
+        print(f"\n  File aggiornati:")
+        for f in updated_files:
+            print(f"    ~ {os.path.relpath(f, os.path.expanduser('~'))}")
+    if removed_files:
+        print(f"\n  File rimossi:")
+        for f in removed_files:
+            print(f"    - {os.path.relpath(f, os.path.expanduser('~'))}")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
