@@ -1,0 +1,11 @@
+{
+  "owner": "abhinas90",
+  "slug": "multi-agent-deployment",
+  "displayName": "Multi-Agent Deployment Skill for OpenClaw",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775168599986,
+    "commit": null
+  },
+  "history": []
+}
