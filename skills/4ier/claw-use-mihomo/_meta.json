@@ -1,11 +1,17 @@
 {
   "owner": "4ier",
   "slug": "claw-use-mihomo",
-  "displayName": "claw-use-mihomo",
+  "displayName": "mihomo Proxy Manager",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775128434887,
-    "commit": "https://github.com/openclaw/skills/commit/3c76c64654a84b37a05f12d715f128fd53006f4e"
+    "version": "0.2.0",
+    "publishedAt": 1775145007322,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775128434887,
+      "commit": "https://github.com/openclaw/skills/commit/3c76c64654a84b37a05f12d715f128fd53006f4e"
+    }
+  ]
 }
