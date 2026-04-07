@@ -1,0 +1,11 @@
+{
+  "owner": "setdemos",
+  "slug": "llmcities",
+  "displayName": "LLMCities Web Host",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775302884295,
+    "commit": null
+  },
+  "history": []
+}
