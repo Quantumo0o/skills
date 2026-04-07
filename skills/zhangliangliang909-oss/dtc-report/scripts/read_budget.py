@@ -124,18 +124,18 @@ def read_budget_revenue_profit(period='2026-Q1'):
     if not month_col:
         return result
     
-    # 读取营业收入（行 25）
+    # 读取营业收入（行 25）- 原始数据单位是元，转换为万元
     revenue = ws.cell(row=25, column=month_col).value or 0
     
     # 读取毛利（需要计算或查找）
     # 简化处理：用收入 * 预算毛利率
     gross_profit = revenue * 0.06  # 假设 6% 毛利率
     
-    # 当月预算
-    result['current']['revenue'] = float(revenue)
-    result['current']['gross_profit'] = float(gross_profit)
+    # 当月预算（转换为万元）
+    result['current']['revenue'] = float(revenue) / 10000
+    result['current']['gross_profit'] = float(gross_profit) / 10000
     
-    # 累计预算
+    # 累计预算（转换为万元）
     for m in cumulative_months:
         m_col = None
         for col in range(1, 30):
@@ -146,8 +146,8 @@ def read_budget_revenue_profit(period='2026-Q1'):
         
         if m_col:
             rev = float(ws.cell(row=25, column=m_col).value or 0)
-            result['cumulative']['revenue'] += rev
-            result['cumulative']['gross_profit'] += rev * 0.06
+            result['cumulative']['revenue'] += rev / 10000
+            result['cumulative']['gross_profit'] += (rev * 0.06) / 10000
     
     return result
 

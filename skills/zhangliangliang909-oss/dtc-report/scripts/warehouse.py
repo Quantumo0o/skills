@@ -299,35 +299,37 @@ def read_loss_customers(period='2026-Q1', top_n=10):
         if 'D' not in seg_str and '电商' not in seg_str and '集拼' not in seg_str:
             continue
         
-        # 处理 datetime 类型
-        from datetime import datetime
-        if isinstance(month, datetime):
-            month_str = f"{month.year}-{month.month}"  # 不补零
+        # 处理月份：支持字符串、datetime 和 Excel 日期序列号
+        from datetime import datetime, timedelta
+        if isinstance(month, (int, float)):
+            # Excel 日期序列号
+            base_date = datetime(1899, 12, 30)
+            actual_date = base_date + timedelta(days=int(month))
+            month_year = actual_date.year
+            month_num = actual_date.month
+        elif isinstance(month, datetime):
+            month_year = month.year
+            month_num = month.month
         else:
             month_str = str(month)
             if '年' in month_str and '月' in month_str:
-                month_str = month_str.replace('年', '-').replace('月', '').strip()
+                month_year = int(month_str.split('年')[0].strip())
+                month_num = int(month_str.split('年')[1].replace('月', '').strip())
             elif '-' in month_str:
-                pass
-            else:
-                continue
-            
-            # 转为整数去掉前导零
-            parts = month_str.split('-')
-            if len(parts) == 2:
-                year = parts[0].strip()
+                parts = month_str.split('-')
+                month_year = int(parts[0].strip())
                 month_num = int(parts[1].strip())
-                month_str = f"{year}-{month_num}"
             else:
                 continue
         
-        if month_num not in cumulative_months:
+        # 只统计 2026 年累计月份
+        if month_year != 2026 or month_num not in cumulative_months:
             continue
         
         customer_profit[customer] += float(profit) if profit else 0
     
-    # 筛选亏损客户（毛利<0）
-    loss_customers = [(name, prof) for name, prof in customer_profit.items() if prof < 0]
+    # 筛选亏损客户（毛利<0），转换为万元
+    loss_customers = [(name, prof/10000) for name, prof in customer_profit.items() if prof < 0]
     
     # 按毛利排序（从小到大，最亏损的在前）
     loss_customers.sort(key=lambda x: x[1])

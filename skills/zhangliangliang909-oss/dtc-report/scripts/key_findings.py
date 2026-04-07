@@ -53,11 +53,11 @@ def generate_key_findings(actual, actual_yoy, budget, volume, volume_yoy, custom
     
     # 1. 收入增长
     if revenue_yoy > 20:
-        highlights.append(f"收入增长强劲，累计收入{cumulative_revenue/10000:.1f}万元，同比增长{revenue_yoy:.1f}%")
+        highlights.append(f"收入增长强劲，累计收入{cumulative_revenue:,.0f}万元，同比增长{revenue_yoy:.1f}%")
     elif revenue_yoy > 10:
-        highlights.append(f"收入稳步增长，累计收入{cumulative_revenue/10000:.1f}万元，同比增长{revenue_yoy:.1f}%")
+        highlights.append(f"收入稳步增长，累计收入{cumulative_revenue:,.0f}万元，同比增长{revenue_yoy:.1f}%")
     elif revenue_yoy > 0:
-        highlights.append(f"收入小幅增长，累计收入{cumulative_revenue/10000:.1f}万元，同比增长{revenue_yoy:.1f}%")
+        highlights.append(f"收入小幅增长，累计收入{cumulative_revenue:,.0f}万元，同比增长{revenue_yoy:.1f}%")
     
     # 2. 毛利增长
     if profit_yoy > 20:
@@ -112,11 +112,11 @@ def generate_key_findings(actual, actual_yoy, budget, volume, volume_yoy, custom
     
     # 1. 收入下滑
     if revenue_yoy < -20:
-        concerns.append(f"收入下滑明显，累计收入{cumulative_revenue/10000:.1f}万元，同比下降{abs(revenue_yoy):.1f}%")
+        concerns.append(f"收入下滑明显，累计收入{cumulative_revenue:,.0f}万元，同比下降{abs(revenue_yoy):.1f}%")
     elif revenue_yoy < -10:
-        concerns.append(f"收入有所下滑，累计收入{cumulative_revenue/10000:.1f}万元，同比下降{abs(revenue_yoy):.1f}%")
+        concerns.append(f"收入有所下滑，累计收入{cumulative_revenue:,.0f}万元，同比下降{abs(revenue_yoy):.1f}%")
     elif revenue_yoy < 0:
-        concerns.append(f"收入小幅下滑，累计收入{cumulative_revenue/10000:.1f}万元，同比下降{abs(revenue_yoy):.1f}%")
+        concerns.append(f"收入小幅下滑，累计收入{cumulative_revenue:,.0f}万元，同比下降{abs(revenue_yoy):.1f}%")
     
     # 2. 毛利下滑
     if profit_yoy < -20:

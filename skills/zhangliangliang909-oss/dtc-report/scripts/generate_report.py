@@ -27,6 +27,22 @@ from datetime import datetime, timedelta
 from customer_sales import read_customer_data, read_top_customers_and_sales
 # 导入海外仓模块
 from warehouse import read_warehouse_data, read_loss_customers
+
+# 导入 AI 分析模块
+try:
+    from ai_analysis import analyze_business_performance, format_ai_analysis_html
+    AI_ANALYSIS_ENABLED = True
+except ImportError:
+    AI_ANALYSIS_ENABLED = False
+    print('⚠️ AI 分析模块未加载，将使用规则分析')
+
+# 导入客户年代分析模块
+try:
+    from customer_vintage_analysis import analyze_customer_vintage, format_customer_vintage_html
+    CUSTOMER_VINTAGE_ENABLED = True
+except ImportError:
+    CUSTOMER_VINTAGE_ENABLED = False
+    print('⚠️ 客户年代分析模块未加载')
 # 导入关键发现模块
 from key_findings import generate_key_findings
 
@@ -137,13 +153,18 @@ def read_budget_data():
                 monthly_profit[segment] = month_data
         
         # 打印调试信息
-        print(f"    收入预算（3 月）: B={monthly_rev['b'][2]/10000:.0f}万，C={monthly_rev['c'][2]/10000:.0f}万，D={monthly_rev['d'][2]/10000:.0f}万")
-        print(f"    收入预算（Q1）: B={sum(monthly_rev['b'])/10000:.0f}万，C={sum(monthly_rev['c'])/10000:.0f}万，D={sum(monthly_rev['d'])/10000:.0f}万")
-        print(f"    毛利预算（3 月）: B={monthly_profit['b'][2]/10000:.1f}万，C={monthly_profit['c'][2]/10000:.0f}万，D={monthly_profit['d'][2]/10000:.0f}万")
-        print(f"    毛利预算（Q1）: B={sum(monthly_profit['b'])/10000:.1f}万，C={sum(monthly_profit['c'])/10000:.0f}万，D={sum(monthly_profit['d'])/10000:.0f}万")
+        # 转换为万元
+        for seg in ['b', 'c', 'd', 'ecom', 'other']:
+            monthly_rev[seg] = [v/10000 for v in monthly_rev[seg]]
+            monthly_profit[seg] = [v/10000 for v in monthly_profit[seg]]
+        
+        print(f"    收入预算（3 月）: B={monthly_rev['b'][2]:.0f}万，C={monthly_rev['c'][2]:.0f}万，D={monthly_rev['d'][2]:.0f}万")
+        print(f"    收入预算（Q1）: B={sum(monthly_rev['b']):.0f}万，C={sum(monthly_rev['c']):.0f}万，D={sum(monthly_rev['d']):.0f}万")
+        print(f"    毛利预算（3 月）: B={monthly_profit['b'][2]:.1f}万，C={monthly_profit['c'][2]:.0f}万，D={monthly_profit['d'][2]:.0f}万")
+        print(f"    毛利预算（Q1）: B={sum(monthly_profit['b']):.1f}万，C={sum(monthly_profit['c']):.0f}万，D={sum(monthly_profit['d']):.0f}万")
         
         return {
-            # 3 月数据
+            # 3 月数据（万元）
             'b_revenue': monthly_rev['b'][2],
             'c_revenue': monthly_rev['c'][2],
             'd_revenue': monthly_rev['d'][2],
@@ -439,16 +460,31 @@ def read_revenue_profit_by_segment(period='2026-Q1', yoy=False, current_day=None
         if not bu or str(bu).strip() != target_bu:
             continue
         
-        if not month or not str(month).startswith(target_year):
+        if not month:
             continue
         
-        month_str = str(month)
-        try:
+        # 处理月份：支持字符串和 Excel 日期序列号
+        from datetime import datetime, timedelta
+        if isinstance(month, (int, float)):
+            # Excel 日期序列号（如 45658）
+            base_date = datetime(1899, 12, 30)
+            actual_date = base_date + timedelta(days=int(month))
+            month_num = actual_date.month
+            month_year = actual_date.year
+        else:
+            month_str = str(month)
             if '年' in month_str:
+                month_year = int(month_str.split('年')[0].strip())
                 month_num = int(month_str.split('年')[1].replace('月', '').strip())
+            elif '-' in month_str:
+                parts = month_str.split('-')
+                month_year = int(parts[0].strip())
+                month_num = int(parts[1].strip())
             else:
-                month_num = int(month_str.split('-')[1])
-        except:
+                continue
+        
+        # 检查年份
+        if str(month_year) != target_year:
             continue
         
         if not segment:
@@ -470,13 +506,17 @@ def read_revenue_profit_by_segment(period='2026-Q1', yoy=False, current_day=None
         else:
             segment_key = 'other'
         
+        # 转换为万元（原始数据单位是元）
+        rev_wan = rev / 10000
+        prof_wan = prof / 10000
+        
         if month_num in cumulative_months:
-            result['cumulative'][f'{segment_key}_revenue'] += rev
-            result['cumulative'][f'{segment_key}_profit'] += prof
+            result['cumulative'][f'{segment_key}_revenue'] += rev_wan
+            result['cumulative'][f'{segment_key}_profit'] += prof_wan
         
         if month_num == current_month:
-            result['current'][f'{segment_key}_revenue'] += rev
-            result['current'][f'{segment_key}_profit'] += prof
+            result['current'][f'{segment_key}_revenue'] += rev_wan
+            result['current'][f'{segment_key}_profit'] += prof_wan
     
     # 当月未结束时的调整
     if need_adjustment and end_day < 31:
@@ -658,7 +698,16 @@ def read_monthly_trend_data(months=6):
             if not month:
                 continue
             
-            month_str = str(month).replace('年', '-').replace('月', '').strip()
+            # 处理月份：支持字符串和 Excel 日期序列号
+            from datetime import datetime, timedelta
+            if isinstance(month, (int, float)):
+                # Excel 日期序列号（如 45658）
+                base_date = datetime(1899, 12, 30)
+                actual_date = base_date + timedelta(days=int(month))
+                month_str = f"{actual_date.year}-{actual_date.month}"
+            else:
+                month_str = str(month).replace('年', '-').replace('月', '').strip()
+            
             rev = float(revenue) if revenue else 0
             prof = float(profit) if profit else 0
             
@@ -719,20 +768,27 @@ def read_monthly_trend_data(months=6):
             date_val = ws.cell(row=row, column=3).value
             
             if segment and volume and date_val:
-                date_str = str(date_val)
-                # 格式转换：2025-07 -> 2025-7
-                # 标准化月份格式为 YYYY-MM
-                # 标准化月份格式为 YYYY-MM
-                if len(date_str) >= 7:
-                    parts = date_str.split('-')
-                    if len(parts) >= 2:
-                        year = parts[0].strip()
-                        month_num = int(parts[1].strip())  # 不补零
-                        month_str = f"{year}-{month_num}"
+                # 处理日期：支持字符串和 Excel 日期序列号
+                from datetime import datetime, timedelta
+                if isinstance(date_val, (int, float)):
+                    # Excel 日期序列号
+                    base_date = datetime(1899, 12, 30)
+                    actual_date = base_date + timedelta(days=int(date_val))
+                    month_str = f"{actual_date.year}-{actual_date.month}"
+                elif isinstance(date_val, datetime):
+                    month_str = f"{date_val.year}-{date_val.month}"
+                else:
+                    date_str = str(date_val)
+                    if len(date_str) >= 7:
+                        parts = date_str.split('-')
+                        if len(parts) >= 2:
+                            year = parts[0].strip()
+                            month_num = int(parts[1].strip())
+                            month_str = f"{year}-{month_num}"
+                        else:
+                            continue
                     else:
                         continue
-                else:
-                    continue
                 vol = float(volume) if volume else 0
                 seg_str = str(segment).strip()
                 
@@ -810,10 +866,15 @@ def read_monthly_trend_data(months=6):
             if not month:
                 continue
             
-            # 处理 datetime 类型
-            from datetime import datetime
-            if isinstance(month, datetime):
-                month_str = f"{month.year}-{month.month}"  # 不补零
+            # 处理月份：支持字符串、datetime 和 Excel 日期序列号
+            from datetime import datetime, timedelta
+            if isinstance(month, (int, float)):
+                # Excel 日期序列号
+                base_date = datetime(1899, 12, 30)
+                actual_date = base_date + timedelta(days=int(month))
+                month_str = f"{actual_date.year}-{actual_date.month}"
+            elif isinstance(month, datetime):
+                month_str = f"{month.year}-{month.month}"
             else:
                 month_str = str(month)
                 if '年' in month_str and '月' in month_str:
@@ -1047,7 +1108,7 @@ def generate_trend_analysis(trend_data):
     return " ".join(analysis) if analysis else "趋势平稳，无明显波动。"
 
 
-def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_mom, outbound, outbound_yoy, outbound_mom, single_box, trend_data, customer_data, top_customers, top_sales, top_sales_d_volume, top_current_customers, top_current_sales, warehouse_data, loss_customers, highlights, concerns, period='2026-Q1'):
+def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_mom, outbound, outbound_yoy, outbound_mom, single_box, trend_data, customer_data, top_customers, top_sales, top_sales_d_volume, top_current_customers, top_current_sales, warehouse_data, loss_customers, highlights, concerns, period='2026-Q1', ai_analysis=None, customer_vintage=None):
     """生成 HTML 报告（包含同比、单箱指标和趋势图表）"""
     current_month, cumulative_months = parse_period(period)
     
@@ -1060,15 +1121,29 @@ def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_
         return ((current - last_year) / last_year) * 100
     
     def fmt(val):
-        return f'{val/10000:,.0f}'
+        # 数据已经是万元单位，直接格式化
+        return f'{val:,.0f}'
     
     def fmt1(val):
-        return f'{val/10000:,.1f}'
+        # 数据已经是万元单位，直接格式化（1 位小数）
+        return f'{val:,.1f}'
     
     def fmt_num(val):
         return f'{val:,.0f}'
     
     today = datetime.now().strftime('%Y 年 %m 月 %d 日')
+    
+    # 处理 AI 分析结果
+    if ai_analysis and ai_analysis.get('success'):
+        ai_analysis_section = format_ai_analysis_html(ai_analysis)
+    else:
+        ai_analysis_section = ''
+    
+    # 处理客户年代分析结果
+    if customer_vintage:
+        customer_vintage_section = format_customer_vintage_html(customer_vintage)
+    else:
+        customer_vintage_section = ''
     
     # 计算汇总
     current_revenue = sum(actual['current'].get(f'{k}_revenue', 0) for k in ['b', 'c', 'd', 'ecom', 'other'])
@@ -1192,6 +1267,15 @@ def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_
         .kpi-card .label {{ font-size: 14px; opacity: 0.9; margin-bottom: 10px; }}
         .kpi-card .value {{ font-size: 36px; font-weight: 700; margin-bottom: 12px; }}
         .kpi-card .detail {{ font-size: 13px; opacity: 0.85; line-height: 1.6; }}
+        
+        /* AI 分析样式 */
+        .ai-analysis-content {{ background: #f8fafc; border-left: 4px solid #3b82f6; padding: 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }}
+        .analysis-item {{ background: white; padding: 15px; margin: 10px 0; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
+        .analysis-item strong {{ color: #1e40af; font-size: 16px; }}
+        .analysis-item ul {{ margin: 10px 0; padding-left: 20px; }}
+        .analysis-item li {{ margin: 5px 0; color: #475569; }}
+        .analysis-impact {{ background: #fef3c7; padding: 10px; border-radius: 6px; margin-top: 10px; color: #92400e; font-weight: 500; }}
+        .text-warning {{ color: #f59e0b; }}
     </style>
 </head>
 <body>
@@ -1676,22 +1760,28 @@ def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_
                         </tbody>
                     </table>
                     <div class="data-source">数据来源：DTC 明细表 - 全链路视角</div>
-                </div><div class="subsection">
-                    <div class="subsection-title">3.1 收入月度趋势（分业务段）</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">三、趋势分析</div>
+                
+                <div class="subsection">
+                    <div class="subsection-title">收入月度趋势（分业务段）</div>
                     <div class="chart-container">
                         <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
                 
                 <div class="subsection">
-                    <div class="subsection-title">3.2 箱量月度趋势（分业务段）</div>
+                    <div class="subsection-title">箱量月度趋势（分业务段）</div>
                     <div class="chart-container">
                         <canvas id="volumeChart"></canvas>
                     </div>
                 </div>
                 
                 <div class="subsection">
-                    <div class="subsection-title">3.3 出库件数月度趋势</div>
+                    <div class="subsection-title">出库件数月度趋势</div>
                     <div class="chart-container">
                         <canvas id="outboundChart"></canvas>
                     </div>
@@ -1699,7 +1789,10 @@ def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_
                 </div>
             </div>
             
-<div class="section">
+            <!-- 客户年代分析 -->
+            {customer_vintage_section}
+            
+            <div class="section">
                 <div class="section-title">四、客户与销售</div>
                 
                 <div class="subsection">
@@ -2049,6 +2142,12 @@ def generate_html_report(actual, actual_yoy, budget, volume, volume_yoy, volume_
                     </table>
                 </div>
             </div>
+            
+            <!-- AI 深度分析 -->
+            {ai_analysis_section}
+            
+            <!-- 客户年代分析 -->
+            {customer_vintage_section}
             
             <div class="section">
                 <div class="section-title">六、关键发现</div>
@@ -2549,10 +2648,10 @@ def main():
     budget = read_budget_data()
     
     if budget and budget.get('revenue_cumulative'):
-        print(f'    收入预算（Q1 逐月累加）: {budget["revenue_cumulative"]/10000:.0f}万')
-        print(f'      B 段：{budget["b_revenue_cumulative"]/10000:.0f}万，C 段：{budget["c_revenue_cumulative"]/10000:.0f}万，D 段：{budget["d_revenue_cumulative"]/10000:.0f}万')
-        print(f'    毛利预算（Q1 逐月累加）: {budget["gross_profit_cumulative"]/10000:.0f}万')
-        print(f'      B 段：{budget["b_profit_cumulative"]/10000:.1f}万，C 段：{budget["c_profit_cumulative"]/10000:.0f}万，D 段：{budget["d_profit_cumulative"]/10000:.0f}万')
+        print(f'    收入预算（Q1 逐月累加）: {budget["revenue_cumulative"]:.0f}万')
+        print(f'      B 段：{budget["b_revenue_cumulative"]:.0f}万，C 段：{budget["c_revenue_cumulative"]:.0f}万，D 段：{budget["d_revenue_cumulative"]:.0f}万')
+        print(f'    毛利预算（Q1 逐月累加）: {budget["gross_profit_cumulative"]:.0f}万')
+        print(f'      B 段：{budget["b_profit_cumulative"]:.1f}万，C 段：{budget["c_profit_cumulative"]:.0f}万，D 段：{budget["d_profit_cumulative"]:.0f}万')
     else:
         print('    ⚠️ 预算数据读取失败')
     
@@ -2611,11 +2710,38 @@ def main():
     print(f'    前十大客户：{len(top_customers)}家')
     print(f'    前十大销售：{len(top_sales)}家')
     
+    # 客户年代分析
+    customer_vintage = None
+    if CUSTOMER_VINTAGE_ENABLED:
+        print('  进行客户年代分析...')
+        try:
+            customer_vintage = analyze_customer_vintage(args.period)
+            print(f'    累计合作客户：{customer_vintage.get("total_unique_customers", 0)}家')
+        except Exception as e:
+            print(f'    ⚠️ 客户年代分析失败：{e}')
+            customer_vintage = None
+    
     print('  读取海外仓数据...')
     warehouse_data = read_warehouse_data(args.period)
     loss_customers = read_loss_customers(args.period)
     print(f'    仓库分布国家：{len(warehouse_data["by_country"])}个')
     print(f'    亏损客户：{len(loss_customers)}家')
+    
+    # AI 深度分析
+    ai_analysis = None
+    if AI_ANALYSIS_ENABLED:
+        print('  调用 AI 分析...')
+        try:
+            # 读取同比箱量数据
+            volume_yoy = read_volume_data(args.period, yoy=True)
+            ai_analysis = analyze_business_performance(actual, budget, actual_yoy, volume, volume_yoy, args.period)
+            print(f'    识别异常：{len(ai_analysis.get("anomalies", []))}个')
+            print(f'    生成建议：{len(ai_analysis.get("recommendations", []))}条')
+        except Exception as e:
+            print(f'    ⚠️ AI 分析失败：{e}')
+            import traceback
+            traceback.print_exc()
+            ai_analysis = None
     
     print('  生成关键发现...')
     highlights, concerns = generate_key_findings(
@@ -2633,7 +2759,7 @@ def main():
         single_box, trend_data, customer_data, top_customers, top_sales, top_sales_d_volume,
         top_current_customers, top_current_sales,
         warehouse_data, loss_customers, highlights, concerns,
-        args.period
+        args.period, ai_analysis, customer_vintage
     )
     
     # 保存

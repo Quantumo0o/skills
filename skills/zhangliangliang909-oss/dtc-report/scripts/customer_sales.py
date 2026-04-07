@@ -176,17 +176,32 @@ def read_top_customers_and_sales(period='2026-Q1', top_n=10):
         if not bu or str(bu).strip() != 'BWLDTC':
             continue
         
-        if not month or not str(month).startswith('2026'):
+        if not month:
             continue
         
-        # 检查是否在累计月份内
-        month_str = str(month).replace('年', '-').replace('月', '').replace('-0', '-').strip()
-        try:
-            month_num = int(month_str.split('-')[1])
-        except:
-            continue
+        # 处理月份：支持字符串和 Excel 日期序列号
+        from datetime import datetime, timedelta
+        if isinstance(month, (int, float)):
+            # Excel 日期序列号
+            base_date = datetime(1899, 12, 30)
+            actual_date = base_date + timedelta(days=int(month))
+            month_year = actual_date.year
+            month_num = actual_date.month
+        else:
+            month_str = str(month)
+            if not month_str.startswith('2026'):
+                continue
+            if '年' in month_str:
+                month_year = int(month_str.split('年')[0].strip())
+                month_num = int(month_str.split('年')[1].replace('月', '').strip())
+            elif '-' in month_str:
+                parts = month_str.split('-')
+                month_year = int(parts[0].strip())
+                month_num = int(parts[1].strip())
+            else:
+                continue
         
-        if month_num not in cumulative_months:
+        if month_year != 2026 or month_num not in cumulative_months:
             continue
         
         customer = ws.cell(row=row, column=customer_col).value
@@ -204,15 +219,15 @@ def read_top_customers_and_sales(period='2026-Q1', top_n=10):
             sales_data[sales]['revenue'] += float(revenue) if revenue else 0
             sales_data[sales]['profit'] += float(profit) if profit else 0
     
-    # 排序取 Top N
+    # 排序取 Top N（转换为万元）
     top_customers = sorted(
-        [(name, data['revenue'], data['profit']) for name, data in customer_data.items()],
+        [(name, data['revenue']/10000, data['profit']/10000) for name, data in customer_data.items()],
         key=lambda x: x[1],
         reverse=True
     )[:top_n]
     
     top_sales = sorted(
-        [(name, data['revenue'], data['profit']) for name, data in sales_data.items()],
+        [(name, data['revenue']/10000, data['profit']/10000) for name, data in sales_data.items()],
         key=lambda x: x[1],
         reverse=True
     )[:top_n]
@@ -262,6 +277,7 @@ def read_top_customers_and_sales(period='2026-Q1', top_n=10):
                     sales_d_volume[top_sales_name] += float(volume)
                     break
     
+    # D 段箱量转换为 TEU（原始数据是箱量，已经是 TEU 单位）
     top_sales_d_volume = [(name, sales_d_volume.get(name, 0)) for name in top_sales_names]
     top_sales_d_volume.sort(key=lambda x: x[1], reverse=True)
     
@@ -299,10 +315,25 @@ def read_top_customers_and_sales(period='2026-Q1', top_n=10):
             if not month:
                 continue
             
-            month_str = str(month).replace('年', '-').replace('月', '').replace('-0', '-').strip()
-            try:
-                month_num = int(month_str.split('-')[1])
-            except:
+            # 处理月份：支持字符串和 Excel 日期序列号
+            from datetime import datetime, timedelta
+            if isinstance(month, (int, float)):
+                base_date = datetime(1899, 12, 30)
+                actual_date = base_date + timedelta(days=int(month))
+                month_num = actual_date.month
+            elif '年' in str(month):
+                month_str = str(month).replace('年', '-').replace('月', '').strip()
+                try:
+                    month_num = int(month_str.split('-')[1])
+                except:
+                    continue
+            elif '-' in str(month):
+                month_str = str(month).replace('-0', '-').strip()
+                try:
+                    month_num = int(month_str.split('-')[1])
+                except:
+                    continue
+            else:
                 continue
             
             # 只统计当月数据
@@ -322,15 +353,15 @@ def read_top_customers_and_sales(period='2026-Q1', top_n=10):
                 current_sales[sales]['revenue'] += float(revenue) if revenue else 0
                 current_sales[sales]['profit'] += float(profit) if profit else 0
     
-    # 当月排名前十大
+    # 当月排名前十大（转换为万元）
     top_current_customers = sorted(
-        [(name, data['revenue'], data['profit']) for name, data in current_customers.items()],
+        [(name, data['revenue']/10000, data['profit']/10000) for name, data in current_customers.items()],
         key=lambda x: x[1],
         reverse=True
     )[:10]
     
     top_current_sales = sorted(
-        [(name, data['revenue'], data['profit']) for name, data in current_sales.items()],
+        [(name, data['revenue']/10000, data['profit']/10000) for name, data in current_sales.items()],
         key=lambda x: x[1],
         reverse=True
     )[:10]
