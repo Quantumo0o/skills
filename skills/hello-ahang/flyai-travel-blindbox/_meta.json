@@ -3,9 +3,15 @@
   "slug": "flyai-travel-blindbox",
   "displayName": "旅行盲盒",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775115644293,
-    "commit": "https://github.com/openclaw/skills/commit/8dc08f206cbaf56f490b644d02a6516c7ca31a5f"
+    "version": "1.0.1",
+    "publishedAt": 1775237070809,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775115644293,
+      "commit": "https://github.com/openclaw/skills/commit/8dc08f206cbaf56f490b644d02a6516c7ca31a5f"
+    }
+  ]
 }
