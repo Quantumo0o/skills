@@ -1,0 +1,11 @@
+{
+  "owner": "sheygoodbai",
+  "slug": "llm-supervision-vericlaw",
+  "displayName": "Agent Supervision",
+  "latest": {
+    "version": "0.1.7",
+    "publishedAt": 1775468834890,
+    "commit": null
+  },
+  "history": []
+}
