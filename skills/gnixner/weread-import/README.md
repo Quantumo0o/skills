@@ -52,10 +52,10 @@ node ./src/cli.mjs --book "自卑与超越" --mode api --cookie-from browser --o
 
 ## 配置
 
-所有环境变量均可参考 `env.example`，复制为 `.env` 后按需修改：
+所有环境变量均可参考 `env.example.md`，复制为 `.env` 后按需修改：
 
 ```bash
-cp env.example .env
+cp env.example.md .env
 ```
 
 ### 输出目录
@@ -119,7 +119,7 @@ WEREAD_TAGS="reading/weread,book"
 | `--output <目录>` | 自定义输出目录 |
 | `--cookie <cookie>` | 直接传入 cookie |
 | `--cookie-from <manual\|browser>` | cookie 来源方式 |
-| `--mode <auto\|api\|dom>` | 导出模式，默认 `auto` |
+| `--mode <api>` | 导出模式，默认 `api` |
 | `--cdp <url>` | Chrome 远程调试地址，默认 `http://127.0.0.1:9222` |
 | `--limit <n>` | 最多处理的书籍数量 |
 | `--force` | 跳过增量检查，强制重新渲染 |
@@ -170,7 +170,6 @@ src/
   merge.mjs            ← 增量合并与统计
   markdown-parser.mjs  ← Markdown 解析
   state.mjs            ← 同步状态管理
-  dom.mjs              ← DOM 模式（浏览器抓取）
   errors.mjs           ← 错误类型定义
   utils.mjs            ← 通用工具函数
 scripts/
