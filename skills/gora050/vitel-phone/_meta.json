@@ -3,9 +3,15 @@
   "slug": "vitel-phone",
   "displayName": "Vitel Phone",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775131495806,
-    "commit": "https://github.com/openclaw/skills/commit/e3e23d70613fc4a6156929a0cdaecf23ed87be5e"
+    "version": "1.0.2",
+    "publishedAt": 1775171002203,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775131495806,
+      "commit": "https://github.com/openclaw/skills/commit/e3e23d70613fc4a6156929a0cdaecf23ed87be5e"
+    }
+  ]
 }
