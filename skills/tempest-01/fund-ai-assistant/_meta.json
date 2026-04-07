@@ -1,0 +1,11 @@
+{
+  "owner": "tempest-01",
+  "slug": "fund-ai-assistant",
+  "displayName": "Fund Ai Assistant",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775408380658,
+    "commit": null
+  },
+  "history": []
+}
