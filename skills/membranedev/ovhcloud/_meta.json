@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "ovhcloud",
+  "displayName": "Ovhcloud",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775217898216,
+    "commit": null
+  },
+  "history": []
+}
