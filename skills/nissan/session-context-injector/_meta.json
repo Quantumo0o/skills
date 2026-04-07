@@ -1,0 +1,11 @@
+{
+  "owner": "nissan",
+  "slug": "session-context-injector",
+  "displayName": "Session Context Injector",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775204173311,
+    "commit": null
+  },
+  "history": []
+}
