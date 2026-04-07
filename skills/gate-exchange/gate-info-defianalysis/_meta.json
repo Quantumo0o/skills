@@ -1,0 +1,11 @@
+{
+  "owner": "gate-exchange",
+  "slug": "gate-info-defianalysis",
+  "displayName": "gate-info-defianalysis",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775184681649,
+    "commit": null
+  },
+  "history": []
+}
