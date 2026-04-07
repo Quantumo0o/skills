@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-youtube",
+  "displayName": "YouTube API",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775377606360,
+    "commit": null
+  },
+  "history": []
+}
