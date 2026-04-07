@@ -1,0 +1,11 @@
+{
+  "owner": "pinological",
+  "slug": "local-voice-agent",
+  "displayName": "Local Voice Agent",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775211330233,
+    "commit": null
+  },
+  "history": []
+}
