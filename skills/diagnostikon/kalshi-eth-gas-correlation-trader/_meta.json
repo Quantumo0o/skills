@@ -1,0 +1,11 @@
+{
+  "owner": "diagnostikon",
+  "slug": "kalshi-eth-gas-correlation-trader",
+  "displayName": "Kalshi Eth Gas Correlation Trader",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1775329943363,
+    "commit": null
+  },
+  "history": []
+}
