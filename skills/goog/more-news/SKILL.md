@@ -1,11 +1,11 @@
 ---
 name: more-news
-description: Fetch, aggregate, and rank AI/tech news from multiple sources listed in `workspace/source.md`. Use when the user asks to get AI news, tech news digest, aggregate news, latest news from sources, fetch news headlines, or compile news from a source list. Triggers on phrases like "get AI news from source.md", "fetch news from my sources", "compile news digest", "aggregate tech news", "get news headlines", "more news". NOT for: generic web search queries (use web_search), single article lookups, or Chinese-language news (use big-ai-news, ai-news, or nature skills instead).
+description: Fetch, aggregate, and rank AI/tech news from multiple sources listed in `workspace/source.md`. Use when the user asks to get AI news, tech news digest, aggregate news, latest news from sources, fetch news headlines, or compile news from a source list. Triggers on phrases like "get AI news from source.md", "fetch news from my sources", "compile news digest", "aggregate tech news", "more-news". NOT for: generic web search queries (use web_search), single article lookups, or Chinese-language news (use big-ai-news or nature skills instead).
 ---
 
 # More News
 
-Aggregate AI/tech news from user-defined sources in `workspace/source.md`. For broad AI news without a source file, consider using `big-ai-news` or `ai-news` skills instead.
+Aggregate AI/tech news from user-defined sources in `source.md`. For broad AI news without a source file, consider using `big-ai-news` or `ai-news` skills instead.
 
 ## Workflow
 
@@ -27,25 +27,18 @@ For each source URL, use `web_fetch` in parallel batches (8-12 at a time):
 ### 3. Filter to Last 24 Hours
 
 Only include articles published within 24 hours of the current time. Use article date stamps, relative timestamps ("2 hours ago" / "Apr 3"), or publication sections to determine recency.
+For articles that lack full details (no URL, no full headline details), skip it.
 
-### 4. Enrich with Web Search
-
-For articles that lack full details (no URL, no full headline details), use `web_search`:
-- `freshness`: "day"
-- `count`: 10
-
-Search for article headlines to find source URLs and details. Deduplicate results.
-
-### 5. Compile & Rank
+### 4. Compile & Rank
 
 Output ranked newest-to-oldest. Each entry must include:
 - Numbered ranking (1, 2, 3...)
 - Headline
-- Brief summary (2-4 sentences)
+- Brief summary (2-3 sentences)
 - Source URL (clickable link — prefer original article URL)
 - Approximate date/time
 
-### 6. Report Skipped Sources
+### 5. Report Skipped Sources
 
 At the end, list which sources from `source.md` were skipped and why (blocked, no articles, stale).
 

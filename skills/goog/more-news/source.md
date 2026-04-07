@@ -58,4 +58,4 @@
 | 32 | Microsoft AI | https://azure.microsoft.com/en-us/blog/artificial-intelligence/ | MS AI |
 | 33 | Anthropic | https://www.anthropic.com/news | Claude AI |
 | 34 | Digiday | https://digiday.com | Media Tech |
-
+| 35 | Guardian | https://www.theguardian.com/uk/technology | media |
