@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "postgrest",
+  "displayName": "Postgrest",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775199878480,
+    "commit": null
+  },
+  "history": []
+}
