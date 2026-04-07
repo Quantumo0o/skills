@@ -1,0 +1,11 @@
+{
+  "owner": "openclawchen8-lgtm",
+  "slug": "prompt-injection-filter",
+  "displayName": "Prompt Injection Filter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775268123013,
+    "commit": null
+  },
+  "history": []
+}
