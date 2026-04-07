@@ -75,6 +75,12 @@ Until it does, apply this guide by:
 2. Or noting the recommended temperature in each skill's `SKILL.md` frontmatter
 3. When spawning subagents for specific tasks, pass the appropriate temperature
 
+## Communication Override Rules (Temperature 0.0 absolute)
+- Sending messages to people → always confirm before sending (irreversible)
+- Deleting data → always confirm
+- "sure thing" reply → exact string, no creativity, temperature 0.0
+- Reaction signals (👍, ✅) → deterministic, no variation
+
 ---
 
 ## Learned From

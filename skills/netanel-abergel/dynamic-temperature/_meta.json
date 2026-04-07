@@ -3,9 +3,15 @@
   "slug": "dynamic-temperature",
   "displayName": "Dynamic Temperature",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775109672593,
-    "commit": "https://github.com/openclaw/skills/commit/f03049e1e78a7d2f82e6904b0d6eb1295792c9e9"
+    "version": "1.0.2",
+    "publishedAt": 1775332273829,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775109672593,
+      "commit": "https://github.com/openclaw/skills/commit/f03049e1e78a7d2f82e6904b0d6eb1295792c9e9"
+    }
+  ]
 }
