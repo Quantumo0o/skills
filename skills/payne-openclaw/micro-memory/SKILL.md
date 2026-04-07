@@ -1,6 +1,6 @@
 # Micro Memory 🧠
 
-**智能记忆系统 | Intelligent Memory System**
+**🧠 你的第二大脑 | Your Second Brain — 智能记忆系统，支持强度衰减、知识图谱、间隔重复，让知识真正属于你 | Smart memory with decay, knowledge graph & spaced repetition**
 
 > 不是简单的笔记存储，而是会思考、会遗忘、会提醒的第二大脑。
 > Not just note storage, but a thinking, forgetting, reminding second brain.

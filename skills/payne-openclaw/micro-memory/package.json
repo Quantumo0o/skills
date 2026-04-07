@@ -1,7 +1,7 @@
 {
   "name": "micro-memory",
-  "version": "3.1.3",
-  "description": "Intelligent memory system with strength, links, and spaced repetition - Native TypeScript Implementation",
+  "version": "3.1.6",
+  "description": "🧠 你的第二大脑 | Your Second Brain — 智能记忆系统，支持强度衰减、知识图谱、间隔重复，让知识真正属于你 | Smart memory with decay, knowledge graph & spaced repetition",
   "author": "Clawdbot",
   "license": "MIT",
   "main": "dist/index.js",
@@ -32,8 +32,8 @@
   },
   "clawdbot": {
     "skill": true,
-    "version": "3.1.3",
-    "semver": "3.1.3",
+    "version": "3.1.6",
+    "semver": "3.1.6",
     "entry": "dist/index.js",
     "triggers": [
       "记录",
