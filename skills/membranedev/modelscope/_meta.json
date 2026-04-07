@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "modelscope",
+  "displayName": "Modelscope",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775397830784,
+    "commit": null
+  },
+  "history": []
+}
