@@ -3,9 +3,15 @@
   "slug": "mendix",
   "displayName": "Mendix",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775109840539,
-    "commit": "https://github.com/openclaw/skills/commit/44ba5dd8311def7431d141ad9b086db817988036"
+    "version": "1.0.2",
+    "publishedAt": 1775170861826,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775109840539,
+      "commit": "https://github.com/openclaw/skills/commit/44ba5dd8311def7431d141ad9b086db817988036"
+    }
+  ]
 }
