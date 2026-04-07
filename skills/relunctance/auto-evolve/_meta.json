@@ -1,0 +1,11 @@
+{
+  "owner": "relunctance",
+  "slug": "auto-evolve",
+  "displayName": "Auto Evolve",
+  "latest": {
+    "version": "3.9.1",
+    "publishedAt": 1775401470673,
+    "commit": null
+  },
+  "history": []
+}
