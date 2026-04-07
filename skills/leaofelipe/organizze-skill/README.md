@@ -1,6 +1,9 @@
-# organizze-skill
+# Organizze Skill
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
+[![The Claw is The law](https://img.shields.io/badge/%F0%9F%A6%9E-The%20Claw%20is%20The%20law-2ea44f?style=flat-square)](https://clawhub.ai/leaofelipe/organizze-skill)
+
+[ClawHub — organizze-skill](https://clawhub.ai/leaofelipe/organizze-skill)
 
 Node.js scripts to interact with the [Organizze API](https://github.com/organizze/api-doc). Each resource has its own script executable directly from the terminal.
 

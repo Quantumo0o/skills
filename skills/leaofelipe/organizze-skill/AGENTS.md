@@ -45,6 +45,28 @@ type(scope): description
 
 Examples: `feat(transactions): add list by account`, `fix(client): handle empty response body`, `docs(readme): update usage examples`
 
+## Publishing to ClawHub
+
+Use the `clawhub` CLI (via `npx clawhub`) to publish the skill.
+
+### Publish
+
+```bash
+npx clawhub publish . --slug organizze-skill --version <semver>
+```
+
+Run from the repository root. The `<path>` argument points to the folder containing `SKILL.md`.
+
+- `--slug`: must be `organizze-skill`
+- `--version`: semver (e.g. `1.2.1`). The registry rejects versions that already exist — bump before publishing.
+- `--changelog`: optional description of what changed (e.g. `--changelog "add transfers date filters"`)
+
+### Example
+
+```bash
+npx clawhub publish . --slug organizze-skill --version 1.2.1 --changelog "fix: update setup instructions"
+```
+
 ## API reference
 
 Full API docs: https://github.com/organizze/api-doc
