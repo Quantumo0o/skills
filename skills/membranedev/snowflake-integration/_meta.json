@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "snowflake-integration",
+  "displayName": "Snowflake",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775297116370,
+    "commit": null
+  },
+  "history": []
+}
