@@ -1,0 +1,11 @@
+{
+  "owner": "anydebug",
+  "slug": "ai-news-publisher",
+  "displayName": "整理当天AI行业新闻发布到公众号",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775201853990,
+    "commit": null
+  },
+  "history": []
+}
