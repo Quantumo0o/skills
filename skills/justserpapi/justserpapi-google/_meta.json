@@ -1,0 +1,11 @@
+{
+  "owner": "justserpapi",
+  "slug": "justserpapi-google",
+  "displayName": "Google SERP API",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775552369055,
+    "commit": null
+  },
+  "history": []
+}
