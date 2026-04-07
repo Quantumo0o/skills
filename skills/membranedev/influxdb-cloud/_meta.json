@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "influxdb-cloud",
+  "displayName": "Influxdb Cloud",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775297133239,
+    "commit": null
+  },
+  "history": []
+}
