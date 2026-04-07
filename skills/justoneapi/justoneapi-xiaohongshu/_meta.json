@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-xiaohongshu",
+  "displayName": "Xiaohongshu (RedNote) API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775378758432,
+    "commit": null
+  },
+  "history": []
+}
