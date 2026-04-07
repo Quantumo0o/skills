@@ -1,78 +1,36 @@
 ---
 name: rocom
-description: "Roco Kingdom:World full data query and guide. Pet pokedex, skills, element counters, formations, evolution chains, stats, mark system, dungeons, regions, natures. All data bundled — install and use instantly. No sync needed."
+description: Roco Kingdom World offline data tool. Local JSON queries for pets, skills, and items.
 metadata: { "openclaw": { "emoji": "castle", "requires": { "bins": ["node"] } } }
 ---
 
-# Roco Kingdom:World Full Data Guide
+# Roco Kingdom:World Data Tool
 
-Data from wiki.biligame.com/rocom (Bilibili WIKI). All data is **bundled** — install and query instantly, no network required.
+A professional, offline-first data assistant for Roco Kingdom:World.
 
-## Usage
+## Features
+- **Pet Encyclopedia**: 490+ pets with full stats, attributes, and skill lists.
+- **Skill Database**: 490+ skills with power, energy cost, and effect details.
+- **Item Catalog**: 1700+ items, materials, and furniture with source info.
+- **Dungeon Guide**: Challenge limits, reward drops, and攻略 recommendations.
+- **Regional Data**: Pet distribution maps and zone descriptions.
 
-```bash
-node rocom.mjs pet search 酷拉
-node rocom.mjs formation list
-node rocom.mjs analyze stats
-```
+## Usage Guide
 
-## Update
+| Command | Description | Example |
+| --- | --- | --- |
+| `pet search (name)` | Fuzzy search for pets | `node rocom.mjs pet search dimo` |
+| `pet detail (name)` | View full stats and evolution | `node rocom.mjs pet detail dimo` |
+| `skill list` | Browse all available skills | `node rocom.mjs skill list` |
+| `dungeon detail (name)` | Check rewards and limits | `node rocom.mjs dungeon detail ocean` |
+| `region detail (area)` | See local pet spawns | `node rocom.mjs region detail shop` |
 
-Data is updated by the skill publisher. When a new version is available:
+## Data Integrity
+- **Source**: Bilibili WIKI (CC BY-NC-SA 4.0).
+- **Format**: Pure static JSON in the `data/` folder.
+- **Safety**: No network calls, no credentials, no external links.
 
-```bash
-clawhub update rocom
-# or
-openclaw skills update rocom
-```
-
-## Commands
-
-### Pets
-| Command | Description |
-|---------|-------------|
-| `pet list [--element X] [--stage X] [--boss] [--region]` | Pet list / filter |
-| `pet search <name>` | Search pet |
-| `pet detail <name>` | Pet details (stats / skills / traits / distribution) |
-| `pet evolve <name>` | Evolution chain |
-
-### Skills / Items / Quests
-| Command | Description |
-|---------|-------------|
-| `search <keyword>` | Cross-category search |
-| `skill list [--element X] [--type X]` | Skill list / filter |
-| `skill search <name>` | Search skill |
-| `item list` / `item search <name>` | Items |
-| `quest list` | Quests |
-
-### Formations / Marks / Dungeons / Regions / Natures
-| Command | Description |
-|---------|-------------|
-| `formation list/search/detail <q>` | Formations (with natures / skills / strategy) |
-| `mark list` / `search <q>` | Mark system (positive / negative) |
-| `dungeon list` / `search <q>` | Dungeons |
-| `region list/detail/search <q>` | Regions |
-| `nature list` / `search <name>` | Natures (stat boosts / reductions) |
-
-### Analysis
-| Command | Description |
-|---------|-------------|
-| `analyze element` | Element distribution |
-| `analyze stats` | Stats ranking (final forms) |
-| `analyze top --stat 速度 --n 20` | Top N by single stat |
-
-### Other
-| Command | Description |
-|---------|-------------|
-| `status` | Data status |
-| `update` | Check for skill updates |
-
-## Game Knowledge
-
-See `references/game-knowledge.md` for: element matchup chart, mark system, stat guide, nature selection, team building tips.
-
-Quick summary:
-- Elements: Fire beats Grass/Bug/Ice/Mechanical, weak to Water/Ground. Water beats Fire/Ground, weak to Grass/Electric (18 types total)
-- Marks: Each side has 1 positive + 1 negative at a time, new replaces old
-- Stats: Final forms total 500-700+, Speed determines turn order
-- Team building: Element coverage + offense/defense balance + mark synergy
+## Technical Notes
+- **Runtime**: Requires Node.js.
+- **Performance**: Millisecond-level local queries.
+- **Privacy**: All processing happens on your machine.
