@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-kuaishou",
+  "displayName": "Kuaishou API",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1775541279038,
+    "commit": null
+  },
+  "history": []
+}
