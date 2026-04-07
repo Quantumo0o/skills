@@ -1,0 +1,11 @@
+{
+  "owner": "kazuya-ecnu",
+  "slug": "auto-conda-env",
+  "displayName": "Auto Conda Env",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775415003652,
+    "commit": null
+  },
+  "history": []
+}
