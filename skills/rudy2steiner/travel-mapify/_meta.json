@@ -3,9 +3,15 @@
   "slug": "travel-mapify",
   "displayName": "Travel Mapify",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775146899298,
-    "commit": "https://github.com/openclaw/skills/commit/a0903bfd30a57d16ccf08d51b5940429ed541007"
+    "version": "2.2.0",
+    "publishedAt": 1775434520984,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775146899298,
+      "commit": "https://github.com/openclaw/skills/commit/a0903bfd30a57d16ccf08d51b5940429ed541007"
+    }
+  ]
 }

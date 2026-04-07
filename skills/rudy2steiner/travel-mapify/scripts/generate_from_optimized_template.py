@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Generate travel maps using the optimized Shanghai template as the main template.
-This replaces the unified template with the enhanced version that has:
+Generate travel maps using the generic template with unique map ID for localStorage isolation.
+This replaces the Shanghai template with a clean generic version that has:
+- No city-specific references
+- Unique map ID based on POI names to prevent localStorage conflicts
+- Proper placeholder replacement for dynamic content
 - Real FlyAI hotel search integration
-- No alert popups (notification system instead)
-- Loading states and timeout handling
 - Professional UX improvements
 """
 
@@ -14,22 +15,18 @@ import json
 import argparse
 import re
 
-def load_optimized_template():
-    """Load the optimized Shanghai template"""
-    template_path = '/Users/xuandu/.openclaw/workspace/apps/shanghai-travel/shanghai-final-optimized.html'
+def load_generic_template():
+    """Load the generic template with unique map ID support"""
+    template_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'templates', 'main-generic-template-with-unique-id.html')
     if not os.path.exists(template_path):
-        # Fallback to assets template if Shanghai template not found
-        template_path = os.path.join(os.path.dirname(__file__), '..', 'assets', 'templates', 'unified-map-template.html')
-        if not os.path.exists(template_path):
-            raise FileNotFoundError(f"Template not found: {template_path}")
+        raise FileNotFoundError(f"Generic template with unique ID not found: {template_path}")
     
     with open(template_path, 'r', encoding='utf-8') as f:
         return f.read()
 
 def generate_poi_js_array(pois):
     """Generate JavaScript POI array from POI list"""
-    js_lines = ['        var markers = [];']
-    js_lines.append('        var poiList = [')
+    js_lines = []
     
     for poi in pois:
         name = poi.get('name', 'Unnamed Location')
@@ -53,39 +50,36 @@ def generate_poi_js_array(pois):
         js_lines.append('            },')
     
     # Remove trailing comma from last item if exists
-    if len(js_lines) > 2:
+    if len(js_lines) > 0:
         js_lines[-1] = '            }'
     
-    js_lines.append('        ];')
     return '\n'.join(js_lines)
 
-def replace_poi_section(template_content, pois):
-    """Replace the POI initialization section in the template"""
+def replace_placeholders(template_content, pois):
+    """Replace placeholders in the template with actual content"""
+    if not pois:
+        raise ValueError("No POIs provided")
+    
+    # Get first POI coordinates for map center
+    first_poi = pois[0]
+    if isinstance(first_poi.get('location'), list) and len(first_poi['location']) == 2:
+        first_lng, first_lat = first_poi['location'][0], first_poi['location'][1]
+    else:
+        first_lng, first_lat = 116.4074, 39.9042  # Beijing default
+    
+    # Replace map center coordinates
+    template_content = template_content.replace('[FIRST_POI_LNG, FIRST_POI_LAT]', f'[{first_lng}, {first_lat}]')
+    
+    # Generate POI list
     poi_js = generate_poi_js_array(pois)
     
-    # Find the existing POI section pattern
-    pattern = r'var markers = \[\];\s+var poiList = \[[\s\S]*?\];'
+    # Replace POI list placeholder
+    template_content = template_content.replace('        var poiList = [\n            // POI_LIST_PLACEHOLDER - will be replaced with actual POIs\n        ];', f'        var poiList = [\n{poi_js}\n        ];')
     
-    if re.search(pattern, template_content):
-        # Replace existing POI section
-        new_content = re.sub(pattern, poi_js, template_content)
-    else:
-        # If pattern not found, try alternative pattern
-        alt_pattern = r'var poiList = \[[\s\S]*?\];'
-        if re.search(alt_pattern, template_content):
-            new_content = re.sub(alt_pattern, poi_js, template_content)
-        else:
-            # If no POI section found, insert after markers declaration
-            markers_pattern = r'(var markers = \[\];)'
-            if re.search(markers_pattern, template_content):
-                new_content = re.sub(markers_pattern, f'\\1\n{poi_js}', template_content)
-            else:
-                raise ValueError("Could not find POI section in template")
-    
-    return new_content
+    return template_content
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate travel map using optimized template')
+    parser = argparse.ArgumentParser(description='Generate travel map using generic template with unique map ID')
     parser.add_argument('input_file', help='Input JSON file with geocoded POIs')
     parser.add_argument('output_file', help='Output HTML file path')
     
@@ -116,14 +110,14 @@ def main():
     
     # Load template
     try:
-        template_content = load_optimized_template()
+        template_content = load_generic_template()
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # Replace POI section
+    # Replace placeholders
     try:
-        updated_content = replace_poi_section(template_content, pois)
+        updated_content = replace_placeholders(template_content, pois)
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
@@ -132,11 +126,11 @@ def main():
     with open(args.output_file, 'w', encoding='utf-8') as f:
         f.write(updated_content)
     
-    print(f"Travel map generated using optimized template: {args.output_file}")
+    print(f"Travel map generated using generic template with unique map ID: {args.output_file}")
     print(f"\n💡 IMPORTANT: To view the map properly, start a local HTTP server:")
     print(f"   cd /Users/xuandu/.openclaw/workspace")
-    print(f"   python3 -m http.server 9000")
-    print(f"   Then open: http://localhost:9000/{os.path.basename(args.output_file)}")
+    print(f"   python3 -m http.server 9999")
+    print(f"   Then open: http://localhost:9999/{os.path.basename(args.output_file)}")
 
 if __name__ == '__main__':
     main()

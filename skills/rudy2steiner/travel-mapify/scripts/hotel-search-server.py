@@ -18,12 +18,16 @@ class HotelSearchHandler(BaseHTTPRequestHandler):
     
     def handle_hotel_search(self):
         try:
+            print(f"Received request: {self.path}")
             # Parse query parameters
             parsed_url = urlparse(self.path)
             query_params = parse_qs(parsed_url.query)
-            destination = query_params.get('destination', [None])[0]
+            destination = query_params.get('destination', [None])[0]  # City name
+            poi_name = query_params.get('poi', [None])[0]           # Specific attraction
             checkin_date = query_params.get('checkin', [None])[0]
             checkout_date = query_params.get('checkout', [None])[0]
+            
+            print(f"Parsed params - destination: {destination}, poi: {poi_name}, checkin: {checkin_date}, checkout: {checkout_date}")
             
             if not destination:
                 self.send_error(400, "Missing destination parameter")
@@ -40,24 +44,35 @@ class HotelSearchHandler(BaseHTTPRequestHandler):
             
             # Call FlyAI CLI to search for hotels
             cmd = [
-                'flyai', 'search-hotel',
+                '/Users/xuandu/.nvm/versions/node/v22.22.1/bin/flyai', 'search-hotel',
                 '--dest-name', destination,
                 '--check-in-date', checkin,
                 '--check-out-date', checkout
             ]
             
+            # Add POI name if provided
+            if poi_name:
+                cmd.extend(['--poi-name', poi_name])
+            
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode == 0:
+                # Log the raw output for debugging
+                print(f"FlyAI stdout length: {len(result.stdout)}")
+                print(f"FlyAI stdout preview: {result.stdout[:200]}")
                 # Parse JSON output
                 try:
                     hotel_data = json.loads(result.stdout)
+                    print(f"Parsed hotel_data: {hotel_data.get('data') is not None}")
                     # Return the full response as-is since it already has the correct structure
                     self.send_json_response(hotel_data)
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    print(f"JSON decode error: {e}")
+                    print(f"Problematic output: {result.stdout}")
                     self.send_error(500, "Invalid JSON response from FlyAI")
             else:
                 error_msg = result.stderr or f"FlyAI command failed with code {result.returncode}"
+                print(f"FlyAI command failed: {error_msg}")
                 self.send_error(500, f"Hotel search failed: {error_msg}")
                 
         except subprocess.TimeoutExpired:
