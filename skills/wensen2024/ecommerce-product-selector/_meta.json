@@ -1,11 +1,17 @@
 {
   "owner": "wensen2024",
   "slug": "ecommerce-product-selector",
-  "displayName": "电商选品",
+  "displayName": "ecommerce-product-selector",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775146994812,
-    "commit": "https://github.com/openclaw/skills/commit/42b4c54aa95159f0fb31c52e55860c6cf0f07db1"
+    "version": "1.0.2",
+    "publishedAt": 1775198498945,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775146994812,
+      "commit": "https://github.com/openclaw/skills/commit/42b4c54aa95159f0fb31c52e55860c6cf0f07db1"
+    }
+  ]
 }
