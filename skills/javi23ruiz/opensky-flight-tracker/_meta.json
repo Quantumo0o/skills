@@ -1,0 +1,11 @@
+{
+  "owner": "javi23ruiz",
+  "slug": "opensky-flight-tracker",
+  "displayName": "OpenSky Flight Tracker",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775415285899,
+    "commit": null
+  },
+  "history": []
+}
