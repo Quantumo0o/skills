@@ -4,7 +4,7 @@
 
 环境变量:
     ZOPIA_ACCESS_KEY  (必需) Bearer token，格式 zopia-xxxxxxxxxxxx
-    ZOPIA_BASE_URL    (可选) API 基础地址，默认 https://jaaz.zopia.ai
+    ZOPIA_BASE_URL    (可选) API 基础地址，默认 https://zopia.ai
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ def _get_access_key() -> str:
 
 
 def _get_base_url() -> str:
-    return os.environ.get("ZOPIA_BASE_URL", "https://jaaz.zopia.ai").rstrip("/")
+    return os.environ.get("ZOPIA_BASE_URL", "https://zopia.ai").rstrip("/")
 
 
 # ---------------------------------------------------------------------------

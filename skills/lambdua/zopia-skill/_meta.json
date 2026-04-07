@@ -1,11 +1,17 @@
 {
   "owner": "lambdua",
   "slug": "zopia-skill",
-  "displayName": "Zopia AI 视频创作",
+  "displayName": "Zopia Skills",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775058533778,
-    "commit": "https://github.com/openclaw/skills/commit/fa607096e629441f95f87871ee5b70afd16bf315"
+    "version": "1.0.1",
+    "publishedAt": 1775116998442,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775058533778,
+      "commit": "https://github.com/openclaw/skills/commit/fa607096e629441f95f87871ee5b70afd16bf315"
+    }
+  ]
 }
