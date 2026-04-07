@@ -1,0 +1,11 @@
+{
+  "owner": "helenalhq",
+  "slug": "medical-record-translator",
+  "displayName": "Medical Record Translator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775276945154,
+    "commit": null
+  },
+  "history": []
+}
