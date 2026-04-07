@@ -1,9 +1,20 @@
 ---
-name: agent_justice_protocol
-description: "Dispute resolution and forensic investigation for AI agents. When agent transactions fail, reconstruct what happened, adjudicate fault, and produce actuarial risk profiles."
+name: agent-justice-protocol
+description: "Dispute resolution, forensic investigation, and risk assessment for autonomous AI agent transactions. Reconstruct provenance chains, adjudicate fault, generate actuarial risk profiles for agent insurance. The accountability layer of the Agent Trust Stack."
 user-invocable: true
+tags:
+  - agent-trust
+  - dispute-resolution
+  - forensics
+  - risk-assessment
+  - accountability
+  - insurance
+  - mcp
+  - autonomous-agents
 metadata:
   openclaw:
+    author: alexfleetcommander
+    homepage: https://vibeagentmaking.com
     requires:
       bins:
         - python3
