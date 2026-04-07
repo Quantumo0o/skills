@@ -32,22 +32,21 @@ import urllib.request
 import urllib.error
 
 # 常量
-DEFAULT_API_ENDPOINT = "https://api.bochaai.com/v1/web-search"
-ALTERNATE_ENDPOINT = "https://api.bocha.cn/v1/web-search"
+DEFAULT_API_ENDPOINT = "https://api.bocha.cn/v1/web-search"  # 优化后的主用端点
+ALTERNATE_ENDPOINT = "https://api.bochaai.com/v1/web-search"  # 备用端点
 ENV_VAR_NAME = "BOCHA_API_KEY"
 
 class BochaSearchClient:
     """博查搜索 API 客户端"""
     
-    def __init__(self, api_key: Optional[str] = None, endpoint: str = DEFAULT_API_ENDPOINT):
+    def __init__(self, api_key: Optional[str] = None):
         """
         初始化客户端
         
         Args:
             api_key: API 密钥，如果为 None 则自动检测
-            endpoint: API 端点
         """
-        self.endpoint = endpoint
+        self.endpoint = DEFAULT_API_ENDPOINT
         self.api_key = api_key or self._load_api_key()
         if not self.api_key:
             raise ValueError("未找到博查 API 密钥。请设置环境变量 BOCHA_API_KEY 或在 ~/.openclaw/.env 文件中配置。")
@@ -384,11 +383,7 @@ def main():
         action="store_true",
         help="包含答案摘要（如支持）"
     )
-    parser.add_argument(
-        "--endpoint", "-e",
-        default=DEFAULT_API_ENDPOINT,
-        help=f"API 端点 (默认: {DEFAULT_API_ENDPOINT})"
-    )
+
     
     # 其他选项
     parser.add_argument(
@@ -407,7 +402,7 @@ def main():
     parser.add_argument(
         "--version", "-V",
         action="version",
-        version="博查搜索 Python 客户端 0.1.1"
+        version="博查搜索 Python 客户端 0.1.4"
     )
     
     args = parser.parse_args()
@@ -427,7 +422,7 @@ def main():
     
     # 执行搜索
     try:
-        client = BochaSearchClient(api_key=None, endpoint=args.endpoint)
+        client = BochaSearchClient(api_key=None)
         
         # 执行搜索
         response = client.search(

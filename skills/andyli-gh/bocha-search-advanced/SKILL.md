@@ -11,7 +11,7 @@ env:
 
 ## 概述
 
-博查搜索高级版是一个增强的博查 AI 搜索 API 客户端，专为 AI Agent 和自动化工作流设计。本技能提供：
+博查搜索高级版是一个增强的博查搜索 API 客户端，专为 AI Agent 和自动化工作流设计。本技能提供：
 
 - **更稳定的连接**：内置重试机制和错误处理
 - **灵活的输出格式**：支持原始 JSON、Brave/Bing 兼容格式和 Markdown
@@ -103,14 +103,7 @@ python3 scripts/search.py "查询" --retries 3
 python3 scripts/search.py "查询" --timeout 60
 ```
 
-### 自定义 API 端点
 
-支持备用 API 端点：
-
-```bash
-# 使用备用端点
-python3 scripts/search.py "查询" --endpoint "https://api.bocha.cn/v1/web-search"
-```
 
 ## 输出示例
 
@@ -156,10 +149,10 @@ python3 scripts/search.py "查询" --endpoint "https://api.bocha.cn/v1/web-searc
 
 ```bash
 # 从 OpenClaw workspace 根目录调用
-python3 skills/bocha-search-python/scripts/search.py "查询"
+python3 skills/bocha-search-advanced/scripts/search.py "查询"
 
 # 使用绝对路径
-python3 /root/.openclaw/workspace/skills/bocha-search-python/scripts/search.py "查询"
+python3 /root/.openclaw/workspace/skills/bocha-search-advanced/scripts/search.py "查询"
 ```
 
 ### 集成到 Agent 工作流
@@ -174,7 +167,7 @@ import json
 def bocha_search(query, count=5):
     cmd = [
         "python3",
-        "/root/.openclaw/workspace/skills/bocha-search-python/scripts/search.py",
+        "/root/.openclaw/workspace/skills/bocha-search-advanced/scripts/search.py",
         "--query", query,
         "--count", str(count),
         "--format", "brave"
@@ -211,7 +204,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 ```bash
 # 简单测试 API 密钥是否有效
-curl -X POST "https://api.bochaai.com/v1/web-search" \
+curl -X POST "https://api.bocha.cn/v1/web-search" \
   -H "Authorization: Bearer YOUR-API-KEY" \
   -H "Content-Type: application/json" \
   -d '{"query": "test", "count": 1}'
@@ -234,6 +227,7 @@ curl -X POST "https://api.bochaai.com/v1/web-search" \
 - **0.1.0** (2026-03-27): 初始版本，基于博查搜索 API 构建，提供增强的 Python 实现
 - **0.1.1** (2026-03-28): 安全改进 - 添加技能元数据声明必需的环境变量 BOCHA_API_KEY，解决安全扫描警告
 - **0.1.3** (2026-04-02): 功能改进与文档修正 - 更新技能名称，修正时间范围过滤示例，优化描述文案
+- **0.1.4** (2026-04-04): 性能优化与安全改进 - 优化默认 API 端点，移除自定义端点功能以提高安全性，修复技能元数据一致性
 
 ---
 
