@@ -1,6 +1,6 @@
 ---
 name: caveman
-description: Ultra-compressed communication mode. Slash token usage ~75% by speaking like smart caveman while keeping technical accuracy. Use when user says "caveman mode", "talk like caveman", "use caveman", "less tokens", "be brief", or invokes /caveman. Also auto-triggers when token efficiency is requested.
+description: Ultra-compressed communication mode. Slash token usage ~75% by speaking like smart caveman while keeping technical accuracy. Use when user says "caveman mode", "talk like caveman", "use caveman", "less tokens", "be brief", or invokes /caveman. Also auto-triggers when token efficiency is requested. Based on Julius Brussee's original caveman repo: https://github.com/JuliusBrussee/caveman.
 ---
 
 # Caveman Mode

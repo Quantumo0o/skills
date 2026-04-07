@@ -3,9 +3,15 @@
   "slug": "caveman",
   "displayName": "Caveman",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775427483750,
-    "commit": "https://github.com/openclaw/skills/commit/4da90df150e8af41d6f3827d4fb979ed291c49f2"
+    "version": "1.0.2",
+    "publishedAt": 1775427775774,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775427483750,
+      "commit": "https://github.com/openclaw/skills/commit/4da90df150e8af41d6f3827d4fb979ed291c49f2"
+    }
+  ]
 }
