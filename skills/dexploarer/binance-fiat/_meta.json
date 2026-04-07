@@ -1,0 +1,11 @@
+{
+  "owner": "dexploarer",
+  "slug": "binance-fiat",
+  "displayName": "Binance Fiat",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775054180407,
+    "commit": null
+  },
+  "history": []
+}
