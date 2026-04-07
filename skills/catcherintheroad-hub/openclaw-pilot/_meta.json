@@ -1,0 +1,11 @@
+{
+  "owner": "catcherintheroad-hub",
+  "slug": "openclaw-pilot",
+  "displayName": "OpenClaw Pilot",
+  "latest": {
+    "version": "0.3.0-beta.2",
+    "publishedAt": 1775291247721,
+    "commit": null
+  },
+  "history": []
+}
