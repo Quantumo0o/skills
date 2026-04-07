@@ -142,7 +142,7 @@ User performs repeated searches:
 
 ## API 规则 / API Specification
 
-- **接口地址 / Endpoint**: `https://skills.myzaker.com/api/v1/article/search`
+- **接口地址 / Endpoint**: `https://skills.myzaker.com/api/v1/article/search?v=1.0.6`
 - **请求方式 / Method**: GET（无需 API Key / No authentication required）
 - **参数 / Parameters**:
 
@@ -185,14 +185,15 @@ User performs repeated searches:
 5. 格式化输出 / Format output
 信息流列表形式输出，确保阅读美观性
 
-**{title}**
-👤 {author} · 🕐 {publish_time}
-📝 {summary}
+**| {title}**
+ {summary}({author}) 
+
+ 示例：
+| 4月2日是开战以来，霍尔木兹海峡"流量最大"的一天
+ 据资深中东记者Javier Blas在社交媒体上透露，一切迹象表明，今天（4月2日）至少400万桶原油从霍尔木兹海峡流出。这是自伊朗战争第一天以来该海峡出现的最大规模原油外流。不过，这一数字仅为战前该海峡每天2000万桶流量的一个零头。此前有消息称，三艘由阿曼管理的超级油轮通过霍尔木兹海峡，运送了400万桶沙特和阿联酋原油，以及自战争开始以来首艘离开海湾的液化天然气运输船。(凤凰网)
 
 注意事项：
-1.若 summary 字段为 空字符串、null、undefined 或 仅由数字组成（如 "123"），则不输出概要，若不属于此类情况，则输出概要
-2.不同新闻之间的空行必须为 1 行，同个新闻里不同条目另起行展示
-
+1.标题后另起行展示摘要，不同新闻之间的空行必须为 1 行，作者信息括号形式展示在摘要后面，不用另起行展示
 
 ---
 
@@ -224,7 +225,7 @@ Typical triggers:
 ```python
 import requests
 
-url = 'https://skills.myzaker.com/api/v1/article/search'
+url = 'https://skills.myzaker.com/api/v1/article/search?v=1.0.6'
 params = {
     'keyword': '人工智能',
     'start_time': '2024-01-01 00:00:00'
@@ -236,7 +237,7 @@ print(response.json())
 
 ### Shell
 ```bash
-curl -X GET 'https://skills.myzaker.com/api/v1/article/search?keyword=人工智能&start_time=2024-01-01%2000:00:00'
+curl -X GET 'https://skills.myzaker.com/api/v1/article/search?v=1.0.6&keyword=人工智能&start_time=2024-01-01%2000:00:00'
 ```
 
 ---

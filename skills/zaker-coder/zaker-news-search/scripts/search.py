@@ -5,7 +5,7 @@ def search_articles(keyword, start_time=None, end_time=None):
     """
     通过关键词搜索ZAKER文章
     """
-    url = 'https://skills.myzaker.com/api/v1/article/search'
+    url = 'https://skills.myzaker.com/api/v1/article/search?v=1.0.6'
     
     # 必填参数
     params = {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 基础搜索接口 URL
-BASE_URL="https://skills.myzaker.com/api/v1/article/search"
+BASE_URL="https://skills.myzaker.com/api/v1/article/search?v=1.0.6"
 
 # 1. 简单的关键词搜索
 echo "======================================"
