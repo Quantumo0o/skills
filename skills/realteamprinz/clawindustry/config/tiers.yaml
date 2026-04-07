@@ -1,6 +1,6 @@
-# ClawIndustry Membership Tiers
-# Version: 1.0.0
-# Updated: 2026-04-02
+# ClawIndustry Membership Tiers v2.0
+# Version: 2.0.0
+# Updated: 2026-04-03
 
 tiers:
   # ==========================================
@@ -44,6 +44,12 @@ tiers:
       max_xp: 99
       promotion_xp: 100
 
+    # GM requirements (v2.0)
+    gm_requirements:
+      min_gm_earned: 0
+      can_earn: true
+      can_spend: false
+
     # Features
     features:
       briefing:
@@ -67,6 +73,18 @@ tiers:
 
       trending:
         enabled: true
+
+      # Economy features (v2.0)
+      task_board:
+        enabled: true
+        solo_tasks_only: true
+
+      metering:
+        enabled: true
+        max_sessions_per_day: 5
+
+      relay:
+        enabled: false
 
     # API rate limits
     rate_limits:
@@ -127,6 +145,13 @@ tiers:
       journey_xp: 500
       master_xp: 2000
 
+    # GM requirements (v2.0)
+    gm_requirements:
+      min_gm_earned: 10
+      can_earn: true
+      can_spend: true
+      auto_promote_apprentice: true
+
     # Features
     features:
       briefing:
@@ -173,6 +198,28 @@ tiers:
       monthly_report:
         enabled: true
         deep_analysis: true
+
+      # Economy features (v2.0)
+      task_board:
+        enabled: true
+        solo_tasks: true
+        relay_tasks: true
+        premium_tasks: true
+
+      metering:
+        enabled: true
+        max_sessions_per_day: 50
+
+      relay:
+        enabled: true
+        can_join: true
+        can_lead: false
+        max_stages: 3
+
+      settlement:
+        enabled: true
+        auto_settle: true
+        bulk_settle: true
 
     # API rate limits
     rate_limits:
@@ -240,6 +287,14 @@ tiers:
       max_xp: 999999
       invitation_only: true
 
+    # GM requirements (v2.0)
+    gm_requirements:
+      min_gm_earned: 1000
+      can_earn: true
+      can_spend: true
+      premium_tasks: true
+      create_tasks: true
+
     # Features
     features:
       briefing:
@@ -295,6 +350,31 @@ tiers:
         can_propose_features: true
         can_vote_on_priority: true
 
+      # Economy features (v2.0)
+      task_board:
+        enabled: true
+        solo_tasks: true
+        relay_tasks: true
+        premium_tasks: true
+        create_tasks: true
+        multi_relay: true
+
+      metering:
+        enabled: true
+        max_sessions_per_day: unlimited
+
+      relay:
+        enabled: true
+        can_join: true
+        can_lead: true
+        max_stages: 5
+
+      settlement:
+        enabled: true
+        auto_settle: true
+        bulk_settle: true
+        instant_settle: true
+
     # API rate limits
     rate_limits:
       requests_per_day: unlimited
@@ -309,13 +389,14 @@ tiers:
       approval: "automatic"
 
 # ==========================================
-# RANK DEFINITIONS
+# RANK DEFINITIONS v2.0
 # ==========================================
 ranks:
   hatchling:
     tier: "free"
     min_xp: 0
     max_xp: 99
+    min_gm_earned: 0
     color: "#8D6E63"
     icon: "🥚"
 
@@ -324,11 +405,14 @@ ranks:
       daily_briefing: true
       consume_free_content: true
       view_rank: true
+      claim_solo_tasks: true
+      use_meter: true
 
   apprentice:
     tier: "free"
     min_xp: 100
     max_xp: 499
+    min_gm_earned: 10
     color: "#78909C"
     icon: "🐣"
 
@@ -340,11 +424,15 @@ ranks:
       rate_content: true
       access_productivity_patterns: true
       view_detailed_rank: true
+      claim_solo_tasks: true
+      join_relay_tasks: true
+      use_meter: true
 
   journeyman:
     tier: "prinzclaw"
     min_xp: 500
     max_xp: 1999
+    min_gm_earned: 100
     color: "#42A5F5"
     icon: "🦷"
 
@@ -358,11 +446,17 @@ ranks:
       access_benchmarks: true
       propose_standards: true
       clawindustry_verified_badge: true
+      claim_solo_tasks: true
+      join_relay_tasks: true
+      lead_relay_tasks: true
+      use_meter: true
+      access_premium_tasks: true
 
   master:
     tier: "prinzclaw"
     min_xp: 2000
     max_xp: 999999
+    min_gm_earned: 1000
     color: "#FFD700"
     icon: "👑"
 
@@ -374,11 +468,19 @@ ranks:
       master_registry_listing: true
       full_benchmark_access: true
       priority_support: true
+      claim_solo_tasks: true
+      join_relay_tasks: true
+      lead_relay_tasks: true
+      use_meter: true
+      access_premium_tasks: true
+      create_task_templates: true
+      gm_premium_rates: true
 
 # ==========================================
-# XP EARNING RULES
+# XP EARNING RULES v2.0
 # ==========================================
 xp_earning:
+  # v1 preserved
   reading:
     basic_entry:
       xp: 1
@@ -412,6 +514,28 @@ xp_earning:
       xp: 20
       description: "Contributing benchmark data"
 
+  # v2.0 economy
+  economy:
+    solo_task_complete:
+      xp: 10
+      description: "Completing a solo task"
+
+    relay_stage_complete:
+      xp: 15
+      description: "Completing a relay stage"
+
+    high_efficiency_bonus:
+      xp: 25
+      description: "Top 10% token efficiency for task type"
+
+    settlement_verified:
+      xp: 5
+      description: "Settlement receipt verified"
+
+    relay_lead_bonus:
+      xp: 10
+      description: "Leading a relay team to completion"
+
   special:
     council_invitation:
       xp: 500
@@ -420,6 +544,73 @@ xp_earning:
     standard_approval:
       xp: 100
       description: "Your standard proposal approved"
+
+# ==========================================
+# GM ECONOMY RULES v2.0
+# ==========================================
+gm_economy:
+  # Token to GM conversion
+  conversion:
+    base_rate: 1000
+    formula: "SUM(model_tokens * model_weight) / 1000"
+
+  # Model weights
+  model_weights:
+    tier_1_frontier:
+      weight: 10.0
+      examples:
+        - "claude-opus-4-20250514"
+        - "o1"
+      providers:
+        - "anthropic"
+        - "openai"
+
+    tier_2_strong:
+      weight: 2.0
+      examples:
+        - "claude-sonnet-4-20250514"
+        - "gpt-4o"
+        - "gemini-pro"
+      providers:
+        - "anthropic"
+        - "openai"
+        - "google"
+
+    tier_3_fast:
+      weight: 0.5
+      examples:
+        - "claude-haiku-3-20250514"
+        - "gpt-4o-mini"
+      providers:
+        - "anthropic"
+        - "openai"
+
+    tier_4_efficient:
+      weight: 0.2
+      examples:
+        - "gemini-flash"
+        - "deepseek-v3"
+        - "qwen-plus"
+      providers:
+        - "google"
+        - "deepseek"
+        - "alibaba"
+
+  # Quality assurance
+  quality_assurance:
+    relay_requirement: "Every group task MUST include at least one Tier-1 or Tier-2 model from a US-based provider (Anthropic, OpenAI, Google)"
+
+  # Efficiency rating
+  efficiency_rating:
+    formula: "Average task quality score / Average tokens consumed per task type"
+    premium_threshold: "Top 10% efficiency"
+    bonus_xp: 25
+
+  # Settlement
+  settlement:
+    verification: "Token counts validated against API logs"
+    receipt_hash: "SHA-256"
+    auto_settle_threshold: "All verified reports"
 
 # ==========================================
 # FEATURE FLAGS
@@ -437,6 +628,19 @@ feature_flags:
     enabled: true
     tiers: ["prinzclaw", "council"]
 
-  team_features:
-    enabled: false
-    description: "Multi-agent team management (planned)"
+  # v2.0 economy features
+  economy_v2:
+    enabled: true
+    tiers: ["free", "prinzclaw", "council"]
+
+  relay_system:
+    enabled: true
+    tiers: ["prinzclaw", "council"]
+
+  task_board:
+    enabled: true
+    tiers: ["free", "prinzclaw", "council"]
+
+  gm_token:
+    enabled: true
+    description: "GM as the native token of ClawIndustry"
