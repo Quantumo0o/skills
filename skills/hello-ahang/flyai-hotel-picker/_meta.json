@@ -3,9 +3,15 @@
   "slug": "flyai-hotel-picker",
   "displayName": "酒店三选一",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775103302462,
-    "commit": "https://github.com/openclaw/skills/commit/100fe53a945273fe652abb875774a30a34880e78"
+    "version": "1.0.1",
+    "publishedAt": 1775237309922,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775103302462,
+      "commit": "https://github.com/openclaw/skills/commit/100fe53a945273fe652abb875774a30a34880e78"
+    }
+  ]
 }
