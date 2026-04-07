@@ -163,3 +163,46 @@ This SOP is being followed if:
 - background tasks consistently end with proactive delivery,
 - start acknowledgments are short and non-repetitive,
 - completion events are converted into clean user-facing updates.
+
+## Adaptive Thinking Profile
+
+Use task-level adaptive thinking instead of trying to hot-switch the main conversation constantly.
+
+Recommended mapping:
+- **Normal chat / simple direct answers** → `off`
+- **Routine tool tasks / short checks** → `low`
+- **Multi-step analysis / complex diagnosis / multi-source research** → `medium`
+- **Programming / code changes / engineering debugging / ACP coding harness work** → `high`
+
+Recommended operating pattern:
+- keep the **main session** lightweight by default,
+- raise thinking mainly in **background runs, sub-agents, or ACP sessions**, not through frequent main-session toggling.
+
+## 中文极简版
+
+适合直接教给中文 agent 的一句话原则：
+
+> 只要任务转入后台、sub-agent 或 ACP 执行，完成后就必须主动把结果发给用户；不要等用户追问。
+
+### 中文 5 行 SOP
+
+1. **不用工具**：主会话直接答。  
+2. **需要工具**：默认后台执行。  
+3. **启动时**：只发一次简短回执。  
+4. **完成后**：主动发结果 / 进度 / 卡点。  
+5. **非重复内容**：禁止等用户追问才回复。  
+
+### 中文交付口径
+
+后台任务完成后，主会话必须三选一：
+- **有最终结果** → 直接交付结果
+- **有阶段进度** → 主动同步进度
+- **被阻塞** → 主动说明卡点和所需确认
+
+### 中文反模式
+
+以下都算没按 SOP 执行：
+- 后台做完了但不发
+- 用户不追问就不回
+- 连续发“在处理”但不给结果
+- 把完成事件当内部消息吞掉
