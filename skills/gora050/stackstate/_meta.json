@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "stackstate",
+  "displayName": "Stackstate",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775365643017,
+    "commit": null
+  },
+  "history": []
+}
