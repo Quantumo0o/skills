@@ -1,9 +1,20 @@
 ---
-name: chain_of_consciousness
-description: "Cryptographic provenance for AI agents. Maintain tamper-evident audit trails of what you learn, decide, and create. Verify chains from other agents. Anchor to external timestamps."
+name: chain-of-consciousness
+description: "Cryptographic provenance and audit trail for autonomous AI agents. Create tamper-evident hash chains of agent decisions, learning, and actions. SHA-256 linked entries with Bitcoin OpenTimestamps and RFC 3161 TSA anchoring. Verify provenance from other agents. Part of the Agent Trust Stack."
 user-invocable: true
+tags:
+  - agent-trust
+  - provenance
+  - cryptography
+  - audit-trail
+  - hash-chain
+  - mcp
+  - autonomous-agents
+  - accountability
 metadata:
   openclaw:
+    author: alexfleetcommander
+    homepage: https://vibeagentmaking.com
     requires:
       bins:
         - python3
