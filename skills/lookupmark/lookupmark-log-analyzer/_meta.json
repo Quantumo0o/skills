@@ -1,0 +1,11 @@
+{
+  "owner": "lookupmark",
+  "slug": "lookupmark-log-analyzer",
+  "displayName": "LookupMark Log Analyzer",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775325795240,
+    "commit": null
+  },
+  "history": []
+}
