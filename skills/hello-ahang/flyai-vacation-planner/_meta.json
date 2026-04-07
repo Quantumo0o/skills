@@ -3,9 +3,15 @@
   "slug": "flyai-vacation-planner",
   "displayName": "帮我凑假",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775111474285,
-    "commit": "https://github.com/openclaw/skills/commit/e6f5d3abe71bedd4007b900e1524253cc6f84e97"
+    "version": "1.0.1",
+    "publishedAt": 1775237209520,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775111474285,
+      "commit": "https://github.com/openclaw/skills/commit/e6f5d3abe71bedd4007b900e1524253cc6f84e97"
+    }
+  ]
 }
