@@ -1,0 +1,11 @@
+{
+  "owner": "samirsaci",
+  "slug": "n8n-monitoring",
+  "displayName": "Monitor n8n Automations with OpenClaw",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775309402011,
+    "commit": null
+  },
+  "history": []
+}
