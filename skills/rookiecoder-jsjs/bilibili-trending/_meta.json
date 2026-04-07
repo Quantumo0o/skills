@@ -3,9 +3,15 @@
   "slug": "bilibili-trending",
   "displayName": "Bilibili 热门趋势分析",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775144342696,
-    "commit": "https://github.com/openclaw/skills/commit/908b95eb849231330fb2a8f49750693e080cd138"
+    "version": "1.0.2",
+    "publishedAt": 1775190257065,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775144342696,
+      "commit": "https://github.com/openclaw/skills/commit/908b95eb849231330fb2a8f49750693e080cd138"
+    }
+  ]
 }

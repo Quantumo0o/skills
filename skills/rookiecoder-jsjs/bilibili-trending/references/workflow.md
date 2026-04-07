@@ -9,40 +9,47 @@
 
 ## 完整自动化流程
 
-### Step 1: 抓取数据（自动）
+### Step 1: 抓取数据
+
 ```bash
-python skills/Bilibili-trending/scripts/bilibili_all.py --rank game
+cd skills/Bilibili-trending/scripts
+python bilibili_all.py --rank game
 ```
 
 脚本自动完成：
 1. 调用 B 站 API 抓取数据
 2. 提取关键词（正则 2-4 字中文，统计词频）
 3. 计算统计数据（播放、互动率等）
-4. 保存 JSON 到 `json/output_{rank_type}.json`
+4. 保存 JSON 到 `{工作区}/json/output_{rank_type}.json`
 5. 更新趋势数据到 `trend.json`
-6. 生成分析 prompt
+6. 自动 spawn 子 Agent 分析
 
 ### Step 2: 子 Agent 分析（自动）
-脚本自动 spawn 子 Agent，发送分析 prompt
+
+脚本自动调用 `sessions_spawn` 发送分析 prompt
 
 ### Step 3: 保存报告（自动）
+
 分析完成后，报告自动保存为：
 ```
-memory/bilibili-analysis/{时间}_{榜单名称}.md
+{工作区}/memory/bilibili-analysis/{榜单名称}_{时间}.md
 ```
-例如：`20260402-2327_游戏.md`
+例如：`游戏_2026-04-02-15-30-45.md`
 
 ### Step 4: 查看趋势
+
 ```bash
-python skills/Bilibili-trending/scripts/bili_trend.py trend
-python skills/Bilibili-trending/scripts/bili_trend.py trend game
+python bili_trend.py trend          # 全局
+python bili_trend.py trend game    # 单榜单
 ```
 
 ### Step 5: 周/月总结
+
 ```bash
-python skills/Bilibili-trending/scripts/bili_trend.py weekly
-python skills/Bilibili-trending/scripts/bili_trend.py monthly
-python skills/Bilibili-trending/scripts/bili_trend.py monthly game
+python bili_trend.py weekly         # 周总结
+python bili_trend.py weekly game   # 单榜单周总结
+python bili_trend.py monthly       # 月总结
+python bili_trend.py monthly game  # 单榜单月总结
 ```
 
 ## 关键词提取逻辑
@@ -60,16 +67,18 @@ top_keywords = [kw for kw, _ in kw_counter.most_common(5)]
 
 ## 数据存储
 
-```
-{workspace}/json/
-└── output_{rank_type}.json     # 原始数据
+脚本会在工作区自动创建目录结构：
 
-{workspace}/memory/bilibili-analysis/
-├── trend.json                  # 趋势累计数据
-├── 20260402-2327_游戏.md      # 自动生成的报告
-├── 20260402-2315_动画.md
-├── weekly-2026-W14.md         # 周总结
-└── monthly-2026-04.md         # 月总结
+```
+{工作区}/
+├── json/                           # JSON 数据目录
+│   └── output_{rank_type}.json      # 原始数据
+└── memory/bilibili-analysis/        # 分析结果目录
+    ├── trend.json                    # 趋势累计数据
+    ├── 游戏_2026-04-02-15-30-45.md  # 分析报告
+    ├── 动画_2026-04-02-14-20-30.md
+    ├── weekly-2026-W14.md           # 周总结
+    └── monthly-2026-04.md          # 月总结
 ```
 
 ## 预测目标
