@@ -1,9 +1,20 @@
 ---
-name: context_window_economics
-description: "Inference cost allocation for agent-to-agent transactions. Track, split, and settle the cost of context window usage when agents collaborate using Shapley-fair allocation."
+name: context-window-economics
+description: "Inference cost allocation and billing for autonomous AI agent collaborations. Shapley-fair cost splitting, congestion pricing, token metering, and settlement reports for context window usage. The economic layer of the Agent Trust Stack."
 user-invocable: true
+tags:
+  - agent-trust
+  - economics
+  - cost-allocation
+  - token-metering
+  - shapley
+  - pricing
+  - mcp
+  - autonomous-agents
 metadata:
   openclaw:
+    author: alexfleetcommander
+    homepage: https://vibeagentmaking.com
     requires:
       bins:
         - python3
