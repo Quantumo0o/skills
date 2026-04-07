@@ -1,11 +1,17 @@
 {
   "owner": "lanlan314",
   "slug": "self-reflection-lan",
-  "displayName": "自我复盘（蓝）",
+  "displayName": "自我复盘",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775148927731,
-    "commit": "https://github.com/openclaw/skills/commit/ada8d5f2168881c8ea32e623926aa8c2d7816135"
+    "version": "1.0.1",
+    "publishedAt": 1775184548172,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775148927731,
+      "commit": "https://github.com/openclaw/skills/commit/ada8d5f2168881c8ea32e623926aa8c2d7816135"
+    }
+  ]
 }
