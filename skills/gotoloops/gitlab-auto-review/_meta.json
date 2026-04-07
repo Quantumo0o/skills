@@ -1,0 +1,11 @@
+{
+  "owner": "gotoloops",
+  "slug": "gitlab-auto-review",
+  "displayName": "GitLab MR Code Review",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775540206461,
+    "commit": null
+  },
+  "history": []
+}
