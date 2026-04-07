@@ -1,0 +1,11 @@
+{
+  "owner": "openfindbearings",
+  "slug": "bearing-search",
+  "displayName": "bearing search skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775185433071,
+    "commit": null
+  },
+  "history": []
+}
