@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """One-time setup script for Gmail API OAuth credentials.
 
-Creates ~/.openclaw/credentials/gmail.json with a refresh token.
+Saves credentials to <DATA_DIR>/gmail.json with a refresh token.
 Requires: google-auth-oauthlib, google-api-python-client
+
+DATA_DIR resolution order:
+  1. $SKILL_DATA_DIR          (set by agent platform)
+  2. ~/.config/gmail-checker   (XDG default)
+
+Usage:
+  python3 setup_gmail.py              # interactive, opens browser
+  python3 setup_gmail.py --no-browser # prints URL for manual auth (headless/SSH)
 
 See references/setup.md for full setup guide.
 """
@@ -10,10 +18,15 @@ See references/setup.md for full setup guide.
 import json
 import os
 import sys
+import webbrowser
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
-CREDS_PATH = os.path.expanduser("~/.openclaw/credentials/gmail.json")
-CREDS_DIR = os.path.dirname(CREDS_PATH)
+
+# --- Path resolution (same logic as check_gmail.py) ---
+DATA_DIR = os.path.expanduser(
+    os.environ.get("SKILL_DATA_DIR", "~/.config/gmail-checker")
+)
+CREDS_PATH = os.path.join(DATA_DIR, "gmail.json")
 
 
 def check_dependencies():
@@ -33,25 +46,16 @@ def check_dependencies():
 
 
 def save_credentials(creds_data):
-    os.makedirs(CREDS_DIR, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
     with open(CREDS_PATH, "w") as f:
         json.dump(creds_data, f, indent=2)
     os.chmod(CREDS_PATH, 0o600)
     print(f"\nCredentials saved to {CREDS_PATH}")
 
 
-def run_oauth_flow():
+def run_browser_flow(client_id, client_secret):
+    """Open browser for OAuth (works on desktop/laptop)."""
     from google_auth_oauthlib.flow import InstalledAppFlow
-
-    print("\nPaste your Google OAuth credentials (from Google Cloud Console > Credentials):")
-    print("  Application type: Desktop app\n")
-
-    client_id = input("Client ID: ").strip()
-    client_secret = input("Client Secret: ").strip()
-
-    if not client_id or not client_secret:
-        print("Error: Client ID and Client Secret are required.")
-        sys.exit(1)
 
     client_config = {
         "installed": {
@@ -64,7 +68,7 @@ def run_oauth_flow():
     }
 
     print("\nOpening browser for Google authorization...")
-    print("(If no browser opens, a URL will be printed below to paste manually)\n")
+    print("(If no browser opens, re-run with --no-browser)\n")
 
     try:
         flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
@@ -74,21 +78,58 @@ def run_oauth_flow():
         print("Make sure your Gmail address is added as a Test User in the OAuth consent screen.")
         sys.exit(1)
 
-    save_credentials({
-        "client_id": client_id,
-        "client_secret": client_secret,
-        "refresh_token": creds.refresh_token,
-    })
+    return creds
 
-    print("Setup complete! Test with:")
-    print("  python3 scripts/check_gmail.py")
+
+def run_console_flow(client_id, client_secret):
+    """Manual auth flow for headless machines (Pi, SSH, containers)."""
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    client_config = {
+        "installed": {
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"],
+        }
+    }
+
+    flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
+    auth_url, _ = flow.authorization_url(prompt="consent")
+
+    print("\n" + "=" * 60)
+    print("Open this URL in a browser on any device:")
+    print(auth_url)
+    print("=" * 60)
+    print("\nAfter authorizing, you'll get an authorization code.")
+    print("Paste it here and press Enter.")
+
+    code = input("\nAuthorization code: ").strip()
+    if not code:
+        print("Error: No code provided.")
+        sys.exit(1)
+
+    try:
+        flow.fetch_token(code=code)
+        return flow.credentials
+    except Exception as e:
+        print(f"\nToken exchange failed: {e}")
+        print("Make sure the code is correct and hasn't expired.")
+        sys.exit(1)
 
 
 def main():
     check_dependencies()
 
+    args = sys.argv[1:]
+    no_browser = "--no-browser" in args
+
     print("Gmail Checker — OAuth Setup")
     print("=" * 35)
+    print(f"Data directory: {DATA_DIR}")
+    if no_browser:
+        print("Mode: console (no browser — for headless/SSH)")
 
     if os.path.exists(CREDS_PATH):
         print(f"\nCredentials already exist at {CREDS_PATH}")
@@ -97,7 +138,29 @@ def main():
             print("Aborted.")
             return
 
-    run_oauth_flow()
+    print("\nPaste your Google OAuth credentials (from Google Cloud Console > Credentials):")
+    print("  Application type: Desktop app\n")
+
+    client_id = input("Client ID: ").strip()
+    client_secret = input("Client Secret: ").strip()
+
+    if not client_id or not client_secret:
+        print("Error: Client ID and Client Secret are required.")
+        sys.exit(1)
+
+    if no_browser:
+        creds = run_console_flow(client_id, client_secret)
+    else:
+        creds = run_browser_flow(client_id, client_secret)
+
+    save_credentials({
+        "client_id": client_id,
+        "client_secret": client_secret,
+        "refresh_token": creds.refresh_token,
+    })
+
+    print("Setup complete! Test with:")
+    print("  python3 scripts/check_gmail.py")
 
 
 if __name__ == "__main__":

@@ -5,8 +5,12 @@ Usage:
     python3 check_gmail.py [hours]         # default: 24 hours
     python3 check_gmail.py --json [hours]  # structured JSON output
 
-Config (optional): ~/.openclaw/credentials/gmail-config.json
-Credentials (required): ~/.openclaw/credentials/gmail.json
+Credentials (required): <DATA_DIR>/gmail.json
+Config (optional):      <DATA_DIR>/gmail-config.json
+
+DATA_DIR resolution order:
+  1. $SKILL_DATA_DIR          (set by agent platform)
+  2. ~/.config/gmail-checker   (XDG default)
 """
 
 import json
@@ -18,8 +22,14 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
-CREDS_PATH = os.path.expanduser("~/.openclaw/credentials/gmail.json")
-CONFIG_PATH = os.path.expanduser("~/.openclaw/credentials/gmail-config.json")
+# --- Path resolution ---
+# Agent platforms set SKILL_DATA_DIR to their preferred credential store.
+# Falls back to ~/.config/gmail-checker (XDG-compliant, works everywhere).
+DATA_DIR = os.path.expanduser(
+    os.environ.get("SKILL_DATA_DIR", "~/.config/gmail-checker")
+)
+CREDS_PATH = os.path.join(DATA_DIR, "gmail.json")
+CONFIG_PATH = os.path.join(DATA_DIR, "gmail-config.json")
 
 DEFAULT_CONFIG = {
     "hours": 24,
@@ -41,7 +51,6 @@ def load_config():
         with open(CONFIG_PATH) as f:
             user_config = json.load(f)
         merged = {**DEFAULT_CONFIG, **user_config}
-        # Merge list fields so users can override without repeating defaults
         for key in ("high_priority_keywords", "labels_skip"):
             if key in user_config:
                 merged[key] = user_config[key]
@@ -95,7 +104,6 @@ def fetch_unread_emails(service, config):
         subject = headers.get("Subject", "(no subject)")
         date_str = headers.get("Date", "")
 
-        # Extract email address
         if "<" in sender and ">" in sender:
             email_addr = sender.split("<")[1].split(">")[0].strip().lower()
         else:
@@ -104,7 +112,6 @@ def fetch_unread_emails(service, config):
         domain = email_addr.split("@")[-1] if "@" in email_addr else ""
         subject_lower = subject.lower()
 
-        # Priority logic
         if domain in high_domains:
             priority = "HIGH"
         elif any(kw in subject_lower for kw in high_keywords):
@@ -136,7 +143,7 @@ def format_text(emails, hours):
     for e in emails:
         by_priority[e["priority"]].append(e)
 
-    icons = {"HIGH": "HIGH", "MEDIUM": "MED", "LOW": "LOW"}
+    icons = {"HIGH": "🔴 HIGH", "MEDIUM": "🟡 MED", "LOW": "🟢 LOW"}
 
     for p in ("HIGH", "MEDIUM", "LOW"):
         if not by_priority[p]:
@@ -180,6 +187,7 @@ def main():
             print(format_text(emails, config["hours"]))
     except FileNotFoundError as e:
         print(f"Missing file: {e}", file=sys.stderr)
+        print(f"Expected credentials at: {CREDS_PATH}", file=sys.stderr)
         print("Run the setup script first. See references/setup.md for instructions.", file=sys.stderr)
         sys.exit(1)
     except Exception as e:

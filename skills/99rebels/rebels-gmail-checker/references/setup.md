@@ -2,6 +2,15 @@
 
 Guide the user through this setup when credentials are missing or the script fails with a missing file error.
 
+## Where credentials are stored
+
+The setup script saves credentials to `<DATA_DIR>/gmail.json`, where `<DATA_DIR>` is:
+
+1. `$SKILL_DATA_DIR` if the environment variable is set (agent platforms set this).
+2. `~/.config/gmail-checker/` otherwise.
+
+The script prints the resolved path when it runs, so the user always knows where files end up.
+
 ## Prerequisites
 
 Before starting, check that the required Python packages are installed:
@@ -54,9 +63,17 @@ Ask the user for their Client ID and Client Secret, then run:
 python3 <skill-path>/scripts/setup_gmail.py
 ```
 
-The script will prompt for Client ID and Client Secret interactively. A browser window will open for the user to authorize. After authorization, credentials are saved to `~/.openclaw/credentials/gmail.json`.
+**On a desktop/laptop:** The script opens a browser for OAuth. The user authorises and it completes automatically.
 
-Alternatively, if the user prefers not to run interactively, the agent can walk them through a manual token exchange — but the script is preferred.
+**On a headless machine (Pi, SSH, container):** Add the `--no-browser` flag:
+
+```bash
+python3 <skill-path>/scripts/setup_gmail.py --no-browser
+```
+
+The script prints an auth URL. The user opens it on any device, authorises, copies the code, and pastes it back into the terminal.
+
+After authorization, credentials are saved to `<DATA_DIR>/gmail.json` (the script prints the exact path).
 
 ### Step 6: Verify
 
@@ -72,6 +89,6 @@ If it returns email results or "No unread emails", setup is complete.
 
 - **"Access blocked: Gmail API has not been enabled"** — Step 2 was missed
 - **"Access blocked: app not verified"** — User wasn't added as a test user in Step 3. They MUST be on the test users list.
-- **Browser doesn't open** — The script prints a URL. Tell the user to paste it manually.
-- **Token refresh fails** — Delete `~/.openclaw/credentials/gmail.json` and re-run setup
+- **Browser doesn't open** — Re-run with `--no-browser` and use the printed URL
+- **Token refresh fails** — Delete `<DATA_DIR>/gmail.json` and re-run setup
 - **Python not found** — User needs to install Python 3.8+. Help them with their OS-specific instructions.
