@@ -3,9 +3,15 @@
   "slug": "fintoio",
   "displayName": "Fintoio",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775109851172,
-    "commit": "https://github.com/openclaw/skills/commit/0d4654935d683f771ec9bbcd4f9b0e289975305f"
+    "version": "1.0.2",
+    "publishedAt": 1775170866298,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775109851172,
+      "commit": "https://github.com/openclaw/skills/commit/0d4654935d683f771ec9bbcd4f9b0e289975305f"
+    }
+  ]
 }
