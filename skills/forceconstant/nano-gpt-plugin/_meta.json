@@ -1,0 +1,11 @@
+{
+  "owner": "forceconstant",
+  "slug": "nano-gpt-plugin",
+  "displayName": "Nano Gpt Plugin",
+  "latest": {
+    "version": "0.1.3",
+    "publishedAt": 1775429308444,
+    "commit": null
+  },
+  "history": []
+}
