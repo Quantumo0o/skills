@@ -42,11 +42,29 @@ const DS_URL = 'https://chat.deepseek.com/';
   console.log(`✅ Endpoint готов: ${endpoint}`);
   console.log(`📁 Endpoint file: ${DAEMON_ENDPOINT_FILE}`);
   
-  // Переходим на DeepSeek
-  await page.goto(DS_URL, { timeout: 60000, waitUntil: 'domcontentloaded' });
-  console.log('✅ DeepSeek page loaded');
+  // Переходим на DeepSeek с retry
+  const MAX_NAV_RETRIES = 3;
+  for (let attempt = 1; attempt <= MAX_NAV_RETRIES; attempt++) {
+    try {
+      console.log(`📍 Навигация на DeepSeek (попытка ${attempt}/${MAX_NAV_RETRIES})...`);
+      await page.goto(DS_URL, { timeout: 60000, waitUntil: 'domcontentloaded' });
+      console.log('✅ DeepSeek page loaded');
+      break;
+    } catch (navErr) {
+      console.log(`⚠️ Навигация не удалась (попытка ${attempt}): ${navErr.message}`);
+      if (attempt < MAX_NAV_RETRIES) {
+        const waitMs = Math.min(attempt * 5000, 15000);
+        console.log(`⏳ Ожидание ${waitMs / 1000}s перед повторной попыткой...`);
+        await new Promise(r => setTimeout(r, waitMs));
+        try { await page.reload({ waitUntil: 'domcontentloaded', timeout: 30000 }); } catch {}
+      } else {
+        console.error('❌ Не удалось загрузить DeepSeek после ' + MAX_NAV_RETRIES + ' попыток');
+        console.log('⚠️ Демон работает, но страница не загружена. ask-puppeteer.js попытается перенавигацию.');
+      }
+    }
+  }
 
-  // Перезапуск страницы при краше
+  // ─── Обработка крашей страницы + авто-восстановление ───
   page.on('error', async (err) => {
     console.error('⚠️ Страница упала, перезагружаем...', err.message);
     try {
@@ -56,6 +74,25 @@ const DS_URL = 'https://chat.deepseek.com/';
       console.error('❌ Не удалось перезагрузить страницу:', e.message);
     }
   });
+
+  // Периодическая проверка: если страница на chrome-error — перезагружаем
+  let _pageHealthy = true;
+  setInterval(async () => {
+    try {
+      const url = page.url();
+      if (url.includes('chrome-error://') || url.includes('chrome-error')) {
+        console.log('⚠️ Страница на error page, перезагружаем...');
+        await page.goto(DS_URL, { timeout: 30000, waitUntil: 'domcontentloaded' });
+        console.log('✅ Страница восстановлена: ' + page.url());
+        _pageHealthy = true;
+      }
+    } catch (e) {
+      if (_pageHealthy) {
+        console.log('⚠️ Проверка здоровья страницы не удалась: ' + e.message);
+        _pageHealthy = false;
+      }
+    }
+  }, 30000);
 
   // Graceful shutdown
   const shutdown = async (signal) => {

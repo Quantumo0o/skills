@@ -13,6 +13,7 @@ END_SESSION=""
 EXTRA_FLAGS=""
 USE_DAEMON=false
 SEARCH_TEMP_SESSION=false
+DRY_RUN=false
 QUESTION=""
 
 while [[ $# -gt 0 ]]; do
@@ -29,8 +30,10 @@ while [[ $# -gt 0 ]]; do
     --daemon) USE_DAEMON=true; shift ;;
     --visible) EXTRA_FLAGS="$EXTRA_FLAGS --visible"; shift ;;
     --wait) EXTRA_FLAGS="$EXTRA_FLAGS --wait"; shift ;;
+    --dry-run) DRY_RUN=true; EXTRA_FLAGS="$EXTRA_FLAGS --dry-run"; shift ;;
     --close) EXTRA_FLAGS="$EXTRA_FLAGS --close"; shift ;;
     --debug) EXTRA_FLAGS="$EXTRA_FLAGS --debug"; shift ;;
+    --verbose) EXTRA_FLAGS="$EXTRA_FLAGS --verbose"; shift ;;
     --help|-h)
       cat <<'EOF'
 ask-deepseek.sh — универсальный wrapper (Puppeteer с демоном)
@@ -55,6 +58,7 @@ ask-deepseek.sh — универсальный wrapper (Puppeteer с демон�
   --wait           Ждать ручной авторизации (с --visible)
   --close          Закрыть браузер после ответа (без демона)
   --debug          Включить отладку
+  --verbose        Подробный лог
   -h, --help       Показать эту справку
 
 Демон:
@@ -84,6 +88,11 @@ done
 
 QUESTION=$(echo "$QUESTION" | xargs)
 
+# Если вопрос не задан и есть stdin — читаем из stdin (поддержка pipe и heredoc)
+if [[ -z "$QUESTION" && ! -t 0 ]]; then
+  QUESTION=$(cat)
+fi
+
 # End session
 if [[ -n "$END_SESSION" ]]; then
   if [[ -n "$SESSION_NAME" ]]; then
@@ -97,8 +106,17 @@ if [[ -n "$END_SESSION" ]]; then
   exit 0
 fi
 
+if [[ -z "$QUESTION" && "$DRY_RUN" = true ]]; then
+  QUESTION="dry-run"
+fi
+
 if [[ -z "$QUESTION" ]]; then
   echo "Ошибка: нужен вопрос. Запусти --help для справки"
+  echo "  ask-deepseek.sh \"вопрос\""
+  echo "  cat file.txt | ask-deepseek.sh \"проанализируй\""
+  echo "  ask-deepseek.sh <<'EOF'"
+  echo "  длинный текст"
+  echo "  EOF"
   exit 1
 fi
 

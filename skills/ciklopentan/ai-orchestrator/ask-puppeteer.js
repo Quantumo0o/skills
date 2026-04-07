@@ -6,16 +6,72 @@ const path = require('path');
 const os = require('os');
 
 // ═══ Новые модули диагностики ══════════════════════════════════════════════
-const { PipelineTrace } = require('./pipeline-trace.js');
-const { MetricsCollector } = require('./metrics-collector.js');
+const { Diagnostics } = require('./diagnostics.js');
 const { requireAuth } = require('./auth-check.js');
 
-// ═══ Константы ══════════════════════════════════════════════════════════════
-// ═══ CDP Interceptor (module-level state) ══════════════════════════════════════
-var cdpInterceptor = null;
-// Определяем базовую директорию навыка (где лежит этот скрипт)
+// ═══ Базовая директория ═══
 const SCRIPT_DIR = path.dirname(process.argv[1]);
 const BASE_DIR = path.resolve(SCRIPT_DIR);
+
+// ═══ Конфиг: .deepseek.json overrides defaults ═══════════════════
+const CONFIG_PATH = path.join(BASE_DIR, '.deepseek.json');
+const DEFAULT_CONFIG = {
+  browserLaunchTimeout: 30000,
+  answerTimeout: 600000,
+  composerTimeout: 10000,
+  navigationTimeout: 30000,
+  idleTimeout: 15000,
+  heartbeatInterval: 15000,
+  domErrorIdleMs: 25000,
+  shortAnswerStableMs: 300,
+  minResponseLength: 50,
+  maxContinueRounds: 30,
+  deltaThreshold: 100,
+  minTextForContinue: 2000,
+  maxTextForContinue: 6000,
+  rateLimitMs: 5000,
+  debugMode: false,
+  logToFile: false,
+  logPath: '.logs/deepseek.log',
+};
+
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      const userConfig = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+      return { ...DEFAULT_CONFIG, ...userConfig };
+    }
+  } catch (e) { /* ignore */ }
+  return DEFAULT_CONFIG;
+}
+
+const CONFIG = loadConfig();
+
+const TIMEOUT_ANSWER = CONFIG.answerTimeout;
+const TIMEOUT_BROWSER = CONFIG.browserLaunchTimeout;
+const IDLE_TIMEOUT = CONFIG.idleTimeout;
+const HEARTBEAT_INTERVAL = CONFIG.heartbeatInterval;
+const DOM_ERROR_IDLE = CONFIG.domErrorIdleMs;
+const SHORT_STABLE = CONFIG.shortAnswerStableMs;
+const MIN_RESPONSE = CONFIG.minResponseLength;
+const DELTA_THRESHOLD = CONFIG.deltaThreshold;
+const RATE_LIMIT_MS = CONFIG.rateLimitMs;
+
+if (CONFIG.logToFile) {
+  const logPath = path.resolve(BASE_DIR, CONFIG.logPath);
+  try {
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+    const origLog = console.log;
+    console.log = (...args) => {
+      const line = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${line}\n`);
+      origLog(...args);
+    };
+  } catch (e) { console.error('⚠️ Log file setup failed:', e.message); }
+}
+
+// ═══ CDP Interceptor (module-level state) ═══════════════════════════
+var cdpInterceptor = null;
 
 const argv = process.argv.slice(2);
 const isVisible = argv.includes('--visible');
@@ -24,7 +80,11 @@ const shouldClose = argv.includes('--close');
 const endSession = argv.includes('--end-session');
 const newChat = argv.includes('--new-chat');
 const useDaemon = argv.includes('--daemon');
+const dryRun = argv.includes('--dry-run');
 const VERBOSE = argv.includes('--verbose');
+const FILE_ARG_IDX = argv.indexOf('--file');
+const FILE_PROMPT_PATH = FILE_ARG_IDX !== -1 ? (argv[FILE_ARG_IDX + 1] || '') : null;
+if (FILE_PROMPT_PATH) debugLog('[DEBUG] --file=' + FILE_PROMPT_PATH + ', exists=' + fs.existsSync(FILE_PROMPT_PATH));
 
 // ═══ Авто-детект пути к Chromium/Chrome ═══
 let executablePath;
@@ -127,7 +187,7 @@ const sessionIdx = argv.indexOf('--session');
 const sessionName = sessionIdx !== -1 ? (argv[sessionIdx + 1] || 'default') : null;
 
 // Вопрос — всё что не флаг
-const question = argv.filter(a =>
+const question = FILE_PROMPT_PATH ? fs.readFileSync(FILE_PROMPT_PATH, 'utf8').trim() : argv.filter(a =>
  !a.startsWith('--') &&
  (sessionIdx === -1 || argv.indexOf(a) !== sessionIdx + 1)
 ).join(' ');
@@ -149,27 +209,6 @@ let browser = null;
 let dsPage = null;
 let browserLaunchedByUs = false;
 let browserConnectionMode = 'local';
-
-// ─── Graceful Shutdown: перехват сигналов для корректного закрытия браузера ──
-['SIGINT', 'SIGTERM', 'SIGHUP'].forEach(signal => {
-  process.on(signal, async () => {
-    log(`\n(System) Получен сигнал ${signal}, закрываем ресурсы...`);
-    if (browser && browserLaunchedByUs && shouldClose) {
-      try {
-        await browser.close();
-        log('✅ Браузер закрыт');
-      } catch (e) {
-        // Игнорируем ошибки закрытия
-      }
-    } else if (browser) {
-      // Сессия демона — просто отключаемся
-      try {
-        browser.disconnect();
-      } catch (e) {}
-    }
-    process.exit(0);
-  });
-});
 
 // Используем BASE_DIR
 const PROFILE_DIR = path.join(BASE_DIR, '.profile');
@@ -194,20 +233,7 @@ const RESPONSE_SELECTORS = [
  '[class*="assistant"] [class*="content"]', '[class*="answer-content"]',
  '[data-message-author-role="assistant"]', '.prose',
  '[class*="message"][class*="assistant"]', '[class*="message"][class*="ai"]',
- '[class*="message"]', 'main article',
- 'div[class*="chat"] div[class*="content"]',
- // Новые/универсальные
- '.markdown-body',
- '[class*="response"]',
- '[class*="assistant-message"]',
- '[class*="chat-response"]',
- 'article',
- 'section[class*="content"]',
- 'main',
- '[role="main"]',
- // Ещё более общие (всё внутри main)
- 'main *',
- 'main',
+ '[class*="message"]',
 ];
 const API_PATTERNS = ['/chat/completions', '/completion', '/chat/completion'];
 
@@ -256,7 +282,7 @@ async function isBrowserAlive(wsEndpoint) {
 
 // Retry logic for transient failures
 async function withRetry(fn, options = {}) {
-  const { maxRetries = 3, baseDelay = 1000, retryOn = [404, 429, 500, 502, 503] } = options;
+   const { maxRetries = 3, baseDelay = 1000, retryOn = [404, 429, 500, 502, 503] } = options;
   for (let i = 0; i <= maxRetries; i++) {
     try {
       return await fn();
@@ -266,7 +292,8 @@ async function withRetry(fn, options = {}) {
                           err.message.includes('timeout') ||
                           err.message.includes('ECONNRESET') ||
                           err.message.includes('network') ||
-                          err.message.includes('EAI_AGAIN');
+                          err.message.includes('EAI_AGAIN') ||
+                          err.message.includes('Rate limit');
       if (!shouldRetry) throw err;
       const delay = baseDelay * Math.pow(2, i);
       debugLog(`⚠️ Retry ${i+1}/${maxRetries} after ${delay}ms: ${err.message}`);
@@ -294,25 +321,6 @@ async function connectToDaemon() {
     try { fs.unlinkSync(DAEMON_ENDPOINT_FILE); } catch {}
     throw new Error(`Демон недоступен: ${e.message}`);
   }
-}
-
-async function blockUnnecessaryResources(page) {
-  await page.setRequestInterception(true);
-  page.on('request', (req) => {
-    const type = req.resourceType();
-    const url = req.url().toLowerCase();
-    if (['image', 'font', 'media', 'stylesheet'].includes(type)) {
-      req.abort();
-      return;
-    }
-    if (url.includes('analytics') || url.includes('tracker') ||
-        url.includes('datadoghq') || url.includes('singular') ||
-        url.includes('google-analytics') || url.includes('googletagmanager')) {
-      req.abort();
-      return;
-    }
-    req.continue();
-  });
 }
 
 // ─── Управление сессиями ────────────────────────────────────
@@ -486,11 +494,16 @@ async function countMessages(page) {
 // ─── Браузер ────────────────────────────────────────────────
 async function cleanup() {
  try {
-   if (browser && browserLaunchedByUs) {
-     await browser.close().catch(() => {});
-     // Дополнительная очистка процессов для одноразовых запросов
-     if (!sessionName && shouldClose) {
-       await killChromeProcessesForProfile(PROFILE_DIR);
+   if (browser) {
+     if (browserLaunchedByUs) {
+       await browser.close().catch(() => {});
+       // Дополнительная очистка процессов для одноразовых запросов
+       if (!sessionName && shouldClose) {
+         await killChromeProcessesForProfile(PROFILE_DIR);
+       }
+     } else {
+       // Daemon/session browser: не закрываем сам Chrome, только отключаемся
+       try { browser.disconnect(); } catch (e) {}
      }
    }
  } finally {
@@ -525,53 +538,214 @@ async function setupDeepSeekInterceptor(page) {
   const client = await page.target().createCDPSession();
   await client.send('Network.enable');
 
-  let targetRequestId = null;
-  let completionPromiseResolve;
-  let completionPromise = new Promise(r => completionPromiseResolve = r);
+  // ═══ Per-request state (private) ═══
+  let requestIdCounter = 0;
+  let expectedRequestIds = new Set();
+  let windowOpen = false;
+  let pendingResolve = null;
+  let pendingTimer = null;
+  let responseState = { resolved: false, result: null };
 
-  client.on('Network.requestWillBeSent', (event) => {
+  function parseDeepSeekBody(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+
+    // Check if this is a DeepSeek custom event-stream format
+    const isDeepSeekEvent = trimmed.includes('event:') || trimmed.includes('"v":');
+    
+    if (isDeepSeekEvent || trimmed.startsWith('data:') || trimmed.startsWith(':')) {
+      return parseDeepSeekEventStream(raw);
+    }
+
+    // Fallback: try standard OpenAI JSON format
+    try {
+      const obj = JSON.parse(trimmed);
+      const msg = obj.choices?.[0]?.message?.content;
+      if (msg) return msg;
+      const delta = obj.choices?.[0]?.delta?.content;
+      if (delta) return delta;
+      if (obj.text) return obj.text;
+      if (obj.output) return obj.output;
+      if (obj.content) return obj.content;
+      debugLog('[CDP] Unknown JSON keys:', Object.keys(obj));
+      return null;
+    } catch {
+      debugLog('[CDP] Body is not valid JSON, length:', trimmed.length);
+      return null;
+    }
+  }
+
+  /**
+   * Parse DeepSeek custom event-stream format.
+   * 
+   * Observed format:
+   *   data: {"v":{"response":{"fragments":[{"content":"2","stage_id":1}]}}
+   *   data: {"p":"response/fragments/-1/content","o":"APPEND","v":" +"}
+   *   data: {"v":" "}
+   *   data: {"v":"4"}
+   *   data: {"p":"response/status","o":"SET","v":"FINISHED"}
+   */
+  function parseDeepSeekEventStream(raw) {
+    const lines = raw.split('\n');
+    let accumulated = '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data:') || line.startsWith('data: []')) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+
+      try {
+        const obj = JSON.parse(payload);
+
+        // Skip non-content operations (BATCH, SET status, etc.)
+        if (['BATCH', 'SET', 'REMOVE', 'DELETE'].includes(obj.o)) continue;
+
+        // Case 1: direct string value {"v":"text"}
+        if (typeof obj.v === 'string') {
+          accumulated += obj.v;
+          continue;
+        }
+
+        // Case 2: fragment append {"p":"response/fragments/...","o":"APPEND","v":"text"}
+        if (obj.p && obj.o === 'APPEND' && typeof obj.v === 'string') {
+          accumulated += obj.v;
+          continue;
+        }
+
+        // Case 3: full response object {"v":{"response":{...}}}
+        if (obj.v && typeof obj.v === 'object' && obj.v.response) {
+          const resp = obj.v.response;
+          if (resp.accumulated_content) {
+            return resp.accumulated_content; // Return immediately
+          }
+          // 3b: fragments — collect FIRST fragment content as seed
+          if (resp.fragments && Array.isArray(resp.fragments)) {
+            const fragment = resp.fragments.find(f => f.content);
+            if (fragment && accumulated.length === 0) { // Only seed if empty
+              accumulated = fragment.content;
+            }
+          }
+        }
+
+        // Case 4: Standard OpenAI format inside event stream
+        const msg = obj.choices?.[0]?.message?.content;
+        if (msg) return msg;
+        const delta = obj.choices?.[0]?.delta?.content;
+        if (delta) {
+          accumulated += delta;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    return accumulated.length > 0 ? accumulated : null;
+  }
+
+  function doResolve(result) {
+    if (pendingResolve) {
+      const r = pendingResolve;
+      pendingResolve = null;
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+      r(result);
+    }
+  }
+
+  function cleanupState() {
+    expectedRequestIds.clear();
+    responseState = { resolved: false, result: null };
+    if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+    pendingResolve = null;
+    windowOpen = false;
+  }
+
+  function prepareForRequest() {
+    if (pendingResolve) {
+      pendingResolve = null;
+      if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; }
+    }
+    responseState = { resolved: false, result: null };
+    requestIdCounter++;
+    windowOpen = true;
+    debugLog(`[CDP] prepareForRequest: correlation #${requestIdCounter}`);
+    return requestIdCounter;
+  }
+
+  client.on('Network.requestWillBeSent', async (event) => {
     const url = event.request.url;
-    if ((url.includes('/chat/completion') || url.includes('/completion')) && event.request.method === 'POST') {
-      targetRequestId = event.requestId;
-      debugLog(`[CDP] Пойман запрос к API: ${event.requestId}`);
+    if ((url.includes('/chat/completion') || url.includes('/completion'))
+        && event.request.method === 'POST') {
+      if (!windowOpen) return;
+      if (responseState.resolved) return;
+      try {
+        if (event.request.hasPostData && event.request.postData
+            && typeof event.request.postData === 'string'
+            && event.request.postData.length < 10) return;
+      } catch {}
+      windowOpen = false;
+      expectedRequestIds.add(event.requestId);
+      debugLog(`[CDP] caught: ${event.requestId}`);
     }
   });
 
   client.on('Network.loadingFinished', async (event) => {
-    if (event.requestId === targetRequestId) {
-      try {
-        debugLog(`[CDP] Поток завершен, извлекаем тело...`);
-        const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
-        let body = response.body;
-        if (response.base64Encoded) {
-          body = Buffer.from(body, 'base64').toString('utf8');
-        }
-        completionPromiseResolve(body);
-      } catch (err) {
-        debugLog(`[CDP] Ошибка извлечения тела: ${err.message}`);
-        completionPromiseResolve(null);
-      }
+    if (!expectedRequestIds.has(event.requestId)) return;
+    if (responseState.resolved) return;
+    try {
+      debugLog(`[CDP] loadingFinished: ${event.requestId}`);
+      const resp = await client.send('Network.getResponseBody', { requestId: event.requestId });
+      let body = resp.body;
+      if (resp.base64Encoded) body = Buffer.from(body, 'base64').toString('utf8');
+      debugLog(`[CDP] Тело: ${body.length} chars`);
+      const parsedText = parseDeepSeekBody(body);
+      if (parsedText) debugLog(`[CDP] Текст: ${parsedText.length} chars`);
+      else debugLog(`[CDP] Parse returned null — format not recognized`);
+      if (responseState.resolved) return;
+      responseState.resolved = true;
+      responseState.result = { raw: body, text: parsedText, format: parsedText ? 'parsed' : 'raw', correlation: requestIdCounter };
+      doResolve(responseState.result);
+      expectedRequestIds.delete(event.requestId);
+    } catch (err) {
+      debugLog(`[CDP] Ошибка: ${err.message}`);
+      if (responseState.resolved) return;
+      responseState.resolved = true;
+      responseState.result = { raw: null, text: null, format: 'failed', error: err.message };
+      doResolve(responseState.result);
+      expectedRequestIds.delete(event.requestId);
     }
   });
 
   client.on('Network.loadingFailed', (event) => {
-    if (event.requestId === targetRequestId) {
-      debugLog(`[CDP] Запрос оборвался!`);
-      completionPromiseResolve(null);
-    }
+    if (!expectedRequestIds.has(event.requestId)) return;
+    if (responseState.resolved) return;
+    debugLog(`[CDP] requestFailed: ${event.requestId}`);
+    responseState.resolved = true;
+    responseState.result = { raw: null, text: null, format: 'failed', error: 'network_failed' };
+    doResolve(responseState.result);
+    expectedRequestIds.delete(event.requestId);
   });
 
-  return {
-    reset: () => {
-      targetRequestId = null;
-      completionPromise = new Promise(r => completionPromiseResolve = r);
-    },
-    waitForCompletion: () => completionPromise
-  };
+  async function waitForResponse(timeoutMs = 120000) {
+    if (responseState.resolved && responseState.result) {
+      cleanupState();
+      return responseState.result;
+    }
+    return new Promise((resolve) => {
+      pendingResolve = resolve;
+      pendingTimer = setTimeout(() => {
+        if (pendingResolve) { pendingResolve = null; if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null; } resolve(null); }
+      }, timeoutMs);
+    });
+  }
+
+  return { prepareForRequest, waitForResponse, cleanupState, get state() { return { resolved: responseState.resolved, expectedCount: expectedRequestIds.size, correlation: requestIdCounter }; } };
 }
 
 
-async function ensureBrowser(session, tracer = null) {
+
+
+async function ensureBrowser(session, diag = null) {
  debugLog(`[DEBUG] ensureBrowser() start, session:`, session);
  debugLog(`[DEBUG] browser=${!!browser}, dsPage=${!!dsPage}`);
  // Уже подключены — проверяем жива ли страница
@@ -589,10 +763,11 @@ async function ensureBrowser(session, tracer = null) {
    debugLog(`[DEBUG] No existing browser/page, will launch new`);
  }
 
- // ═══ Попытка 1: подключиться к демону (если --daemon ИЛИ если демон уже запущен) ═══
- debugLog(`[DEBUG] Checking daemon: useDaemon=${useDaemon}, DAEMON_ENDPOINT_FILE exists=${fs.existsSync(DAEMON_ENDPOINT_FILE)}`);
- if (tracer) tracer.start('DAEMON_CONNECT');
- if (useDaemon || fs.existsSync(DAEMON_ENDPOINT_FILE)) {
+ // ═══ Попытка 1: подключиться к демону (только при явном --daemon, либо когда НЕ нужен visible browser) ═══
+ const shouldUseDaemon = useDaemon || (!isVisible && fs.existsSync(DAEMON_ENDPOINT_FILE));
+ debugLog(`[DEBUG] Checking daemon: useDaemon=${useDaemon}, isVisible=${isVisible}, shouldUseDaemon=${shouldUseDaemon}, DAEMON_ENDPOINT_FILE exists=${fs.existsSync(DAEMON_ENDPOINT_FILE)}`);
+ if (diag) diag.start('DAEMON_CONNECT');
+ if (shouldUseDaemon) {
    try {
      debugLog('[DEBUG] Connecting to daemon...');
      browser = await connectToDaemon();
@@ -609,31 +784,49 @@ async function ensureBrowser(session, tracer = null) {
      }
 
      log(`🔗 Подключился к демону (URL: ${dsPage.url().substring(0, 50)})`);
-     if (tracer) tracer.succeed('DAEMON_CONNECT', { url: dsPage.url() });
+     if (diag) diag.succeed('DAEMON_CONNECT', { url: dsPage.url() });
      return dsPage;
    } catch (e) {
      debugLog(`[DEBUG] Daemon connection failed: ${e.message}`);
-     if (tracer) tracer.fail('DAEMON_CONNECT', e.message);
+     if (diag) diag.fail('DAEMON_CONNECT', e.message);
      if (useDaemon) {
        // При --daemon НЕ падаем в fallback
        throw new Error('Демон недоступен. Запусти: cd ~/.openclaw/workspace/skills/ai-orchestrator && node deepseek-daemon.js');
      } else {
        // Демон найден, но не отвечает — логируем и продолжаем
        log(`⚠️ Демон найден, но недоступен: ${e.message}`);
+       // Daemon auto-recovery: пробуем перезапустить через PM2
+       try {
+         log('🔄 Daemon auto-recovery: pm2 restart...');
+         require('child_process').execSync('pm2 restart deepseek-daemon', { stdio: 'pipe' });
+         log('⏳ Ждём 8 сек поднятия...');
+         await new Promise(r => setTimeout(r, 8000));
+         const newEp = fs.readFileSync(DAEMON_ENDPOINT_FILE, 'utf8').trim();
+         log(`🔗 Повторное подключение: ${newEp.substring(0, 60)}...`);
+         browser = await puppeteer.connect({ browserWSEndpoint: newEp, defaultViewport: null });
+         const pages = await browser.pages();
+         dsPage = pages.find(p => { try { return p.url().includes('deepseek'); } catch { return false; } }) || pages[0];
+         if (dsPage) {
+           log(`✅ Демон восстановлен (URL: ${dsPage.url().substring(0, 60)})`);
+           return dsPage;
+         }
+       } catch (err) {
+         log(`⚠️ Auto-recovery не удался: ${err.message}`);
+       }
      }
    }
  } else {
-   if (tracer) tracer.skip('DAEMON_CONNECT', 'daemon mode not used');
+   if (diag) diag.skip('DAEMON_CONNECT', 'daemon mode not used');
  }
 
  // ═══ Попытка 2: подключиться к существующему браузеру через сессию ═══
- if (tracer) tracer.start('SESSION_RESTORE');
+ if (diag) diag.start('SESSION_RESTORE');
  if (session) {
    const wsEndpoint = session.wsEndpoint;
    if (wsEndpoint) {
      if (await isBrowserAlive(wsEndpoint)) {
        if (await connectToExistingBrowser(session)) {
-       if (tracer) tracer.succeed('SESSION_RESTORE', { url: dsPage.url() });
+         if (diag) diag.succeed('SESSION_RESTORE', { url: dsPage.url() });
          return dsPage;
        }
      } else {
@@ -642,11 +835,13 @@ async function ensureBrowser(session, tracer = null) {
        try { fs.unlinkSync(sessionPath); } catch (e) { debugLog('Ошибка удаления сессии:', e.message); }
      }
    }
-   if (tracer) tracer.skip('SESSION_RESTORE', 'no session or session dead');
+   if (diag) diag.skip('SESSION_RESTORE', 'no session or session dead');
+ } else {
+   if (diag) diag.skip('SESSION_RESTORE', 'no session requested');
  }
 
  // ═══ Попытка 3: запустить новый браузер ═══
- if (tracer) tracer.start('BROWSER_LAUNCH');  // NOTE: nested within parent's BROWSER_LAUNCH phase
+ if (diag) diag.start('BROWSER_LAUNCH');  // NOTE: nested within parent's BROWSER_LAUNCH phase
  await cleanup();
  ensureDirSync(PROFILE_DIR);
 
@@ -671,7 +866,7 @@ async function ensureBrowser(session, tracer = null) {
  }
 
  log('🚀 Запуск нового браузера...');
- browser = await launchWithTimeout(launchOptions, 30000);
+ browser = await launchWithTimeout(launchOptions, TIMEOUT_BROWSER);
  browserLaunchedByUs = true;
  browserConnectionMode = 'local';
 
@@ -686,16 +881,6 @@ async function ensureBrowser(session, tracer = null) {
    Object.defineProperty(navigator, 'webdriver', { get: () => false });
  });
 
- // Блокируем лишние ресурсы (если не видимый и мы запустили браузер)
- // FIXME: блокировка может мешать работе DeepSeek, временно отключено
- // if (browserLaunchedByUs && !isVisible) {
- //   try {
- //     await blockUnnecessaryResources(dsPage);
- //   } catch (e) {
- //     log('⚠️ Не удалось настроить блокировку ресурсов:', e.message);
- //   }
- // }
-
  // Логируем только API
  dsPage.on('response', resp => {
    const url = resp.url();
@@ -704,15 +889,15 @@ async function ensureBrowser(session, tracer = null) {
  });
 
  // Открываем DeepSeek (или сохранённый чат)
- if (tracer) tracer.start('PAGE_NAVIGATE');
+ if (diag) diag.start('PAGE_NAVIGATE');
  if (session?.chatUrl && !newChat) {
    log(`📂 Открываю чат: ${session.chatUrl.substring(0, 50)}`);
-   await dsPage.goto(session.chatUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+   await dsPage.goto(session.chatUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
  } else {
    log('📍 Открываем DeepSeek...');
-   await dsPage.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+   await dsPage.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
  }
- if (tracer) tracer.succeed('PAGE_NAVIGATE', { url: dsPage.url() });
+ if (diag) diag.succeed('PAGE_NAVIGATE', { url: dsPage.url() });
 
  // Отключаем анимации для стабилизации DOM
  await disableAnimations(dsPage);
@@ -738,16 +923,20 @@ async function ensureBrowser(session, tracer = null) {
 }
 
 // ─── Новый чат ──────────────────────────────────────────────
-async function startNewChat(page) {
+async function startNewChat(page, forceNewSession = false) {
  log('🆕 Начинаю новый чат...');
 
  // Проверяем, находимся ли мы уже в чате
- // Если --new-chat НЕ запрошен — пропускаем. Если запрошен — создаём принудительно.
+ // Если --new-chat НЕ запрошен И это не новая сессия — пропускаем.
+ // Новая сессия всегда начинается с нового чата, даже если daemon был на старом.
  try {
    const url = page.url();
-   if (url.includes('/a/chat/s/') && !newChat) {
-     log('🆕 Уже в чате — пропускаем создание нового');
+   if (url.includes('/a/chat/s/') && !newChat && !forceNewSession) {
+     log('🆕 Уже в чате — продолжаем в этом');
      return;
+   }
+   if (url.includes('/a/chat/s/') && forceNewSession) {
+     log('⚠️ Daemon на старом чате, принудительно создаю новый для новой сессии');
    }
  } catch (e) {
    // ignore, продолжим
@@ -773,7 +962,12 @@ async function startNewChat(page) {
  await sleep(1500);
  } else {
  // Fallback: goto main page
- await page.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: 15000 });
+ try {
+   await page.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+ } catch (e) {
+   if (!String(e.message || '').includes('ERR_ABORTED')) throw e;
+   log('⚠️ Навигация на новый чат была прервана UI-переходом, продолжаю');
+ }
  await sleep(1500);
  }
 }
@@ -805,6 +999,12 @@ async function enableSearch(page) {
 // ─── Отправка ───────────────────────────────────────────────
 async function sendPrompt(page, composerSelector, prompt) {
  log(`📝 "${prompt.substring(0, 60)}..."`);
+
+ // ═══ CDP: prepare ДО отправки ═══
+ if (cdpInterceptor) {
+   const corrId = cdpInterceptor.prepareForRequest();
+   debugLog(`[CDP] Prepared for request, correlation #${corrId}`);
+ }
 
  const needsSearch = /\[РЕЖИМ: ПОИСК/i.test(prompt);
  if (needsSearch) await enableSearch(page);
@@ -898,9 +1098,15 @@ async function getTexts(page, selectors, prompt, opts = {}) {
  return results;
 }
 
-function isValid(t, minLen = 50) {
+function isValid(t, minLen = 50, prompt = '') {
  if (!t || t.trim().length < minLen) return false;
- if (/captcha|verify you are human|rate limit/i.test(t)) return false;
+ const trimmed = t.trim();
+ const promptTrimmed = (prompt || '').trim();
+ if (/captcha|verify you are human|rate limit/i.test(trimmed)) return false;
+ if (promptTrimmed) {
+   if (trimmed === promptTrimmed) return false;
+   if (Math.abs(trimmed.length - promptTrimmed.length) < 10 && trimmed.startsWith(promptTrimmed.slice(0, 20))) return false;
+ }
  return true;
 }
 
@@ -1011,11 +1217,17 @@ async function extractAnswerFromDOM(page, textBefore, opts = {}) {
    if (textBefore && answerText.includes(textBefore)) {
      cleaned = answerText.replace(textBefore, '').trim();
    }
+   if (textBefore && cleaned.trim() === textBefore.trim()) {
+     return null;
+   }
    if (cleaned.length < minLen && answerText.length > 100) {
      const ratio = textBefore ? (textBefore.length / answerText.length) : 0;
      if (ratio < 0.3) {
        cleaned = answerText.slice(Math.floor(answerText.length * 0.3)).trim();
      }
+   }
+   if (textBefore && cleaned.startsWith(textBefore.slice(0, 20)) && Math.abs(cleaned.length - textBefore.length) < 10) {
+     return null;
    }
    return cleaned.length >= minLen ? cleaned : null;
  } catch (e) {
@@ -1031,38 +1243,41 @@ async function extractAnswerFromDOM(page, textBefore, opts = {}) {
  * @param {string} existingText — уже извлечённый текст (чтобы отличить новое)
  * @returns {Promise<string>}追加 текст или пустая строка
  */
+// Helper: extract the last/best assistant message text from the page
+async function extractBestText(page, minLength = 0) {
+  return page.evaluate((minLen) => {
+    const els = document.querySelectorAll('[class*="message"], [class*="content"], [class*="answer"], article, main');
+    let best = { text: '', len: 0 };
+    for (const el of els) {
+      const t = (el.textContent || '').trim();
+      if (t.length > best.len && t.length >= minLen) best = { text: t, len: t.length };
+    }
+    return best;
+  }, minLength);
+}
+
 async function handleContinueButton(page, existingText) {
-  const CONTINUE_SELECTORS = [
-    // DeepSeek buttons (CSS only; Puppeteer doesn't support :has-text)
-    'button[class*="continue" i]',
-    'button[class*="regenerate" i]',
-    '[class*="continue" i] button',
-    '[class*="regenerate" i] button',
-    'button[class*="outline" i]',
-    'button[class*="secondary" i]',
-    'button',
-    '[role="button"]',
-    'a',
-  ];
-
-  let continueBtn = null;
-  for (const sel of CONTINUE_SELECTORS) {
-    try {
-      const btns = await page.$$(sel);
-      for (const btn of btns) {
-        const text = await btn.evaluate(el => el.textContent.trim());
-        const disabled = await btn.evaluate(el => el.disabled || el.getAttribute('aria-disabled') === 'true');
-        if ((text.includes('Continue') || text.includes('Продолжить') || text.includes('Generate')) && !disabled) {
-          continueBtn = btn;
-          log(`🔄 Найдена кнопка продолжения: "${text}" (${sel})`);
-          break;
-        }
+  // ═══ 1. Поиск кнопки — один evaluate() ═══
+  const continueBtnData = await page.evaluate(() => {
+    const allElements = document.querySelectorAll('button, [role="button"], a');
+    for (const el of allElements) {
+      if (el.offsetWidth === 0 || el.offsetHeight === 0) continue;
+      const rect = el.getBoundingClientRect();
+      if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
+      const text = (el.textContent || el.innerText || '').trim().toLowerCase();
+      const isContinue = text.includes('continue') || text.includes('продолжить') ||
+                         text.includes('generate') || text.includes('regenerate');
+      const isDisabled = el.disabled || el.getAttribute('aria-disabled') === 'true' ||
+                         el.classList.contains('disabled') || el.getAttribute('disabled') !== null;
+      if (isContinue && !isDisabled) {
+        const r = el.getBoundingClientRect();
+        return { found: true, x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), label: text.substring(0, 40) };
       }
-      if (continueBtn) break;
-    } catch (e) { /* selector might not match, try next */ }
-  }
+    }
+    return { found: false };
+  }).catch(() => ({ found: false, error: 'evaluate failed' }));
 
-  if (!continueBtn) {
+  if (!continueBtnData.found) {
     // === FALLBACK: кнопка не найдена ===
     // Если ответ длинный или явно обрезан, пробуем отправить "Продолжи" через composer
     const shouldFallback = existingText.length > 8000 ||
@@ -1098,17 +1313,9 @@ async function handleContinueButton(page, existingText) {
         log('✅ Отправили "Продолжи" через Enter');
 
         await sleep(2000);
-        const newCandidates = await page.evaluate(() => {
-          const els = document.querySelectorAll('[class*="message"], [class*="content"], [class*="answer"], article, main');
-          let best = { text: '', len: 0 };
-          for (const el of els) {
-            const t = (el.textContent || '').trim();
-            if (t.length > best.len) best = { text: t, len: t.length };
-          }
-          return best;
-        });
+        const newCandidates = await extractBestText(page);
 
-        if (newCandidates.len > existingText.length + 100) {
+        if (newCandidates.len > existingText.length + CONFIG.deltaThreshold) {
           // Защита: новый текст должен быть хотя бы на 100 символов больше
           // (защита от "pseudo-update" где добавляется 1-2 символа)
           log(`📈 Fallback вернул +${newCandidates.len - existingText.length} символов`);
@@ -1127,7 +1334,7 @@ async function handleContinueButton(page, existingText) {
 
   // Кликаем и ждём нового контента
   try {
-    await continueBtn.click();
+    await page.mouse.click(continueBtnData.x, continueBtnData.y);
     log('✅ Кликнули "Продолжить", ждём новый контент...');
     await sleep(1000); // было 3000ms — оптимизировано для скорости
 
@@ -1138,16 +1345,8 @@ async function handleContinueButton(page, existingText) {
     let lastLen = 0;
 
     while (Date.now() - startTime < maxWaitMs) {
-      await sleep(250); // быстрее polling без заметной потери надежности
-      const candidates = await page.evaluate(() => {
-        const els = document.querySelectorAll('[class*="message"], [class*="content"], [class*="answer"], article, main');
-        let best = { text: '', len: 0 };
-        for (const el of els) {
-          const t = (el.textContent || '').trim();
-          if (t.length > best.len) best = { text: t, len: t.length };
-        }
-        return best;
-      });
+      await sleep(250);
+      const candidates = await extractBestText(page);
 
       if (candidates.len > newText.length) {
         newText = candidates.text;
@@ -1159,16 +1358,8 @@ async function handleContinueButton(page, existingText) {
 
       // Проверяем: может текст стабилизировался
       if (newText.length === lastLen && lastLen > 0) {
-        await sleep(2000); // было 5000ms — оптимизировано для скорости
-        const final = await page.evaluate(() => {
-          const els = document.querySelectorAll('[class*="message"], [class*="content"], [class*="answer"], article, main');
-          let best = { text: '', len: 0 };
-          for (const el of els) {
-            const t = (el.textContent || '').trim();
-            if (t.length > best.len) best = { text: t, len: t.length };
-          }
-          return best;
-        });
+        await sleep(2000);
+        const final = await extractBestText(page);
         if (final.len === lastLen) {
           log(`✅ Продолжение завершено (${final.len - existingText.length} новых символов)`);
           return final.text.slice(existingText.length); // возвращаем ТОЛЬКО追加 часть
@@ -1185,21 +1376,59 @@ async function handleContinueButton(page, existingText) {
   }
 }
 
-async function waitForAnswer(page, prompt, textBefore, timeoutMs = 600000, tracer = null, metrics = null) {
+async function waitForAnswer(page, prompt, textBefore, timeoutMs = 600000, diag = null) {
   log('⏳ Жду ответ...');
+  const startTime = Date.now();
 
-  // === Детектор завершения потока ==========================================
-  // Сначала ждём сигнала от CDP, затем используем DOM как источник ответа.
-  let apiFinished = false;
+  // ═══ STAGE 1: Network-first (CDP) ═══
   if (cdpInterceptor) {
-    cdpInterceptor.waitForCompletion().then(() => {
-      apiFinished = true;
-      log('✅ CDP: API стрим завершён');
-    }).catch(() => {});
+    log('🌐 Network-first mode: жду ответ через CDP...');
+    const networkTimeout = Math.min(timeoutMs * 0.8, 480000);
+    const networkResult = await cdpInterceptor.waitForResponse(networkTimeout);
+
+    if (networkResult && networkResult.text && networkResult.text.length >= 2) {
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      log(`✅ Network extraction: ${networkResult.text.length} символов за ${elapsed}s (${networkResult.format})`);
+      if (diag) {
+        diag.networkExtracted = true;
+      }
+      cdpInterceptor.cleanupState();
+      return { selector: 'cdp-network', text: networkResult.text, fromNetwork: true };
+    }
+
+    if (networkResult) {
+      log(`⚠️ Network response не распаршен (${networkResult.format}), fallback DOM`);
+      if (networkResult.error) debugLog(`[CDP] Error: ${networkResult.error}`);
+      if (networkResult.text) log(`[CDP] Parser returned text=${networkResult.text.length} chars: "${networkResult.text.substring(0, 100)}"`);
+      if (networkResult.raw) debugLog(`[CDP] Raw: ${networkResult.raw.substring(0, 200)}`);
+    } else {
+      log('⚠️ Network timeout — CDP не поймал ответ, fallback DOM');
+    }
+    cdpInterceptor.cleanupState();
+  } else {
+    debugLog('[CDP] Interceptor не установлен, skip network');
   }
-  const idleTimeoutMs = 15000; // 15 секунд без изменений текста (было 30)
-  const heartbeatIntervalMs = 15000; // выводить прогресс каждые 15 секунд
-  const domErrorIdleMs = 25000; // если 25 секунд только ошибки извлечения — прерываем (было 40)
+
+  // ═══ STAGE 2: DOM fallback — чистый path, без network state ═══
+  log('📄 Fallback: DOM extraction...');
+  const domPrecheck = await extractAnswerFromDOM(page, textBefore, { minLen: 50 });
+  if (domPrecheck && domPrecheck.length >= 50) {
+    log(`✅ Ответ уже в DOM: ${domPrecheck.length} символов`);
+    return { selector: 'answer-dom', text: domPrecheck };
+  }
+
+  const domTimeout = Math.min(timeoutMs * 0.3, 45000);
+  return await _waitForAnswerDOM(page, prompt, textBefore, domTimeout, diag);
+}
+
+/**
+ * DOM-only ожидание — полностью отдельный path.
+ * НЕ читает и НЕ пишет network state.
+ */
+async function _waitForAnswerDOM(page, prompt, textBefore, timeoutMs = 45000, diag = null) {
+  const idleTimeoutMsIdle = IDLE_TIMEOUT;
+  const heartbeatIntervalMs = HEARTBEAT_INTERVAL;
+  const domErrorIdleMsLocal = DOM_ERROR_IDLE;
   let lastText = '';
   let lastChangeTime = Date.now();
   let lastHeartbeatTime = Date.now();
@@ -1208,187 +1437,220 @@ async function waitForAnswer(page, prompt, textBefore, timeoutMs = 600000, trace
   let consecutiveExtractionErrors = 0;
 
   const cached = loadCachedSelectors();
-  const allSels = [...new Set([...cached, ...RESPONSE_SELECTORS])];
-  const startTime = Date.now();
+  const prioritySels = ['[data-message-author-role="assistant"]', '.ds-markdown', '.ds-markdown--block'];
+  const remainingSels = RESPONSE_SELECTORS.filter(s => !prioritySels.includes(s));
+  const allSels = [...new Set([...prioritySels, ...cached, ...remainingSels])];
 
-  // Основной цикл: проверяем DOM каждые 2 секунды
+  const domStart = Date.now();
+
   while (true) {
-    // Global timeout
-    if (Date.now() - startTime > timeoutMs) {
-      break;
-    }
+    if (Date.now() - domStart > timeoutMs) { log(`⏰ DOM timeout после ${timeoutMs}ms`); break; }
 
-    // Если CDP сообщил о завершении стрима — запускаем финальное извлечение
-    if (apiFinished && lastText && lastText.length >= 50) {
-      log('✅ API завершился, извлекаем финальный текст из DOM...');
-      const finalText = await extractAnswerFromDOM(page, textBefore);
-      if (finalText && finalText.length > lastText.length) {
-        lastText = finalText;
-        foundSelector = 'answer-dom';
-      }
-      break;
-    }
+    // OPTIM: adaptive polling backoff
+    const domElapsed = Date.now() - domStart;
+    await sleep(domElapsed < 2000 ? 50 : 200);
 
     let currentText = null;
-
-    // 1. Сначала пробуем DOM-экстракт: это самый дешёвый и обычно самый точный путь.
     let answerText = await extractAnswerFromDOM(page, textBefore, { minLen: 50 });
-    if (!answerText || answerText.length < 50) {
-      answerText = await extractAnswerFromDOM(page, textBefore, { minLen: 2 });
-    }
-    if (answerText && answerText.length >= 2 && answerText.toLowerCase() !== prompt.toLowerCase()) {
+    if (!answerText || answerText.length < 50) answerText = await extractAnswerFromDOM(page, textBefore, { minLen: 2 });
+    if (answerText && isValid(answerText, 2, prompt)) {
       currentText = answerText;
       foundSelector = 'answer-dom';
     }
 
-    // 2. Если DOM не дал результата — пробуем селекторы (сначала normal, потом tiny)
     if (!currentText) {
       let texts = await getTexts(page, allSels, prompt, { minLen: 50 });
-      let valid = texts.filter(x => isValid(x.text, 50));
-      if (!valid.length) {
-        texts = await getTexts(page, allSels, prompt, { minLen: 3 });
-        valid = texts.filter(x => isValid(x.text, 2));
-      }
+      let valid = texts.filter(x => isValid(x.text, 50, prompt));
+      if (!valid.length) { texts = await getTexts(page, allSels, prompt, { minLen: 3 }); valid = texts.filter(x => isValid(x.text, 2, prompt)); }
       if (valid.length) {
         valid.sort((a, b) => b.text.length - a.text.length);
-        const best = valid[0];
-        if (prompt && best.text.length > 0 && Math.abs(best.text.length - prompt.length) < 10) {
-          if (!best.text.startsWith(prompt.substring(0, 20))) {
-            currentText = best.text;
-            foundSelector = best.selector;
-          }
-        } else {
-          currentText = best.text;
-          foundSelector = best.selector;
-        }
+        currentText = valid[0].text;
+        foundSelector = valid[0].selector;
       }
     }
 
-    // Обработка результата извлечения
     if (currentText && currentText.length >= 2) {
       consecutiveExtractionErrors = 0;
-
       if (currentText !== lastText) {
         lastText = currentText;
         lastChangeTime = Date.now();
         lastSuccessfulExtraction = Date.now();
         log(`📈 Текст обновился: ${currentText.length} символов`);
       }
-
-      // Heartbeat
       const now = Date.now();
       if (now - lastHeartbeatTime > heartbeatIntervalMs) {
         log(`[Progress] Сгенерировано ${currentText.length} символов...`);
         lastHeartbeatTime = now;
       }
-
-      // Idle timeout (только для длинных ответов)
-      if (currentText.length >= 50 && now - lastChangeTime > idleTimeoutMs) {
-        log(`✅ Стабильный текст (${lastText.length} символов) после ${Math.round((now-lastChangeTime)/1000)} сек без изменений`);
+      if (currentText.length >= 50 && now - lastChangeTime > idleTimeoutMsIdle) {
+        log(`✅ Стабильный текст (${lastText.length} символов)`);
         break;
       }
-      
-      // Короткие ответы (< 50 chars) — принимаем только после короткой стабилизации
-      if (currentText.length < 50) {
-        const shortStableMs = 300;
-        if (apiFinished && now - lastChangeTime >= shortStableMs) {
-          await sleep(50);
-          log(`✅ Короткий ответ: "${currentText}" (${currentText.length} символов)`);
-          break;
-        }
+      if (currentText.length < 50 && (now - lastChangeTime) >= 300) {
+        log(`✅ Короткий ответ: "${currentText}"`);
+        break;
       }
     } else {
       consecutiveExtractionErrors++;
     }
 
-    // Проверка длительных ошибок извлечения
     const now = Date.now();
-    if (consecutiveExtractionErrors > 0 && (now - lastSuccessfulExtraction > domErrorIdleMs)) {
-      log(`⚠️ Длительный период ошибок извлечения (${Math.round((now - lastSuccessfulExtraction)/1000)} сек). Возвращаем partial (${lastText.length} символов)`);
-      if (lastText && lastText.length >= 50) {
-        break;
-      } else {
-        throw new Error('Нет успешных извлечений (длительный DOM churn)');
-      }
+    if (consecutiveExtractionErrors > 0 && (now - lastSuccessfulExtraction > domErrorIdleMsLocal)) {
+      log(`⚠️ Длительный период ошибок (${Math.round((now - lastSuccessfulExtraction)/1000)}s)`);
+      if (lastText && lastText.length >= 50) break;
+      throw new Error('Нет успешных извлечений (DOM churn)');
     }
-
-    await sleep(100); // faster polling without losing reliability
   }
 
-  // ─── Цикл "Продолжить" ─────────────────────────────────────────────
-  // Кликаем кнопку "Продолжить" пока она есть и появляется новый контент
+  // Continue loop
   let finalText = lastText || '';
   let continueRound = 0;
-  const MAX_CONTINUE_ROUNDS = 30; // защита от бесконечного цикла
-
-  while (continueRound < MAX_CONTINUE_ROUNDS) {
+  const maxContinueRounds = CONFIG.maxContinueRounds;
+  while (continueRound < maxContinueRounds) {
     if (finalText.length < 50) break;
-
     continueRound++;
-    if (tracer) tracer.start('CONTINUE');
-    if (metrics) metrics.increment('continueRounds');
-    log(`🔍 Раунд ${continueRound}: ищу кнопку продолжения (уже ${finalText.length} символов)...`);
-
+    if (diag) diag.start('CONTINUE');
+    log(`🔍 Continue раунд ${continueRound}...`);
     const addedText = await handleContinueButton(page, finalText);
-
     if (!addedText || addedText.length < 50) {
-      if (continueRound === 1) {
-        // Кнопка не найдена вообще — просто возвращаем что есть
-        log(`✅ Финальный текст: ${finalText.length} символов (кнопки продолжения нет)`);
-      } else {
-        log(`✅ Продолжения завершены: ${finalText.length} символов`);
-      }
-      if (tracer) tracer.succeed('CONTINUE', { rounds: continueRound, finalLength: finalText.length, found: false });
+      if (diag) diag.succeed('CONTINUE', { rounds: continueRound, found: false });
       break;
     }
-
     finalText += addedText;
-    log(`📦 +${addedText.length} символов → итого ${finalText.length}`);
-    if (tracer) tracer.succeed('CONTINUE', { rounds: continueRound, addedChars: addedText.length, totalLength: finalText.length });
+    if (diag) diag.succeed('CONTINUE', { rounds: continueRound, addedChars: addedText.length });
   }
 
-  // Возвращаем текст (принимаем даже 2 символа — "hi", "ok" и т.д.)
+  if (diag) diag.continueRounds = continueRound;
+
   if (finalText && finalText.length >= 2) {
+    if (cdpInterceptor) cdpInterceptor.cleanupState();
     return { selector: foundSelector || 'final', text: finalText };
   }
-
   throw new Error('Ответ не найден (таймаут)');
 }
 
-// ─── Главная ────────────────────────────────────────────────
+
+
+/**
+ * Слойная дедупликация для Continue ответов.
+ * L0: prefix match → L1: suffix overlap (word boundary) → L2: paragraph split →
+ * L3: strip list markers → L4: code fence boundaries → L5: fallback
+ */
+function _dedupeDelta(existing, newText, minOverlap = 30) {
+  if (!existing || !newText) return '';
+  if (newText.length <= existing.length) return '';
+
+  // L0: exact prefix
+  if (newText.startsWith(existing)) return newText.slice(existing.length).trimStart();
+
+  // L1: suffix overlap на границах слов
+  const maxCheck = Math.min(existing.length, newText.length, 300);
+  for (let len = maxCheck; len >= minOverlap; len--) {
+    const bp = existing.length - len;
+    if (bp > 0 && !/\s/.test(existing[bp - 1])) continue;
+    const suffix = existing.slice(-len);
+    if (newText.startsWith(suffix)) {
+      const delta = newText.slice(len).trimStart();
+      if (delta.length > 50 || newText.length > existing.length + (CONFIG?.deltaThreshold || 100)) return delta;
+      return '';
+    }
+  }
+
+  // L2: paragraph-level overlap
+  const exParas = existing.split(/\n\s*\n/);
+  const nwParas = newText.split(/\n\s*\n/);
+  if (exParas.length >= 2 && nwParas.length >= 2) {
+    const lastEx = exParas[exParas.length - 1].trim();
+    for (let i = 0; i < nwParas.length; i++) {
+      if (lastEx && nwParas[i].trim().startsWith(lastEx.substring(Math.min(30, lastEx.length / 2)))) {
+        const delta = nwParas.slice(i).join('\n\n').trim();
+        if (delta.length > 50) return delta;
+      }
+    }
+  }
+
+  // L3: strip list markers
+  const stripLM = (t) => t.replace(/^(\s*[-*•]\s+|\s*\d+\.\s+)/gm, '');
+  const sEx = stripLM(existing);
+  const sNw = stripLM(newText);
+  if (sNw.length > sEx.length + 50) {
+    const sMax = Math.min(sEx.length, sNw.length, 200);
+    for (let len = sMax; len >= 20; len--) {
+      if (sNw.startsWith(sEx.slice(-len))) {
+        const ratio = len / sEx.length;
+        const origPos = Math.round(existing.length * ratio);
+        const delta = newText.slice(origPos).trimStart();
+        if (delta.length > 50) return delta;
+      }
+    }
+  }
+
+  // L4: code fence boundaries
+  const codeFC = (t) => (t.match(/^```/gm) || []).length;
+  if (codeFC(existing) % 2 !== 0) {
+    const lastFence = existing.lastIndexOf('\n```');
+    if (lastFence > 0) {
+      const fc = existing.slice(lastFence).trim();
+      const fcMax = Math.min(fc.length, newText.length, 100);
+      for (let len = fcMax; len >= 10; len--) {
+        if (newText.startsWith(fc.slice(-len))) {
+          const delta = newText.slice(len).trimStart();
+          if (delta.length > 50) return delta;
+        }
+      }
+    }
+  }
+
+  // L5: fallback
+  if (newText.length > existing.length + (CONFIG?.deltaThreshold || 100)) {
+    const fbMax = Math.min(existing.length, newText.length, 100);
+    for (let len = fbMax; len >= 10; len--) {
+      if (newText.startsWith(existing.slice(-len))) return newText.slice(len).trimStart();
+    }
+    const pos = newText.indexOf(existing.substring(0, 100));
+    if (pos >= 0) return newText.slice(pos + 100).trimStart();
+  }
+  return '';
+}
+
 async function ask(q) {
  // ═══ Инициализация диагностики ════════════════════════════════════════════
  const LOG_DIR = path.join(BASE_DIR, '.diagnostics');
- const tracer = new PipelineTrace({
+ const diag = new Diagnostics({
    traceId: `tr-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
    sessionName,
    promptPreview: q.substring(0, 80),
    logDir: LOG_DIR,
  });
- const metrics = new MetricsCollector({
-   traceId: tracer.traceId,
-   sessionName,
-   promptLength: q.length,
-   outputDir: LOG_DIR,
- });
 
- tracer.start('INIT');
- metrics.phaseStart('init');
- metrics.snapMemory('start');
+ diag.start('INIT');
+ diag.phaseStart('init');
+ diag.snapMemory('start');
 
- // ═══ Rate limit ═══════════════════════════════════════════════════════════
+ // ═══ Rate limit (smart: exponential backoff on repeated 429s) ═══════
  const RL = path.join(BASE_DIR, 'rate-limit.json');
  try {
  const now = Date.now();
- let lim = { t: 0 };
- if (fs.existsSync(RL)) lim = JSON.parse(fs.readFileSync(RL, 'utf8'));
- if (now - (lim.t || 0) < 5000) throw new Error('Rate limit: 5s');
- lim.t = now;
- ensureDirSync(BASE_DIR);
- fs.writeFileSync(RL, JSON.stringify(lim));
- } catch (e) { if (e.message.includes('Rate limit')) throw e; }
- tracer.succeed('INIT', { rateLimit: 'passed' });
- metrics.phaseEnd('init');
+ let lim = { t: 0, backoff: 0, consecutive: 0 };
+ if (fs.existsSync(RL)) lim = { ...lim, ...JSON.parse(fs.readFileSync(RL, 'utf8')) };
+ // Dry run does not send a prompt, so do not gate auth/composer checks behind request backoff.
+ if (!dryRun) {
+   const effectiveDelay = lim.backoff || RATE_LIMIT_MS;
+   const elapsed = now - (lim.t || 0);
+   if (elapsed < effectiveDelay) {
+     const remaining = Math.ceil((effectiveDelay - elapsed) / 1000);
+     if (effectiveDelay > RATE_LIMIT_MS) {
+       log(`⏳ Smart rate limit: backing off ${remaining}s (attempt #${lim.consecutive + 1}, ${effectiveDelay}ms)`);
+     }
+     throw new Error(`Rate limit: wait ${effectiveDelay}ms (backoff ${lim.consecutive})`);
+   }
+   lim.t = now;
+   ensureDirSync(BASE_DIR);
+   fs.writeFileSync(RL, JSON.stringify(lim));
+ }
+ } catch (e) { if (e.message.includes('Rate limit:')) throw e; }
+ diag.succeed('INIT', { rateLimit: 'passed' });
+ diag.phaseEnd('init');
 
  // ═══ Определяем режим ═══
  const isSession = !!sessionName;
@@ -1404,33 +1666,33 @@ async function ask(q) {
  log(`\n🤖 Одиночный запрос`);
  }
  log(`📝 "${q}"`);
- log(`🔖 Trace: ${tracer.traceId}`);
+ log(`🔖 Trace: ${diag.traceId}`);
 
  // ═══ Запуск / подключение браузера ════════════════════════════════════════
- tracer.start('BROWSER_LAUNCH');
- metrics.phaseStart('browser_launch');
+ diag.start('BROWSER_LAUNCH');
+ diag.phaseStart('browser_launch');
  try {
-   var page = await ensureBrowser(session, tracer);
-   tracer.succeed('BROWSER_LAUNCH', { url: page.url().substring(0, 80) });
-   metrics.phaseEnd('browser_launch');
-   metrics.snapMemory('after_browser');
+   var page = await ensureBrowser(session, diag);
+   diag.succeed('BROWSER_LAUNCH', { url: page.url().substring(0, 80) });
+   diag.phaseEnd('browser_launch');
+   diag.snapMemory('after_browser');
  } catch (err) {
-   tracer.fail('BROWSER_LAUNCH', err);
+   diag.fail('BROWSER_LAUNCH', err);
    throw err;
  }
 
  // ═══ Auth check (критично — до отправки промпта) ══════════════════════════
- tracer.start('AUTH_CHECK');
- metrics.phaseStart('auth_check');
- const authOk = await requireAuth(page, tracer, log.bind(null, '\x1b[36m[AUTH]\x1b[0m'));
- metrics.phaseEnd('auth_check');
- metrics.snapMemory('after_auth');
+ diag.start('AUTH_CHECK');
+ diag.phaseStart('auth_check');
+ const authOk = await requireAuth(page, diag, log.bind(null, '\x1b[36m[AUTH]\x1b[0m'));
+ diag.phaseEnd('auth_check');
+ diag.snapMemory('after_auth');
  if (!authOk) {
-   tracer.fail('AUTH_CHECK', 'Not authenticated');
+   diag.fail('AUTH_CHECK', 'Not authenticated');
    await cleanup();
    throw new Error('AUTH_REQUIRED: Требуется авторизация в DeepSeek. Запусти демон вручную и авторизуйся. Инструкция в auth-check.js');
  }
- tracer.succeed('AUTH_CHECK', { url: page.url() });
+ diag.succeed('AUTH_CHECK', { url: page.url() });
 
  // CDP Interceptor setup (once per page)
  cdpInterceptor = await setupDeepSeekInterceptor(page);
@@ -1452,9 +1714,10 @@ async function ask(q) {
 
  // Новый чат если запрошено
  // Определяем, нужен ли новый чат
+ const isNewSession = !session || !session.chatUrl;
  const needNewChat = !sessionName || newChat || (session && !session.chatUrl);
  if (needNewChat) {
- await startNewChat(page);
+ await startNewChat(page, isNewSession);  // pass isNewSession to force new chat when session is new
  // Ждём завершения навигации, если она произошла
  try { await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 12000 }).catch(() => {}); } catch {}
  await sleep(150); // чуть быстрее, без потери стабильности
@@ -1464,36 +1727,49 @@ async function ask(q) {
  }
  }
 
- tracer.start('COMPOSER_WAIT');
- metrics.phaseStart('composer_wait');
+ diag.start('COMPOSER_WAIT');
+ diag.phaseStart('composer_wait');
  const composerSel = await waitUntilReady(page);
- tracer.succeed('COMPOSER_WAIT', { selector: composerSel });
- metrics.phaseEnd('composer_wait');
- metrics.snapMemory('after_composer');
+ diag.succeed('COMPOSER_WAIT', { selector: composerSel });
+ diag.phaseEnd('composer_wait');
+ diag.snapMemory('after_composer');
+
+ // ═══ Dry run: проверяем авторизацию, композер, навигацию — без отправки ═══
+ if (dryRun) {
+   log('\n✅ Dry run: браузер запущен, авторизация OK, composer найден');
+   log(`📍 URL: ${page.url()}`);
+   log(`🔧 Composer: ${composerSel}`);
+   log('🟢 Всё работает. Пропускаем отправку промпта.');
+   diag.start('DRY_RUN');
+   diag.succeed('DRY_RUN', { composer: composerSel, url: page.url() });
+   if (!isSession) { await cleanup(); }
+   diag.save();
+   return { selector: 'dry-run', text: 'Dry run OK — авторизация и интерфейс работают' };
+ }
 
  // ═══ Отправка промпта ══════════════════════════════════════════════════════
- tracer.start('PROMPT_SEND');
- metrics.phaseStart('prompt_send');
+ diag.start('PROMPT_SEND');
+ diag.phaseStart('prompt_send');
  const { textBefore } = await sendPrompt(page, composerSel, q);
- tracer.succeed('PROMPT_SEND', { promptLength: q.length });
- metrics.phaseEnd('prompt_send');
- metrics.increment('apiRequests', 1);
- metrics.snapMemory('after_prompt');
+ diag.succeed('PROMPT_SEND', { promptLength: q.length });
+ diag.phaseEnd('prompt_send');
+ diag.increment('apiRequests', 1);
+ diag.snapMemory('after_prompt');
 
  // ═══ Ожидание и извлечение ответа ═══════════════════════════════════════════
- tracer.start('ANSWER_WAIT');
- metrics.phaseStart('answer_wait');
- let result = await waitForAnswer(page, q, textBefore, 600000, tracer, metrics);
- tracer.succeed('ANSWER_WAIT', { selector: result.selector, textLength: result.text.length });
- metrics.phaseEnd('answer_wait');
- metrics.charactersExtracted = result.text.length;
- metrics.answerComplete = !result.incomplete;
- if (result.incomplete) metrics.incompleteReason = result.incompleteReason;
- metrics.snapMemory('after_answer');
+ diag.start('ANSWER_WAIT');
+ diag.phaseStart('answer_wait');
+ let result = await waitForAnswer(page, q, textBefore, TIMEOUT_ANSWER, diag);
+ diag.succeed('ANSWER_WAIT', { selector: result.selector, textLength: result.text.length });
+ diag.phaseEnd('answer_wait');
+ diag.charactersExtracted = result.text.length;
+ diag.answerComplete = !result.incomplete;
+ if (result.incomplete) diag.incompleteReason = result.incompleteReason;
+ diag.snapMemory('after_answer');
 
- tracer.start('ANSWER_EXTRACT');
+ diag.start('ANSWER_EXTRACT');
  saveCachedSelector(result.selector);
- if (tracer) tracer.succeed('ANSWER_EXTRACT', { selector: result.selector, textLength: result.text.length });
+ if (diag) diag.succeed('ANSWER_EXTRACT', { selector: result.selector, textLength: result.text.length });
  if (isSession) {
  session.messageCount++;
  session.lastUsed = new Date().toISOString();
@@ -1529,13 +1805,18 @@ async function ask(q) {
        // Ищем кнопку продолжения на перезагруженной странице
        const moreText = await handleContinueButton(dsPage, result.text);
        if (moreText && moreText.length > 100) {
-         log(`📦 После reload: +${moreText.length - result.text.length} символов → итого ${moreText.length}`);
-         result = { selector: 'after-reload', text: moreText };
+         const combinedText = result.text + moreText;
+         if (diag) {
+           diag.continueRounds = Math.max(diag.continueRounds || 0, 1);
+           diag.charactersExtracted = combinedText.length;
+         }
+         log(`📦 После reload: +${moreText.length} символов → итого ${combinedText.length}`);
+         result = { selector: 'after-reload', text: combinedText };
          // Показываем обновлённый результат
          log('\n════════════════════════════════════════════');
          log(`ОТВЕТ DeepSeek [после продолжения]:`);
          log('════════════════════════════════════════════');
-         log(moreText);
+         log(combinedText);
          log('════════════════════════════════════════════\n');
        } else {
          log('⚠️  Кнопка "Продолжить" не появилась и после reload');
@@ -1561,15 +1842,46 @@ async function ask(q) {
  }
 
  // ═══ Итоговый отчёт ═════════════════════════════════════════════════════════
- tracer.finish();
- metrics.snapMemory('final');
- const summaryData = tracer.summary();
- metrics.printSummary(result.text.length);
- const metricsFile = metrics.save();
+ diag.finish();
+ diag.snapMemory('final');
+ const summaryData = diag.summary();
+ diag.printSummary(result.text.length);
+ const metricsFile = diag.save();
+ if (diag.logDir) {
+   try {
+     const summaryFile = path.join(diag.logDir, `summary-${diag.traceId}.json`);
+     fs.writeFileSync(summaryFile, JSON.stringify({
+       traceId: diag.traceId,
+       summary: summaryData,
+       promptLength: q.length,
+       answerLength: result.text.length,
+       answerComplete: diag.answerComplete,
+       incompleteReason: diag.incompleteReason,
+       networkExtracted: !!diag.networkExtracted,
+       timestamps: { finishedAt: new Date().toISOString() }
+     }, null, 2));
+     log(`📁 Summary: ${summaryFile}`);
+   } catch (e) {
+     log(`⚠️ Не удалось записать summary json: ${e.message}`);
+   }
+ }
  if (metricsFile) log(`📁 Метрики: ${metricsFile}`);
- log(`🔖 Trace ID: ${tracer.traceId}`);
- log('');
+ log(`🔖 Trace ID: ${diag.traceId}`);
 
+ // Reset rate-limit backoff on success
+ try {
+   if (fs.existsSync(RL)) {
+     const lim = JSON.parse(fs.readFileSync(RL, 'utf8'));
+     if (lim.consecutive > 0) {
+       lim.backoff = RATE_LIMIT_MS;
+       lim.consecutive = 0;
+       fs.writeFileSync(RL, JSON.stringify(lim));
+       log('🔄 Smart rate limit: backoff reset (success)');
+     }
+   }
+ } catch (e) {}
+
+ log('');
  return result;
 }
 
@@ -1653,6 +1965,17 @@ process.on('unhandledRejection', e => console.error('❌', e));
       } catch {}
     }
     console.error(`\x1b[31m❌ ${e.message}\x1b[0m`);
+    try {
+      if (e && /rate limit/i.test(String(e.message || ''))) {
+        const now = Date.now();
+        let lim = { t: 0, backoff: RATE_LIMIT_MS, consecutive: 0 };
+        if (fs.existsSync(RL)) lim = { ...lim, ...JSON.parse(fs.readFileSync(RL, 'utf8')) };
+        lim.consecutive = (lim.consecutive || 0) + 1;
+        lim.backoff = Math.min((lim.backoff || RATE_LIMIT_MS) * 2, 60000);
+        lim.t = now;
+        fs.writeFileSync(RL, JSON.stringify(lim));
+      }
+    } catch {}
     if (!sessionName || shouldClose) await cleanup().catch(() => {});
     process.exit(1);
   }
