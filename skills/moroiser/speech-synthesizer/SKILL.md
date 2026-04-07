@@ -3,7 +3,7 @@ name: speech-synthesizer
 description: |
   文字转语音（Text-to-Speech）工具。
   支持 edge-tts（微软神经网络 TTS，免费离线）和 OpenAI 兼容 API TTS。
-  触发词：语音回复、TTS、文字转语音、语音合成。
+  触发词：语音回复、TTS、文字转语音、语音合成、语音对话。
   适用平台：Linux / Windows / macOS。
 ---
 
@@ -27,6 +27,9 @@ description: |
 
 ## 概述
 
+> ⚠️ **注意**：OpenClaw 内置了 `tts` 工具，但它的输出格式（MP3/WebM）不适合直接发送飞书语音。
+> **飞书语音消息必须用 `tts_simple.py`**，它会自动输出 OGG/Opus 格式。
+
 ### 支持的 TTS 引擎
 
 | 引擎 | 说明 | 优点 | 缺点 |
@@ -34,23 +37,53 @@ description: |
 | `edge` ⭐ | 微软神经网络 TTS | 免费、离线、高音质、支持中文 | 需网络下载初期 |
 | `api` | OpenAI 兼容 API | 质量高、可选声音多 | 需要 API Key |
 
-### edge-tts 支持的声音
+### edge-tts 支持的声音（完整列表）
 
-**中文**:
-- `zh-CN-Xiaoxiao` — 晓晓（女声，默认）
-- `zh-CN-Yunxi` — 云希（男声）
-- `zh-CN-Yunyang` — 云扬（男声）
-- `zh-CN-Xiaoyi` — 晓伊（女声）
+**中文（大陆）**:
+| 声音 | 风格 |
+|------|------|
+| `zh-CN-XiaoxiaoNeural` | 晓晓（女声，**默认**）|
+| `zh-CN-YunxiNeural` | 云希（男声）|
+| `zh-CN-YunyangNeural` | 云扬（男声）|
+| `zh-CN-XiaoyiNeural` | 晓伊（女声）|
+
+**中文（台湾）**:
+| 声音 | 风格 |
+|------|------|
+| `zh-TW-HsiaoYuNeural` | 小宇（女声）|
 
 **英文**:
-- `en-US-Jenny` — 美式女声
-- `en-US-Guy` — 美式男声
-- `en-GB-Sonia` — 英式女声
-- `en-GB-Ryan` — 英式男声
+| 声音 | 风格 |
+|------|------|
+| `en-US-JennyNeural` | 美式女声 |
+| `en-US-GuyNeural` | 美式男声 |
+| `en-GB-SoniaNeural` | 英式女声 |
+| `en-GB-RyanNeural` | 英式男声 |
+| `en-AU-NatashaNeural` | 澳式女声 |
+| `en-IN-NeerjaNeural` | 印度女声 |
 
-**日语**:
-- `ja-JP-Nanami` — 日语女声
-- `ja-JP-Mayu` — 日语男声
+**日文**:
+| 声音 | 风格 |
+|------|------|
+| `ja-JP-NanamiNeural` | 日语女声 |
+| `ja-JP-MayuNeural` | 日语男声 |
+
+**韩文**:
+| 声音 | 风格 |
+|------|------|
+| `ko-KR-SunHiNeural` | 韩语女声 |
+| `ko-KR-InJoonNeural` | 韩语男声 |
+
+**其他常用**:
+| 声音 | 语言 |
+|------|------|
+| `fr-FR-DeniseNeural` | 法语女声 |
+| `de-DE-KatjaNeural` | 德语女声 |
+| `es-ES-ElviraNeural` | 西班牙语女声 |
+| `ru-RU-SvetlanaNeural` | 俄语女声 |
+| `pt-BR-FranciscaNeural` | 葡萄牙语女声 |
+
+> 💡 查看完整列表：`python3 scripts/tts_edge.py "test" --list-voices`
 
 ---
 
@@ -69,8 +102,8 @@ pip install -r requirements.txt
 # ⭐ tts_simple.py — 输出 OGG/Opus，可直接作为飞书语音发送
 python3 scripts/tts_simple.py "你好，这是测试语音"
 
-# 使用指定声音
-python3 scripts/tts_simple.py "Hello world" --voice en-US-Jenny
+# 使用指定声音（见下方声音列表）
+python3 scripts/tts_simple.py "你好" --voice zh-CN-YunxiNeural
 
 # 使用 API
 python3 scripts/tts_simple.py "你好" --engine api \
@@ -215,18 +248,29 @@ unset all_proxy ALL_PROXY
 
 ---
 
+## 平台说明
+
+### edge-tts vs 其他 TTS 方案
+
+| 方案 | 成本 | 音质 | 中文支持 | 离线 | API Key |
+|------|------|------|---------|------|---------|
+| edge-tts | 免费 | 高 | 很好 | 部分 | 不需要 |
+| OpenAI TTS | 按量计费 | 很高 | 一般 | 否 | 需要 |
+| pyttsx3 | 免费 | 低 | 一般 | 是 | 不需要 |
+
+### 已知限制
+
+- edge-tts 依赖微软服务，需要能访问 `edge.microsoft.com`
+- 部分声音在不同地区可能不可用
+
 ## 目录结构
 
 ```
-audio-tts/
+speech-synthesizer/
 ├── SKILL.md                    # 本文档
-├── README.md                   # 快速开始
 ├── requirements.txt            # Python 依赖
 ├── scripts/
-│   ├── tts_simple.py          # 通用 TTS 脚本
+│   ├── tts_simple.py          # 通用 TTS 脚本（⭐ 推荐）
 │   └── tts_edge.py            # edge-tts 专用脚本
-├── models/                    # 模型目录（如需本地模型）
-└── references/
-    ├── deployment.md          # 部署指南
-    └── platform.md           # 平台笔记
+└── models/                    # 模型目录（如需本地模型）
 ```
