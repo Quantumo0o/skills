@@ -1,11 +1,17 @@
 {
   "owner": "lujiang-web",
   "slug": "poster-ppt-designer",
-  "displayName": "海报 PPT 页面设计师",
+  "displayName": "海报PPT页面设计师",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775115020362,
-    "commit": "https://github.com/openclaw/skills/commit/8893b13e858a648deaf4e3536c0004123f17e230"
+    "version": "1.1.0",
+    "publishedAt": 1775528898017,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775115020362,
+      "commit": "https://github.com/openclaw/skills/commit/8893b13e858a648deaf4e3536c0004123f17e230"
+    }
+  ]
 }
