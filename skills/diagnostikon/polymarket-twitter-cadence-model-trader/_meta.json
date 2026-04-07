@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-twitter-cadence-model-trader",
-  "displayName": "Twitter Cadence Model Trader",
+  "displayName": "Polymarket Twitter Cadence Model Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775135007865,
-    "commit": "https://github.com/openclaw/skills/commit/7f4409e26bd066489e944bc6bd439ec505f8dabc"
+    "version": "1.0.2",
+    "publishedAt": 1775317368977,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775135007865,
+      "commit": "https://github.com/openclaw/skills/commit/7f4409e26bd066489e944bc6bd439ec505f8dabc"
+    }
+  ]
 }
