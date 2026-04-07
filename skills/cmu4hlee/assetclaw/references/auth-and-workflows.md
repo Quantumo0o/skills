@@ -48,6 +48,8 @@ X-Tenant-ID: <tenant_id>   # 仅超级管理员跨租户操作时需要
 | 普通用户 | 使用 `data.user.tenant_id`，不要切换 |
 | `super_admin` | 只有明确跨租户时才传 `X-Tenant-ID` |
 
+**⚠️ Web 应用调用时**：如果 OpenClaw 会话已通过外部参数传入租户 ID，**必须使用该租户 ID**，禁止切换。
+
 ## 5. 标准响应解析
 
 ```json
@@ -78,37 +80,44 @@ X-Tenant-ID: <tenant_id>   # 仅超级管理员跨租户操作时需要
 | `429` | 限流 | 退避重试 |
 | `500` | 服务异常 | 稍后重试 |
 
-## 7. 报修申请优先走 AI 安全入口
+## 7. 报修申请走 AI 安全入口（一次完成）
 
 - 使用 `POST /api/maintenance/ai/submit-request`
 - 适用于 skill / MCP / Web AI 的报修创建
-- 该入口不需要二次风险确认
+- **仍需要 Idempotency-Key Header**（自动由 helper 脚本添加）
+- 该入口不需要二次风险确认，一次请求完成
 - 成功后仍然进入 `待审批`
 - 审批 / 开始 / 完成 仍沿用 `/api/maintenance/requests/{id}/...`
 
-## 8. 先查后写模式
+## 8. 写操作 Idempotency-Key 规范
 
-除报修安全入口外，其他写操作（POST/PUT/DELETE）遵循：
+- **所有写操作（POST/PUT/DELETE）必须带 Idempotency-Key**
+- 格式：`op-$(date +%s)-$RANDOM`（长度 ≤ 128）
+- Header：`Idempotency-Key: <唯一键>`
+- 普通端点触发二次确认时，helper 脚本会自动重放并带上 `X-Risk-Confirm-Token`
+
+## 9. 先查后写模式
+
+所有写操作遵循：
 
 1. 查询目标对象
 2. 确认 ID 或编号
-3. 若是报修创建，优先调用 `POST /api/maintenance/ai/submit-request`
-4. 其他场景再执行对应写操作
-5. 回查确认最终状态
+3. 执行写操作（helper 脚本自动处理 Idempotency-Key 和两段式确认）
+4. 回查确认最终状态
 
-## 9. 刷新 Token
+## 10. 刷新 Token
 
 ```
 POST /api/users/refresh-token
 ```
 
-## 10. 获取当前用户
+## 11. 获取当前用户
 
 ```
 GET /api/users/me
 ```
 
-## 11. 超级管理员跨租户示例
+## 12. 超级管理员跨租户示例
 
 ```bash
 export ASSETHUB_TENANT_ID=2

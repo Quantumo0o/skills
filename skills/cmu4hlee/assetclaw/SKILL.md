@@ -3,7 +3,7 @@ name: "assethub-claw"
 description: "AssetClaw技能用于实现资产全生命周期管理：资产查询/报修/维修工单/调配审批/盘点任务/折旧统计/采购申请/报废处理/质检记录/技术文档/备件库存/标签打印/告警处理/IoT 监测等。适用于需要快速查询、创建、审批各类资产业务单据的场景。"
 ---
 
-# AssetClaw 完整技能文档 (v1.0)
+# AssetClaw 完整技能文档 (v1.4.5)
 
 > 基于 `http://160ttth72797.vicp.fun/api` 实时接口文档编写
 > 本 Skill 直接调用 HTTP API，不依赖 MCP 协议
@@ -16,14 +16,16 @@ description: "AssetClaw技能用于实现资产全生命周期管理：资产查
    - **凭证处理原则**：
      - **如果新会话已提供凭证**（用户名+密码），直接使用提供的凭证登录，无需再询问
      - **如果未提供凭证**，则分两步引导：先问用户名 → 用户回答后再问密码 → 收集完整后才执行登录
+     - **临时 Session 凭证存储**：当凭证通过 prompt/对话传入时，Agent 将用户名和密码写入本地临时会话文件 `/tmp/assethub-claw-temp-session.json`（仅当前会话有效）；调用 assetclaw API 时自动从该文件读取凭证完成登录
      - 无论哪种方式，登录成功后 Token 和租户上下文自动保存到会话文件
-8. **注销处理** — 当用户发送"注销"时，立即删除会话缓存文件及所有相关凭证，不保留任何登录信息
-2. **先查后写** — 写操作前必须先查询目标对象确认 ID/编号
-3. **写后回查** — 写操作完成后必须重新查询确认结果，不要仅凭 API 返回的 success 就判断成功
-4. **多租户隔离** — 普通用户默认使用登录返回的 `tenant_id`；超级管理员跨租户时显式传 `X-Tenant-ID` Header
-5. **不暴露认证信息** — 最终回复中不回显 Token、密码等敏感信息
-6. **批量优先** — 多个同类操作优先批量接口
-7. **实时优先** — 如接口行为与本文档不符，以后端实时返回和数据库状态为准
+2. **注销处理** — 当用户发送"注销"时，立即删除会话缓存文件及所有相关凭证，不保留任何登录信息
+3. **先查后写** — 写操作前必须先查询目标对象确认 ID/编号
+4. **写后回查** — 写操作完成后必须重新查询确认结果，不要仅凭 API 返回的 success 就判断成功
+5. **多租户隔离** — 普通用户默认使用登录返回的 `tenant_id`；超级管理员跨租户时显式传 `X-Tenant-ID` Header
+   - **重要**：当 Web 应用调用 OpenClaw 时会传递租户 ID，**必须使用传入的租户 ID**，禁止切换到其他租户
+6. **不暴露认证信息** — 最终回复中不回显 Token、密码等敏感信息
+7. **批量优先** — 多个同类操作优先批量接口
+8. **实时优先** — 如接口行为与本文档不符，以后端实时返回和数据库状态为准
 
 ---
 
@@ -38,8 +40,9 @@ description: "AssetClaw技能用于实现资产全生命周期管理：资产查
 ## Step 1: 登录获取 Token
 
 **凭证处理原则（必须遵守）：**
-- **新会话已提供凭证**：如果用户在发起新会话时已提供用户名和密码，直接使用这些凭证登录，无需再次询问
+- **新会话已提供凭证**：如果用户在发起新会话时已提供用户名和密码，Agent 将其写入 `/tmp/assethub-claw-temp-session.json`，调用 API 时自动完成登录，无需用户再次输入
 - **未提供凭证**：如果未提供，则分两步引导：先问用户名 → 用户回答后再问密码 → 收集完整后才执行登录
+- **临时 Session 凭证自动登录**：调用 assetclaw 时，自动检查临时凭证文件，若存在则自动登录，无需用户重复输入
 - 无论哪种方式，只有在收集到用户名和密码后，才调用登录命令：
 
 ```bash
@@ -52,9 +55,11 @@ bash scripts/assethub_api.sh login
 登录成功后，如用户拥有多个租户，应立即列出所有企业名称供用户选择：
 1. 从登录响应 `data.enterprises` 中提取所有租户
 2. 以编号列表形式展示（如 `1. 某某医院  2. 中国医科大学附属第四医院  3. 第四医院2`）
-3. 提示用户输入数字选择（如"请输入序号选择租户"）
-4. 用户选择后，将对应 `tenant_id` 保存到会话文件
+3. 提示用户直接输入数字选择（如"请输入序号："）
+4. 用户输入后，将对应 `tenant_id` 保存到会话文件
 5. 如果用户只有一个租户，默认使用该租户，无需询问
+
+**⚠️ Web 应用调用时**：如果 OpenClaw 已通过外部参数传入租户 ID（会话 metadata 中包含），则**禁止切换租户**，必须直接使用传入的租户 ID。
 
 ## Step 1.5: 注销（退出登录）
 
@@ -173,7 +178,7 @@ curl -sS "http://160ttth72797.vicp.fun/api/assets?page=1&pageSize=20" \
 Authorization: Bearer <JWT_TOKEN>
 Content-Type: application/json
 X-Tenant-ID: <tenant_id>   # 仅超级管理员跨租户时需要
-Idempotency-Key: <唯一键>  # 受保护写操作常用（防重复提交，长度≤128）；AI 安全报修入口可不依赖
+Idempotency-Key: <唯一键>  # 所有写操作都需要（长度≤128），格式：op-$(date +%s)-$RANDOM
 ```
 
 ## 登录响应解析
@@ -188,30 +193,38 @@ Idempotency-Key: <唯一键>  # 受保护写操作常用（防重复提交，长
 
 ## ⚠️ 高风险操作限制
 
-AssetHub API 对受保护写操作有双重安全机制：
+AssetHub API 对写操作有两层安全机制：
 
-### 1. Idempotency-Key（防重复提交）
-- 格式：长度 ≤ 128 的唯一字符串（如 `op-$(date +%s)-$RANDOM`）
-- 所有写操作建议带上，防止重复提交
+### 1. Idempotency-Key（防重复提交，所有写操作都需要）
+- 格式：长度 ≤ 128 的唯一字符串
+- 生成方式：`op-$(date +%s)-$RANDOM`
 - Header: `Idempotency-Key: <唯一键>`
+- **注意：即使走 AI 安全入口也需要此 Header**
 
-### 2. 二次风险确认（两段式）
-部分写操作（如维修申请创建）会触发二次确认，流程：
+### 2. 二次风险确认（仅限普通端点，AI入口无需此步）
 
 ```
-Step 1: 发起写请求（带 Idempotency-Key）
-  → 返回 { "success": false, "confirmToken": "eyJh...", "message": "高风险操作需要二次确认" }
-
-Step 2: 用同一 Idempotency-Key + X-Risk-Confirm-Token 重放请求
-  Header: Idempotency-Key: <同上>
-  Header: X-Risk-Confirm-Token: <上一步返回的 confirmToken>
-  → 返回 { "success": true, "data": {...} }
+写操作请求（带 Idempotency-Key）
+    │
+    ├─ 返回 success:true → 操作直接成功 ✅
+    │
+    └─ 返回 confirmToken（非 AI 入口时触发）
+            │
+            ▼
+       用同一 Idempotency-Key + X-Risk-Confirm-Token 重放请求
+       → 操作成功 ✅
 ```
 
-### 3. AI 安全入口（推荐）
-报修等操作推荐走 AI 安全入口，无需二次确认：
-- 路径：`POST /api/maintenance/ai/submit-request`
-- 不触发高风险闸门，提交后自动进入待审批状态
+### 3. 报修推荐路径：AI 安全入口（绕过二次确认）
+
+**✅ 首选：`POST /api/maintenance/ai/submit-request`**
+
+- 不触发二次确认闸门，一次请求完成
+- 同样需要 `Idempotency-Key` Header
+- 提交后申请自动进入**待审批**状态
+
+**❌ 普通端点（需二次确认）：`POST /api/maintenance/requests`**
+- 触发二次确认流程，需两段式请求
 
 **curl 示例（AI 安全入口）：**
 ```bash
@@ -234,6 +247,30 @@ curl -sS -X POST "http://160ttth72797.vicp.fun/api/maintenance/ai/submit-request
 | `429` | 接口限流 | 退避后重试 |
 | `500` | 服务异常 | 保留上下文，稍后重试 |
 
+## 🩺 常见错误与处理（基于实测）
+
+| 错误信息 | 含义 | 处理方式 |
+|---------|------|----------|
+| `"需要 Idempotency-Key 请求头"` | 写操作缺少 Idempotency-Key | 添加 Header: `Idempotency-Key: op-$(date +%s)-$RANDOM` |
+| `"高风险操作需要二次确认"` + `confirmToken` | 普通端点触发二次确认 | 用同一 Idempotency-Key + `X-Risk-Confirm-Token: <confirmToken>` 重放请求 |
+| `success: false` + `"资产不存在"` | asset_code 错误 | 重新查询资产确认编号 |
+| `success: false` + `"无权限"` | 租户或角色限制 | 确认当前租户和用户角色 |
+| HTTP 401 | Token 过期 | 删除会话文件后重新登录 |
+
+**注：API 错误信息在 JSON 响应的 `message` 字段中**，如 `{ "success": false, "message": "xxx" }`
+
+## ❓ 常见问题
+
+### 搜索中文参数返回空结果
+
+**问题：** 使用中文搜索时（如 `search=超声`）返回空，但数据确实存在。
+
+**原因：** shell 传递中文字符时存在编码问题，从非脚本目录调用时触发。
+
+**解决方案：** 搜索参数包含中文时使用 URL 编码：
+- ❌ 错误：`bash scripts/assethub_api.sh request GET "/assets?search=超声"`
+- ✅ 正确：`bash scripts/assethub_api.sh request GET "/assets?search=%E8%B6%85%E5%A3%B0"`
+
 ---
 
 # 📋 核心工作流
@@ -245,8 +282,9 @@ Step 1: 定位资产
   GET /api/assets?search=<设备名称>
   → 找到资产编号 asset_code
 
-Step 2: 创建维修申请
+Step 2: 创建维修申请（走 AI 安全入口，无需二次确认）
   POST /api/maintenance/ai/submit-request
+  Header: Idempotency-Key: op-$(date +%s)-$RANDOM
   Body: {
     "asset_code": "xxx",
     "issue_description": "故障描述",
@@ -258,7 +296,7 @@ Step 2: 创建维修申请
     "source": "assetclaw",
     "intent": "repair_request"
   }
-  注意：该安全入口不需要二次风险确认；成功后申请状态仍为待审批
+  注意：AI 安全入口一次请求完成，无需二次确认；成功后申请状态为待审批
 
 Step 3: 查询确认
   GET /api/maintenance/requests?asset_code=xxx
@@ -572,6 +610,20 @@ Step 4: 统计查询
      (不要用 keyword 参数，会遗漏数据)
 ```
 
+## "查询科室资产"问题 ⚠️ 重要
+
+```
+用户要查某科室资产（如"检验科资产"、"病理科资产"）
+  │
+  ├─ 陷阱：API的department参数只能匹配 department 字段
+  │         科室信息大量存在 location / use_department 字段中
+  │         例："检验科"资产实际在 location="检验科（崇山）" 下
+  │
+  └─ ✅ 正确做法：全量扫描（遍历所有页），在代码中过滤所有科室相关字段
+       扫描字段：department / location / use_department / department_new
+       否则会漏掉 50%~80% 的数据！
+```
+
 ## "查询调配记录"问题
 
 ```
@@ -610,6 +662,30 @@ Step 4: 统计查询
   └─ 先 GET /api/assets?search=<asset_code> 找到 id
 ```
 
+## ⚠️ 全量扫描规范（适用于全面统计场景）
+
+当用户要求"全院某类资产统计"、科室资产统计等需要完整数据时：
+
+```
+1. 分页遍历：总资产 28291 条，每页 300 条，共 95 页
+   → 必须遍历所有页，不能只取前几页
+
+2. 关键词过滤：在 Python 脚本中遍历所有资产，对所有文本字段
+   （asset_name / location / department / use_department / department_new 等）
+   进行关键词匹配
+
+3. 科室查询示例（以"检验科"为例）：
+   - ❌ 错误：只查 department='检验科' → 漏掉 415 件
+   - ✅ 正确：遍历所有资产，对所有字段匹配 '检验科'
+     → 匹配到 550 件（分布在 location/department 等多字段）
+
+4. 统计输出：
+   - 按 location 分组汇总（location 含科室信息最多）
+   - 计算每组数量、总价值、状态分布
+   - 输出高价值资产（>5万或>10万）
+   - 输出品牌/类型分布
+```
+
 ---
 
 # 📖 常用 API 调用示例
@@ -620,7 +696,10 @@ Step 4: 统计查询
 # 资产列表（模糊搜索）
 bash scripts/assethub_api.sh request GET "/assets?page=1&pageSize=20&search=监护仪"
 
-# 资产列表（按部门筛选）
+# ⚠️ 按科室查询资产——重要提醒：
+# department 参数只能匹配 department 字段
+# 科室信息大量存储在 location / use_department / department_new 字段
+# 如需完整科室资产，必须全量扫描（见上方"全量扫描规范"）
 bash scripts/assethub_api.sh request GET "/assets?page=1&pageSize=20&department_id=3"
 
 # 资产列表（按状态筛选）
@@ -661,7 +740,8 @@ bash scripts/assethub_api.sh request GET "/maintenance/requests?page=1&pageSize=
 # 维修申请列表（按状态）
 bash scripts/assethub_api.sh request GET "/maintenance/requests?status=pending&pageSize=20"
 
-# 创建维修申请（AI/skill 安全入口，不需要二次风险确认）
+# 创建维修申请（AI 安全入口，一次完成，无需二次确认）
+# 注意：curl 直接调用时需添加 Idempotency-Key Header
 bash scripts/assethub_api.sh request POST "/maintenance/ai/submit-request" '{
   "asset_code": "CT-001",
   "issue_description": "球管打火，报警 E01",
@@ -674,16 +754,26 @@ bash scripts/assethub_api.sh request POST "/maintenance/ai/submit-request" '{
   "intent": "repair_request"
 }'
 
+# 直接 curl 调用（需手动加 Idempotency-Key）
+curl -sS -X POST "http://160ttth72797.vicp.fun/api/maintenance/ai/submit-request" \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "X-Tenant-ID: <TENANT_ID>" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: op-$(date +%s)-$RANDOM" \
+  -d '{"asset_code":"CT-001","fault_description":"球管打火，报警 E01","issue_description":"球管打火，报警 E01","fault_level":"紧急","priority":"critical","request_department":"放射科","contact_phone":"13800138000","source":"assetclaw","intent":"repair_request"}'
+
 # 审批维修申请
 bash scripts/assethub_api.sh request POST "/maintenance/requests/123/approve" '{
   "approved": true,
   "opinion": "同意维修"
 }'
+# 注：curl 直接调用时需添加 Idempotency-Key Header
 
 # 开始执行维修
 bash scripts/assethub_api.sh request POST "/maintenance/requests/123/start" '{
   "repair_person": "李四"
 }'
+# 注：curl 直接调用时需添加 Idempotency-Key Header
 
 # 完成维修
 bash scripts/assethub_api.sh request POST "/maintenance/requests/123/complete" '{
@@ -692,6 +782,7 @@ bash scripts/assethub_api.sh request POST "/maintenance/requests/123/complete" '
   "parts_replaced": "CT球管",
   "repair_end_date": "2026-04-03"
 }'
+# 注：curl 直接调用时需添加 Idempotency-Key Header
 
 # 维修工单列表
 bash scripts/assethub_api.sh request GET "/maintenance/workorders?page=1&pageSize=20"
@@ -1590,6 +1681,7 @@ bash scripts/assethub_api.sh request GET "/system-config/iot-tokens/usage-guide"
 | 血液透析 | 血液透析设备(血液透析滤过机) |
 | CT | CT机、16层CT机、64排螺旋CT等 |
 | 核磁共振 | 核磁共振成像设备(MRI) |
+| 车辆/机动车 | 救护车、轿车、客车、旅行车、核酸检测车、铲车、装载机、电动车（指机动车，非手推车） |
 
 ---
 
@@ -1619,3 +1711,37 @@ bash scripts/assethub_api.sh request GET "/system-config/iot-tokens/usage-guide"
 | 报废 | `pending` / `approved` / `rejected` / `completed` |
 | 质检结果 | `合格` / `不合格` / `待整改` |
 | 文档审核 | `pending` / `approved` / `rejected` |
+
+---
+
+# 📝 经验教训（基于实际操作发现）
+
+## 2026-04-02 关键发现：科室资产多字段分布问题
+
+**问题现象：**
+- 查询"检验科资产"时，使用 `department=检验科` 参数只返回 0 条记录
+- 全量扫描（遍历所有页 + 所有文本字段）后，发现检验科实际有 **550 件资产**
+
+**根本原因：**
+AssetHub 的科室信息分散存储在多个字段：
+- `department` — 正式科室字段（很多资产此处为空）
+- `location` — 位置字段，包含大量科室信息（如"检验科（崇山）"）
+- `use_department` — 使用科室字段
+- `department_new` — 新版科室字段
+
+**经验：**
+1. 查询科室资产时，**必须**对所有文本字段做关键词匹配，不能依赖单一 department 参数
+2. 全量扫描时需遍历**所有页**（总资产 28291 条 × 95 页）
+3. 车辆识别需要排除"输液车/处置车/抢救车"等医用小型手推车
+
+## 2026-04-02 发现：API 安全机制与 AI 入口
+
+**问题现象：**
+- 直接调用 `/maintenance/requests` POST 无 Idempotency-Key → 返回"需要 Idempotency-Key"
+- 带 Idempotency-Key 调用普通端点 → 触发二次确认，返回 confirmToken
+- 带 Idempotency-Key 调用 AI 入口 `/maintenance/ai/submit-request` → **直接成功**，无需二次确认
+
+**经验：**
+1. 所有写操作必须带 `Idempotency-Key: op-$(date +%s)-$RANDOM`
+2. **报修走 AI 安全入口** `POST /maintenance/ai/submit-request`，一次完成，不触发二次确认
+3. 普通端点需两段式：第一次拿 confirmToken，第二次带 `X-Risk-Confirm-Token` 重放
