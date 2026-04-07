@@ -382,7 +382,9 @@ finishing, not after.
 Update `progress.md`: `phase4: done`. Record in the Decisions Log:
 `Most shareable: Slide N — [reason]`
 
-**Final summary to user.** Use the actual project directory path and full slug — do not output placeholder text:
+**Final delivery to user.** Use the actual project directory path and full slug — do not output placeholder text.
+
+Default completion text:
 
 ```
 ✅ Done. Presentation saved to [project-dir]/index.html
@@ -393,3 +395,11 @@ Most shareable: Slide N — [reason]
 ```
 
 If `mode=auto`, append: `(auto mode — checkpoints logged in progress.md)`
+
+**Then send the HTML file itself to the user whenever the environment supports file delivery.**
+Use the generated `[project-dir]/index.html` as an attachment/document in the current conversation instead of only listing its path.
+Prefer a single concise completion flow:
+
+- if the environment has a first-class messaging/file-send tool, send the completion text plus the HTML file to the current user
+- avoid duplicate plain-text replies after sending the file
+- if file delivery is unavailable in the current environment, fall back to the text summary above
