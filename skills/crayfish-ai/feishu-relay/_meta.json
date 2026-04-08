@@ -1,0 +1,11 @@
+{
+  "owner": "crayfish-ai",
+  "slug": "feishu-relay",
+  "displayName": "Feishu Notifier",
+  "latest": {
+    "version": "2.1.1",
+    "publishedAt": 1775620219405,
+    "commit": null
+  },
+  "history": []
+}
