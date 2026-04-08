@@ -1,0 +1,11 @@
+{
+  "owner": "agnicpay-prog",
+  "slug": "agnicpay-pay-for-service",
+  "displayName": "Pay for Service",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775599228759,
+    "commit": null
+  },
+  "history": []
+}
