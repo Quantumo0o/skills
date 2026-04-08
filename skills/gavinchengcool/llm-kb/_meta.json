@@ -1,0 +1,11 @@
+{
+  "owner": "gavinchengcool",
+  "slug": "llm-kb",
+  "displayName": "LLM Knowledge Base",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775446682810,
+    "commit": null
+  },
+  "history": []
+}
