@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-resourcecenter-search",
+  "displayName": "Alibabacloud Resourcecenter Search",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775544976707,
+    "commit": null
+  },
+  "history": []
+}
