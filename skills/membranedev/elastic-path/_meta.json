@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "elastic-path",
+  "displayName": "Elastic Path",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775628255461,
+    "commit": null
+  },
+  "history": []
+}
