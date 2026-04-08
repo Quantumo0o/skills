@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "oh-my-skill",
+  "displayName": "oh my skill, make skill easy!",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775659787353,
+    "commit": null
+  },
+  "history": []
+}
