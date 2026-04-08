@@ -1,0 +1,15 @@
+{
+  "name": "mbusa-skill",
+  "version": "0.0.3",
+  "description": "An OpenClaw skill and REST API to find Mercedes-Benz dealerships and live vehicle inventory.",
+  "main": "src/tool.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["openclaw", "mbusa", "skill", "agent", "tool", "api"],
+  "author": "Kaushik Datta",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
