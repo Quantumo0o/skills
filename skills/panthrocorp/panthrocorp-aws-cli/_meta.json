@@ -1,0 +1,11 @@
+{
+  "owner": "panthrocorp",
+  "slug": "panthrocorp-aws-cli",
+  "displayName": "Aws Cli",
+  "latest": {
+    "version": "0.2.1",
+    "publishedAt": 1775640573466,
+    "commit": null
+  },
+  "history": []
+}
