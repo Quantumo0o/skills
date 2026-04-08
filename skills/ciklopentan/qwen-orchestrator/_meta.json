@@ -1,0 +1,11 @@
+{
+  "owner": "ciklopentan",
+  "slug": "qwen-orchestrator",
+  "displayName": "Qwen Orchestrator",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1775609482442,
+    "commit": null
+  },
+  "history": []
+}
