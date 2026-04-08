@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "dog-search",
+  "displayName": "A google search powered by scrapingdog",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775547534607,
+    "commit": null
+  },
+  "history": []
+}
