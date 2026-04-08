@@ -1,0 +1,11 @@
+{
+  "owner": "agnicpay-prog",
+  "slug": "ai-gateway",
+  "displayName": "AI Gateway",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775592174625,
+    "commit": null
+  },
+  "history": []
+}
