@@ -1,0 +1,11 @@
+{
+  "owner": "ludiansheng",
+  "slug": "reading-assistant-skill",
+  "displayName": "对话读书助理",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775641614240,
+    "commit": null
+  },
+  "history": []
+}
