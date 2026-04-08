@@ -1,0 +1,11 @@
+{
+  "owner": "agents365-ai",
+  "slug": "asta-skill",
+  "displayName": "Asta Skill",
+  "latest": {
+    "version": "0.2.1",
+    "publishedAt": 1775628900895,
+    "commit": null
+  },
+  "history": []
+}
