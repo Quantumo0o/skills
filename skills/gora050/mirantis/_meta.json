@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "mirantis",
+  "displayName": "Mirantis",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775560008453,
+    "commit": null
+  },
+  "history": []
+}
