@@ -1,0 +1,11 @@
+{
+  "owner": "squall0925",
+  "slug": "uapp-channel-version",
+  "displayName": "渠道与版本分析查询",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775618411544,
+    "commit": null
+  },
+  "history": []
+}
