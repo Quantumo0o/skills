@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "honeycombio",
+  "displayName": "Honeycombio",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775660623481,
+    "commit": null
+  },
+  "history": []
+}
