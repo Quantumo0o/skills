@@ -1,0 +1,11 @@
+{
+  "owner": "pranavj17",
+  "slug": "graylog-log-search",
+  "displayName": "Graylog Log Search",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1775631703340,
+    "commit": null
+  },
+  "history": []
+}
