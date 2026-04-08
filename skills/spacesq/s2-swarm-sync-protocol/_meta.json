@@ -1,0 +1,11 @@
+{
+  "owner": "spacesq",
+  "slug": "s2-swarm-sync-protocol",
+  "displayName": "S2-SWM Swarm Sync Protocol(群体同步与路权博弈引擎)",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775438758017,
+    "commit": null
+  },
+  "history": []
+}
