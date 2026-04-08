@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-tablestore-openclaw-memory",
+  "displayName": "Alibabacloud Tablestore Openclaw Memory",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775642126298,
+    "commit": null
+  },
+  "history": []
+}
