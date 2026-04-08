@@ -1,0 +1,11 @@
+{
+  "owner": "roryyu",
+  "slug": "text-art",
+  "displayName": "Supports generating classic ASCII art and colorful emoji pixel art in various themes and styles.",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775524155571,
+    "commit": null
+  },
+  "history": []
+}
