@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "pact-foundation",
+  "displayName": "Pact Foundation",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775653463824,
+    "commit": null
+  },
+  "history": []
+}
