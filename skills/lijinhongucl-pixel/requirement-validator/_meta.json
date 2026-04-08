@@ -1,0 +1,11 @@
+{
+  "owner": "lijinhongucl-pixel",
+  "slug": "requirement-validator",
+  "displayName": "Requirement Validator 是一个数据驱动的需求验证工具，通过多维度分析帮你判断需求是否值得实现。",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775670356033,
+    "commit": null
+  },
+  "history": []
+}
