@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "ory",
+  "displayName": "Ory",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775621094475,
+    "commit": null
+  },
+  "history": []
+}
