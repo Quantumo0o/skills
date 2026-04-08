@@ -1,0 +1,11 @@
+{
+  "owner": "llcsamih",
+  "slug": "compose-prod",
+  "displayName": "Production Docker Compose",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775627055811,
+    "commit": null
+  },
+  "history": []
+}
