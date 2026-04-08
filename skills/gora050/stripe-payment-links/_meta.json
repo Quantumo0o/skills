@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "stripe-payment-links",
+  "displayName": "Stripe Payment Links",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775495258532,
+    "commit": null
+  },
+  "history": []
+}
