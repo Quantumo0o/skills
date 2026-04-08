@@ -3,9 +3,15 @@
   "slug": "gym-fitness-video",
   "displayName": "Gym Fitness Video",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775610724735,
-    "commit": "https://github.com/openclaw/skills/commit/5b38321f1ded2478cc5ea63e3780e859af8ede83"
+    "version": "1.0.3",
+    "publishedAt": 1775647219437,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775610724735,
+      "commit": "https://github.com/openclaw/skills/commit/5b38321f1ded2478cc5ea63e3780e859af8ede83"
+    }
+  ]
 }
