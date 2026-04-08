@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "brick",
+  "displayName": "Brick",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775487829652,
+    "commit": null
+  },
+  "history": []
+}
