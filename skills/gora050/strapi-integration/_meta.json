@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "strapi-integration",
+  "displayName": "Strapi",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775671578748,
+    "commit": null
+  },
+  "history": []
+}
