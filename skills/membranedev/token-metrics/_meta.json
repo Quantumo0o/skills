@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "token-metrics",
+  "displayName": "Token Metrics",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775538247710,
+    "commit": null
+  },
+  "history": []
+}
