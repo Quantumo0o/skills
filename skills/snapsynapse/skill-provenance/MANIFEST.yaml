@@ -1,6 +1,6 @@
 bundle: skill-provenance
-bundle_version: 4.7.2
-bundle_date: 2026-03-09
+bundle_version: 4.9.0
+bundle_date: 2026-04-08
 description: >
   Metaskill for version tracking across Agent Skills sessions, surfaces,
   and platforms. Manifest, changelog, deployment notes, and portable
@@ -49,13 +49,13 @@ compatibility:
     - platform: Google Gemini CLI
       model: Gemini 2.5 Pro
       surface: CLI
-      status: partial
-      date: 2026-02-27
-      notes: Skill loading and bootstrap work. Gems workflow untested.
+      status: pass
+      date: 2026-03-07
+      notes: Skill loading, bootstrap, and Gems workflow validated.
     - platform: Perplexity Computer
       model: N/A
       surface: Computer
-      status: partial
+      status: pass
       date: 2026-03-07
       notes: .zip upload path works. Trigger-oriented description improves discovery.
   compatible_with:
@@ -72,21 +72,21 @@ dependencies: []
 files:
   - path: SKILL.md
     role: skill
-    version: 13
-    hash: sha256:2c5d5aa6278b986a945369b6c099a496aeb4de3649bd48ce37a524158df17c61
-    note: Canonical skill definition. Version tracked in MANIFEST.yaml; canonical bundle ships in metadata mode
+    version: 16
+    hash: sha256:aa4e7bae1789c4d72a81dc39b089b85691bddebca79f6c30f291a110d2ded20b
+    note: Canonical skill definition with full provenance metadata in frontmatter. Exemplifies its own convention.
 
   - path: README.md
     role: reference
-    version: 17
-    hash: sha256:4cb266136b18958d9016c238f06c18c61375a31a9f457392317f8a97aa3d9fb0
-    note: Human-facing instructions, worked example, three-state bundle model, local validation, packaging, troubleshooting, references
+    version: 18
+    hash: sha256:049c20087f441c1e3442b7b36c00645664e663bcaef08a1cb96dd86da592061e
+    note: Human-facing instructions, worked example, three-state bundle model, local validation, packaging, use case walkthroughs (untrusted bundle, team sharing), troubleshooting, references
 
   - path: evals.json
     role: evals
-    version: 9
-    hash: sha256:ae0820d58bcb1fd4c2ec511601a7a00ccf52e43f7eb3845cb799ea1967778cae
-    note: 22 evals covering bootstrap, verify, save, conflict, optional handoff, cross-platform, frontmatter mode, compatibility block, Gemini CLI, Gemini Gems, git commit messaging, per-file handoff, local validation, API surface, dependencies, deployment drift, multi-surface installs, trust checks, redeploy events, deployment conflicts, hash mismatches, packaged subsets
+    version: 10
+    hash: sha256:60c41bfa58d7b46579578a2856df9e5ecb82ca2715e0a44e4008fc82ecb9cd8f
+    note: 26 evals covering bootstrap, verify, save, conflict, optional handoff, cross-platform, frontmatter mode, compatibility block, Gemini CLI, Gemini Gems, git commit messaging, per-file handoff, local validation, API surface, dependencies, deployment drift, multi-surface installs, trust checks, redeploy events, deployment conflicts, hash mismatches, packaged subsets, Settings UI round-trip, Copilot/VS Code bootstrap, Cursor bootstrap, Cowork persistence
 
   - path: evals-distribution.json
     role: evals
@@ -94,3 +94,20 @@ files:
     hash: sha256:b866c0b9fec3d0df6fc61724bd8ef1406a31e312bf25505713c0186a6b3fb148
     note: 4 supplemental evals covering strict-platform copies, ClawHub package preparation, publish confirmation, and registry installs versus canonical bundles
 
+  - path: CHANGELOG.md
+    role: reference
+    version: 19
+    hash: sha256:5362dcef72414b6fc7f31e06e888562219a0abeeb79cbff55baed2fce2f7edaf
+    note: Active in-bundle changelog with the 5 most recent entries; older history lives in the repo root
+
+  - path: validate.sh
+    role: script
+    version: 5
+    hash: sha256:333b6585a72818ae2d0196ef517bebf4e4b909e4a17405b526c6d1ec37be0406
+    note: Zero-dependency bash script for local hash verification and update against MANIFEST.yaml
+
+  - path: package.sh
+    role: script
+    version: 2
+    hash: sha256:37773f959f2afb34b5ed566e5c64997887011934002776d0bb85e4de2550e811
+    note: Zero-dependency bash script for derived strict-platform copies and ClawHub upload packages

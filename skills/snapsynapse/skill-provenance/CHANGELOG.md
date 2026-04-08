@@ -1,92 +1,87 @@
 # Changelog
 
-## 4.2.1 — 2026-02-28
-- README.md (bundle): Added pi0/skillman (JS/TS) alongside existing
-  chrisvoncsefalvay/skillman (Python) in ecosystem references. Added
-  research subsection with Xu & Yan (2026) agent skills survey paper.
-- README.md (root): Added pi0/skillman to related projects alongside
-  existing Python skillman reference.
-- CHANGELOG.md: Renumbered all post-3.0.0 entries to align with git tag
-  v4.0.0. Merged former 4.1.0 and 4.2.0 into single 4.0.0 entry matching
-  the tagged release.
+This is the active in-bundle changelog. It keeps the five most recent
+entries so the skill bundle stays lightweight while recent history still
+travels with the package.
 
-## 4.2.0 — 2026-02-28
-- README.md (root): Rewrote with explicit value statement, before/after
-  comparison, platform support matrix with tested/untested status,
-  comparison table against git tags, filename suffixes, and Skillman,
-  and "when not to use this" guidance.
-- AGENTS.md: New file. Repo-level guide for AI agents with repository
-  structure, pre/post-change protocols, key rules, and testing
-  instructions.
-- CONTRIBUTING.md: New file. Contribution guide with versioning protocol
-  for bundle changes and code style expectations.
-- .github/ISSUE_TEMPLATE/compatibility-report.yml: New file. Structured
-  issue template for cross-platform test results.
-- validate.sh: Added sha256sum fallback for Linux portability. Script
-  now auto-detects shasum (macOS) or sha256sum (Linux) at startup.
-- README.md (bundle): Updated validate.sh dependency description to
-  include sha256sum.
+Full release history lives in the source repository's top-level
+`CHANGELOG.md`.
 
-## 4.1.0 — 2026-02-28
-- Adopted semver for bundle versioning. Updated SKILL.md spec to replace
-  integer-only rule with semver for bundle_version and integer for per-file
-  revision counts. Updated MANIFEST.yaml, CHANGELOG.md, and README examples
-  to use semver throughout.
-- README.md (root): Added Skillman reference to related projects.
-- README.md (bundle): Added Skillman to ecosystem references.
-- CHANGELOG.md: Retroactively mapped all prior releases to semver,
-  aligned with git tag v4.0.0.
+## 4.9.0 — 2026-04-08
+- README.md (bundle): Added two use case walkthroughs — verifying a
+  downloaded/untrusted bundle, and sharing a skill across a team.
+- evals.json: Added 4 new evals (22 → 26 core, 30 total): Settings UI
+  .skill ZIP round-trip, Copilot/VS Code bootstrap, Cursor bootstrap,
+  Cowork filesystem persistence.
+- MANIFEST.yaml: Updated Gemini CLI and Perplexity Computer from
+  partial to pass. Bumped per-file versions for README.md, evals.json,
+  SKILL.md, and CHANGELOG.md.
+- SKILL.md: Version bump only (v15 → v16). No definition changes.
+- Plugin system: Added marketplace.json so `claude plugin marketplace
+  add` and `claude plugin install` commands work end-to-end. Added
+  explicit skills path to plugin.json.
+- GitHub Pages: Added skillprovenance.dev landing page with trust/
+  integrity narrative, credibility signals, and install instructions
+  for Claude Code, Settings UI, ClawHub, Codex, and Gemini CLI.
+- README.md (root): Reframed to lead with trust and integrity
+  verification. Added audience hooks, Integrity column to comparison
+  table, ProSkills.md and ClawHub installs badges.
 
-## 4.0.0 — 2026-02-27
-- SKILL.md: Added Gemini CLI to frontmatter constraint table and
-  cross-platform considerations section with three-tier discovery,
-  install path, and management commands. Switched default frontmatter_mode
-  to minimal for maximum cross-platform portability. Added git commit
-  message generation (step 6) to session close protocol and required
-  per-file handoff summaries. Refined the model so internal headers are
-  used when safe, strict-format files are manifest-only, `MANIFEST.yaml`
-  is not self-listed, and the bundle itself ships in minimal frontmatter
-  mode for maximum portability.
-- README.md: Added Gemini CLI to quick start surface table. Added Gemini
-  Gems workflow guidance with tracking instructions, example prompt, and
-  limitations. Added Gemini ecosystem references. Added local hash
-  validation section, clarified that the checked-in directory is the
-  canonical cross-platform source bundle and that strict-format files
-  rely on manifest-only version tracking.
-- evals.json: Added evals 9-13: Gemini CLI compatibility bootstrap,
-  Gemini Gems prompt extraction, git commit message generation, handoff
-  with per-file changes, local hash validation. Aligned all expectations
-  with minimal frontmatter mode, manifest-only tracking for strict-format
-  files, and the manifest control-file rule. Now 13 evals total.
-- validate.sh: New file. Hardened for portable update-mode rewrites and
-  locale-stable hash verification against MANIFEST.yaml.
+## 4.8.0 — 2026-03-23
+- Added Claude Code plugin infrastructure: `.claude-plugin/plugin.json`
+  manifest and `skills/skill-provenance` symlink so the repo doubles as a
+  Claude Code plugin without restructuring the existing bundle.
+- README.md (root): Added Claude Code plugin install as the first quick
+  install method. Updated example version from 4.2.1 to 4.7.3. Added
+  `.claude-plugin/` and `skills/` to repo structure diagram.
+- SKILL.md: Version bump only (v14 → v15). No definition changes.
+- .gitignore: Added `archive/` to exclusions. Historical material remains
+  on disk and in git history but no longer ships with the repo.
+- MANIFEST.yaml: Bumped bundle to 4.8.0, advanced per-file revisions.
 
-## 3.0.0 — 2026-02-10
-- All files: Renamed bundle from skill-versioning to skill-provenance.
-  All internal references, frontmatter, and manifest entries updated.
-- evals.json: Added 3 new evals (6, 7, 8) covering cross-platform
-  Codex bootstrap, frontmatter_mode toggling, and compatibility block
-  generation. All 8 evals now aligned with 2.0.0 SKILL.md capabilities.
-- Prepared for public release on GitHub under snapsynapse org.
+## 4.7.3 — 2026-03-15
+- SKILL.md: Added provenance fields (skill_bundle, file_role, version,
+  version_date, previous_version, change_summary) to own metadata block
+  so the skill exemplifies its own convention. Changed author from
+  "Snap Synapse" to "Sam Rogers (snapsynapse.com)". Updated Origin section.
+- MANIFEST.yaml: Bumped bundle to 4.7.3, advanced SKILL.md to v14 with
+  updated hash and note.
 
-## 2.0.0 — 2026-02-10
-- SKILL.md: Added cross-platform interoperability section (Codex, Copilot,
-  agentskills.io). Added compatibility block to manifest spec. Expanded
-  file_role values (reference, asset, agents). Documented SKILL.md frontmatter
-  constraints per platform with compatibility table. Made description and
-  problem statement platform-agnostic. Added cross-platform notes for Codex
-  and GitHub Copilot surfaces.
-- README.md: Added references section (official docs, blog posts, ecosystem
-  links, support articles). Added spec relationship section. Simplified
-  bootstrap prompt (Claude inventories files itself). Fixed macOS .skill
-  extraction instructions (Archive Utility won't open .skill, unzip -d
-  required). Added troubleshooting for unzip destination behavior.
-- evals.json: Not updated — did not yet cover cross-platform scenarios,
-  compatibility block generation, or frontmatter_mode toggling.
+## 4.7.2 — 2026-03-09
+- SKILL.md: Updated changelog guidance to distinguish between the rolling
+  in-bundle changelog and the full repo-level archive.
+- README.md: Clarified that the bundle keeps recent changelog history
+  while the source repository carries the full archive.
+- CHANGELOG.md: Trimmed the in-bundle changelog to the five most recent
+  entries and pointed readers to the root changelog for older history.
+- MANIFEST.yaml: Bumped bundle to 4.7.2, updated changelog notes, and
+  advanced file revisions for the changelog split model.
 
-## 1.0.0 — 2026-02-10
-- Bootstrap from initial design session. Created SKILL.md with session
-  protocol, manifest spec, changelog spec, version header spec, and
-  cross-surface considerations. Created README.md with worked example
-  and porting workflows. Created evals.json with 5 structural evals.
-- No content from prior sessions — this was the first versioned release.
+## 4.7.1 — 2026-03-09
+- README.md: Changed derived package instructions to use an in-repo
+  `build/` directory by default so strict-platform and ClawHub outputs
+  are easier to find locally.
+- package.sh: Changed default output locations from `/tmp` to
+  `../build/{strict,clawhub}/` relative to the repo so generated
+  artifacts stay visible in one place.
+- MANIFEST.yaml: Bumped bundle to 4.7.1 and advanced file revisions for
+  the updated README, changelog, and package helper.
+
+## 4.7.0 — 2026-03-09
+- SKILL.md: Replaced the stale minimal-mode guidance with a consistent
+  three-state model: canonical source bundle, strict-platform install
+  copy, and registry package. Trimmed packaging prose so the skill stays
+  below the 500-line guidance.
+- README.md: Updated install and publishing guidance to use the same
+  three-state model. Added package helper usage for strict-platform and
+  ClawHub outputs.
+- evals-distribution.json: New supplemental eval suite covering derived
+  strict-platform copies, ClawHub package preparation, publish
+  confirmation, and registry-install versus canonical-bundle behavior.
+- package.sh: New zero-dependency packaging helper that builds strict
+  install copies and ClawHub upload packages from the canonical bundle.
+- MANIFEST.yaml: Bumped bundle to 4.7.0, removed the premature
+  `deployments.clawhub` record, added the new eval and script files, and
+  updated compatibility metadata for derived package generation.
+
+Older entries archived in the source repository's top-level CHANGELOG.md.

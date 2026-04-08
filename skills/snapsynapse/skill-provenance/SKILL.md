@@ -8,7 +8,15 @@ description: >
   or frontmatter mode; and when keeping version identity with the bundle
   instead of filenames. Compatible with the agentskills.io open standard.
 metadata:
-  author: Snap Synapse (snapsynapse.com)
+  skill_bundle: skill-provenance
+  file_role: skill
+  version: 16
+  version_date: 2026-04-08
+  previous_version: 15
+  change_summary: >
+    No skill definition changes. Version bump for GitHub Pages site,
+    trust narrative reframe, new evals, and plugin system fix.
+  author: PAICE.work PBC (paice.work)
   source: https://github.com/snapsynapse/skill-provenance
 ---
 
@@ -495,5 +503,5 @@ This is a one-time operation per skill bundle.
 
 ## Origin
 
-Developed by Snap Synapse. Canonical source:
+Developed for [PAICE.work](https://paice.work/) PBC. Canonical source:
 https://github.com/snapsynapse/skill-provenance

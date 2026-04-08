@@ -3,11 +3,16 @@
   "slug": "skill-provenance",
   "displayName": "Skill Provenance",
   "latest": {
-    "version": "4.7.2",
-    "publishedAt": 1773088295620,
-    "commit": "https://github.com/openclaw/skills/commit/6b8b37677fc8702cade05a5bae8a1358e767a255"
+    "version": "4.9.0",
+    "publishedAt": 1775685665278,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.7.2",
+      "publishedAt": 1773088295620,
+      "commit": "https://github.com/openclaw/skills/commit/6b8b37677fc8702cade05a5bae8a1358e767a255"
+    },
     {
       "version": "4.2.1",
       "publishedAt": 1772300062521,
