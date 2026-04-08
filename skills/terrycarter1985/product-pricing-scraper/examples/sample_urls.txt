@@ -1,0 +1,3 @@
+# One product URL per line
+https://example.com/product/sku123
+https://example.com/product/sku456
