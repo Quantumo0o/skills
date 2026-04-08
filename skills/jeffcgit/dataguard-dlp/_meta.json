@@ -1,0 +1,11 @@
+{
+  "owner": "jeffcgit",
+  "slug": "dataguard-dlp",
+  "displayName": "DataGuard DLP",
+  "latest": {
+    "version": "2.2.0",
+    "publishedAt": 1775625044745,
+    "commit": null
+  },
+  "history": []
+}
