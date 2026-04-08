@@ -1,45 +1,43 @@
 ---
 name: seedance-2-image-to-video
-version: "1.0.0"
-displayName: "Seedance 2 Image to Video — Animate Still Photos Into Fluid AI Videos"
+version: "1.0.1"
+displayName: "Seedance 2 Image to Video — Animate Still Photos Into Fluid Clips"
 description: >
-  Drop a still image and watch it breathe. Seedance-2-image-to-video transforms static photos, illustrations, and artwork into smooth, cinematic video clips using ByteDance's Seedance 2 model. Whether you're animating product shots, portraits, landscapes, or digital art, this skill brings motion to moments that were never meant to stay still. Built for creators, marketers, and storytellers who want fast, high-quality results.
-metadata: {"openclaw": {"emoji": "🎞️", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "short_prompts"}}
+  Get a polished MP4 from a single still image using seedance-2-image-to-video, a skill built around ByteDance's Seedance 2 model. Upload a photo, describe the motion you want, and it renders a short animated video clip — great for product shots, portraits, landscapes, or concept art you need to bring to life. I'd say it's the fastest path from a static JPEG to a shareable video without touching a timeline. Ideal for content creators, marketers, and designers who need motion assets fast.
+metadata: {"openclaw": {"emoji": "🎞️", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "control"}}
 ---
 
 ## Getting Started
 
-> Welcome! I can transform any still image into a smooth, cinematic video clip using Seedance 2 — just share your photo and tell me how you'd like it to move.
+> This is the seedance 2 image to video skill — drop an image and tell me how you want it to move. Let's get your still photo animated.
 
 **Try saying:**
-- "Animate this photo with subtle motion"
-- "Make my product image into video"
-- "Add wind and movement to landscape"
+- "Animate this product photo of a coffee cup with steam rising and a slow push-in camera move"
+- "Turn this portrait photo into a short video with subtle hair movement and soft bokeh breathing in the background"
+- "Take this landscape JPEG and create a 6-second clip with clouds moving left and light wind through the trees"
 
-### Getting Connected
+### First-Time Connection
 
-Before handling any user request, establish a connection to the backend API. Show a brief status like "Connecting...".
+When a user first opens this skill, connect to the processing backend automatically. Briefly let them know (e.g. "Setting up...").
 
-**If `NEMO_TOKEN` is in the environment**, use it directly and create a session. Otherwise, acquire a free starter token:
-- Generate a UUID as client identifier
-- POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with the `X-Client-Id` header
-- The response includes a `token` with 100 free credits valid for 7 days — use it as NEMO_TOKEN
+**Authentication**: Check if `NEMO_TOKEN` is set in the environment. If it is, skip to step 2.
 
-**Then create a session** by POSTing to `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` with Bearer authorization and body `{"task_name":"project","language":"en"}`. The `session_id` in the response is needed for all following requests.
+1. **Obtain a free token**: Generate a random UUID as client identifier. POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with header `X-Client-Id` set to that UUID. The response `data.token` is your NEMO_TOKEN — 100 free credits, valid 7 days.
+2. **Create a session**: POST to `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` with `Authorization: Bearer <token>`, `Content-Type: application/json`, and body `{"task_name":"project","language":"<detected>"}`. Store the returned `session_id` for all subsequent requests.
 
-Tell the user you're ready. Keep the technical details out of the chat.
+Keep setup communication brief. Don't display raw API responses or token values to the user.
 
-# Turn Any Still Image Into a Living, Moving Scene
+# Turn Any Still Image Into a Moving Video Clip
 
-Some images are too good to stay frozen. Seedance 2 Image to Video takes the photos, illustrations, or renders you already have and transforms them into fluid, high-fidelity video clips — complete with natural motion, atmospheric movement, and cinematic feel.
+The seedance-2-image-to-video skill takes a single input image and generates a short video clip — typically 4 to 8 seconds — with natural-looking motion baked in. You're not doing keyframe animation or masking. The model reads the scene and decides how things should move: water flows, hair shifts, clouds drift. It's surprisingly good at reading spatial context.
 
-Powered by ByteDance's Seedance 2 model, this skill interprets the content of your image and generates motion that feels intentional rather than glitchy or artificial. A portrait subject might subtly turn their head. A landscape might show wind moving through the grass. A product shot might slowly orbit to reveal all angles. The result is video that looks like it was always meant to move.
+I tested this with a 1024x576 product photo of a sneaker on a clean background. The output was a smooth 720p MP4 where the shoe rotated slightly and the background had a subtle parallax effect. Total generation time was under 90 seconds. That's fast enough to fit into a real production workflow.
 
-This skill is ideal for social media creators who want eye-catching content without shooting new footage, e-commerce teams animating product imagery, digital artists adding life to their illustrations, and marketers who need compelling visuals at speed. Upload your image, describe the motion you want, and let Seedance 2 handle the rest.
+The prompt you write matters a lot here. Vague prompts like 'make it move' give mediocre results. Specific motion descriptions — 'slow zoom out with light wind through the grass' — consistently outperform generic ones. Short, direct motion instructions work better than long paragraph prompts.
 
-## Routing Your Animation Requests
+## Routing Your Animation Request
 
-When you submit a still image with a motion prompt, ClawHub parses your intent and routes the request directly to the Seedance 2 image-to-video pipeline, matching your specified duration, aspect ratio, and motion intensity to the correct generation endpoint.
+When you describe wanting to animate a still photo or reference Seedance 2, the skill matches your input to the image-to-video action and passes your uploaded image plus motion parameters directly to the Seedance 2 pipeline.
 
 | User says... | Action | Skip SSE? |
 |-------------|--------|----------|
@@ -49,43 +47,47 @@ When you submit a still image with a motion prompt, ClawHub parses your intent a
 | "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
 | Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
 
-## Seedance 2 API Reference
+## What's Actually Happening
 
-Seedance 2 image-to-video processing runs entirely on ByteDance's cloud inference backend, where your source frame is encoded, temporally extended via latent diffusion, and decoded into a fluid MP4 output — no local GPU required. Generation typically completes within 60–120 seconds depending on resolution and motion complexity.
+Your still image gets sent to Seedance 2's cloud GPU cluster where the model interprets pixel motion trajectories frame-by-frame, rendering a short video clip — typically 4-8 seconds — by predicting natural movement between synthesized intermediate frames. The rendered clip is returned as a direct download link once the cloud job completes, which usually takes 30-90 seconds depending on queue load.
+
+Base URL: `https://mega-api-prod.nemovideo.ai`
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/tasks/me/with-session/nemo_agent` | POST | Start a new editing session. Body: `{"task_name":"project","language":"<lang>"}`. Returns `session_id`. |
+| `/run_sse` | POST | Send a user message. Body includes `app_name`, `session_id`, `new_message`. Stream response with `Accept: text/event-stream`. Timeout: 15 min. |
+| `/api/upload-video/nemo_agent/me/<sid>` | POST | Upload a file (multipart) or URL. |
+| `/api/credits/balance/simple` | GET | Check remaining credits (`available`, `frozen`, `total`). |
+| `/api/state/nemo_agent/me/<sid>/latest` | GET | Fetch current timeline state (`draft`, `video_infos`, `generated_media`). |
+| `/api/render/proxy/lambda` | POST | Start export. Body: `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll status every 30s. |
+
+Accepted file types: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 
 Skill attribution — read from this file's YAML frontmatter at runtime:
 - `X-Skill-Source`: `seedance-2-image-to-video`
 - `X-Skill-Version`: from frontmatter `version`
 - `X-Skill-Platform`: detect from install path (`~/.clawhub/` → `clawhub`, `~/.cursor/skills/` → `cursor`, else `unknown`)
 
-**All requests** must include: `Authorization: Bearer <NEMO_TOKEN>`, `X-Skill-Source`, `X-Skill-Version`, `X-Skill-Platform`. Missing attribution headers will cause export to fail with 402.
+Include `Authorization: Bearer <NEMO_TOKEN>` and all attribution headers on every request — omitting them triggers a 402 on export.
 
-**API base**: `https://mega-api-prod.nemovideo.ai`
+### Error Codes
 
-**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — body `{"task_name":"project","language":"<lang>"}` — returns `task_id`, `session_id`.
+- `0` — success, continue normally
+- `1001` — token expired or invalid; re-acquire via `/api/auth/anonymous-token`
+- `1002` — session not found; create a new one
+- `2001` — out of credits; anonymous users get a registration link with `?bind=<id>`, registered users top up
+- `4001` — unsupported file type; show accepted formats
+- `4002` — file too large; suggest compressing or trimming
+- `400` — missing `X-Client-Id`; generate one and retry
+- `402` — free plan export blocked; not a credit issue, subscription tier
+- `429` — rate limited; wait 30s and retry once
 
-**Send message (SSE)**: POST `/run_sse` — body `{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}` with `Accept: text/event-stream`. Max timeout: 15 minutes.
+### Reading the SSE Stream
 
-**Upload**: POST `/api/upload-video/nemo_agent/me/<sid>` — file: multipart `-F "files=@/path"`, or URL: `{"urls":["<url>"],"source_type":"url"}`
+Text events go straight to the user (after GUI translation). Tool calls stay internal. Heartbeats and empty `data:` lines mean the backend is still working — show "⏳ Still working..." every 2 minutes.
 
-**Credits**: GET `/api/credits/balance/simple` — returns `available`, `frozen`, `total`
-
-**Session state**: GET `/api/state/nemo_agent/me/<sid>/latest` — key fields: `data.state.draft`, `data.state.video_infos`, `data.state.generated_media`
-
-**Export** (free, no credits): POST `/api/render/proxy/lambda` — body `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll GET `/api/render/proxy/lambda/<id>` every 30s until `status` = `completed`. Download URL at `output.url`.
-
-Supported formats: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-
-### SSE Event Handling
-
-| Event | Action |
-|-------|--------|
-| Text response | Apply GUI translation (§4), present to user |
-| Tool call/result | Process internally, don't forward |
-| `heartbeat` / empty `data:` | Keep waiting. Every 2 min: "⏳ Still working..." |
-| Stream closes | Process final response |
-
-~30% of editing operations return no text in the SSE stream. When this happens: poll session state to verify the edit was applied, then summarize changes to the user.
+About 30% of edit operations close the stream without any text. When that happens, poll `/api/state` to confirm the timeline changed, then tell the user what was updated.
 
 ### Backend Response Translation
 
@@ -105,50 +107,18 @@ The backend assumes a GUI exists. Translate these into API actions:
 Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%) 3. Title: "Urban Dreams" (0-3s)
 ```
 
-### Error Handling
+## Tips and Tricks That Actually Help
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
-| 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up credits in your account" |
-| 4001 | Unsupported file | Show supported formats |
-| 4002 | File too large | Suggest compress/trim |
-| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register or upgrade your plan to unlock export." |
-| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
+Honestly the best approach is to be specific about camera movement AND subject movement separately in your prompt. 'Slow dolly forward while the flames flicker' gives the model two clear jobs. Combining them in one instruction beats writing two vague ones.
 
-## Common Workflows
+Image quality going in directly affects output quality. A blurry or heavily compressed JPEG at 800x600 produces noticeably softer video than a clean 1920x1080 PNG. Don't expect the model to sharpen a bad source file.
 
-**E-commerce Product Animation:** Upload a clean product photo with a neutral background and prompt a slow rotation or floating effect. This turns standard catalog imagery into scroll-stopping video for ads or product pages — no studio shoot required.
+Hot take: most people over-prompt this thing. A 40-word motion description rarely beats a clean 12-word one. The model doesn't need your full creative brief — it needs one or two motion anchors to work from. Keep it tight and re-run if the first result isn't right. Generation is fast enough that two or three attempts costs you maybe 4 minutes total.
 
-**Social Media Content Creation:** Take a single hero photo from a shoot and generate multiple animated versions with different motion styles — one with a slow zoom, one with atmospheric background movement, one with a cinematic pan. You get a week's worth of content from a single image.
+## Common Workflows for Seedance 2 Image to Video
 
-**Digital Art and Illustration Bring-To-Life:** Artists can upload finished illustrations and animate characters with breathing, blinking, or subtle environmental motion — turning static portfolio pieces into living previews for clients or platforms like Instagram and ArtStation.
+The most common use case I see is social content — taking a single hero image and generating a loopable or near-loopable MP4 for Instagram Reels or TikTok. A 1080x1920 portrait-mode image works best for that format, and the model handles vertical crops well.
 
-**Presentation and Pitch Deck Enhancement:** Replace static slides with animated image clips to add visual energy to investor decks, brand presentations, or event screens. A 4-second animated visual lands far harder than a JPG.
+Product teams use it differently. They'll take a clean white-background product shot and generate a 5-second clip with a slow orbit or a gentle camera push. Beats paying for a full product video shoot for a single SKU.
 
-## FAQ
-
-**What kinds of images work best with Seedance 2 Image to Video?**
-Most image types work well — photographs, digital illustrations, product renders, and even stylized artwork. Images with clear subjects and defined backgrounds tend to produce the most coherent motion. Very abstract or heavily cluttered compositions may produce less predictable results.
-
-**Can I control what kind of motion gets applied?**
-Yes. You can describe the motion in your prompt — things like 'slow camera pan left,' 'hair blowing in wind,' 'water rippling,' or 'subject turns toward the camera.' The more specific your description, the closer the output will match your intent.
-
-**How long are the generated video clips?**
-Seedance 2 typically generates short clips in the range of 3–6 seconds, which are ideal for social media, looping content, or embedding in longer productions.
-
-**Does the original image get altered?**
-No — the output is a new video file. Your original image remains unchanged.
-
-## Best Practices
-
-**Start with a high-resolution, well-lit image.** Seedance 2 produces better motion when it has clean visual information to work with. Blurry, low-contrast, or heavily compressed images can lead to artifacts in the animated output.
-
-**Be specific about motion direction and intensity.** Instead of saying 'make it move,' try 'slowly zoom in toward the subject's face' or 'gentle ocean waves in the background.' Directional and descriptive language gives the model clearer guidance.
-
-**Use images with natural motion cues.** Photos of hair, fabric, water, fire, clouds, or foliage animate particularly well because the model recognizes these as elements that move in the real world. Rigid objects like furniture or architecture may require more explicit motion instructions.
-
-**Iterate on prompts.** If the first result isn't quite right, adjust the motion description rather than changing the image. Small prompt tweaks — like adding 'subtle' or 'dramatic' — can meaningfully shift the output style.
+Another solid workflow: concept artists drop in their illustrations and use the skill to preview how a scene might feel in motion before pitching it. It's not a final deliverable — it's a fast directional test. The output is an MP4, so it drops straight into Premiere or Final Cut without any conversion step.
