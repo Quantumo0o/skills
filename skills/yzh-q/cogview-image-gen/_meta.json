@@ -1,0 +1,11 @@
+{
+  "owner": "yzh-q",
+  "slug": "cogview-image-gen",
+  "displayName": "智谱CogView模型图片生成",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775445620433,
+    "commit": null
+  },
+  "history": []
+}
