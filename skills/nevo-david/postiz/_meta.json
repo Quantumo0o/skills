@@ -3,11 +3,16 @@
   "slug": "postiz",
   "displayName": "Postiz is a tool to schedule social media and chat posts to 28+ channels X, LinkedIn, LinkedIn Page, Reddit, Instagram, Facebook Page, Threads, YouTube, Google My Business, TikTok, Pinterest, Dribbble, Discord, Slack, Kick, Twitch, Mastodon, Bluesky, Lemmy, Farcaster, Telegram, Nostr, VK, Medium, Dev.to, Hashnode, WordPress, ListMonk",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1771586709088,
-    "commit": "https://github.com/openclaw/skills/commit/069be29db7a9144e1e0f87ebd3038d04312b9187"
+    "version": "1.0.15",
+    "publishedAt": 1775457811724,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1771586709088,
+      "commit": "https://github.com/openclaw/skills/commit/069be29db7a9144e1e0f87ebd3038d04312b9187"
+    },
     {
       "version": "1.0.11",
       "publishedAt": 1771437127028,
