@@ -489,7 +489,8 @@ Content-Type: application/json
 - `markAsRead` - Mark messages as read
 - `markAsUnread` - Mark messages as unread
 - `moveMessage` - Move messages (requires `destfolderId`)
-- `flag` - Set flag (requires `flagid`: 1-4)
+- `setFlag` - Set flag (requires `flagid`)
+- `applyLabel` - Apply labels (requires `labelId`)
 - `archive` - Archive messages
 - `unArchive` - Unarchive messages
 - `spam` - Mark as spam
@@ -511,6 +512,101 @@ req.add_header('Content-Type', 'application/json')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
+
+#### Set Flag on Messages
+
+Flag messages with a color/status indicator.
+
+```bash
+PUT /zoho-mail/api/accounts/{accountId}/updatemessage
+Content-Type: application/json
+
+{
+  "mode": "setFlag",
+  "messageId": ["messageId1", "messageId2"],
+  "flagid": "important"
+}
+```
+
+**Flag ID Options:**
+
+| Flag ID | Description |
+|---------|-------------|
+| `info` | Info flag (blue) |
+| `important` | Important flag (red) |
+| `followup` | Follow-up flag (orange) |
+| `flag_not_set` | Remove flag |
+
+**Optional Parameters:**
+- `threadId` - Array of thread IDs (alternative to messageId)
+- `isFolderSpecific` - Set to `true` if using `folderId`
+- `folderId` - Folder ID (required if `isFolderSpecific` is true)
+- `isArchive` - Set to `true` to include archived emails
+
+**Example - Flag as Important:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+data = json.dumps({
+    "mode": "setFlag",
+    "messageId": ["1234567890123456789"],
+    "flagid": "important",
+    "isFolderSpecific": True,
+    "folderId": "9876543210987654321"
+}).encode()
+req = urllib.request.Request('https://gateway.maton.ai/zoho-mail/api/accounts/{accountId}/updatemessage', data=data, method='PUT')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('Content-Type', 'application/json')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+#### Apply Label to Messages
+
+Apply one or more labels to messages or threads.
+
+```bash
+PUT /zoho-mail/api/accounts/{accountId}/updatemessage
+Content-Type: application/json
+
+{
+  "mode": "applyLabel",
+  "messageId": ["messageId1"],
+  "labelId": ["labelId1", "labelId2"]
+}
+```
+
+**Required Parameters:**
+- `mode` - Must be `"applyLabel"`
+- `messageId` or `threadId` - Array of message/thread IDs
+- `labelId` - Array of label IDs to apply
+
+**Optional Parameters:**
+- `isFolderSpecific` - Set to `true` if using `folderId`
+- `folderId` - Folder ID (required if `isFolderSpecific` is true)
+- `isArchive` - Set to `true` to include archived emails
+
+**Example - Apply Labels:**
+
+```bash
+python <<'EOF'
+import urllib.request, os, json
+data = json.dumps({
+    "mode": "applyLabel",
+    "messageId": ["1234567890123456789"],
+    "labelId": ["111222333444555666", "777888999000111222"],
+    "isFolderSpecific": True,
+    "folderId": "9876543210987654321"
+}).encode()
+req = urllib.request.Request('https://gateway.maton.ai/zoho-mail/api/accounts/{accountId}/updatemessage', data=data, method='PUT')
+req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
+req.add_header('Content-Type', 'application/json')
+print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
+EOF
+```
+
+**Note:** Get label IDs by calling `GET /zoho-mail/api/accounts/{accountId}/labels` first.
 
 #### Delete Email
 
