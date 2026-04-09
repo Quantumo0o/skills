@@ -3,11 +3,16 @@
   "slug": "calibre-metadata-apply",
   "displayName": "Calibre Metadata Apply",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774053219300,
-    "commit": "https://github.com/openclaw/skills/commit/625ee9c39b4c26f225a2e3ec567d65b2494e9439"
+    "version": "1.0.4",
+    "publishedAt": 1775299872595,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774053219300,
+      "commit": "https://github.com/openclaw/skills/commit/625ee9c39b4c26f225a2e3ec567d65b2494e9439"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770993524746,
