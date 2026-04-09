@@ -142,3 +142,4 @@ Script Writing → Scene Planning → Frame Generation → Voice Synthesis
 4. **Mention music preferences**: "Uplifting corporate background", "lo-fi beats", "cinematic orchestral" — or let CellCog choose.
 
 5. **For spokesperson videos**: Describe the presenter's appearance and tone of voice.
+
