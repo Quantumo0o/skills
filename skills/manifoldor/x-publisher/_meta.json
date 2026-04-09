@@ -1,0 +1,11 @@
+{
+  "owner": "manifoldor",
+  "slug": "x-publisher",
+  "displayName": "X tweet publisher",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1773324514880,
+    "commit": null
+  },
+  "history": []
+}
