@@ -251,3 +251,4 @@ Make your game feel polished:
 5. **Animation frames**: Specify frame count and whether you need sprite sheets or individual frames.
 
 6. **Consider your scope**: Start with placeholder assets and iterate. Perfect is the enemy of shipped.
+
