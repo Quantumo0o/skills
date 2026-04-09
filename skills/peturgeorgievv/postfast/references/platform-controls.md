@@ -6,13 +6,14 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `tiktokPrivacy` | string | `PUBLIC` | `PUBLIC`, `MUTUAL_FRIENDS`, `ONLY_ME` |
+| `tiktokPrivacy` | string | `PUBLIC` | `PUBLIC`, `MUTUAL_FRIENDS`, `FOLLOWER_OF_CREATOR`, `ONLY_ME` |
 | `tiktokAllowComments` | boolean | `true` | Allow comments |
 | `tiktokAllowDuet` | boolean | `true` | Allow duets |
 | `tiktokAllowStitch` | boolean | `true` | Allow stitches |
 | `tiktokBrandOrganic` | boolean | `false` | Self-promotional content |
 | `tiktokBrandContent` | boolean | `false` | Sponsored/partnership content |
 | `tiktokAutoAddMusic` | boolean | `false` | Auto-add background music |
+| `tiktokIsAigc` | boolean | `false` | Labels video as AI-generated. TikTok displays "Creator labeled as AI-generated" tag. Only effective for video posts |
 | `tiktokIsDraft` | boolean | `false` | Save as draft (appears in TikTok app only) |
 
 **Media notes:**
@@ -28,6 +29,7 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 | `instagramPublishType` | string | `TIMELINE` | `TIMELINE`, `STORY`, `REEL` |
 | `instagramPostToGrid` | boolean | `true` | Show Reel on profile grid |
 | `instagramCollaborators` | string[] | `[]` | Usernames (without @), max 3 |
+| `instagramTrialReelStrategy` | string | — | Publishes reel as a trial (shown only to non-followers). `MANUAL` = creator graduates via Instagram app. `SS_PERFORMANCE` = auto-graduates after 72h if it performs well. Requires `instagramPublishType: "REEL"`. Cannot be combined with `instagramCollaborators` |
 
 **Content types:**
 - **TIMELINE**: Feed posts. Single image, carousel (up to 10), or video
@@ -65,6 +67,7 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 | `youtubeMadeForKids` | boolean | `false` | COPPA compliance flag |
 | `youtubeTags` | string[] | `[]` | Video tags |
 | `youtubeCategoryId` | string | — | YouTube category ID |
+| `youtubeThumbnailKey` | string | — | S3 media key for custom thumbnail image. Upload via `/file/get-signed-upload-urls` first. JPEG/PNG/GIF/BMP/WebP, max 2MB, recommended 1280x720 (16:9), min width 640px. Requires phone-verified YouTube channel. Set after video uploads; if thumbnail upload fails, video still publishes without it |
 
 **Media notes:**
 - Shorts: up to 3 minutes, 9:16 or 1:1
@@ -120,6 +123,35 @@ All controls are passed in the `controls` object of `POST /social-posts`.
 **Media notes:**
 - Ideal aspect ratio: 2:3 (1000×1500)
 - Carousels: 2-5 static images only (no video in carousels)
+
+## Google Business Profile
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `gbpLocationId` | string | **required** | Location resource name from `GET /social-media/{id}/gbp-locations` |
+| `gbpTopicType` | string | `STANDARD` | `STANDARD`, `EVENT`, or `OFFER` |
+| `gbpCallToActionType` | string | — | `BOOK`, `ORDER`, `SHOP`, `LEARN_MORE`, `SIGN_UP`, or `CALL` |
+| `gbpCallToActionUrl` | string | — | URL for the CTA button. Not needed for `CALL`. Ignored for OFFER posts |
+| `gbpEventTitle` | string | — | Title for EVENT/OFFER posts (max 58 chars). Defaults to first line of content |
+| `gbpEventStartDate` | string (ISO 8601) | — | Required for EVENT and OFFER posts |
+| `gbpEventEndDate` | string (ISO 8601) | — | Required for EVENT and OFFER posts |
+| `gbpOfferCouponCode` | string | — | Coupon code (OFFER only) |
+| `gbpOfferRedeemUrl` | string | — | Redemption URL (OFFER only) |
+| `gbpOfferTerms` | string | — | Terms and conditions (OFFER only) |
+
+**Post types:**
+- **STANDARD**: General business update with optional CTA button
+- **EVENT**: Promotes a time-bound event. Requires `gbpEventTitle`, `gbpEventStartDate`, `gbpEventEndDate`
+- **OFFER**: Promotes a deal/discount. Requires `gbpEventTitle`, `gbpEventStartDate`, `gbpEventEndDate`. Optionally add coupon code, redeem URL, and terms
+
+**Media notes:**
+- 1 image only (no video, no carousel)
+- JPEG/PNG, max 5MB
+- Caption: max 1,500 characters
+
+**Limits:**
+- 5 posts per account per day
+- Standard posts expire after 6 months. Event/Offer posts expire at end date
 
 ## Bluesky
 

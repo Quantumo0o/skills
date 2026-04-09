@@ -35,6 +35,7 @@
     "Only returns PUBLISHED posts with a platformPostId",
     "latestMetric is null if no metrics have been fetched yet",
     "All metric values are strings (bigint), not numbers",
+    "Supported platforms: Facebook, Instagram, Threads, LinkedIn, TikTok only",
     "LinkedIn personal accounts are excluded",
     "No pagination - keep date ranges reasonable",
     "Rate limit: 350 requests/hour"

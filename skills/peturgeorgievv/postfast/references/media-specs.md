@@ -74,6 +74,13 @@
 - **Carousels**: Up to 10 images
 - **Caption**: max 500 characters
 
+### Google Business Profile
+- **Images**: JPEG/PNG, 1 per post, max 5MB
+- **No video** support
+- **No carousels**
+- **Caption**: max 1,500 characters
+- Standard posts expire after 6 months; Event/Offer posts expire at end date
+
 ### Telegram
 - **Images**: Up to 10
 - **Video**: Supported

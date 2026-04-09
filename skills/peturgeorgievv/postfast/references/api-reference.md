@@ -21,7 +21,7 @@ List all connected social media accounts.
 ]
 ```
 
-Platform values: `TIKTOK`, `INSTAGRAM`, `FACEBOOK`, `X`, `YOUTUBE`, `LINKEDIN`, `THREADS`, `BLUESKY`, `PINTEREST`, `TELEGRAM`
+Platform values: `TIKTOK`, `INSTAGRAM`, `FACEBOOK`, `X`, `YOUTUBE`, `LINKEDIN`, `THREADS`, `BLUESKY`, `PINTEREST`, `TELEGRAM`, `GOOGLE_BUSINESS_PROFILE`
 
 ### GET /social-media/:id/pinterest-boards
 
@@ -40,6 +40,25 @@ Get YouTube playlists for a connected account.
 ```json
 [{ "playlistId": "PLrAXtmErZgOe...", "title": "My Tutorials" }]
 ```
+
+### GET /social-media/:id/gbp-locations
+
+Get Google Business Profile locations for a connected account.
+
+**Response:**
+```json
+[
+  {
+    "id": "a1b2c3d4-...",
+    "locationId": "accounts/109049740544589765860/locations/4875357571247123933",
+    "title": "PostFast HQ",
+    "address": "123 Main St, Sofia, Bulgaria",
+    "mapsUri": "https://maps.google.com/?cid=..."
+  }
+]
+```
+
+Use the `locationId` value as `gbpLocationId` in the controls object when creating GBP posts.
 
 ### POST /file/get-signed-upload-urls
 
@@ -69,7 +88,7 @@ List and filter posts. Supports pagination, platform/status filtering, and date 
 |---|---|---|---|
 | `page` | int | 0 | 0-based page index |
 | `limit` | int | 20 | Items per page (max 50) |
-| `platforms` | string | — | Comma-separated: `FACEBOOK,INSTAGRAM,X,TIKTOK,LINKEDIN,YOUTUBE,BLUESKY,THREADS,PINTEREST,TELEGRAM` |
+| `platforms` | string | — | Comma-separated: `FACEBOOK,INSTAGRAM,X,TIKTOK,LINKEDIN,YOUTUBE,BLUESKY,THREADS,PINTEREST,TELEGRAM,GOOGLE_BUSINESS_PROFILE` |
 | `statuses` | string | — | Comma-separated: `DRAFT,SCHEDULED,PUBLISHED,FAILED` |
 | `from` | ISO 8601 | — | Start date filter (inclusive, on `scheduledAt`) |
 | `to` | ISO 8601 | — | End date filter (inclusive, on `scheduledAt`) |
@@ -150,9 +169,12 @@ Create/schedule one or more posts. Up to 15 posts per request. Rate limit: 350/d
 **mediaItems extra fields:**
 - `coverTimestamp` (string): Video thumbnail timestamp in seconds (e.g., `"3"`)
 
+**Controls extra notes:**
+- `youtubeThumbnailKey` (string): S3 key for custom YouTube thumbnail (from upload flow). JPEG/PNG recommended, max 2MB, 1280x720 (16:9). Requires phone-verified channel. If thumbnail upload fails, video still publishes without it
+
 **Cross-posting**: Add multiple objects to the `posts` array, each with different `socialMediaId`. The `controls` object applies to all posts in the batch.
 
-**Platform posting limits:** X (Twitter) allows max 5 posts per account per day via API.
+**Platform posting limits:** X (Twitter) allows max 5 posts per account per day via API. Google Business Profile allows max 5 posts per account per day.
 
 **Response:**
 ```json

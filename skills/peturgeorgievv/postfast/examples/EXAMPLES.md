@@ -9,13 +9,16 @@ Ready-to-use request bodies for common social media scheduling scenarios.
 | [cross-platform-post.json](cross-platform-post.json) | Post same content to LinkedIn, X, and Threads |
 | [tiktok-video.json](tiktok-video.json) | TikTok video with privacy and brand settings |
 | [tiktok-carousel.json](tiktok-carousel.json) | TikTok image carousel (2-35 images) |
+| [tiktok-aigc-video.json](tiktok-aigc-video.json) | TikTok AI-generated video with AIGC label and follower-only privacy |
 | [tiktok-draft.json](tiktok-draft.json) | TikTok video saved as draft |
 | [instagram-reel.json](instagram-reel.json) | Instagram Reel with collaborators |
 | [instagram-story.json](instagram-story.json) | Instagram Story (video) |
 | [instagram-carousel.json](instagram-carousel.json) | Instagram carousel (up to 10 images) |
+| [instagram-trial-reel.json](instagram-trial-reel.json) | Instagram trial reel (shown to non-followers first) |
 | [facebook-reel.json](facebook-reel.json) | Facebook Reel with cover timestamp |
 | [facebook-story.json](facebook-story.json) | Facebook Story (image) |
 | [youtube-short.json](youtube-short.json) | YouTube Short with tags and playlist |
+| [youtube-video-thumbnail.json](youtube-video-thumbnail.json) | YouTube video with custom thumbnail image |
 | [pinterest-pin.json](pinterest-pin.json) | Pinterest pin with board and destination link |
 | [linkedin-document.json](linkedin-document.json) | LinkedIn document/carousel post (PDF) |
 | [x-quote-tweet.json](x-quote-tweet.json) | X quote tweet with commentary and image |
@@ -24,6 +27,9 @@ Ready-to-use request bodies for common social media scheduling scenarios.
 | [threads-carousel.json](threads-carousel.json) | Threads image carousel (up to 10) |
 | [batch-scheduling.json](batch-scheduling.json) | Schedule 5 posts across a week |
 | [telegram-mixed-media.json](telegram-mixed-media.json) | Telegram post with mixed media |
+| [gbp-standard.json](gbp-standard.json) | Google Business Profile standard update with CTA |
+| [gbp-event.json](gbp-event.json) | Google Business Profile event post |
+| [gbp-offer.json](gbp-offer.json) | Google Business Profile offer with coupon code |
 | [post-analytics.json](post-analytics.json) | Fetch published post metrics (impressions, likes, etc.) |
 
 ## Usage

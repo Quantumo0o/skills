@@ -1,13 +1,13 @@
 ---
 name: postfast
-description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, and Telegram using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
+description: Schedule and manage social media posts across TikTok, Instagram, Facebook, X (Twitter), YouTube, LinkedIn, Threads, Bluesky, Pinterest, Telegram, and Google Business Profile using the PostFast API. Use when the user wants to schedule social media posts, manage social media content, upload media for social posting, list connected social accounts, check scheduled posts, delete scheduled posts, cross-post content to multiple platforms, manage Google Business Profile posts, or automate their social media workflow. PostFast is a SaaS tool — no self-hosting required.
 homepage: https://postfa.st
 metadata: {"openclaw":{"emoji":"⚡","primaryEnv":"POSTFAST_API_KEY","requires":{"env":["POSTFAST_API_KEY"]}}}
 ---
 
 # PostFast
 
-Schedule social media posts across 10 platforms from one API. SaaS — no self-hosting needed.
+Schedule social media posts across 11 platforms from one API. SaaS — no self-hosting needed.
 
 ## Setup
 
@@ -21,6 +21,8 @@ Schedule social media posts across 10 platforms from one API. SaaS — no self-h
 Base URL: `https://api.postfa.st`
 Auth header: `pf-api-key: $POSTFAST_API_KEY`
 
+**Important:** The header name is `pf-api-key` (not `Authorization: Bearer` or `x-api-key`). Regenerating your key in settings permanently invalidates the previous one. See [Troubleshooting](#troubleshooting) if you get 403 errors.
+
 ## Core Workflow
 
 ### 1. List connected accounts
@@ -31,7 +33,7 @@ curl -s -H "pf-api-key: $POSTFAST_API_KEY" https://api.postfa.st/social-media/my
 
 Returns array of `{ id, platform, platformUsername, displayName }`. Save the `id` — it's the `socialMediaId` required for every post.
 
-Platform values: `TIKTOK`, `INSTAGRAM`, `FACEBOOK`, `X`, `YOUTUBE`, `LINKEDIN`, `THREADS`, `BLUESKY`, `PINTEREST`, `TELEGRAM`
+Platform values: `TIKTOK`, `INSTAGRAM`, `FACEBOOK`, `X`, `YOUTUBE`, `LINKEDIN`, `THREADS`, `BLUESKY`, `PINTEREST`, `TELEGRAM`, `GOOGLE_BUSINESS_PROFILE`
 
 ### 2. Schedule a text post (no media)
 
@@ -160,7 +162,9 @@ curl -s -H "pf-api-key: $POSTFAST_API_KEY" \
 
 Returns `{ "data": [{ id, content, socialMediaId, platformPostId, publishedAt, latestMetric }] }`.
 
-`latestMetric` fields: `impressions`, `reach`, `likes`, `comments`, `shares`, `totalInteractions`, `fetchedAt`, `extras`. All numbers are strings (bigint). `latestMetric` is null if metrics haven't been fetched yet. LinkedIn personal accounts are excluded.
+`latestMetric` fields: `impressions`, `reach`, `likes`, `comments`, `shares`, `totalInteractions`, `fetchedAt`, `extras`. All numbers are strings (bigint). `latestMetric` is null if metrics haven't been fetched yet.
+
+**Supported platforms for analytics:** Facebook, Instagram, Threads, LinkedIn, TikTok, YouTube. LinkedIn personal accounts are excluded. YouTube returns views, likes, comments, and total interactions (no reach or shares).
 
 Rate limit: 350/hour.
 
@@ -244,7 +248,53 @@ Upload video, then post with YouTube controls:
 
 See [examples/youtube-short.json](examples/youtube-short.json).
 
-### Pattern 6: LinkedIn document post
+### Pattern 5b: YouTube video with custom thumbnail
+
+Upload both video and thumbnail image, then reference the thumbnail key in controls:
+
+```bash
+# 1. Upload thumbnail image (separate from video upload)
+curl -X POST https://api.postfa.st/file/get-signed-upload-urls \
+  -H "pf-api-key: $POSTFAST_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "contentType": "image/jpeg", "count": 1 }'
+# PUT thumbnail to signed URL
+
+# 2. Upload video (same 3-step flow as always)
+
+# 3. Create post with thumbnail key in controls:
+{
+  "youtubeIsShort": false,
+  "youtubeTitle": "Full Tutorial: Social Media Strategy",
+  "youtubePrivacy": "PUBLIC",
+  "youtubeThumbnailKey": "image/abc123.jpg",
+  "youtubeTags": ["tutorial", "social media"],
+  "youtubeMadeForKids": false
+}
+```
+
+Thumbnail specs: JPEG/PNG recommended, max 2MB, 1280x720 (16:9), min width 640px. Requires phone-verified YouTube channel. If thumbnail upload fails, the video still publishes without the custom thumbnail.
+
+See [examples/youtube-video-thumbnail.json](examples/youtube-video-thumbnail.json).
+
+### Pattern 6: Google Business Profile post
+
+Always fetch locations first, then post with GBP-specific controls:
+
+```bash
+# Step 1: Get locations
+curl -s -H "pf-api-key: $POSTFAST_API_KEY" \
+  https://api.postfa.st/social-media/GBP_ACCOUNT_ID/gbp-locations
+
+# Step 2: Create a standard post with CTA
+# controls: { "gbpLocationId": "accounts/.../locations/...", "gbpTopicType": "STANDARD", "gbpCallToActionType": "LEARN_MORE", "gbpCallToActionUrl": "https://yoursite.com" }
+```
+
+Three post types: `STANDARD` (updates), `EVENT` (time-bound), `OFFER` (deals with coupons). EVENT and OFFER require `gbpEventTitle`, `gbpEventStartDate`, `gbpEventEndDate`.
+
+See [examples/gbp-standard.json](examples/gbp-standard.json), [examples/gbp-event.json](examples/gbp-event.json), and [examples/gbp-offer.json](examples/gbp-offer.json).
+
+### Pattern 7: LinkedIn document post
 
 Documents (PDF, PPTX, DOCX) display as swipeable carousels on LinkedIn.
 
@@ -259,7 +309,7 @@ Documents (PDF, PPTX, DOCX) display as swipeable carousels on LinkedIn.
 
 See [examples/linkedin-document.json](examples/linkedin-document.json).
 
-### Pattern 7: First comment (auto-posted after publish)
+### Pattern 8: First comment (auto-posted after publish)
 
 Add a `firstComment` to any post — it's auto-posted ~10 seconds after the main post goes live (up to 3 retries):
 
@@ -274,7 +324,7 @@ Supported on: X, Instagram, Facebook, YouTube, Threads. NOT supported on: TikTok
 
 See [examples/x-first-comment.json](examples/x-first-comment.json).
 
-### Pattern 8: X (Twitter) retweet
+### Pattern 9: X (Twitter) retweet
 
 Schedule a retweet — content and media are ignored:
 
@@ -287,7 +337,7 @@ Schedule a retweet — content and media are ignored:
 
 See [examples/x-retweet.json](examples/x-retweet.json). For quote tweets with your own commentary, use `xQuoteTweetUrl` instead. See [examples/x-quote-tweet.json](examples/x-quote-tweet.json).
 
-### Pattern 9: Batch scheduling (a week of posts)
+### Pattern 10: Batch scheduling (a week of posts)
 
 Schedule multiple posts at different times in a single API call (up to 15 posts per request):
 
@@ -299,13 +349,14 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 
 | Platform | Key Controls |
 |---|---|
-| **TikTok** | `tiktokPrivacy`, `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic` |
-| **Instagram** | `instagramPublishType` (TIMELINE/STORY/REEL), `instagramPostToGrid`, `instagramCollaborators` |
+| **TikTok** | `tiktokPrivacy`, `tiktokAllowComments`, `tiktokAllowDuet`, `tiktokAllowStitch`, `tiktokIsDraft`, `tiktokIsAigc`, `tiktokBrandOrganic`, `tiktokBrandContent`, `tiktokAutoAddMusic` |
+| **Instagram** | `instagramPublishType` (TIMELINE/STORY/REEL), `instagramPostToGrid`, `instagramCollaborators`, `instagramTrialReelStrategy` |
 | **Facebook** | `facebookContentType` (POST/REEL/STORY), `facebookReelsCollaborators` |
-| **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId` |
+| **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey` |
 | **LinkedIn** | `linkedinAttachmentKey`, `linkedinAttachmentTitle` (for document posts) |
 | **X (Twitter)** | `xQuoteTweetUrl` (quote tweet), `xRetweetUrl` (retweet), `xCommunityId` (post to community) |
 | **Pinterest** | `pinterestBoardId` (required), `pinterestLink` |
+| **Google Business Profile** | `gbpLocationId` (required), `gbpTopicType`, `gbpCallToActionType`, `gbpCallToActionUrl`, `gbpEventTitle`, `gbpEventStartDate`, `gbpEventEndDate`, `gbpOfferCouponCode`, `gbpOfferRedeemUrl`, `gbpOfferTerms` |
 | **Bluesky** | No platform-specific controls — text + images only |
 | **Threads** | No platform-specific controls — text + images/video |
 | **Telegram** | No platform-specific controls — text + images/video/mixed media |
@@ -314,6 +365,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 
 - **Pinterest boards**: `GET /social-media/{id}/pinterest-boards` → returns `[{ boardId, name }]`
 - **YouTube playlists**: `GET /social-media/{id}/youtube-playlists` → returns `[{ playlistId, title }]`
+- **GBP locations**: `GET /social-media/{id}/gbp-locations` → returns `[{ id, locationId, title, address, mapsUri }]`. Use `locationId` as `gbpLocationId` in controls
 - **Connect link**: `POST /social-media/connect-link` → returns `{ connectUrl }`. Let clients connect accounts without a PostFast account. Params: `expiryDays` (1-30, default 7), `sendEmail` (bool), `email` (required if sendEmail=true)
 
 ## Rate Limits
@@ -342,6 +394,7 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 | LinkedIn | Up to 9 | ≤10min | Up to 9, or documents (PDF/PPTX/DOCX) |
 | X (Twitter) | Up to 4 | — | — |
 | Pinterest | 2:3 ratio ideal | Supported | 2-5 images |
+| Google Business Profile | 1 image (JPEG/PNG, 5MB max) | Not supported | — |
 | Bluesky | Up to 4 | Not supported | — |
 | Threads | Supported | Supported | Up to 10 |
 | Telegram | Up to 10 | Supported | Up to 10 mixed media |
@@ -364,6 +417,47 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 14. **Cannot use `xQuoteTweetUrl` and `xRetweetUrl` together** — Pick one. Retweets ignore content/media.
 15. **LinkedIn documents support PDF, DOC, DOCX, PPT, PPTX** — Max 60MB. Cannot mix with regular media.
 16. **Pagination is 0-based** — `page=0` returns the first page. Response `pageInfo.page` shows 1-based display number.
+17. **Instagram trial reels require `instagramPublishType: "REEL"`** — Setting `instagramTrialReelStrategy` without it returns 400. Also cannot be combined with `instagramCollaborators`.
+18. **YouTube custom thumbnails require phone verification** — `youtubeThumbnailKey` only works if the YouTube channel is phone-verified. If it fails, the video still publishes without the custom thumbnail.
+19. **GBP ALWAYS requires `gbpLocationId`** — Fetch locations first with `GET /social-media/{id}/gbp-locations`. Use the `locationId` field (not `id`).
+20. **GBP supports only 1 image** — No video, no carousels. JPEG/PNG, max 5MB.
+21. **GBP EVENT/OFFER posts require dates** — `gbpEventStartDate` and `gbpEventEndDate` are required when `gbpTopicType` is `EVENT` or `OFFER`.
+22. **GBP content limit is 1,500 characters** — Shorter than most platforms.
+23. **GBP posts expire** — Standard posts auto-expire after 6 months. Event/Offer posts expire at their end date.
+
+## Troubleshooting
+
+### 403 "Missing organizationId or activeWorkspaceId"
+
+This is the most common error. It means the API didn't recognize your key. Check these in order:
+
+1. **Wrong header name.** The header must be exactly `pf-api-key`. Not `Authorization: Bearer`, not `x-api-key`, not `api-key`. Example:
+   ```bash
+   # Correct
+   curl -H "pf-api-key: YOUR_KEY_HERE" https://api.postfa.st/social-media/my-social-accounts
+
+   # Wrong — these all return 403
+   curl -H "Authorization: Bearer YOUR_KEY_HERE" ...
+   curl -H "x-api-key: YOUR_KEY_HERE" ...
+   ```
+
+2. **Env var not set.** If `$POSTFAST_API_KEY` isn't set in your shell, the literal string `$POSTFAST_API_KEY` gets sent as the key value. Verify it's set:
+   ```bash
+   echo $POSTFAST_API_KEY    # Should print a 44-character base64 string ending with "="
+   ```
+   If empty, re-export it. If you're using a `.env` file, make sure your tool actually loads it (dotenv, direnv, etc.). Shell quoting matters: use double quotes around the value if it contains special characters.
+
+3. **Regenerated key.** Each time you click "Generate API Key" in PostFast settings, the previous key is **permanently invalidated**. Only regenerate if the old key is compromised. If you regenerated and are still using the old key, that's why it fails.
+
+4. **Wrong key entirely.** Your PostFast API key is a 44-character base64 string ending with `=`. Don't confuse it with keys from other services (OpenAI `sk-proj-...`, Stripe `sk_live_...`, etc.).
+
+### 401 Invalid or missing API key
+
+The `pf-api-key` header is either missing from the request or the value is empty. Double-check that your HTTP client is actually sending the header (some tools strip custom headers on redirects).
+
+### 429 Rate limit exceeded
+
+You've hit the per-workspace rate limit. Check the `Retry-After-Minute`, `Retry-After-5Minutes`, `Retry-After-Hour`, or `Retry-After-Day` response header for when you can retry. Limits: 60/min, 150/5min, 300/hour, 2,000/day.
 
 ## Supporting Resources
 
@@ -374,17 +468,20 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 - [references/upload-flow.md](references/upload-flow.md) — Detailed media upload walkthrough
 
 **Ready-to-use examples:**
-- [examples/EXAMPLES.md](examples/EXAMPLES.md) — Index of all 18 examples
+- [examples/EXAMPLES.md](examples/EXAMPLES.md) — Index of all 21 examples
 - [examples/cross-platform-post.json](examples/cross-platform-post.json) — Multi-platform posting
 - [examples/tiktok-video.json](examples/tiktok-video.json) — TikTok with privacy settings
 - [examples/tiktok-carousel.json](examples/tiktok-carousel.json) — TikTok image carousel
+- [examples/tiktok-aigc-video.json](examples/tiktok-aigc-video.json) — TikTok AI-generated video with AIGC label
 - [examples/tiktok-draft.json](examples/tiktok-draft.json) — TikTok saved as draft
 - [examples/instagram-reel.json](examples/instagram-reel.json) — Instagram Reel
 - [examples/instagram-story.json](examples/instagram-story.json) — Instagram Story
 - [examples/instagram-carousel.json](examples/instagram-carousel.json) — Instagram carousel
+- [examples/instagram-trial-reel.json](examples/instagram-trial-reel.json) — Instagram trial reel (non-followers first)
 - [examples/facebook-reel.json](examples/facebook-reel.json) — Facebook Reel
 - [examples/facebook-story.json](examples/facebook-story.json) — Facebook Story
 - [examples/youtube-short.json](examples/youtube-short.json) — YouTube Short with tags
+- [examples/youtube-video-thumbnail.json](examples/youtube-video-thumbnail.json) — YouTube video with custom thumbnail
 - [examples/pinterest-pin.json](examples/pinterest-pin.json) — Pinterest with board
 - [examples/linkedin-document.json](examples/linkedin-document.json) — LinkedIn document post
 - [examples/x-quote-tweet.json](examples/x-quote-tweet.json) — X quote tweet
@@ -392,6 +489,9 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 - [examples/x-first-comment.json](examples/x-first-comment.json) — X post with auto first comment
 - [examples/threads-carousel.json](examples/threads-carousel.json) — Threads image carousel
 - [examples/batch-scheduling.json](examples/batch-scheduling.json) — Week of scheduled posts
+- [examples/gbp-standard.json](examples/gbp-standard.json) — Google Business Profile standard update with CTA
+- [examples/gbp-event.json](examples/gbp-event.json) — Google Business Profile event post
+- [examples/gbp-offer.json](examples/gbp-offer.json) — Google Business Profile offer with coupon code
 - [examples/telegram-mixed-media.json](examples/telegram-mixed-media.json) — Telegram mixed media
 
 ## Quick Reference
@@ -427,6 +527,9 @@ GET /social-media/:id/pinterest-boards
 # YouTube playlists
 GET /social-media/:id/youtube-playlists
 
+# GBP locations
+GET /social-media/:id/gbp-locations
+
 # Post analytics (published posts with metrics)
 GET /social-posts/analytics?startDate=...&endDate=...&platforms=...
 
@@ -443,10 +546,13 @@ POST /social-media/connect-link  { expiryDays?, sendEmail?, email? }
 - LinkedIn documents use `linkedinAttachmentKey` instead of `mediaItems`.
 - For carousels, include multiple items in `mediaItems` with sequential `sortOrder`.
 - TikTok video thumbnails: set `coverTimestamp` (seconds) in `mediaItems`.
-- When cross-posting, adjust content length for each platform's limits (X: 280, Bluesky: 300, TikTok: 2200).
+- When cross-posting, adjust content length for each platform's limits (X: 280, Bluesky: 300, TikTok: 2200, GBP: 1500).
 - If the user doesn't specify a time, suggest tomorrow at 9:00 AM in their timezone.
 - Batch up to 15 posts per API call for efficiency.
 - Use `firstComment` for CTAs and links — keeps the main post clean and gets better engagement.
 - X (Twitter) allows only 5 posts per account per day via API — warn the user if they're batching many X posts.
 - For draft posts, set `status: "DRAFT"` and omit `scheduledAt` — the user can finalize in the PostFast dashboard.
+- GBP always requires `gbpLocationId` — fetch locations first with `GET /social-media/{id}/gbp-locations`.
+- GBP supports 3 post types: STANDARD (default), EVENT, and OFFER. EVENT/OFFER need start and end dates.
+- GBP only supports 1 image (no video, no carousels) and has a 5-post/day limit.
 - Use `GET /social-posts` with `from`/`to` filters to check what's already scheduled before adding more.
