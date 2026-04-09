@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "serp-analysis",
-  "displayName": "Serp Analysis",
+  "displayName": "SERP Analysis & Search Intent Mapper",
   "latest": {
-    "version": "6.2.0",
-    "publishedAt": 1775113038762,
-    "commit": "https://github.com/openclaw/skills/commit/dfc717fa8996c574b95db555581b6f7806e3ab41"
+    "version": "7.2.0",
+    "publishedAt": 1775474993403,
+    "commit": null
   },
   "history": [
+    {
+      "version": "6.2.0",
+      "publishedAt": 1775113038762,
+      "commit": "https://github.com/openclaw/skills/commit/dfc717fa8996c574b95db555581b6f7806e3ab41"
+    },
     {
       "version": "4.1.0",
       "publishedAt": 1774755396361,
