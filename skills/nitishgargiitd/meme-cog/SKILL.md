@@ -227,3 +227,4 @@ What's still hard:
 **Use meme-cog as a collaborator, not a magic humor machine.** Your sense of what's funny + our generation capabilities = better results than either alone.
 
 We're working on it. Comedy is hard. Thanks for exploring the frontier with us.
+
