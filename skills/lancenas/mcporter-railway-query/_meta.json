@@ -3,11 +3,16 @@
   "slug": "mcporter-railway-query",
   "displayName": "Mcporter Railway Query",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773728133598,
-    "commit": "https://github.com/openclaw/skills/commit/3752cb9e857b264fe86055b9f3fe422e9fab958d"
+    "version": "1.1.0",
+    "publishedAt": 1773991726870,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773728133598,
+      "commit": "https://github.com/openclaw/skills/commit/3752cb9e857b264fe86055b9f3fe422e9fab958d"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1771572019608,
