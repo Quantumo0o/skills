@@ -1,6 +1,6 @@
 ---
 name: fin-cog
-description: "AI financial analysis and stock research powered by CellCog. Stock analysis, valuation models, portfolio optimization, earnings breakdowns, investment research, financial statements, tax planning, and DCF modeling. Wall Street-grade deliverables — interactive dashboards, PDF reports, Excel models. #1 on DeepResearch Bench (Feb 2026)."
+description: "AI financial analysis and stock research powered by CellCog. Stock analysis, valuation models, portfolio optimization, earnings breakdowns, investment research, financial statements, tax planning, and DCF modeling. Wall Street-grade deliverables — interactive dashboards, PDF reports, Excel models. #1 on DeepResearch Bench (Apr 2026)."
 metadata:
   openclaw:
     emoji: "💰"
@@ -12,7 +12,7 @@ dependencies: [cellcog]
 
 # Fin Cog - Wall Street-Grade Analysis, Accessible Globally
 
-**Wall Street-grade analysis, accessible globally.** Deep financial reasoning powered by #1 on DeepResearch Bench (Feb 2026) + SOTA financial models.
+**Wall Street-grade analysis, accessible globally.** Deep financial reasoning powered by #1 on DeepResearch Bench (Apr 2026) + SOTA financial models.
 
 The best financial analysis has always lived behind Bloomberg terminals, institutional research desks, and $500/hour consultants. CellCog brings that same depth — stock analysis, valuation models, portfolio optimization, earnings breakdowns — to anyone with a prompt. From raw tickers to boardroom-ready deliverables in one request.
 
@@ -28,17 +28,26 @@ clawhub install cellcog
 
 **Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
 
-**Quick pattern (v1.0+):**
+**OpenClaw agents (fire-and-forget — recommended for long tasks):**
 ```python
-# Fire-and-forget - returns immediately
 result = client.create_chat(
-    prompt="[your financial analysis request]",
-    notify_session_key="agent:main:main",
-    task_label="financial-analysis",
-    chat_mode="agent team"  # Agent team for deep financial reasoning
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    task_label="my-task",
+    chat_mode="agent",  # See cellcog skill for all modes
 )
-# Daemon notifies you when complete - do NOT poll
 ```
+
+**All other agents (blocks until done):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+```
+
+See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
 
 ---
 
@@ -207,3 +216,4 @@ Specify your preferred format in the prompt:
 5. **Request scenarios**: "Include bear, base, and bull cases" gives you a range, not just a point estimate.
 
 6. **Ask for the deliverable you need**: "Interactive dashboard", "PDF memo", "Excel model" — specify the format for the best result.
+
