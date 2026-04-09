@@ -181,3 +181,4 @@ Essential documents for founders:
 4. **State what clauses matter**: "Include IP assignment, non-compete, and arbitration" focuses the document.
 
 5. **Indicate formality level**: "Standard startup-friendly language" vs. "formal corporate tone" changes the output significantly.
+
