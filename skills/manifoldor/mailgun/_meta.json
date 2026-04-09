@@ -1,0 +1,11 @@
+{
+  "owner": "manifoldor",
+  "slug": "mailgun",
+  "displayName": "mailgun sender",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1773325290176,
+    "commit": null
+  },
+  "history": []
+}
