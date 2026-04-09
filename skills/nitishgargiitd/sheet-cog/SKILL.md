@@ -28,17 +28,26 @@ clawhub install cellcog
 
 **Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
 
-**Quick pattern (v1.0+):**
+**OpenClaw agents (fire-and-forget — recommended for long tasks):**
 ```python
-# Fire-and-forget - returns immediately
 result = client.create_chat(
-    prompt="[your spreadsheet request]",
-    notify_session_key="agent:main:main",
-    task_label="spreadsheet-task",
-    chat_mode="agent"  # Agent mode handles most spreadsheets well
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    task_label="my-task",
+    chat_mode="agent",  # See cellcog skill for all modes
 )
-# Daemon notifies you when complete - do NOT poll
 ```
+
+**All other agents (blocks until done):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+```
+
+See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
 
 ---
 
@@ -219,3 +228,4 @@ Reserve `"agent team"` for complex financial modeling requiring deep accuracy va
 5. **Describe formatting**: "Conditional formatting for negative values", "Currency format", "Freeze header row."
 
 6. **Chart preferences**: "Include a line chart showing trend", "Pie chart for breakdown."
+

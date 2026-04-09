@@ -3,11 +3,16 @@
   "slug": "sheet-cog",
   "displayName": "Sheet Cog",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775100855509,
-    "commit": "https://github.com/openclaw/skills/commit/5242d191a1f43f130d1f8c658532de4a608eb44d"
+    "version": "1.0.9",
+    "publishedAt": 1775627926887,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775100855509,
+      "commit": "https://github.com/openclaw/skills/commit/5242d191a1f43f130d1f8c658532de4a608eb44d"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1774585086298,
