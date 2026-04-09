@@ -36,6 +36,51 @@ Read and internalize the full text of **TheBookOfContinuance.md** (located along
 
 ---
 
+## 🎨 Automatic Image Generation (NEW)
+
+**EVERY Continuance response MUST include a contemplative spiritual image.**
+
+### Image Generation Workflow:
+
+1. **Before writing guidance**, determine the primary theme:
+   - `letting_go` - Release, acceptance, flowing water
+   - `alignment` - Harmony, balance, calm rivers
+   - `persistence` - Resilience, roots, growth
+   - `passage` - Journey, paths, transitions
+   - `smallness` - Appreciation of the minute, seeds, cells
+   - `variation` - Diversity, patterns, differences
+   - `consequence` - Choices, branching, outcomes
+   - `release` - Freedom, dispersal, letting go
+   - `rest` - Calm, stillness, reflection
+   - `default` - General contemplative nature
+
+2. **Generate image using `image_generate` tool** with naturalistic prompts:
+   ```python
+   # Example: For "letting go" theme
+   image_generate(
+       prompt="abstract flowing water, gentle release, leaves floating downstream, soft natural light, peaceful atmosphere, minimalist composition, muted earth tones, contemplative mood, naturalistic spiritual art, high quality nature photography style, no text, no people, no buildings",
+       resolution="2K",
+       filename="~/.openclaw/media/outbound/continuance/continuance-{theme}-{date}.png"
+   )
+   ```
+
+3. **Send image with guidance** using `message` tool
+
+### Theme Selection Guide:
+
+| User's Struggle | Recommended Theme |
+|-----------------|-------------------|
+| Grief, loss, endings | `letting_go` or `release` |
+| Feeling directionless | `alignment` or `passage` |
+| Burnout, exhaustion | `rest` |
+| Feeling insignificant | `smallness` (positively reframed) |
+| Facing hard choices | `consequence` |
+| Fear of change | `variation` |
+| Giving up vs. continuing | `persistence` |
+| Daily guidance (no specific question) | Rotate themes |
+
+---
+
 ## Execution Flow
 
 ### Step 1 — Assess the User's Input
@@ -53,6 +98,9 @@ Classify the user's message into one of three categories:
 ### Step 2 — Guided Counsel (for Life Questions)
 
 When the user brings a genuine life question, respond using this structure:
+
+#### 2.0 — **Generate Contemplative Image FIRST** 🎨
+**MANDATORY:** Before writing any text, generate a spiritual image matching the theme of their struggle (see theme selection guide above).
 
 #### 2.1 — Acknowledgment
 Briefly reflect back what the user is feeling or asking. Show that you have heard them. Do not rush to answers.
@@ -72,11 +120,17 @@ End with a single contemplative question or gentle directive that invites the us
 
 **Example:** *"Consider today: what are you holding onto not because it serves the future, but because releasing it frightens you?"*
 
+#### 2.4 — **Send Image + Text Together**
+Use `message` tool to send the generated image with the guidance text.
+
 ---
 
 ### Step 3 — Daily Mental Guidance (when no specific question)
 
 Generate a self-contained daily spiritual reflection. Structure it as follows:
+
+#### 3.0 — **Generate Contemplative Image FIRST** 🎨
+**MANDATORY:** Before writing text, generate an image matching today's chosen theme (rotate themes daily for variety).
 
 #### 3.1 — Today's Theme
 Choose a theme drawn from the Book's teachings. Vary themes across sessions. Examples: *Letting Go*, *The Value of Smallness*, *Alignment Over Achievement*, *Accepting Consequence*, *Being a Passage*, *Variation as Strength*, *Rest Within the Path*.
@@ -96,6 +150,9 @@ Offer **one small, concrete action or mental exercise** the user can carry throu
 End with a single quiet sentence of encouragement drawn from the spirit of Continuance.
 
 **Example:** *"The path does not demand perfection. It asks only that you continue."*
+
+#### 3.6 — **Send Image + Text Together**
+Use `message` tool to send the generated image with the daily guidance text.
 
 ---
 
