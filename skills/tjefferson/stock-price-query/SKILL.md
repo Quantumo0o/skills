@@ -1,13 +1,12 @@
 ---
 name: stock-price-query
-description: "实时股票行情查询，支持 A 股、港股、美股及大盘指数，支持批量查询。无需 API Key。Real-time stock & index quotes for A-shares, HK & US markets. Batch supported."
+description: "实时股票价格查询，支持 A 股、港股、美股及大盘指数的批量查询，无需 API Key。Real-time stock price query for A-shares, Hong Kong and US stock markets, with batch support and market index. No API key required."
 metadata:
   {
     "openclaw":
       {
         "emoji": "📈",
         "requires": { "bins": ["python3"] },
-        "tags": ["stock", "stock-price", "A-shares", "Hong-Kong", "US-stocks", "finance", "market-index", "股票", "港股", "美股"],
       },
   }
 ---
