@@ -3,9 +3,15 @@
   "slug": "nm-abstract-methodology-curator",
   "displayName": "Nm Abstract Methodology Curator",
   "latest": {
-    "version": "1.8.2",
-    "publishedAt": 1775485045208,
-    "commit": "https://github.com/openclaw/skills/commit/2a824f6843c02515b02e7c0936949b8feb8a88bd"
+    "version": "1.8.3",
+    "publishedAt": 1775799892789,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.8.2",
+      "publishedAt": 1775485045208,
+      "commit": "https://github.com/openclaw/skills/commit/2a824f6843c02515b02e7c0936949b8feb8a88bd"
+    }
+  ]
 }
