@@ -3,11 +3,16 @@
   "slug": "blink",
   "displayName": "Blink",
   "latest": {
-    "version": "1.7.0",
-    "publishedAt": 1774654173694,
-    "commit": "https://github.com/openclaw/skills/commit/8f1a93efe9ce11e7dd49627681b403d59b02a56a"
+    "version": "1.7.2",
+    "publishedAt": 1775666005560,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.0",
+      "publishedAt": 1774654173694,
+      "commit": "https://github.com/openclaw/skills/commit/8f1a93efe9ce11e7dd49627681b403d59b02a56a"
+    },
     {
       "version": "1.4.6",
       "publishedAt": 1774309356126,
