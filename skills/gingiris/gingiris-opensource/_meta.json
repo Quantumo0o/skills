@@ -3,11 +3,16 @@
   "slug": "gingiris-opensource",
   "displayName": "Gingiris Opensource",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1774329633264,
-    "commit": "https://github.com/openclaw/skills/commit/b5b44cacc7fd45a8369e481560eed0f95259bd8d"
+    "version": "1.6.3",
+    "publishedAt": 1775647793429,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1774329633264,
+      "commit": "https://github.com/openclaw/skills/commit/b5b44cacc7fd45a8369e481560eed0f95259bd8d"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1773503607317,
