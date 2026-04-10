@@ -1,0 +1,11 @@
+{
+  "owner": "closeli-open",
+  "slug": "api-device-live",
+  "displayName": "Closeli Open Device Live Query",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775814608005,
+    "commit": null
+  },
+  "history": []
+}
