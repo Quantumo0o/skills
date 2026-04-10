@@ -3,19 +3,21 @@
 Uses ScrapeCreators REST API to search Instagram Reels by keyword, extract
 engagement metrics (views, likes, comments), and fetch video transcripts.
 
-Requires SCRAPECREATORS_API_KEY in config. 100 free credits, then PAYG.
+Requires SCRAPECREATORS_API_KEY in config. 100 free API calls, then PAYG.
 API docs: https://scrapecreators.com/docs
 """
 
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Set
 
 try:
     import requests as _requests
 except ImportError:
     _requests = None
+
+from . import dates, http, log
 
 SCRAPECREATORS_BASE = "https://api.scrapecreators.com"
 
@@ -29,93 +31,13 @@ DEPTH_CONFIG = {
 # Max words to keep from each caption
 CAPTION_MAX_WORDS = 500
 
-# Stopwords for relevance computation (shared with tiktok.py pattern)
-STOPWORDS = frozenset({
-    'the', 'a', 'an', 'to', 'for', 'how', 'is', 'in', 'of', 'on',
-    'and', 'with', 'from', 'by', 'at', 'this', 'that', 'it', 'my',
-    'your', 'i', 'me', 'we', 'you', 'what', 'are', 'do', 'can',
-    'its', 'be', 'or', 'not', 'no', 'so', 'if', 'but', 'about',
-    'all', 'just', 'get', 'has', 'have', 'was', 'will',
-})
-
-# Synonym groups for relevance scoring
-SYNONYMS = {
-    'hip': {'rap', 'hiphop'},
-    'hop': {'rap', 'hiphop'},
-    'rap': {'hip', 'hop', 'hiphop'},
-    'hiphop': {'rap', 'hip', 'hop'},
-    'js': {'javascript'},
-    'javascript': {'js'},
-    'ts': {'typescript'},
-    'typescript': {'ts'},
-    'ai': {'artificial', 'intelligence'},
-    'ml': {'machine', 'learning'},
-    'react': {'reactjs'},
-    'reactjs': {'react'},
-}
-
-
-def _tokenize(text: str) -> Set[str]:
-    """Lowercase, strip punctuation, remove stopwords, drop single-char tokens."""
-    words = re.sub(r'[^\w\s]', ' ', text.lower()).split()
-    tokens = {w for w in words if w not in STOPWORDS and len(w) > 1}
-    expanded = set(tokens)
-    for t in tokens:
-        if t in SYNONYMS:
-            expanded.update(SYNONYMS[t])
-    return expanded
-
-
-def _compute_relevance(query: str, text: str, hashtags: List[str] = None) -> float:
-    """Compute relevance as ratio of query tokens found in text + hashtags.
-
-    Uses ratio overlap (intersection / query_length). Hashtags provide
-    an Instagram-specific relevance boost. Floors at 0.1.
-    """
-    q_tokens = _tokenize(query)
-
-    # Combine text and hashtags for matching
-    combined = text
-    if hashtags:
-        combined = f"{text} {' '.join(hashtags)}"
-    t_tokens = _tokenize(combined)
-
-    # Split concatenated hashtags (e.g., "claudecode" -> "claude", "code")
-    if hashtags:
-        for tag in hashtags:
-            tag_lower = tag.lower()
-            for qt in q_tokens:
-                if qt in tag_lower and qt != tag_lower:
-                    t_tokens.add(qt)
-
-    if not q_tokens:
-        return 0.5  # Neutral fallback
-
-    overlap = len(q_tokens & t_tokens)
-    ratio = overlap / len(q_tokens)
-    return max(0.1, min(1.0, ratio))
+from .relevance import token_overlap_relevance as _compute_relevance
 
 
 def _extract_core_subject(topic: str) -> str:
-    """Extract core subject from verbose query for Instagram search.
-
-    Strips meta/research words to keep only the core product/concept name.
-    """
-    text = topic.lower().strip()
-
-    # Strip multi-word prefixes
-    prefixes = [
-        'what are the best', 'what is the best', 'what are the latest',
-        'what are people saying about', 'what do people think about',
-        'how do i use', 'how to use', 'how to',
-        'what are', 'what is', 'tips for', 'best practices for',
-    ]
-    for p in prefixes:
-        if text.startswith(p + ' '):
-            text = text[len(p):].strip()
-
-    # Strip individual noise words
-    noise = {
+    """Extract core subject from verbose query for Instagram search."""
+    from .query import extract_core_subject
+    _INSTAGRAM_NOISE = frozenset({
         'best', 'top', 'good', 'great', 'awesome', 'killer',
         'latest', 'new', 'news', 'update', 'updates',
         'trending', 'hottest', 'popular', 'viral',
@@ -123,19 +45,71 @@ def _extract_core_subject(topic: str) -> str:
         'recommendations', 'advice',
         'prompt', 'prompts', 'prompting',
         'methods', 'strategies', 'approaches',
-    }
-    words = text.split()
-    filtered = [w for w in words if w not in noise]
+    })
+    return extract_core_subject(topic, noise=_INSTAGRAM_NOISE)
 
-    result = ' '.join(filtered) if filtered else text
-    return result.rstrip('?!.')
+
+def _infer_query_intent(topic: str) -> str:
+    """Tiny local intent classifier for Instagram query expansion."""
+    text = topic.lower().strip()
+    if re.search(r"\b(vs|versus|compare|difference between)\b", text):
+        return "comparison"
+    if re.search(r"\b(how to|tutorial|guide|setup|step by step|deploy|install)\b", text):
+        return "how_to"
+    if re.search(r"\b(thoughts on|worth it|should i|opinion|review)\b", text):
+        return "opinion"
+    if re.search(r"\b(pricing|feature|features|best .* for)\b", text):
+        return "product"
+    return "breaking_news"
+
+
+def expand_instagram_queries(topic: str, depth: str) -> List[str]:
+    """Generate multiple Instagram search queries from a topic.
+
+    Mirrors reddit.py's expand_reddit_queries() pattern:
+    1. Extract core subject (strip noise words)
+    2. Include original topic if different from core
+    3. Add intent-specific OR-joined content-type variants
+    4. Cap by depth: 1 for quick, 2 for default, 3 for deep
+
+    Returns 1-3 query strings depending on depth.
+    """
+    core = _extract_core_subject(topic)
+    queries = [core]
+
+    # Include cleaned original topic as variant if different from core
+    original_clean = topic.strip().rstrip('?!.')
+    if core.lower() != original_clean.lower() and len(original_clean.split()) <= 8:
+        queries.append(original_clean)
+
+    qtype = _infer_query_intent(topic)
+
+    # Intent-specific Instagram content-type variants
+    if qtype == "breaking_news":
+        queries.append(f"{core} reaction OR edit")
+    elif qtype == "opinion":
+        queries.append(f"{core} reaction OR edit")
+    elif qtype == "product":
+        queries.append(f"{core} review OR haul")
+    elif qtype == "comparison":
+        queries.append(f"{core} vs OR compared")
+    elif qtype == "how_to":
+        queries.append(f"{core} tutorial OR hack")
+    else:
+        queries.append(f"{core} reaction OR edit")
+
+    # Deep depth: add viral content variant
+    if depth == "deep":
+        queries.append(f"{core} viral OR trending OR reel")
+
+    # Cap by depth budget
+    caps = {"quick": 1, "default": 2, "deep": 3}
+    cap = caps.get(depth, 2)
+    return queries[:cap]
 
 
 def _log(msg: str):
-    """Log to stderr (only in interactive terminals; spinner handles non-TTY)."""
-    if sys.stderr.isatty():
-        sys.stderr.write(f"[Instagram] {msg}\n")
-        sys.stderr.flush()
+    log.source_log("Instagram", msg)
 
 
 def _sc_headers(token: str) -> Dict[str, str]:
@@ -170,9 +144,8 @@ def _parse_date(item: Dict[str, Any]) -> Optional[str]:
 
     # Fall back to unix timestamp
     try:
-        dt = datetime.fromtimestamp(int(ts), tz=timezone.utc)
-        return dt.strftime("%Y-%m-%d")
-    except (ValueError, TypeError, OSError):
+        return dates.timestamp_to_date(int(ts))
+    except (ValueError, TypeError):
         pass
 
     return None
@@ -183,6 +156,122 @@ def _extract_hashtags(caption_text: str) -> List[str]:
     if not caption_text:
         return []
     return re.findall(r'#(\w+)', caption_text)
+
+
+def _parse_items(raw_items: List[Dict[str, Any]], core_topic: str) -> List[Dict[str, Any]]:
+    """Parse raw Instagram items into normalized dicts."""
+    items = []
+    for raw in raw_items:
+        if not isinstance(raw, dict):
+            continue
+
+        # Extract reel ID and shortcode
+        reel_pk = str(raw.get("id", raw.get("pk", "")))
+        shortcode = raw.get("shortcode", raw.get("code", ""))
+
+        # Caption text -- can be a string or dict depending on endpoint
+        caption_obj = raw.get("caption", "")
+        if isinstance(caption_obj, dict):
+            text = caption_obj.get("text", "")
+        elif isinstance(caption_obj, str):
+            text = caption_obj
+        else:
+            text = raw.get("desc", raw.get("text", ""))
+
+        # Engagement metrics
+        play_count = raw.get("video_play_count") or raw.get("video_view_count") or raw.get("play_count") or 0
+        like_count = raw.get("like_count") or 0
+        comment_count = raw.get("comment_count") or 0
+
+        # Author info -- 'owner' in reels/search, 'user' in user/reels
+        owner_raw = raw.get("owner") or raw.get("user")
+        if isinstance(owner_raw, dict):
+            author_name = owner_raw.get("username", "")
+        elif isinstance(owner_raw, str):
+            author_name = owner_raw
+        else:
+            author_name = ""
+
+        # Duration
+        duration = raw.get("video_duration")
+
+        # Date
+        date_str = _parse_date(raw)
+
+        # Hashtags from caption text
+        hashtags = _extract_hashtags(text)
+
+        # Compute relevance with hashtag boost
+        relevance = _compute_relevance(core_topic, text, hashtags)
+
+        # Build URL -- prefer API-provided url, fallback to shortcode
+        url = raw.get("url", "")
+        if not url and shortcode:
+            url = f"https://www.instagram.com/reel/{shortcode}"
+
+        items.append({
+            "video_id": reel_pk,
+            "text": text,
+            "url": url,
+            "author_name": author_name,
+            "date": date_str,
+            "engagement": {
+                "views": play_count,
+                "likes": like_count,
+                "comments": comment_count,
+            },
+            "hashtags": hashtags,
+            "duration": duration,
+            "relevance": relevance,
+            "why_relevant": f"Instagram: {text[:60]}" if text else f"Instagram: {core_topic}",
+            "caption_snippet": "",  # populated by fetch_captions
+        })
+    return items
+
+
+def _user_reels(
+    handle: str,
+    token: str,
+) -> List[Dict[str, Any]]:
+    """Fetch an Instagram user's recent reels via ScrapeCreators.
+
+    Args:
+        handle: Instagram username (without @)
+        token: ScrapeCreators API key
+
+    Returns:
+        List of raw Instagram reel dicts.
+    """
+    _log(f"User reels: @{handle}")
+    reels_url = f"{SCRAPECREATORS_BASE}/v1/instagram/user/reels"
+    if not _requests:
+        try:
+            from urllib.parse import urlencode
+            params = urlencode({"handle": handle})
+            url = f"{reels_url}?{params}"
+            headers = _sc_headers(token)
+            headers["User-Agent"] = http.USER_AGENT
+            data = http.get(url, headers=headers, timeout=30, retries=2)
+        except Exception as e:
+            _log(f"User reels error (urllib) for @{handle}: {e}")
+            return []
+    else:
+        try:
+            resp = _requests.get(
+                reels_url,
+                params={"handle": handle},
+                headers=_sc_headers(token),
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            _log(f"User reels error for @{handle}: {e}")
+            return []
+
+    raw_items = data.get("items") or data.get("reels") or data.get("data") or []
+    _log(f"  -> {len(raw_items)} reels from @{handle}")
+    return raw_items
 
 
 def search_instagram(
@@ -207,95 +296,45 @@ def search_instagram(
     if not token:
         return {"items": [], "error": "No SCRAPECREATORS_API_KEY configured"}
 
-    if not _requests:
-        return {"items": [], "error": "requests library not installed"}
-
     config = DEPTH_CONFIG.get(depth, DEPTH_CONFIG["default"])
     core_topic = _extract_core_subject(topic)
 
     _log(f"Searching Instagram for '{core_topic}' (depth={depth}, count={config['results_per_page']})")
 
-    try:
-        resp = _requests.get(
-            f"{SCRAPECREATORS_BASE}/v1/instagram/reels/search",
-            params={"query": core_topic},
-            headers=_sc_headers(token),
-            timeout=30,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-    except Exception as e:
-        _log(f"ScrapeCreators error: {e}")
-        return {"items": [], "error": f"{type(e).__name__}: {e}"}
+    if not _requests:
+        _log("requests library not installed, falling back to urllib")
+        try:
+            from urllib.parse import urlencode
+            params = urlencode({"query": core_topic})
+            url = f"{SCRAPECREATORS_BASE}/v2/instagram/reels/search?{params}"
+            headers = _sc_headers(token)
+            headers["User-Agent"] = http.USER_AGENT
+            data = http.get(url, headers=headers, timeout=30, retries=2)
+        except Exception as e:
+            _log(f"ScrapeCreators error (urllib): {e}")
+            return {"items": [], "error": f"{type(e).__name__}: {e}"}
+    else:
+        try:
+            resp = _requests.get(
+                f"{SCRAPECREATORS_BASE}/v2/instagram/reels/search",
+                params={"query": core_topic},
+                headers=_sc_headers(token),
+                timeout=30,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            _log(f"ScrapeCreators error: {e}")
+            return {"items": [], "error": f"{type(e).__name__}: {e}"}
 
-    # Items are in the 'reels' array (ScrapeCreators v1 response)
+    # Items are in the 'reels' array (ScrapeCreators v2 response)
     raw_items = data.get("reels") or data.get("items") or data.get("data") or []
 
     # Limit to configured count
     raw_items = raw_items[:config["results_per_page"]]
 
     # Parse items
-    items = []
-    for raw in raw_items:
-        if not isinstance(raw, dict):
-            continue
-
-        # Extract reel ID and shortcode
-        reel_pk = str(raw.get("id", raw.get("pk", "")))
-        shortcode = raw.get("shortcode", raw.get("code", ""))
-
-        # Caption text — can be a string or dict depending on endpoint
-        caption_obj = raw.get("caption", "")
-        if isinstance(caption_obj, dict):
-            text = caption_obj.get("text", "")
-        elif isinstance(caption_obj, str):
-            text = caption_obj
-        else:
-            text = raw.get("desc", raw.get("text", ""))
-
-        # Engagement metrics
-        play_count = raw.get("video_play_count") or raw.get("video_view_count") or raw.get("play_count") or 0
-        like_count = raw.get("like_count") or 0
-        comment_count = raw.get("comment_count") or 0
-
-        # Author info — 'owner' in reels/search, 'user' in user/reels
-        owner = raw.get("owner") or raw.get("user") or {}
-        author_name = owner.get("username", "")
-
-        # Duration
-        duration = raw.get("video_duration")
-
-        # Date
-        date_str = _parse_date(raw)
-
-        # Hashtags from caption text
-        hashtags = _extract_hashtags(text)
-
-        # Compute relevance with hashtag boost
-        relevance = _compute_relevance(core_topic, text, hashtags)
-
-        # Build URL — prefer API-provided url, fallback to shortcode
-        url = raw.get("url", "")
-        if not url and shortcode:
-            url = f"https://www.instagram.com/reel/{shortcode}"
-
-        items.append({
-            "video_id": reel_pk,
-            "text": text,
-            "url": url,
-            "author_name": author_name,
-            "date": date_str,
-            "engagement": {
-                "views": play_count,
-                "likes": like_count,
-                "comments": comment_count,
-            },
-            "hashtags": hashtags,
-            "duration": duration,
-            "relevance": relevance,
-            "why_relevant": f"Instagram: {text[:60]}" if text else f"Instagram: {core_topic}",
-            "caption_snippet": "",  # populated by fetch_captions
-        })
+    items = _parse_items(raw_items, core_topic)
 
     # Hard date filter
     in_range = [i for i in items if i["date"] and from_date <= i["date"] <= to_date]
@@ -395,25 +434,57 @@ def search_and_enrich(
     to_date: str,
     depth: str = "default",
     token: str = None,
+    ig_creators: List[str] | None = None,
 ) -> Dict[str, Any]:
     """Full Instagram search: find reels, then fetch captions for top results.
 
+    Uses expand_instagram_queries() to generate multiple search queries,
+    runs ScrapeCreators for each, and merges/deduplicates results by video ID.
+
     Args:
-        topic: Search topic
+        topic: Search topic (raw topic, not planner's narrowed query)
         from_date: Start date (YYYY-MM-DD)
         to_date: End date (YYYY-MM-DD)
         depth: 'quick', 'default', or 'deep'
         token: ScrapeCreators API key
+        ig_creators: Optional list of Instagram creator handles to fetch reels from
 
     Returns:
         Dict with 'items' list. Each item has a 'caption_snippet' field.
     """
-    # Step 1: Search
-    search_result = search_instagram(topic, from_date, to_date, depth, token)
-    items = search_result.get("items", [])
+    core_topic = _extract_core_subject(topic)
+    seen_ids: Set[str] = set()
+    items: List[Dict[str, Any]] = []
+    last_error = None
+
+    # Step 0: Creator reels (high-signal, runs first)
+    if ig_creators and token:
+        for creator in ig_creators:
+            raw_items = _user_reels(creator, token)
+            parsed = _parse_items(raw_items, core_topic)
+            for item in parsed:
+                vid = item.get("video_id", "")
+                if vid and vid not in seen_ids:
+                    seen_ids.add(vid)
+                    items.append(item)
+
+    # Step 1: Multi-query keyword search — run ScrapeCreators for each expanded query
+    queries = expand_instagram_queries(topic, depth)
+    for q in queries:
+        search_result = search_instagram(q, from_date, to_date, depth, token)
+        if search_result.get("error"):
+            last_error = search_result["error"]
+        for item in search_result.get("items", []):
+            vid = item.get("video_id", "")
+            if vid and vid not in seen_ids:
+                seen_ids.add(vid)
+                items.append(item)
+
+    # Sort merged results by views descending
+    items.sort(key=lambda x: x.get("engagement", {}).get("views", 0), reverse=True)
 
     if not items:
-        return search_result
+        return {"items": [], "error": last_error}
 
     # Step 2: Fetch captions for top N
     captions = fetch_captions(items, token, depth)
@@ -425,7 +496,7 @@ def search_and_enrich(
         if caption:
             item["caption_snippet"] = caption
 
-    return {"items": items, "error": search_result.get("error")}
+    return {"items": items, "error": last_error}
 
 
 def parse_instagram_response(response: Dict[str, Any]) -> List[Dict[str, Any]]:

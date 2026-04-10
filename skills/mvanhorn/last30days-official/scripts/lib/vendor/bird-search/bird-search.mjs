@@ -9,7 +9,7 @@
  *   node bird-search.mjs --check
  */
 
-import { resolveCredentials } from './lib/cookies.js';
+// cookie resolution removed for OpenClaw package
 import { TwitterClientBase } from './lib/twitter-client-base.js';
 import { withSearch } from './lib/twitter-client-search.js';
 
@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 // --check: verify that credentials can be resolved
 if (args.includes('--check')) {
   try {
-    const { cookies, warnings } = await resolveCredentials({});
+    const cookies = { authToken: process.env.AUTH_TOKEN, ct0: process.env.CT0, source: "env" }; const warnings = [];
     if (cookies.authToken && cookies.ct0) {
       process.stdout.write(JSON.stringify({ authenticated: true, source: cookies.source }));
       process.exit(0);
@@ -38,7 +38,7 @@ if (args.includes('--check')) {
 // --whoami: check auth and output source
 if (args.includes('--whoami')) {
   try {
-    const { cookies } = await resolveCredentials({});
+    const cookies = { authToken: process.env.AUTH_TOKEN, ct0: process.env.CT0, source: "env" };
     if (cookies.authToken && cookies.ct0) {
       process.stdout.write(cookies.source || 'authenticated');
       process.exit(0);
@@ -77,8 +77,8 @@ if (!query) {
 }
 
 try {
-  // Resolve credentials (env vars, then browser cookies)
-  const { cookies, warnings } = await resolveCredentials({});
+  // Resolve credentials from environment variables
+  const cookies = { authToken: process.env.AUTH_TOKEN, ct0: process.env.CT0, source: "env" }; const warnings = [];
 
   if (!cookies.authToken || !cookies.ct0) {
     const msg = warnings.length > 0 ? warnings.join('; ') : 'No Twitter credentials found';

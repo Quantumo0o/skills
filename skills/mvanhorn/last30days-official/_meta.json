@@ -1,11 +1,17 @@
 {
   "owner": "mvanhorn",
   "slug": "last30days-official",
-  "displayName": "Last30days",
+  "displayName": "last30days",
   "latest": {
-    "version": "2.9.3",
-    "publishedAt": 1772850958867,
-    "commit": "https://github.com/openclaw/skills/commit/ecfe3e0ef19b29e020248c7d472a27157091cd48"
+    "version": "3.0.0-open",
+    "publishedAt": 1775671047835,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.9.3",
+      "publishedAt": 1772850958867,
+      "commit": "https://github.com/openclaw/skills/commit/ecfe3e0ef19b29e020248c7d472a27157091cd48"
+    }
+  ]
 }
