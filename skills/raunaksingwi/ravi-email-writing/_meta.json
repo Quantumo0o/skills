@@ -3,11 +3,16 @@
   "slug": "ravi-email-writing",
   "displayName": "Ravi email-writing",
   "latest": {
-    "version": "1.7.1",
-    "publishedAt": 1772960976949,
-    "commit": "https://github.com/openclaw/skills/commit/3a8c69f67453200f9bbb10450e2a08ea7b4ffc48"
+    "version": "2.1.1",
+    "publishedAt": 1775627171079,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.1",
+      "publishedAt": 1772960976949,
+      "commit": "https://github.com/openclaw/skills/commit/3a8c69f67453200f9bbb10450e2a08ea7b4ffc48"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772783507717,

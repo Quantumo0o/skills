@@ -5,7 +5,9 @@ description: Best practices for writing high-quality emails that look profession
 
 # Email Writing Guide
 
-Write emails that look like they came from a real person — not an AI. Good email hygiene improves deliverability, avoids spam filters, and gets responses.
+Write emails that look like they came from a real person — not an AI.
+
+Good email hygiene improves deliverability, avoids spam filters, and gets responses.
 
 ## Subject Lines
 
@@ -17,9 +19,9 @@ Write emails that look like they came from a real person — not an AI. Good ema
 
 ## HTML Body Structure
 
-The `--body` flag in `ravi email compose/reply/forward` accepts HTML. Always use semantic tags — never pass plain text.
+The `--body` argument in `ravi email compose` accepts HTML. Always use semantic tags — never pass plain text.
 
-**Note:** `--subject` is only used with `ravi email compose`. Reply and forward commands auto-derive the subject from the original message (prepending `Re:` or `Fwd:`).
+**Note:** `--subject` is only used with the compose command. Reply and forward commands auto-derive the subject from the original message (prepending `Re:` or `Fwd:`).
 
 **Do this:**
 ```html
@@ -51,32 +53,17 @@ Or this:<br><br>Using br chains<br><br>instead of paragraphs
 - Use `<a href="...">descriptive text</a>` for links — never bare URLs
 - No `<html>`, `<head>`, or `<body>` wrapper tags — the email system adds these
 - No `<br>` chains — use separate `<p>` tags instead
-- Get the identity name with: `ravi identity list --json | jq -r '.[0].name'`
+- Get the identity name with: `ravi auth status`
 
 ## Recommended Template
 
 Copy-paste starting point for most emails:
 
 ```bash
-NAME=$(ravi identity list --json | jq -r '.[0].name')
-
 ravi email compose \
   --to "recipient@example.com" \
   --subject "Specific subject under 60 chars" \
-  --body "<p>Hi Alex,</p>
-
-<p>I'm reaching out about [specific topic]. [One sentence of context.]</p>
-
-<p>[Core message — what you need, what you're sharing, or what you're asking.]</p>
-
-<ul>
-  <li>[Key point or action item]</li>
-  <li>[Key point or action item]</li>
-</ul>
-
-<p>[Clear next step — what should the recipient do?]</p>
-
-<p>Best,<br>$NAME</p>" --json
+  --body "<p>Hi Alex,</p><p>I'm reaching out about [specific topic]. [One sentence of context.]</p><p>[Core message — what you need, what you're sharing, or what you're asking.]</p><ul><li>[Key point or action item]</li><li>[Key point or action item]</li></ul><p>[Clear next step — what should the recipient do?]</p><p>Best,<br>YOUR_NAME</p>"
 ```
 
 ## Tone and Style
