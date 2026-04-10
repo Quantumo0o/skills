@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-bmap",
+  "slug": "baidu-map-android-sdk",
+  "displayName": "Baidu Map Android SDK（百度地图官方安卓 SKills）",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775534906806,
+    "commit": null
+  },
+  "history": []
+}
