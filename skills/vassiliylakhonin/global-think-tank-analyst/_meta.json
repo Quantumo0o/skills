@@ -3,11 +3,16 @@
   "slug": "global-think-tank-analyst",
   "displayName": "Global Think Tank Analyst",
   "latest": {
-    "version": "0.2.5",
-    "publishedAt": 1773907176277,
-    "commit": "https://github.com/openclaw/skills/commit/0b2ffbd7dfcb6ea0492f12c412d1b26673b18ae6"
+    "version": "0.2.6",
+    "publishedAt": 1775786015682,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.5",
+      "publishedAt": 1773907176277,
+      "commit": "https://github.com/openclaw/skills/commit/0b2ffbd7dfcb6ea0492f12c412d1b26673b18ae6"
+    },
     {
       "version": "0.2.1",
       "publishedAt": 1773632643368,
