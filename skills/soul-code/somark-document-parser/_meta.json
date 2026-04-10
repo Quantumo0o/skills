@@ -1,13 +1,18 @@
 {
   "owner": "soul-code",
   "slug": "somark-document-parser",
-  "displayName": "SoMark Document Parser",
+  "displayName": "Somark Document Parser",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773824507051,
-    "commit": "https://github.com/openclaw/skills/commit/629580157dc8828c1eb97f84010e5aa5ebf523c3"
+    "version": "1.0.8",
+    "publishedAt": 1775365093483,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773824507051,
+      "commit": "https://github.com/openclaw/skills/commit/629580157dc8828c1eb97f84010e5aa5ebf523c3"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773304883701,
