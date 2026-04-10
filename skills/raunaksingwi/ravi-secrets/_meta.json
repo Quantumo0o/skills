@@ -3,11 +3,16 @@
   "slug": "ravi-secrets",
   "displayName": "Ravi secrets",
   "latest": {
-    "version": "1.7.1",
-    "publishedAt": 1772961000135,
-    "commit": "https://github.com/openclaw/skills/commit/0a29f4cfb5de0daa73c00cfb9205eb0614ee86ef"
+    "version": "2.1.1",
+    "publishedAt": 1775627196367,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.1",
+      "publishedAt": 1772961000135,
+      "commit": "https://github.com/openclaw/skills/commit/0a29f4cfb5de0daa73c00cfb9205eb0614ee86ef"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772783530972,

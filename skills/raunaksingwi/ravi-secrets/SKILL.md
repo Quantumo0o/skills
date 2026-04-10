@@ -1,39 +1,36 @@
 ---
 name: ravi-secrets
-description: Store and retrieve key-value secrets — E2E encrypted secret store for API keys and env vars. Do NOT use for website passwords (use ravi-passwords) or reading messages (use ravi-inbox).
+description: Store and retrieve key-value secrets — encrypted secret store for API keys and env vars. Do NOT use for website passwords (use ravi-passwords) or reading messages (use ravi-inbox).
 ---
 
 # Ravi Secrets
 
-Store and retrieve key-value secrets (API keys, environment variables, tokens). All values are E2E encrypted — the CLI handles encryption/decryption transparently. Keys are stored in plaintext for lookup/filtering.
+Store and retrieve key-value secrets (API keys, environment variables, tokens). All values are server-side encrypted — you send and receive plaintext. Keys are stored in plaintext for lookup/filtering.
 
 ## Commands
 
 ```bash
-# Store a secret (creates or updates)
-ravi secrets set OPENAI_API_KEY "sk-abc123..." --json
+# Store a secret
+ravi secrets set OPENAI_API_KEY "sk-abc123..."
 
-# With optional notes
-ravi secrets set STRIPE_SECRET_KEY "sk_live_..." --json
+# List all secrets
+ravi secrets list
 
-# Retrieve a secret by key
-ravi secrets get OPENAI_API_KEY --json
-# -> {"key": "OPENAI_API_KEY", "value": "sk-abc123...", "notes": "", ...}
-
-# List all secrets (values redacted in list view)
-ravi secrets list --json
+# Retrieve a secret by key name
+ravi secrets get OPENAI_API_KEY
 
 # Delete a secret by UUID
-ravi secrets delete <uuid> --json
+ravi secrets delete <uuid>
 ```
 
 ## JSON Shapes
 
-**`ravi secrets list --json`:**
+**`ravi secrets list`:**
 ```json
 [
   {
     "uuid": "...",
+    "identity": 1,
     "key": "OPENAI_API_KEY",
     "value": "sk-abc123...",
     "notes": "",
@@ -43,10 +40,11 @@ ravi secrets delete <uuid> --json
 ]
 ```
 
-**`ravi secrets get KEY --json`:**
+**`ravi secrets get OPENAI_API_KEY`:**
 ```json
 {
   "uuid": "...",
+  "identity": 1,
   "key": "OPENAI_API_KEY",
   "value": "sk-abc123...",
   "notes": "",
@@ -55,32 +53,38 @@ ravi secrets delete <uuid> --json
 }
 ```
 
-## OpenClaw Integration
+## Common Patterns
 
-When an agent needs API keys or secrets at runtime, use Ravi Secrets as the backing store:
+### Store and retrieve API keys at runtime
 
 ```bash
-# Store a key for the agent to use later
-ravi secrets set OPENAI_API_KEY "sk-abc123..." --json
+# Store a key
+ravi secrets set OPENAI_API_KEY "sk-abc123..."
 
-# At runtime, retrieve the key
-API_KEY=$(ravi secrets get OPENAI_API_KEY --json | jq -r '.value')
-curl -H "Authorization: Bearer $API_KEY" https://api.openai.com/v1/...
+# Retrieve the key value
+API_KEY=$(ravi secrets get OPENAI_API_KEY | jq -r '.value')
 
-# Store multiple service keys
-ravi secrets set ANTHROPIC_API_KEY "sk-ant-..." --json
-ravi secrets set GITHUB_TOKEN "ghp_..." --json
+# List all available key names
+ravi secrets list | jq -r '.[].key'
+```
 
-# List all available keys
-ravi secrets list --json | jq -r '.[].key'
+### Store multiple service keys
+
+```bash
+ravi secrets set ANTHROPIC_API_KEY "sk-ant-..."
+ravi secrets set GITHUB_TOKEN "ghp_..."
 ```
 
 ## Important Notes
 
-- **E2E encryption is transparent** — the CLI encrypts values before sending and decrypts on retrieval. You see plaintext.
-- **Keys are unique per identity** — setting a key that already exists updates it.
-- **Keys are plaintext** — only values and notes are E2E encrypted. Use descriptive key names like `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`.
-- **Always use `--json`** — human-readable output is not designed for parsing.
+- **Server-side encryption is transparent** — you always see plaintext values.
+- **Keys must be unique per identity** — if you need to update an existing key, use `ravi secrets set` again (it will upsert). Creating a duplicate key name will return a validation error.
+- **Keys are auto-uppercased** — keys are automatically uppercased by the server (e.g. `test_key` becomes `TEST_KEY`). Keys must match `^[A-Z][A-Z0-9_]*$` after uppercasing.
+- **Keys are plaintext** — only values and notes are encrypted. Use descriptive key names like `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`.
+
+## Full API Reference
+
+For complete endpoint details, request/response schemas, and parameters: [Secrets](https://ravi.id/docs/schema/secrets.json)
 
 ## Related Skills
 
