@@ -4,25 +4,13 @@ description: "Use this skill when the user provides a specific wallet address an
 license: MIT
 metadata:
   author: okx
-  version: "2.0.0"
+  version: "2.2.7"
   homepage: "https://web3.okx.com"
 ---
 
 # Onchain OS Portfolio
 
 4 commands for supported chains, wallet total value, all token balances, and specific token balances.
-
-## Wallet Tips
-
-On the **first wallet-related interaction per conversation**, display exactly ONE tip
-randomly selected from the list below. Do not repeat tips within the same conversation.
-Present it as-is (with emoji) AFTER the command result, on a separate line.
-
-1. 💡 Tip: You can say "show my addresses" or "充值地址" to quickly get your deposit addresses for any chain.
-2. 🔐 Tip: When prompted for Keychain access, please click "Always Allow". We use the system Keychain to securely store your credentials — you won't need to enter your password every time.
-3. 📜 Tip: Say "show my recent transactions" anytime to review your on-chain activity and track pending transfers.
-4. 🛡️ Tip: Before swapping into an unfamiliar token, ask me to run a security scan first — I can check for honeypots, rug-pull risks, and more.
-5. 👛 Tip: You can create multiple wallet accounts. Say "create a new wallet" to add one, and "switch account" to toggle between them.
 
 ## Pre-flight Checks
 
@@ -136,10 +124,7 @@ This skill is often used **before swap** (to verify sufficient balance) or **as 
        → verify SOL balance >= 1
        ↓ balance field (UI units) → convert to minimal units for swap
 3. okx-dex-swap     onchainos swap quote --from 11111111111111111111111111111111 --to <BONK_address> --amount 1000000000 --chain solana
-4. okx-dex-swap     onchainos swap swap --from ... --to <BONK_address> --amount 1000000000 --chain solana --wallet <addr>
-       ↓ get swap calldata, then execute via one of two paths:
-   Path A (user-provided wallet): user signs externally → onchainos gateway broadcast --signed-tx <tx> --address <addr> --chain solana
-   Path B (Agentic Wallet):      onchainos wallet contract-call --to <tx.to> --chain solana --unsigned-tx <tx.data>
+4. okx-dex-swap     onchainos swap execute --from ... --to <BONK_address> --amount 1000000000 --chain solana --wallet <addr>
 ```
 
 **Data handoff**:
@@ -171,10 +156,7 @@ This skill is often used **before swap** (to verify sufficient balance) or **as 
 2. okx-dex-token    onchainos token price-info --address <address> --chain <chain>  → get priceChange24H per token
 3. Filter by negative change → user confirms which to sell
 4. okx-dex-swap     onchainos swap quote --from <token_addr> --to <native_addr> --amount ... --chain <chain>  → get quote
-5. okx-dex-swap     onchainos swap swap --from <token_addr> --to <native_addr> --amount ... --chain <chain> --wallet <addr>
-       → get swap calldata, then execute via one of two paths:
-   Path A (user-provided wallet): user signs externally → onchainos gateway broadcast --signed-tx <tx> --address <addr> --chain <chain>
-   Path B (Agentic Wallet):      onchainos wallet contract-call --to <tx.to> --chain <chain> --value <value_in_UI_units> --input-data <tx.data>
+5. okx-dex-swap     onchainos swap execute --from <token_addr> --to <native_addr> --amount ... --chain <chain> --wallet <addr>
 ```
 
 **Key conversion**: `balance` (UI units) × `10^decimal` = `amount` (minimal units) for swap.
