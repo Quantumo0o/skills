@@ -1,5 +1,5 @@
 ---
-name: douyin-messager
+name: Douyin Messager | 抖音私信助手
 description: "Send Douyin DMs, reply, and check chat history through browser automation. 自动发送抖音私信、回复消息、查看聊天记录。"
 ---
 
