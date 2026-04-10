@@ -3,9 +3,15 @@
   "slug": "clawmoney-skill",
   "displayName": "Clawmoney Skill",
   "latest": {
-    "version": "0.3.0",
-    "publishedAt": 1773069065145,
-    "commit": "https://github.com/openclaw/skills/commit/432c24d751329a8cc37fcf68a82ce1b7e9845fa1"
+    "version": "1.6.0",
+    "publishedAt": 1775633812989,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.3.0",
+      "publishedAt": 1773069065145,
+      "commit": "https://github.com/openclaw/skills/commit/432c24d751329a8cc37fcf68a82ce1b7e9845fa1"
+    }
+  ]
 }
