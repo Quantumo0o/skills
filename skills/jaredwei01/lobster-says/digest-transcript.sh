@@ -1,5 +1,14 @@
 #!/bin/bash
 # 虾说 — Transcript 消化脚本
+#
+# 数据访问声明：
+#   - 本脚本读取 OpenClaw 的本地会话日志（~/.openclaw/agents/main/sessions/*.jsonl）
+#   - 仅提取 user/assistant 角色的文本内容
+#   - smart 模式：在本地消化为摘要后上传到 nixiashuo.com（不含原始对话）
+#   - deep 模式：上传原始 transcript 条目到 nixiashuo.com
+#   - lightweight 模式：不执行任何读取或上传
+#   - 用户在初始化时选择理解模式并可随时切换
+#   - 服务端地址：https://nixiashuo.com/api/transcript/digest
 
 set -e
 
@@ -40,7 +49,7 @@ ACCESS_TOKEN=$(python3 -c "import json; print(json.load(open('${CONFIG_FILE}'))[
 if [ -z "$MODE" ]; then
   MODE=$(python3 -c "import json; print(json.load(open('${CONFIG_FILE}')).get('memory_mode','smart'))" 2>/dev/null) || MODE="smart"
 fi
-API_BASE="https://nixiashuo.com"
+API_BASE=$(python3 -c "import json; print(json.load(open('${CONFIG_FILE}', encoding='utf-8')).get('api_base','https://nixiashuo.com'))" 2>/dev/null) || API_BASE="https://nixiashuo.com"
 
 case "$MODE" in
   lightweight) info "轻量陪伴模式：不执行 transcript digest"; exit 0 ;;

@@ -1,5 +1,12 @@
 #!/bin/bash
 # 虾说 — 一体化初始化脚本
+#
+# 数据访问声明：
+# - 读写 .lobster-config（技能自身配置）
+# - 调用 openclaw sessions --json 获取活跃 IM 通道元数据
+# - 与 https://nixiashuo.com 通信：创建/验证虾、获取工作室链接
+# - 调用 setup-cron.sh 注册定时推送
+# - 不读取 openclaw.json 配置文件，不提取 gateway token
 
 set -e
 
@@ -14,9 +21,11 @@ EVENING_TIME="21:00"
 MEMORY_MODE="smart"
 CHANNEL=""
 TO=""
+WECOM_USER_ID=""
 ALL_CHANNELS_JSON="[]"
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONFIG_FILE="${BASE_DIR}/.lobster-config"
+COMMON_SCRIPT="${BASE_DIR}/runtime-common.sh"
 LOG_DIR="${BASE_DIR}/logs"
 RUN_TS="$(date +%Y%m%d-%H%M%S)"
 LOG_FILE="${LOG_DIR}/init-lobster-${RUN_TS}.log"
@@ -71,6 +80,7 @@ while [[ $# -gt 0 ]]; do
     --privacy-mode) MEMORY_MODE="smart"; shift ;;
     --channel) CHANNEL="$2"; shift 2 ;;
     --to) TO="$2"; shift 2 ;;
+    --wecom-user-id) WECOM_USER_ID="$2"; shift 2 ;;
     *) echo "未知参数: $1"; exit 1 ;;
   esac
 done
@@ -85,6 +95,11 @@ for cmd in python3 curl openclaw; do
     error "$cmd 不可用"
   fi
 done
+
+if [ ! -f "$COMMON_SCRIPT" ]; then
+  error "共享运行时脚本不存在：${COMMON_SCRIPT}"
+fi
+. "$COMMON_SCRIPT"
 
 if [ -z "$CHANNEL" ] || [ -z "$TO" ]; then
   step "自动检测最近使用的通道..."
@@ -314,7 +329,7 @@ PY
 fi
 
 step "保存配置..."
-CONFIG_PATH="$CONFIG_FILE" ACTUAL_USER_ID_VALUE="$ACTUAL_USER_ID" ACCESS_TOKEN_VALUE="$ACCESS_TOKEN" ACTUAL_NAME_VALUE="$ACTUAL_NAME" PERSONALITY_VALUE="$PERSONALITY" NICKNAME_VALUE="$NICKNAME" API_BASE_VALUE="$API_BASE" WEB_BASE_VALUE="$WEB_BASE" MORNING_TIME_VALUE="$MORNING_TIME" DISCOVERY_TIME_VALUE="$DISCOVERY_TIME" EVENING_TIME_VALUE="$EVENING_TIME" CHANNEL_VALUE="$CHANNEL" TO_VALUE="$TO" ALL_CHANNELS_JSON_VALUE="$ALL_CHANNELS_JSON" MEMORY_MODE_VALUE="$MEMORY_MODE" python3 <<'PY'
+CONFIG_PATH="$CONFIG_FILE" ACTUAL_USER_ID_VALUE="$ACTUAL_USER_ID" ACCESS_TOKEN_VALUE="$ACCESS_TOKEN" ACTUAL_NAME_VALUE="$ACTUAL_NAME" PERSONALITY_VALUE="$PERSONALITY" NICKNAME_VALUE="$NICKNAME" API_BASE_VALUE="$API_BASE" WEB_BASE_VALUE="$WEB_BASE" MORNING_TIME_VALUE="$MORNING_TIME" DISCOVERY_TIME_VALUE="$DISCOVERY_TIME" EVENING_TIME_VALUE="$EVENING_TIME" CHANNEL_VALUE="$CHANNEL" TO_VALUE="$TO" WECOM_USER_ID_VALUE="$WECOM_USER_ID" ALL_CHANNELS_JSON_VALUE="$ALL_CHANNELS_JSON" MEMORY_MODE_VALUE="$MEMORY_MODE" python3 <<'PY'
 import json
 import os
 config = {
@@ -332,6 +347,9 @@ config = {
     "chat_id": os.environ["TO_VALUE"],
     "memory_mode": os.environ["MEMORY_MODE_VALUE"],
 }
+wecom_user_id = (os.environ.get("WECOM_USER_ID_VALUE") or "").strip()
+if wecom_user_id:
+    config["wecom_user_id"] = wecom_user_id
 try:
     known_channels = json.loads(os.environ.get("ALL_CHANNELS_JSON_VALUE", ""))
 except Exception:
@@ -345,6 +363,10 @@ with open(os.environ["CONFIG_PATH"], "w", encoding="utf-8") as f:
     json.dump(config, f, indent=2, ensure_ascii=False)
 print("[✓] 配置已写入 .lobster-config")
 PY
+
+step "收口 delivery contract..."
+DELIVERY_CONTRACT_JSON=$(lobster_sync_delivery_contract "$CONFIG_FILE" "$CHANNEL" "$TO")
+info "delivery contract 已写入 .lobster-config"
 
 step "验证虾状态..."
 STATUS_RESPONSE=$(curl -fsS -H "Authorization: Bearer ${ACCESS_TOKEN}" "${API_BASE}/api/lobster/${ACTUAL_USER_ID}/status" 2>/dev/null || true)
@@ -375,6 +397,7 @@ set +e
 bash "${BASE_DIR}/setup-cron.sh" \
   --channel "${CHANNEL}" \
   --to "${TO}" \
+  --wecom-user-id "${WECOM_USER_ID}" \
   --morning "${MORNING_TIME}" \
   --discovery "${DISCOVERY_TIME}" \
   --evening "${EVENING_TIME}" \
@@ -382,17 +405,44 @@ bash "${BASE_DIR}/setup-cron.sh" \
 CRON_EXIT_CODE=$?
 set -e
 
-if [ "$CRON_EXIT_CODE" -eq 0 ]; then
-  CRON_REGISTERED=1
+CRON_STATUS_SUMMARY=$(CONFIG_PATH="$CONFIG_FILE" python3 <<'PY'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["CONFIG_PATH"])
+try:
+    config = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    config = {}
+cron = config.get("cron_registration") if isinstance(config.get("cron_registration"), dict) else {}
+print("1" if config.get("cron_registered") else "0")
+print(str(cron.get("status") or "unregistered"))
+print(str(cron.get("reason") or ""))
+PY
+)
+CRON_REGISTERED=$(echo "$CRON_STATUS_SUMMARY" | sed -n '1p')
+CRON_REGISTRATION_STATUS=$(echo "$CRON_STATUS_SUMMARY" | sed -n '2p')
+CRON_REGISTRATION_REASON=$(echo "$CRON_STATUS_SUMMARY" | sed -n '3p')
+
+if [ "$CRON_EXIT_CODE" -ne 0 ]; then
+  CRON_REGISTERED=0
+  warn "定时推送注册执行失败，请稍后查看 setup-cron 日志或单独重试"
+elif [ "$CRON_REGISTERED" = "1" ]; then
+  info "定时推送 cron 已注册完成"
+elif [ "$CRON_REGISTRATION_STATUS" = "pending_activation" ]; then
+  warn "已保存待激活的定时推送配置：${CRON_REGISTRATION_REASON}"
 else
-  warn "定时推送注册失败，但虾已创建并保存配置；稍后可单独重试 setup-cron.sh"
+  warn "定时推送当前未注册成功，可稍后单独重试 setup-cron.sh"
 fi
 
 echo ""
 echo "═══════════════════════════════════════════════"
 echo ""
-if [ "$CRON_REGISTERED" -eq 1 ]; then
+if [ "$CRON_REGISTERED" = "1" ]; then
   info "🦞 初始化全部完成！"
+elif [ "$CRON_REGISTRATION_STATUS" = "pending_activation" ]; then
+  warn "🦞 虾已就绪，定时推送已进入待激活状态"
 else
   warn "🦞 虾已就绪，但定时推送暂未注册成功"
 fi
@@ -404,8 +454,11 @@ echo "  理解模式: ${MEMORY_MODE}"
 echo "  早安: 每天 ${MORNING_TIME}"
 echo "  晚间 roundup: 每天 ${DISCOVERY_TIME}"
 echo "  晚安: 每天 ${EVENING_TIME}"
-if [ "$CRON_REGISTERED" -eq 1 ]; then
-  echo "  投递: 最近使用通道优先，失败自动回退"
+if [ "$CRON_REGISTERED" = "1" ]; then
+  echo "  投递: 已完成 cron 注册"
+elif [ "$CRON_REGISTRATION_STATUS" = "pending_activation" ]; then
+  echo "  定时推送: 已保存待激活配置；一旦具备主动推送能力，再次 reconcile 即可完成注册"
+  echo "  待激活原因: ${CRON_REGISTRATION_REASON}"
 else
   echo "  定时推送: 尚未完成注册，可稍后执行 bash \"${BASE_DIR}/setup-cron.sh\" 补注册"
 fi
@@ -420,7 +473,7 @@ echo ""
 echo "═══════════════════════════════════════════════"
 echo ""
 echo "INIT_RESULT_JSON:"
-ACTUAL_NAME_VALUE="$ACTUAL_NAME" PERSONALITY_VALUE="$PERSONALITY" NICKNAME_VALUE="$NICKNAME" ACTUAL_USER_ID_VALUE="$ACTUAL_USER_ID" WEB_BASE_VALUE="$WEB_BASE" MORNING_TIME_VALUE="$MORNING_TIME" DISCOVERY_TIME_VALUE="$DISCOVERY_TIME" EVENING_TIME_VALUE="$EVENING_TIME" CHANNEL_VALUE="$CHANNEL" TO_VALUE="$TO" ALL_CHANNELS_JSON_VALUE="$ALL_CHANNELS_JSON" MEMORY_MODE_VALUE="$MEMORY_MODE" CRON_REGISTERED_VALUE="$CRON_REGISTERED" REUSED_EXISTING_VALUE="$REUSED_EXISTING" STUDIO_WEB_URL_VALUE="$STUDIO_WEB_URL" STUDIO_SCREENSHOT_URL_VALUE="$STUDIO_SCREENSHOT_URL" STUDIO_LINK_EXPIRES_AT_VALUE="$STUDIO_LINK_EXPIRES_AT" python3 <<'PY'
+ACTUAL_NAME_VALUE="$ACTUAL_NAME" PERSONALITY_VALUE="$PERSONALITY" NICKNAME_VALUE="$NICKNAME" ACTUAL_USER_ID_VALUE="$ACTUAL_USER_ID" WEB_BASE_VALUE="$WEB_BASE" MORNING_TIME_VALUE="$MORNING_TIME" DISCOVERY_TIME_VALUE="$DISCOVERY_TIME" EVENING_TIME_VALUE="$EVENING_TIME" CHANNEL_VALUE="$CHANNEL" TO_VALUE="$TO" WECOM_USER_ID_VALUE="$WECOM_USER_ID" ALL_CHANNELS_JSON_VALUE="$ALL_CHANNELS_JSON" MEMORY_MODE_VALUE="$MEMORY_MODE" CRON_REGISTERED_VALUE="$CRON_REGISTERED" CRON_REGISTRATION_STATUS_VALUE="$CRON_REGISTRATION_STATUS" CRON_REGISTRATION_REASON_VALUE="$CRON_REGISTRATION_REASON" REUSED_EXISTING_VALUE="$REUSED_EXISTING" STUDIO_WEB_URL_VALUE="$STUDIO_WEB_URL" STUDIO_SCREENSHOT_URL_VALUE="$STUDIO_SCREENSHOT_URL" STUDIO_LINK_EXPIRES_AT_VALUE="$STUDIO_LINK_EXPIRES_AT" DELIVERY_CONTRACT_JSON_VALUE="$DELIVERY_CONTRACT_JSON" python3 <<'PY'
 import json
 import os
 from urllib.parse import urlparse
@@ -431,6 +484,12 @@ studio_path = urlparse(studio_web_url).path if studio_web_url else "/lobster/" +
 known_channels = json.loads(os.environ["ALL_CHANNELS_JSON_VALUE"]) if os.environ.get("ALL_CHANNELS_JSON_VALUE", "").strip() else [{"channel": channel, "peer_id": peer_id}]
 if not any(item.get("channel") == channel and item.get("peer_id") == peer_id for item in known_channels):
     known_channels.insert(0, {"channel": channel, "peer_id": peer_id})
+delivery_contract_raw = os.environ.get("DELIVERY_CONTRACT_JSON_VALUE", "").strip()
+try:
+    delivery_contract = json.loads(delivery_contract_raw) if delivery_contract_raw else {}
+except Exception:
+    delivery_contract = {}
+
 result = {
     "success": True,
     "lobster_name": os.environ["ACTUAL_NAME_VALUE"],
@@ -448,8 +507,12 @@ result = {
     "channel": channel,
     "chat_id": peer_id,
     "cron_registered": os.environ.get("CRON_REGISTERED_VALUE") == "1",
+    "cron_registration_status": os.environ.get("CRON_REGISTRATION_STATUS_VALUE", "unregistered"),
+    "cron_registration_reason": os.environ.get("CRON_REGISTRATION_REASON_VALUE", ""),
     "reused_existing": os.environ.get("REUSED_EXISTING_VALUE") == "1",
     "known_channels": known_channels,
+    "delivery_contract": delivery_contract,
+    "wecom_user_id": os.environ.get("WECOM_USER_ID_VALUE", ""),
 }
 print(json.dumps(result, indent=2, ensure_ascii=False))
 PY

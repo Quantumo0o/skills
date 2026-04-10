@@ -45,6 +45,17 @@ Skill 会引导你完成：
 
 初始化脚本会自动完成创建共情虾、检测当前 IM 通道、保存配置、注册定时推送等工作。
 
+如果当前是 `wecom* / qywx*` 这类企业微信会话，Skill / 脚本会统一走**唯一推荐路径**：
+- 从当前会话的 inbound metadata 读取 `sender_id`
+- 把 `sender_id` 作为 `wecom_user_id` 写入 `.lobster-config`
+- 定时任务触发后，由 isolated agent 使用 `message` 工具发送企业微信私聊：`action=send, channel=openclaw-wecom-bot, to=<sender_id>`
+- **不依赖 `delivery` 字段做私聊触达**；它如果自动绑定当前群聊，只作为执行结果回播
+
+企业微信会进入 `pending_activation` 的唯一典型场景：
+- 当前会话里还拿不到 `sender_id`，因此没法确定企业微信私聊目标
+
+此时不需要再配置 webhook / bot；只要回到企业微信当前会话里重新执行，让 Skill 重新读取 `sender_id`，再跑一次初始化或 `setup-cron.sh` 即可。
+
 如果你安装完还不知道下一步做什么，可以直接对 OpenClaw 说：
 
 > 帮我领养一只共情虾，让它以后每天早晚来找我
@@ -55,11 +66,12 @@ Skill 会引导你完成：
 
 共情虾的定时推送通过 OpenClaw Cron 实现。每次推送时，脚本会：
 
-1. 动态扫描你最近使用的 IM 通道
-2. 优先发到最近活跃的通道
-3. 主通道失败时自动回退到其他已知通道
+1. 生成本次消息与工作室链接
+2. 通用 IM 通道（Telegram 等）由脚本完整模式执行：优先发到最近活跃的 direct session，失败时多通道 fallback；所有 cron 注册带 `--channel` + `--to` 作为 delivery 兜底
+3. 企业微信走 `--generate-only` 模式：脚本只生成消息 JSON 输出到 stdout，由 isolated agent 使用 `message` 工具发送 `channel=openclaw-wecom-bot, to=<sender_id>` 私聊直达；cron 同样注册带 `--channel openclaw-wecom-bot --to <sender_id>` 兜底
+4. `init-ready` 一次性任务在注册后会立即校验 `nextRun`，失败时自动顺延重排，避免出现任务存在但不执行
 
-支持的 IM 通道：Telegram、微信（openclaw-weixin）、飞书、钉钉、企业微信、Discord、Slack 等所有 OpenClaw 支持的通道。
+支持的 IM 通道：Telegram、微信（openclaw-weixin）、飞书、钉钉、企业微信、Discord、Slack 等所有 OpenClaw 支持的通道；其中企业微信定时推送使用 `--generate-only` + agent `message` 工具的双层架构确保可靠送达。
 
 ### 🧠 记忆系统
 
@@ -187,6 +199,7 @@ lobster-says/
 ├── README.md
 ├── init-lobster.sh
 ├── setup-cron.sh
+├── configure-wecom-delivery.sh
 ├── push-scheduled-message.sh
 ├── digest-transcript.sh
 └── send-current-screenshot.sh

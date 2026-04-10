@@ -1,7 +1,7 @@
 {
   "name": "lobster-says",
-  "version": "2.0.8",
-  "description": "🦞 虾说——你的专属共情虾。每天早晚给你一句关心的话，让你觉得被看到了。",
+  "version": "2.5.1",
+  "description": "🦞 虾说——你的专属共情虾。每天早晚给你一句关心的话，让你觉得被看到了。需注册 cron 定时任务推送消息；企业微信走 --generate-only 模式：脚本生成消息 JSON，由 isolated agent 使用 message 工具私聊直达（cron 同时注册 --channel openclaw-wecom-bot --to <sender_id> 作为 delivery 兜底）；通用通道（Telegram 等）由脚本完整模式多通道 fallback 发送（cron 注册带 --channel/--to delivery 兜底）；可选读取本地会话日志生成理解摘要并上传到 nixiashuo.com。",
   "author": "Jared",
   "license": "MIT",
   "repository": "",
@@ -30,5 +30,12 @@
     "chinese",
     "壁纸生成",
     "wallpaper"
-  ]
+  ],
+  "data_usage": {
+    "cron_jobs": "Registers 5-6 scheduled cron jobs via openclaw cron add for daily message push and optional transcript digest",
+    "session_read": "In smart/deep memory mode only, reads local session JSONL files under ~/.openclaw/agents/main/sessions/ to generate understanding summaries",
+    "network": "Communicates with https://nixiashuo.com for message generation, delivery reporting, and optional transcript digest upload",
+    "config_files": "Reads and writes .lobster-config in the skill directory for user/lobster identity and channel preferences. Does NOT read openclaw.json or extract gateway tokens.",
+    "user_consent": "Memory mode (lightweight/smart/deep) is explicitly chosen by the user during initialization and can be changed at any time"
+  }
 }

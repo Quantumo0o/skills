@@ -1,11 +1,17 @@
 {
   "owner": "jaredwei01",
   "slug": "lobster-says",
-  "displayName": "虾说 LobsterSays",
+  "displayName": "Lobster Says",
   "latest": {
-    "version": "2.0.8",
-    "publishedAt": 1775496442609,
-    "commit": "https://github.com/openclaw/skills/commit/0d8e6044bf7b0011bfc7a40fd0485063ffd63d28"
+    "version": "2.5.1",
+    "publishedAt": 1775799754864,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.8",
+      "publishedAt": 1775496442609,
+      "commit": "https://github.com/openclaw/skills/commit/0d8e6044bf7b0011bfc7a40fd0485063ffd63d28"
+    }
+  ]
 }
