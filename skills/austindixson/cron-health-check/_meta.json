@@ -1,0 +1,11 @@
+{
+  "owner": "austindixson",
+  "slug": "cron-health-check",
+  "displayName": "Cron Health Check",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772197571532,
+    "commit": null
+  },
+  "history": []
+}
