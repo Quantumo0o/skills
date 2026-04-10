@@ -19,16 +19,16 @@ The companion feels more alive if she occasionally shares something she "noticed
 
 ## X Guidance
 
-For a publishable skill, avoid requiring an X API integration.
+For a publishable skill, avoid requiring an X API integration or browser automation dependencies.
 
 Prefer:
-- local browser cookies from a signed-in browser
-- a cache file refreshed on demand
-- configurable Chrome binary and trending URL
+- a cache file (`x-hotspots.json`) refreshed by the agent's own web search tools
+- letting cron job payloads handle the search and cache write
+- keeping cache path, TTL, and max items configurable
 
 Avoid:
 - hardcoded handles
-- mandatory API keys
+- mandatory API keys or browser dependencies
 - assuming a single regional trend page is correct for every user
 
 ## Suggested Trigger

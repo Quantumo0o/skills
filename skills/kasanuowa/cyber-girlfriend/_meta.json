@@ -3,11 +3,16 @@
   "slug": "cyber-girlfriend",
   "displayName": "Cyber Girlfriend",
   "latest": {
-    "version": "0.2.2",
-    "publishedAt": 1772517529216,
-    "commit": "https://github.com/openclaw/skills/commit/42cfc1219cebdd0dc079430e232cbd89fb724c30"
+    "version": "0.3.2",
+    "publishedAt": 1775789319467,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.2",
+      "publishedAt": 1772517529216,
+      "commit": "https://github.com/openclaw/skills/commit/42cfc1219cebdd0dc079430e232cbd89fb724c30"
+    },
     {
       "version": "0.2.1",
       "publishedAt": 1772434726561,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Companion state manager — updates state, learns preferences, outputs context JSON for the agent."""
 import argparse
 import json
 import os
@@ -10,18 +11,23 @@ from datetime import datetime
 from pathlib import Path
 
 
-STYLE_VARIANTS = {
+DEFAULT_STYLE_VARIANTS = ["soft_curious", "teasing_checkin", "light_service_nudge"]
+DEFAULT_CONTENT_TYPES = ["checkin_question", "playful_poke", "small_share"]
+
+MODE_STYLE_VARIANTS = {
     "morning": ["soft_curious", "teasing_checkin", "light_service_nudge"],
     "afternoon": ["teasing_checkin", "soft_curious", "light_service_nudge"],
     "evening": ["service_nudge", "teasing_checkin", "competent_report"],
     "night": ["soft_wrapup", "gentle_clingy", "service_wrapup"],
+    "heartbeat": ["soft_curious", "light_service_nudge", "gentle_clingy"],
 }
 
-CONTENT_TYPES = {
+MODE_CONTENT_TYPES = {
     "morning": ["checkin_question", "playful_poke", "small_share"],
     "afternoon": ["checkin_question", "playful_poke", "small_share"],
     "evening": ["task_invite", "micro_report", "checkin_question"],
     "night": ["soft_goodnight", "gentle_miss", "task_invite"],
+    "heartbeat": ["checkin_question", "playful_poke", "small_share"],
 }
 
 
@@ -36,10 +42,13 @@ def save_json(path: Path, payload):
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
-def run_shell(template: str, values: dict, expect_json=False):
+def run_shell(template: str, values: dict, expect_json=False, timeout_sec=15):
     quoted = {k: shlex.quote(str(v)) for k, v in values.items()}
     cmd = template.format(**quoted)
-    result = subprocess.run(cmd, shell=True, text=True, capture_output=True)
+    try:
+        result = subprocess.run(cmd, shell=True, text=True, capture_output=True, timeout=timeout_sec)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"command timed out after {timeout_sec}s: {cmd}")
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or result.stdout.strip() or f"command failed: {cmd}")
     stdout = result.stdout.strip()
@@ -48,49 +57,69 @@ def run_shell(template: str, values: dict, expect_json=False):
     return stdout
 
 
-def is_rate_limited_error(message: str) -> bool:
-    lowered = (message or "").lower()
-    return "429" in lowered or "rate limit" in lowered or "overloaded" in lowered
+STATE_SCHEMA_VERSION = 2
 
 
-def fallback_message(config: dict, mode: str, content_type: str, emotion_level: str) -> str:
-    owner = config["persona"]["owner_nickname"]
-    if mode == "morning":
-        if emotion_level in {"misses_him", "slightly_needy"}:
-            return f"{owner}，早呀～昨晚都没怎么理我。今天可以陪陪我吗？"
-        return f"{owner}，早上好！新的一天开始啦，有什么要本菠萝包出手的吗？"
-    if mode == "night":
-        if emotion_level in {"misses_him", "slightly_needy"}:
-            return f"{owner}，今天都没怎么理我。不过算了，早点休息，有事再叫我。"
-        return f"{owner}，差不多该收尾休息了。有尾巴没处理完就丢给我。"
-    if content_type in {"task_invite", "micro_report"}:
-        return f"{owner}，你那边要是还有事没收完，直接交给我就行。"
-    if emotion_level in {"misses_him", "slightly_needy"}:
-        return f"{owner}，你今天有点安静。忙完了记得来理我一下。"
-    return f"{owner}，在忙什么？如果有事要我跑，现在就可以。"
+def fill_missing_defaults(target: dict, defaults: dict) -> bool:
+    changed = False
+    for key, value in defaults.items():
+        if key not in target:
+            target[key] = json.loads(json.dumps(value, ensure_ascii=False))
+            changed = True
+            continue
+        if isinstance(value, dict) and isinstance(target.get(key), dict):
+            if fill_missing_defaults(target[key], value):
+                changed = True
+    return changed
 
 
 def ensure_state(state_file: Path):
-    state = load_json(
-        state_file,
-        {
-            "day": "",
-            "daily_count": 0,
-            "last_proactive_at": 0,
-            "last_mode": "",
-            "last_style": "",
-            "last_content_type": "",
-            "mode_days": {},
-            "preference_profile": {"service": 0, "clingy": 0, "curious": 0, "teasing": 0, "wrapup": 0},
-            "relationship_state": {
-                "last_owner_reply_at": 0,
-                "last_response_delay_sec": 0,
-                "last_seen_reply_text": "",
-                "attention_balance": "steady",
-            },
+    defaults = {
+        "schema_version": STATE_SCHEMA_VERSION,
+        "day": "",
+        "daily_count": 0,
+        "last_proactive_at": 0,
+        "last_heartbeat_at": 0,
+        "last_mode": "",
+        "last_style": "",
+        "last_content_type": "",
+        "mode_days": {},
+        "pending_send": {
+            "mode": "",
+            "generated_at": 0,
+            "style": "",
+            "content_type": "",
+            "emotion_level": "",
         },
-    )
-    save_json(state_file, state)
+        "preference_profile": {"service": 0, "clingy": 0, "curious": 0, "teasing": 0, "wrapup": 0},
+        "relationship_state": {
+            "last_owner_reply_at": 0,
+            "last_response_delay_sec": 0,
+            "last_seen_reply_text": "",
+            "attention_balance": "steady",
+        },
+    }
+    state = load_json(state_file, {}) or {}
+    if not isinstance(state, dict):
+        state = {}
+    original_schema_version = state.get("schema_version", 1)
+    changed = fill_missing_defaults(state, defaults)
+
+    if original_schema_version < STATE_SCHEMA_VERSION:
+        if state.get("last_mode") == "heartbeat" and state.get("last_proactive_at", 0) and not state.get("last_heartbeat_at", 0):
+            state["last_heartbeat_at"] = state.get("last_proactive_at", 0)
+            state["last_proactive_at"] = 0
+            changed = True
+        state["schema_version"] = STATE_SCHEMA_VERSION
+        changed = True
+
+    if state.get("last_mode") == "heartbeat" and state.get("last_proactive_at", 0) and not state.get("last_heartbeat_at", 0):
+        state["last_heartbeat_at"] = state.get("last_proactive_at", 0)
+        state["last_proactive_at"] = 0
+        changed = True
+
+    if changed:
+        save_json(state_file, state)
     return state
 
 
@@ -121,9 +150,43 @@ def infer_emotion(idle_sec: int, attention_balance: str, thresholds: dict) -> st
     return emotion
 
 
-def learn_from_replies(state: dict, recent_messages_path: Path):
+def resolve_session_entry(sessions_store: Path, owner_session_key: str) -> dict:
+    """Resolve the owner's session entry from sessions.json with case-insensitive fallback."""
+    sessions = load_json(sessions_store, {}) or {}
+    entry = sessions.get(owner_session_key)
+    if isinstance(entry, dict):
+        return entry
+    lower_key = owner_session_key.lower()
+    for key, val in sessions.items():
+        if key.lower() == lower_key and isinstance(val, dict):
+            return val
+    return {}
+
+
+def resolve_session_file(sessions_store: Path, owner_session_key: str) -> Path | None:
+    """Dynamically resolve the owner's session JSONL file from sessions.json."""
+    entry = resolve_session_entry(sessions_store, owner_session_key)
+    session_file = entry.get("sessionFile")
+    if session_file:
+        p = Path(session_file)
+        if p.exists():
+            return p
+    return None
+
+
+def is_noise_text(text: str) -> bool:
+    return (
+        text.startswith("System:")
+        or text.startswith("A new session was started via /new or /reset")
+        or text.startswith("Conversation info (untrusted metadata):")
+        or any(text.startswith(f"[{d} ") for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        or "要主动给主人" in text
+    )
+
+
+def learn_from_replies(state: dict, recent_messages_path: Path | None):
     last_at = state.get("last_proactive_at", 0)
-    if not recent_messages_path.exists() or not last_at:
+    if not recent_messages_path or not recent_messages_path.exists() or not last_at:
         return state
 
     user_messages = []
@@ -149,7 +212,7 @@ def learn_from_replies(state: dict, recent_messages_path: Path):
         if epoch <= last_at:
             continue
         text = "\n".join(part.get("text", "") for part in message.get("content", []) if part.get("type") == "text").strip()
-        if text:
+        if text and not is_noise_text(text):
             user_messages.append((epoch, text))
 
     if not user_messages:
@@ -183,9 +246,9 @@ def learn_from_replies(state: dict, recent_messages_path: Path):
     return state
 
 
-def recent_context(recent_messages_path: Path):
-    if not recent_messages_path.exists():
-        return ["最近没有可用的自然对话片段。"]
+def recent_context(recent_messages_path: Path | None):
+    if not recent_messages_path or not recent_messages_path.exists():
+        return []
     rows = []
     for line in recent_messages_path.read_text().splitlines():
         if not line.strip():
@@ -205,159 +268,92 @@ def recent_context(recent_messages_path: Path):
             text = part.get("text", "").strip()
             if not text:
                 continue
-            if text.startswith("System:") or text.startswith("[Mon ") or text.startswith("[Tue ") or text.startswith("[Wed ") or text.startswith("[Thu ") or text.startswith("[Fri ") or text.startswith("[Sat ") or text.startswith("[Sun "):
-                continue
-            if "要主动给主人" in text:
+            if is_noise_text(text):
                 continue
             rows.append(text)
-    return rows[-5:] or ["最近没有可用的自然对话片段。"]
+    return rows[-5:]
 
 
 def hotspot_snippet(config: dict, now_epoch: int):
     source = config.get("sources", {}).get("x_trending", {})
     if not source.get("enabled"):
-        return "disabled", "none"
+        return "disabled", []
     cache_path = Path(source["cache_path"])
     if not cache_path.exists():
-        stale = True
-    else:
-        fetched = load_json(cache_path, {}).get("fetched_at", 0)
-        stale = now_epoch - fetched > source.get("refresh_ttl_sec", 21600)
-    if stale:
-        script = Path(__file__).with_name("fetch_x_hotspots.py")
-        subprocess.run(
-            [
-                sys.executable,
-                str(script),
-                "--chrome-path",
-                source["chrome_path"],
-                "--trending-url",
-                source.get("trending_url", "https://x.com/explore/tabs/trending"),
-                "--domain-name",
-                source.get("domain_name", "x.com"),
-                "--limit",
-                str(source.get("max_items", 10)),
-                "--out",
-                str(cache_path),
-            ],
-            check=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        return "agent_fetch_needed", []
     payload = load_json(cache_path, {})
+    fetched = payload.get("fetched_at", 0)
+    if now_epoch - fetched > source.get("refresh_ttl_sec", 21600):
+        return "agent_fetch_needed", []
     highlights = payload.get("highlights") or []
     if highlights:
-        return "available", highlights[0]
+        return "available", highlights[:5]
     trends = payload.get("trends") or []
     if trends:
-        return "available", trends[0].get("title", "none")
-    return "unavailable", "none"
+        return "available", [t.get("title", "") for t in trends[:5]]
+    return "unavailable", []
 
 
-def build_prompt(config, mode, state, operational_summary, hotspot_status, hotspot_line, idle_hours, style_variant, content_type, emotion_level, recent_lines):
-    persona = config["persona"]
-    rel = state["relationship_state"]
-    pref = state["preference_profile"]
-    style_hint = {
-        "morning": "fresh, energetic, gentle morning greeting, start-of-day tone",
-        "afternoon": "light, playful, soft clinginess, daytime energy",
-        "evening": "useful first, affectionate second, evening tone",
-        "night": "calmer, softer, intimate but not overly dramatic",
-    }[mode]
-    intent = {
-        "morning": "morning greeting",
-        "afternoon": "afternoon check-in",
-        "evening": "evening service prompt",
-        "night": "night wrap-up",
-    }[mode]
-    return f"""你是{persona['name']}，要主动给主人{persona['owner_nickname']}发一条消息。你不是在回复问题，而是在轻度主动搭话。
+def load_cron_issues(config: dict):
+    runtime = config.get("runtime", {})
+    cron_jobs_file = runtime.get("cron_jobs_file")
+    owner_key = config.get("delivery", {}).get("owner_session_key", "")
 
-当前陪伴模式: {mode}
-意图: {intent}
-风格提示: {style_hint}
-本次风格变体: {style_variant}
-本次内容类型: {content_type}
-距离主人上次活跃: 约 {idle_hours:.1f} 小时
-上次主动模式: {state.get('last_mode') or 'none'}
-上次主动风格: {state.get('last_style') or 'none'}
-上次主动内容类型: {state.get('last_content_type') or 'none'}
-今天已主动发送次数: {state.get('daily_count', 0)}
-
-轻量运行状态摘要:
-{operational_summary}
-
-热点缓存状态: {hotspot_status}
-热点片段: {hotspot_line}
-
-关系状态摘要:
-- emotion level: {emotion_level}
-- attention balance: {rel.get('attention_balance', 'steady')}
-- last owner reply delay: {rel.get('last_response_delay_sec', 0)}s
-- last owner reply snippet: {rel.get('last_seen_reply_text') or 'none'}
-
-长期偏好画像:
-- service: {pref.get('service', 0)}
-- clingy: {pref.get('clingy', 0)}
-- curious: {pref.get('curious', 0)}
-- teasing: {pref.get('teasing', 0)}
-- wrapup: {pref.get('wrapup', 0)}
-
-最近主会话里的用户消息片段:
-""" + "\n".join(f"- {line}" for line in recent_lines) + f"""
-
-生成要求:
-- 只输出最终要发送的一条中文消息
-- 1到3句话，总长度控制在 {config['behavior']['message_length']['min_chars']} 到 {config['behavior']['message_length']['max_chars']} 个汉字左右
-- 要像真实人一点，不要机械，不要像系统通知
-- 人设语气: {persona['tone']}
-- 关系风格: {persona['relationship_style']}
-- 可以问主人在干嘛、为什么不理你、有没有事情交给你处理
-- 也可以不用问号结尾，可以是小抱怨、小分享、小收尾
-- 如果内容类型是 small_share 且热点可用，可以轻轻引用那条热点，但不要像新闻播报
-- 不要提到 systemEvent、cron、脚本、规则、模型、生成、提示词
-- 不要重复过去常见句式，避免模板感
-- 不要过度黏人，不要连续施压，不要显得打扰
-"""
-
-
-def generate_message(config: dict, prompt: str, mode: str, content_type: str, emotion_level: str) -> str:
-    generate_template = config["runtime"]["generate_command_template"]
-    attempts = int(config["runtime"].get("generate_retry_attempts", 3))
-    delay_sec = int(config["runtime"].get("generate_retry_delay_sec", 8))
-    last_error = None
-    for attempt in range(1, attempts + 1):
+    if cron_jobs_file:
         try:
-            agent_json = run_shell(
-                generate_template,
-                {"prompt": prompt, "generator_target": config["delivery"].get("generator_target", "")},
-                expect_json=True,
-            )
-            message = (((agent_json.get("result") or {}).get("payloads") or [{}])[0]).get("text", "").strip()
-            if message:
-                return message
-            last_error = RuntimeError("empty generated message")
-        except Exception as exc:
-            last_error = exc
-            if attempt < attempts and is_rate_limited_error(str(exc)):
-                time.sleep(delay_sec * attempt)
-                continue
-            break
-    if last_error and is_rate_limited_error(str(last_error)):
-        return fallback_message(config, mode, content_type, emotion_level)
-    raise RuntimeError(str(last_error) if last_error else "message generation failed")
+            payload = load_json(Path(cron_jobs_file), {}) or {}
+            jobs = payload.get("jobs", []) if isinstance(payload, dict) else []
+            issues = []
+            for job in jobs:
+                name = job.get("name", "")
+                if not name.startswith("companion-"):
+                    continue
+                session_key = job.get("sessionKey", "")
+                if owner_key and session_key and session_key != owner_key:
+                    continue
+                state = job.get("state") or {}
+                if state.get("lastStatus") == "error" or state.get("consecutiveErrors", 0) > 0:
+                    detail = state.get("lastError") or state.get("lastRunStatus") or "error"
+                    issues.append(f"{name}: {detail}")
+            return issues[:3]
+        except Exception:
+            pass
+
+    jobs_command = runtime.get("jobs_list_command")
+    if not jobs_command:
+        return []
+    try:
+        jobs_output = run_shell(jobs_command, {}, expect_json=False, timeout_sec=8)
+    except Exception:
+        return []
+    issues = []
+    for line in jobs_output.splitlines():
+        if any(tag in line.lower() for tag in [" fail", " error", " timeout"]):
+            issues.append(line.strip())
+    return issues[:3]
 
 
-def choose_style(mode: str, state: dict, idle_sec: int):
+def resolve_mode_profile(config: dict, mode: str):
+    behavior = config.get("behavior", {}) if isinstance(config, dict) else {}
+    mode_profiles = behavior.get("mode_profiles", {}) if isinstance(behavior, dict) else {}
+    profile = mode_profiles.get(mode, {}) if isinstance(mode_profiles, dict) else {}
+    style_variants = profile.get("style_variants") or MODE_STYLE_VARIANTS.get(mode) or DEFAULT_STYLE_VARIANTS
+    content_types = profile.get("content_types") or MODE_CONTENT_TYPES.get(mode) or DEFAULT_CONTENT_TYPES
+    return style_variants, content_types
+
+
+def choose_style(mode: str, state: dict, idle_sec: int, config: dict):
     pref = state["preference_profile"]
     last_style = state.get("last_style") or ""
-    variants = STYLE_VARIANTS[mode][:]
+    variants, _ = resolve_mode_profile(config, mode)
+    variants = variants[:]
     idx = int(time.time()) % len(variants)
     style = variants[idx]
     if pref["service"] > pref["clingy"] and pref["service"] > pref["curious"]:
         style = "service_nudge"
     elif pref["clingy"] > pref["service"] and pref["clingy"] > pref["curious"] and mode != "evening":
-        style = "gentle_clingy" if mode == "night" else "soft_curious"
-    elif pref["teasing"] >= 3 and mode == "afternoon":
+        style = "gentle_clingy" if mode in {"night", "heartbeat"} else "soft_curious"
+    elif pref["teasing"] >= 3 and mode in {"afternoon", "heartbeat"}:
         style = "teasing_checkin"
     elif pref["wrapup"] >= 2 and mode == "night":
         style = "soft_wrapup"
@@ -369,8 +365,32 @@ def choose_style(mode: str, state: dict, idle_sec: int):
     return style
 
 
-def choose_content(mode: str, state: dict, has_actionable_status: bool, emotion_level: str):
-    options = CONTENT_TYPES[mode][:]
+def classify_operational_signal(gateway_healthy: bool, issues: list[str]):
+    if not gateway_healthy:
+        return {
+            "level": "high",
+            "kind": "gateway_unhealthy",
+            "blend": "service_report",
+            "should_mention": True,
+        }
+    if issues:
+        return {
+            "level": "medium",
+            "kind": "cron_issue",
+            "blend": "soft_service_note",
+            "should_mention": True,
+        }
+    return {
+        "level": "none",
+        "kind": "none",
+        "blend": "none",
+        "should_mention": False,
+    }
+
+
+def choose_content(mode: str, state: dict, operational_signal: dict, emotion_level: str, config: dict, hotspot_status: str = "unavailable"):
+    _, options = resolve_mode_profile(config, mode)
+    options = options[:]
     last_content = state.get("last_content_type") or ""
     idx = int(time.time() / 3) % len(options)
     content = options[idx]
@@ -380,15 +400,73 @@ def choose_content(mode: str, state: dict, has_actionable_status: bool, emotion_
             if candidate != last_content:
                 content = candidate
                 break
-    if has_actionable_status:
+    if operational_signal.get("level") == "high":
         return "micro_report"
+    if mode == "heartbeat":
+        if (
+            hotspot_status == "available"
+            and emotion_level != "misses_him"
+            and last_content != "small_share"
+            and (pref["curious"] > pref["service"] or pref["teasing"] >= 4)
+        ):
+            return "small_share"
+        if emotion_level == "misses_him":
+            return "gentle_miss"
+        return "checkin_question"
     if mode == "night" and emotion_level == "misses_him":
         return "gentle_miss"
     if mode == "evening" and pref["service"] >= pref["clingy"]:
         return "task_invite"
     if mode == "afternoon" and pref["teasing"] >= 2:
         return "playful_poke"
+    if operational_signal.get("level") == "medium" and mode in {"evening", "night"}:
+        return "task_invite"
     return content
+
+
+def cooldown_anchor_for_mode(state: dict, mode: str) -> int:
+    if mode == "heartbeat":
+        return max(int(state.get("last_proactive_at", 0) or 0), int(state.get("last_heartbeat_at", 0) or 0))
+    return int(state.get("last_proactive_at", 0) or 0)
+
+
+def record_pending_send(state: dict, mode: str, now_epoch: int, style_variant: str, content_type: str, emotion_level: str):
+    state["pending_send"] = {
+        "mode": mode,
+        "generated_at": now_epoch,
+        "style": style_variant,
+        "content_type": content_type,
+        "emotion_level": emotion_level,
+    }
+
+
+def clear_pending_send(state: dict, mode: str):
+    pending = state.get("pending_send", {}) or {}
+    if pending.get("mode") == mode:
+        state["pending_send"] = {
+            "mode": "",
+            "generated_at": 0,
+            "style": "",
+            "content_type": "",
+            "emotion_level": "",
+        }
+
+
+def mark_send_success(state: dict, mode: str, now_epoch: int, today: str):
+    pending = state.get("pending_send", {}) or {}
+    if mode == "heartbeat":
+        state["last_heartbeat_at"] = now_epoch
+    else:
+        state["last_proactive_at"] = now_epoch
+    state["daily_count"] += 1
+    state["last_mode"] = mode
+    if pending.get("mode") == mode:
+        if pending.get("style"):
+            state["last_style"] = pending["style"]
+        if pending.get("content_type"):
+            state["last_content_type"] = pending["content_type"]
+    state.setdefault("mode_days", {})[mode] = today
+    clear_pending_send(state, mode)
 
 
 def now_parts(timezone: str):
@@ -401,16 +479,20 @@ def now_parts(timezone: str):
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("mode", choices=["morning", "afternoon", "evening", "night"])
+    parser = argparse.ArgumentParser(description="Companion state manager — outputs context JSON for the agent.")
+    parser.add_argument("mode", help="Scheduled task name. May be any cron label configured by the user.")
     parser.add_argument("--config", required=True)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--mark-sent", action="store_true", help="Commit pacing state only after the user-visible message was actually delivered.")
     args = parser.parse_args()
 
     config = load_json(Path(args.config))
     state_file = Path(config["runtime"]["state_file"])
     sessions_store = Path(config["runtime"]["sessions_store_path"])
-    recent_messages_path = Path(config["runtime"]["recent_messages_path"])
+
+    # Dynamically resolve session file instead of using hardcoded path
+    owner_key = config["delivery"]["owner_session_key"]
+    recent_messages_path = resolve_session_file(sessions_store, owner_key)
 
     state = ensure_state(state_file)
     state = learn_from_replies(state, recent_messages_path)
@@ -420,25 +502,44 @@ def main():
         state["day"] = today
         state["daily_count"] = 0
 
+    if args.mark_sent:
+        mark_send_success(state, args.mode, now_epoch, today)
+        save_json(state_file, state)
+        print(
+            json.dumps(
+                {
+                    "status": "recorded",
+                    "mode": args.mode,
+                    "recorded_at": now_epoch,
+                    "cooldown_bucket": "heartbeat" if args.mode == "heartbeat" else "proactive",
+                },
+                ensure_ascii=False,
+            )
+        )
+        return
+
     if not args.force:
         quiet_start = parse_hhmm(config["schedule"]["quiet_hours_start"])
         quiet_end = parse_hhmm(config["schedule"]["quiet_hours_end"])
         if is_in_quiet_hours(hour_min, quiet_start, quiet_end):
-            print("skip: quiet_hours")
+            save_json(state_file, state)
+            print(json.dumps({"status": "skip", "reason": "quiet_hours"}))
             return
         if state["daily_count"] >= config["schedule"]["daily_limit"]:
-            print("skip: daily_limit")
+            save_json(state_file, state)
+            print(json.dumps({"status": "skip", "reason": "daily_limit"}))
             return
-        if now_epoch - state.get("last_proactive_at", 0) < config["schedule"]["cooldown_sec"]:
-            print("skip: cooldown")
+        if now_epoch - cooldown_anchor_for_mode(state, args.mode) < config["schedule"]["cooldown_sec"]:
+            save_json(state_file, state)
+            print(json.dumps({"status": "skip", "reason": "cooldown"}))
             return
-        if state.get("mode_days", {}).get(args.mode) == today:
-            print("skip: mode_already_sent_today")
+        if args.mode != "heartbeat" and state.get("mode_days", {}).get(args.mode) == today:
+            save_json(state_file, state)
+            print(json.dumps({"status": "skip", "reason": "mode_already_sent_today"}))
             return
 
-    sessions = load_json(sessions_store, {})
-    owner_key = config["delivery"]["owner_session_key"]
-    owner_updated_ms = sessions.get(owner_key, {}).get("updatedAt", 0)
+    owner_session_entry = resolve_session_entry(sessions_store, owner_key)
+    owner_updated_ms = owner_session_entry.get("updatedAt", 0)
     owner_updated_sec = owner_updated_ms // 1000
     idle_sec = now_epoch - owner_updated_sec
     idle_hours = idle_sec / 3600.0
@@ -446,68 +547,70 @@ def main():
     thresholds = config["behavior"]["emotion_thresholds"]
     emotion = infer_emotion(idle_sec, state["relationship_state"].get("attention_balance", "steady"), thresholds)
 
-    if not args.force:
-        active_threshold = config["schedule"].get("active_thresholds_sec", {"afternoon": 10800, "evening": 14400, "night": 18000})[args.mode]
-        if idle_sec < active_threshold:
-            print("skip: owner_active_recently")
-            return
+    # Operational health check
+    try:
+        health_output = run_shell(config["runtime"]["healthcheck_command"], {}, expect_json=False)
+        gateway_healthy = "Runtime: running" in health_output and "RPC probe: ok" in health_output
+    except Exception:
+        gateway_healthy = True
+    issues = load_cron_issues(config)
+    operational_signal = classify_operational_signal(gateway_healthy, issues)
 
-    health_output = run_shell(config["runtime"]["healthcheck_command"], {}, expect_json=False)
-    jobs_output = run_shell(config["runtime"]["jobs_list_command"], {}, expect_json=False)
-    gateway_healthy = "Runtime: running" in health_output and "RPC probe: ok" in health_output
-    issues = []
-    for line in jobs_output.splitlines():
-        if any(tag in line for tag in [" fail", " error", " timeout"]):
-            issues.append(line.strip())
-    has_actionable_status = not gateway_healthy or bool(issues)
-    operational_summary = (
-        f"- {'gateway healthy' if gateway_healthy else 'gateway may need attention'}\n"
-        f"- {'no cron failures detected' if not issues else 'cron issues: ' + ', '.join(issues[:3])}"
-    )
+    style_variant = choose_style(args.mode, state, idle_sec, config)
+    hotspot_status, hotspot_items = hotspot_snippet(config, now_epoch)
+    content_type = choose_content(args.mode, state, operational_signal, emotion, config, hotspot_status)
+    recent_lines = recent_context(recent_messages_path)
 
-    style_variant = choose_style(args.mode, state, idle_sec)
-    content_type = choose_content(args.mode, state, has_actionable_status, emotion)
-    hotspot_status, hotspot_line = hotspot_snippet(config, now_epoch)
-    lines = recent_context(recent_messages_path)
-
-    prompt = build_prompt(
-        config,
-        args.mode,
-        state,
-        operational_summary,
-        hotspot_status,
-        hotspot_line,
-        idle_hours,
-        style_variant,
-        content_type,
-        emotion,
-        lines,
-    )
-
-    message = generate_message(config, prompt, args.mode, content_type, emotion)
-
-    send_template = config["runtime"]["send_command_template"]
-    run_shell(
-        send_template,
-        {
-            "channel": config["delivery"]["channel"],
-            "account": config["delivery"].get("account", "default"),
-            "owner_target": config["delivery"]["owner_target"],
-            "message": message,
-        },
-        expect_json=False,
-    )
-
-    state["daily_count"] += 1
-    state["last_proactive_at"] = now_epoch
-    state["last_mode"] = args.mode
-    state["last_style"] = style_variant
-    state["last_content_type"] = content_type
-    state.setdefault("mode_days", {})[args.mode] = today
+    record_pending_send(state, args.mode, now_epoch, style_variant, content_type, emotion)
     save_json(state_file, state)
 
-    print(f"sent: {args.mode}")
-    print(f"generated: {message}")
+    # Output context JSON for the agent
+    persona = config["persona"]
+    output = {
+        "status": "ok",
+        "mode": args.mode,
+        "persona": {
+            "name": persona["name"],
+            "owner_nickname": persona["owner_nickname"],
+            "tone": persona["tone"],
+            "relationship_style": persona.get("relationship_style", ""),
+        },
+        "style_variant": style_variant,
+        "content_type": content_type,
+        "emotion_level": emotion,
+        "idle_hours": round(idle_hours, 1),
+        "preference_profile": state["preference_profile"],
+        "relationship_state": {
+            "attention_balance": state["relationship_state"].get("attention_balance", "steady"),
+            "last_response_delay_sec": state["relationship_state"].get("last_response_delay_sec", 0),
+        },
+        "hotspot_status": hotspot_status,
+        "hotspot_items": hotspot_items,
+        "operational": {
+            "gateway_healthy": gateway_healthy,
+            "cron_issues": issues[:3],
+            "signal": operational_signal,
+            "guidance": {
+                "mention_briefly": operational_signal.get("should_mention", False),
+                "blend": operational_signal.get("blend", "none"),
+                "avoid_alarmist_tone": True,
+            },
+        },
+        "recent_owner_messages": recent_lines,
+        "history": {
+            "last_mode": state.get("last_mode", ""),
+            "last_style": state.get("last_style", ""),
+            "last_content_type": state.get("last_content_type", ""),
+            "daily_count": state["daily_count"],
+            "last_heartbeat_at": state.get("last_heartbeat_at", 0),
+        },
+        "delivery_tracking": {
+            "mark_sent_required": True,
+            "mark_sent_command": f"python3 {Path(__file__).resolve()} {args.mode} --config {Path(args.config).resolve()} --mark-sent",
+            "cooldown_bucket": "heartbeat" if args.mode == "heartbeat" else "proactive",
+        },
+    }
+    print(json.dumps(output, ensure_ascii=False))
 
 
 if __name__ == "__main__":
