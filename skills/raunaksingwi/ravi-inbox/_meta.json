@@ -3,11 +3,16 @@
   "slug": "ravi-inbox",
   "displayName": "Ravi inbox",
   "latest": {
-    "version": "1.7.1",
-    "publishedAt": 1772960988891,
-    "commit": "https://github.com/openclaw/skills/commit/1a7f8abcbc0d0f459c0630c42e4e716cea741d4c"
+    "version": "2.1.1",
+    "publishedAt": 1775627183750,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.1",
+      "publishedAt": 1772960988891,
+      "commit": "https://github.com/openclaw/skills/commit/1a7f8abcbc0d0f459c0630c42e4e716cea741d4c"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772783519178,
