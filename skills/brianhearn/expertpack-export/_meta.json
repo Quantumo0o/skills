@@ -1,13 +1,18 @@
 {
   "owner": "brianhearn",
   "slug": "expertpack-export",
-  "displayName": "ExpertPack Export",
+  "displayName": "Expertpack Export",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773172410283,
-    "commit": "https://github.com/openclaw/skills/commit/1f57dc431132d0fefb58010d08a72c83bb4722ab"
+    "version": "1.1.0",
+    "publishedAt": 1775504405828,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773172410283,
+      "commit": "https://github.com/openclaw/skills/commit/1f57dc431132d0fefb58010d08a72c83bb4722ab"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773172114715,
