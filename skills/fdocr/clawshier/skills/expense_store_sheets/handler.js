@@ -4,6 +4,9 @@ require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env"
 const {
   ensureSheet, deleteSheetIfExists, appendRow, appendRows, updateSummary,
 } = require("../../lib/googleSheets");
+const { sheetNameFromDate } = require("../../lib/expenseValidator");
+const { isTraceEnabled, readTrace, writeTrace, startTraceStep, finishTraceStep } = require("../../lib/trace");
+const { readJsonInput, writeJsonOutput } = require("../../lib/io");
 
 const EXPENSE_HEADERS = [
   "Fingerprint", "Date", "Vendor", "Category",
@@ -12,18 +15,10 @@ const EXPENSE_HEADERS = [
 const BREAKDOWN_SHEET = "Invoice Archive Breakdown";
 const BREAKDOWN_HEADERS = ["Fingerprint", "Item", "Quantity", "Cost"];
 
-function sheetNameFromDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yy = String(d.getFullYear()).slice(-2);
-  return `${mm}-${yy}`;
-}
-
-async function main() {
-  let input = "";
-  for await (const chunk of process.stdin) input += chunk;
-
-  const expense = JSON.parse(input);
+async function processExpenseStore(expense) {
+  const traceEnabled = isTraceEnabled();
+  const trace = traceEnabled ? (readTrace() || { steps: [] }) : null;
+  const traceStep = traceEnabled ? startTraceStep("store", { kind: "google-sheets" }) : null;
 
   if (!expense.fingerprint) {
     throw new Error(
@@ -63,10 +58,30 @@ async function main() {
   await deleteSheetIfExists(spreadsheetId, "Sheet1");
   await updateSummary(spreadsheetId);
 
-  process.stdout.write(JSON.stringify({ success: true, row: rowNumber }));
+  if (traceEnabled) {
+    trace.steps.push(finishTraceStep(traceStep, {
+      status: "ok",
+      targetSheet: sheetName,
+      row: rowNumber,
+      breakdownRows: itemRows.length,
+    }));
+    writeTrace(trace);
+  }
+
+  return { success: true, row: rowNumber };
 }
 
-main().catch((err) => {
-  process.stderr.write(JSON.stringify({ error: err.message }));
-  process.exit(1);
-});
+async function main() {
+  writeJsonOutput(await processExpenseStore(await readJsonInput()));
+}
+
+if (require.main === module) {
+  main().catch((err) => {
+    process.stderr.write(JSON.stringify({ error: err.message }));
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  processExpenseStore,
+};
