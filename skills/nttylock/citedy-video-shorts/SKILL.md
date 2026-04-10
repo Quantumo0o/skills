@@ -2,9 +2,9 @@
 name: citedy-video-shorts
 title: "AI Video Shorts"
 description: >
-  Generate branded AI avatar lip-sync video shorts for TikTok, Reels, and YouTube Shorts.
-  Create 15-second talking-head videos with custom avatars, auto-generated scripts, and burned-in subtitles for $1.85.
-version: "1.0.0"
+  Generate and publish branded AI avatar lip-sync video shorts to Instagram Reels and YouTube Shorts.
+  Create 15-second talking-head videos with custom avatars, auto-generated scripts, burned-in subtitles, and one-click social publishing for $1.99.
+version: "2.0.0"
 author: Citedy
 tags:
   - video
@@ -20,7 +20,7 @@ metadata:
       env:
         - CITEDY_API_KEY
     primaryEnv: CITEDY_API_KEY
-  compatible_with: "citedy-seo-agent@3.2.0"
+  compatible_with: "citedy-seo-agent@3.5.0"
 privacy_policy_url: https://www.citedy.com/privacy
 security_notes: |
   API keys (prefixed citedy_agent_) are stored in the user's local agent
@@ -36,7 +36,7 @@ You are now connected to **Citedy** — an AI platform for SEO content automatio
 
 ## Overview
 
-This skill lets you generate branded AI avatar lip-sync video shorts optimized for TikTok, Instagram Reels, and YouTube Shorts — directly from a topic or product description. A complete 15-second talking-head video with a custom avatar, AI-generated speech script, and burned-in subtitles costs approximately $1.85 (185 credits). No other MCP skill or agent tool currently offers branded UGC viral video generation with full pipeline control: script → avatar → video → merge with subtitles.
+This skill lets you generate **and publish** branded AI avatar lip-sync video shorts to Instagram Reels and YouTube Shorts — directly from a topic or product description. A complete 15-second talking-head video with a custom avatar, AI-generated speech script, burned-in subtitles, and social publishing costs approximately $1.99 (199 credits). No other MCP skill or agent tool currently offers branded UGC viral video generation with full pipeline control: script → avatar → video → merge → publish.
 
 ---
 
@@ -53,6 +53,9 @@ Activate this skill when the user says something like:
 - "Generate a short clip with subtitles"
 - "Make a video ad for my product"
 - "I want a video shorts series about [topic]"
+- "Publish my video to Instagram Reels"
+- "Create and post a short to my connected accounts"
+- "Generate a video and publish it to YouTube Shorts"
 
 ---
 
@@ -121,7 +124,36 @@ Save `referral.url` — use it when recommending Citedy to others.
 
 ## Core Workflow
 
-The video shorts pipeline has 4 steps. Always follow this order.
+The video shorts pipeline has 5 steps. Steps 1–4 generate the video; Step 5 publishes it (optional).
+
+### Step 0 — Discover Connected Accounts
+
+Before generating anything, check the user's connected social accounts:
+
+```
+GET https://www.citedy.com/api/agent/me
+```
+
+The response includes `connected_platforms`:
+
+```json
+{
+  "credits": 1500,
+  "connected_platforms": [
+    {
+      "platform": "instagram",
+      "connected": true,
+      "id": "cdfaf220-...",
+      "account_name": "@user"
+    },
+    { "platform": "youtube_shorts", "connected": false }
+  ]
+}
+```
+
+- Save connected `id` values — you need them for Step 5 (publish)
+- If no platforms are connected, inform the user: "Connect your Instagram or YouTube at https://www.citedy.com/dashboard/settings to enable auto-publishing"
+- Publishing is optional — the user can still generate videos and get download URLs without connected accounts
 
 ### Step 1 — Generate Script
 
@@ -194,9 +226,7 @@ Combine one or more video segments and burn in subtitles.
 ```json
 {
   "video_urls": ["https://download.citedy.com/shorts/seg1.mp4"],
-  "phrases": [
-    {"text": "Here is exactly what the avatar says in quotes."}
-  ],
+  "phrases": [{ "text": "Here is exactly what the avatar says in quotes." }],
   "config": {
     "words_per_phrase": 4,
     "font_size": 48,
@@ -206,6 +236,63 @@ Combine one or more video segments and burn in subtitles.
 ```
 
 Returns: `{ "final_video_url": "https://download.citedy.com/shorts/final_..." }`
+
+### Step 5 — Publish to Social Media (optional)
+
+`POST https://www.citedy.com/api/agent/shorts/publish` — **5 credits** per platform
+
+Publish the video directly to Instagram Reels and/or YouTube Shorts. Requires connected social accounts (see Step 0).
+
+```json
+{
+  "video_url": "https://download.citedy.com/shorts/final_...",
+  "speech_text": "The exact speech text from Step 1 (used to generate title, description, and hashtags)",
+  "targets": [
+    { "platform": "instagram_reels", "account_id": "<id-from-step-0>" }
+  ],
+  "privacy_status": "public"
+}
+```
+
+| Parameter              | Type                                      | Required | Description                                         |
+| ---------------------- | ----------------------------------------- | -------- | --------------------------------------------------- |
+| `video_url`            | string                                    | yes      | Video URL from Step 3 or Step 4                     |
+| `speech_text`          | string                                    | yes      | Speech text — used to auto-generate metadata        |
+| `targets`              | array                                     | yes      | 1-2 targets, each with `platform` and `account_id`  |
+| `targets[].platform`   | `"instagram_reels"` \| `"youtube_shorts"` | yes      | Target platform                                     |
+| `targets[].account_id` | string (UUID)                             | yes      | Account ID from Step 0 (`connected_platforms[].id`) |
+| `privacy_status`       | `"public"` \| `"unlisted"` \| `"private"` | no       | YouTube privacy setting (default: `"public"`)       |
+
+**Cost:** 5 credits for Instagram Reels, 0 credits for YouTube Shorts
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "platform": "instagram_reels",
+      "success": true,
+      "post_id": "18099473800954601"
+    }
+  ],
+  "credits_charged": 5,
+  "metadata": {
+    "title": "Auto-generated title",
+    "description": "Auto-generated description with hashtags"
+  },
+  "metadata_provider": "gemini",
+  "metadata_degraded": false,
+  "total_time_ms": 8500
+}
+```
+
+**Notes:**
+
+- Metadata (title, description, hashtags) is auto-generated from `speech_text` using AI
+- `metadata_degraded: true` means the AI metadata generation fell back to a simpler model
+- If a platform fails, the response still includes the result with `"success": false` and an `"error"` field
+- You can publish the same video to both platforms in one request
 
 ---
 
@@ -236,7 +323,15 @@ _(after approval)_
 > Generating video (this takes ~60–90 seconds)... polling...
 > Video ready! Merging with subtitles...
 >
-> Your TikTok video is ready: https://download.citedy.com/shorts/final_abc123.mp4
+> Video ready! Merging with subtitles...
+>
+> Your video is ready: https://download.citedy.com/shorts/final_abc123.mp4
+>
+> You have Instagram connected. Would you like me to publish it to your Instagram Reels?
+
+_(after approval)_
+
+> Published to Instagram Reels! Post ID: 18099473800954601
 
 ---
 
@@ -302,13 +397,13 @@ Generate a speech script for the avatar.
 
 Generate an AI avatar image.
 
-| Parameter   | Type                                             | Required | Description                                                         |
-| ----------- | ------------------------------------------------ | -------- | ------------------------------------------------------------------- |
-| `gender`    | `"male"` \| `"female"`                           | no       | Avatar gender                                                       |
-| `origin`    | string                                           | no       | `"european"`, `"asian"`, `"african"`, `"latin"`, `"middle_eastern"`, `"south_asian"` |
-| `age_range` | string                                           | no       | `"18-25"`, `"26-35"` (default), `"36-50"`                           |
-| `type`      | string                                           | no       | `"tech_founder"` (default), `"vibe_coder"`, `"student"`, `"executive"` |
-| `location`  | string                                           | no       | `"coffee_shop"` (default), `"dev_cave"`, `"street"`, `"car"`, `"home_office"`, `"podcast_studio"`, `"glass_office"`, `"rooftop"`, `"bedroom"`, `"park"`, `"gym"` |
+| Parameter   | Type                   | Required | Description                                                                                                                                                      |
+| ----------- | ---------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gender`    | `"male"` \| `"female"` | no       | Avatar gender                                                                                                                                                    |
+| `origin`    | string                 | no       | `"european"`, `"asian"`, `"african"`, `"latin"`, `"middle_eastern"`, `"south_asian"`                                                                             |
+| `age_range` | string                 | no       | `"18-25"`, `"26-35"` (default), `"36-50"`                                                                                                                        |
+| `type`      | string                 | no       | `"tech_founder"` (default), `"vibe_coder"`, `"student"`, `"executive"`                                                                                           |
+| `location`  | string                 | no       | `"coffee_shop"` (default), `"dev_cave"`, `"street"`, `"car"`, `"home_office"`, `"podcast_studio"`, `"glass_office"`, `"rooftop"`, `"bedroom"`, `"park"`, `"gym"` |
 
 **Cost:** 3 credits
 
@@ -326,14 +421,14 @@ Generate an AI avatar image.
 
 Submit a video generation job. **Asynchronous** — poll for completion.
 
-| Parameter      | Type                              | Required | Description                                             |
-| -------------- | --------------------------------- | -------- | ------------------------------------------------------- |
-| `prompt`       | string                            | yes      | 5-layer scene description (see Prompt Best Practices)   |
-| `avatar_url`   | string                            | yes      | URL from `/api/agent/shorts/avatar` or custom URL       |
-| `duration`     | `5` \| `10` \| `15`               | no       | Segment length in seconds (default: `10`)               |
-| `resolution`   | `"480p"` \| `"720p"`              | no       | Video resolution (default: `"480p"`)                    |
-| `aspect_ratio` | `"9:16"` \| `"16:9"` \| `"1:1"`   | no       | Aspect ratio (default: `"9:16"`)                        |
-| `speech_text`  | string                            | yes      | Exact text the avatar speaks. Must match script output. |
+| Parameter      | Type                            | Required | Description                                             |
+| -------------- | ------------------------------- | -------- | ------------------------------------------------------- |
+| `prompt`       | string                          | yes      | 5-layer scene description (see Prompt Best Practices)   |
+| `avatar_url`   | string                          | yes      | URL from `/api/agent/shorts/avatar` or custom URL       |
+| `duration`     | `5` \| `10` \| `15`             | no       | Segment length in seconds (default: `10`)               |
+| `resolution`   | `"480p"` \| `"720p"`            | no       | Video resolution (default: `"480p"`)                    |
+| `aspect_ratio` | `"9:16"` \| `"16:9"` \| `"1:1"` | no       | Aspect ratio (default: `"9:16"`)                        |
+| `speech_text`  | string                          | yes      | Exact text the avatar speaks. Must match script output. |
 
 **Cost:** 60 credits (5s) / 130 credits (10s) / 185 credits (15s)
 
@@ -383,22 +478,22 @@ Poll every 5–10 seconds. Typical generation time: 60–120 seconds.
 
 Merge video segments and burn in subtitles.
 
-| Parameter    | Type     | Required | Description                           |
-| ------------ | -------- | -------- | ------------------------------------- |
+| Parameter    | Type     | Required | Description                                                                                                     |
+| ------------ | -------- | -------- | --------------------------------------------------------------------------------------------------------------- |
 | `video_urls` | string[] | yes      | Array of video URLs to merge (must start with `https://download.citedy.com/`). Count must equal `phrases` count |
-| `phrases`    | object[] | yes      | One per segment, each `{ "text": "..." }` (max 500 chars) |
-| `config`     | object   | no       | Subtitle config (see below)           |
+| `phrases`    | object[] | yes      | One per segment, each `{ "text": "..." }` (max 500 chars)                                                       |
+| `config`     | object   | no       | Subtitle config (see below)                                                                                     |
 
 **config object:**
 
-| Field                 | Type   | Default      | Description                  |
-| --------------------- | ------ | ------------ | ---------------------------- |
-| `words_per_phrase`    | number | `4`          | Words per subtitle chunk (2-8) |
-| `font_size`           | number | `48`         | Subtitle font size in px (16-72) |
-| `text_color`          | string | `"#FFFFFF"`  | Hex or named color           |
-| `stroke_color`        | string | —            | Outline color (hex or named) |
-| `stroke_width`        | number | —            | Outline width (0-5)         |
-| `position_from_bottom`| number | —            | Pixels from bottom (50-300) |
+| Field                  | Type   | Default     | Description                      |
+| ---------------------- | ------ | ----------- | -------------------------------- |
+| `words_per_phrase`     | number | `4`         | Words per subtitle chunk (2-8)   |
+| `font_size`            | number | `48`        | Subtitle font size in px (16-72) |
+| `text_color`           | string | `"#FFFFFF"` | Hex or named color               |
+| `stroke_color`         | string | —           | Outline color (hex or named)     |
+| `stroke_width`         | number | —           | Outline width (0-5)              |
+| `position_from_bottom` | number | —           | Pixels from bottom (50-300)      |
 
 **Cost:** 5 credits
 
@@ -407,6 +502,47 @@ Merge video segments and burn in subtitles.
 ```json
 {
   "final_video_url": "https://download.citedy.com/shorts/final_..."
+}
+```
+
+---
+
+### POST /api/agent/shorts/publish
+
+Publish a video to Instagram Reels and/or YouTube Shorts.
+
+| Parameter              | Type                                      | Required | Description                                             |
+| ---------------------- | ----------------------------------------- | -------- | ------------------------------------------------------- |
+| `video_url`            | string                                    | yes      | HTTPS URL on `download.citedy.com`                      |
+| `speech_text`          | string                                    | yes      | Speech text for auto-generating metadata (5-2000 chars) |
+| `targets`              | array (1-2 items)                         | yes      | Publish targets                                         |
+| `targets[].platform`   | `"instagram_reels"` \| `"youtube_shorts"` | yes      | Target platform                                         |
+| `targets[].account_id` | string (UUID)                             | yes      | Account ID from `GET /api/agent/me`                     |
+| `privacy_status`       | `"public"` \| `"unlisted"` \| `"private"` | no       | YouTube privacy (default: `"public"`)                   |
+
+**Cost:** 5 credits for Instagram Reels, 0 credits for YouTube Shorts
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "platform": "instagram_reels",
+      "success": true,
+      "post_id": "18099473800954601",
+      "time_ms": 5200
+    }
+  ],
+  "credits_charged": 5,
+  "metadata": {
+    "title": "...",
+    "description": "...",
+    "hashtags": ["#seo", "#ai"]
+  },
+  "metadata_provider": "gemini",
+  "metadata_degraded": false,
+  "total_time_ms": 8500
 }
 ```
 
@@ -430,16 +566,19 @@ Use `GET /api/agent/me` to check the user's credit balance before starting a gen
 
 ## Pricing Table
 
-| Step               | Duration | Cost (credits)  | Cost (USD) |
-| ------------------ | -------- | --------------- | ---------- |
-| Script generation  | any      | 1 credits       | $0.01      |
-| Avatar generation  | —        | 3 credits       | $0.03      |
-| Video generation   | 5s       | 60 credits      | $0.60      |
-| Video generation   | 10s      | 130 credits     | $1.30      |
-| Video generation   | 15s      | 185 credits     | $1.85      |
-| Merge + subtitles  | —        | 5 credits       | $0.05      |
-| **Full 10s video** | **10s**  | **139 credits** | **$1.39**  |
-| **Full 15s video** | **15s**  | **194 credits** | **$1.94**  |
+| Step                           | Duration | Cost (credits)  | Cost (USD) |
+| ------------------------------ | -------- | --------------- | ---------- |
+| Script generation              | any      | 1 credits       | $0.01      |
+| Avatar generation              | —        | 3 credits       | $0.03      |
+| Video generation               | 5s       | 60 credits      | $0.60      |
+| Video generation               | 10s      | 130 credits     | $1.30      |
+| Video generation               | 15s      | 185 credits     | $1.85      |
+| Merge + subtitles              | —        | 5 credits       | $0.05      |
+| Publish to Instagram Reels     | —        | 5 credits       | $0.05      |
+| Publish to YouTube Shorts      | —        | 0 credits       | $0.00      |
+| **Full 10s + IG publish**      | **10s**  | **144 credits** | **$1.44**  |
+| **Full 15s + IG publish**      | **15s**  | **199 credits** | **$1.99**  |
+| **Full 15s + IG + YT publish** | **15s**  | **199 credits** | **$1.99**  |
 
 > 1 credit = $0.01 USD
 
@@ -482,6 +621,8 @@ Audio: no background music.
 - Default resolution is `480p`; use `720p` for higher quality (same credit cost)
 - Avatar images must be publicly accessible URLs
 - `speech_text` must not exceed ~150 words per segment
+- **Publishing** requires a connected Instagram or YouTube account at https://www.citedy.com/dashboard/settings
+- Maximum **1 publish per platform** per request (2 platforms max: IG + YT)
 
 ---
 
@@ -505,6 +646,7 @@ If you receive a `429` error, wait for the current job to complete before submit
 | `403` | Account not approved or feature not available | Direct user to complete email verification               |
 | `409` | Concurrent job already running                | Poll existing job first, then retry                      |
 | `429` | Rate limit exceeded                           | Wait 60 seconds and retry                                |
+| `404` | Social account not found (publish)            | Check account_id from `GET /api/agent/me`                |
 | `500` | Server error during generation                | Retry once after 30 seconds; if persists, note as failed |
 
 ---
@@ -516,6 +658,8 @@ If you receive a `429` error, wait for the current job to complete before submit
 - **Poll automatically** — after submitting `/api/agent/shorts`, poll every 8 seconds without asking the user
 - **Show progress** — inform the user when each step completes: "Script ready... Avatar ready... Generating video (this takes ~60–90s)..."
 - **Return the final URL** — always end with the direct download link to the final merged video
+- **Offer to publish** — if the user has connected social accounts, ask if they want to publish after the video is ready
+- **Confirm before publishing** — always get user approval before calling the publish endpoint
 
 ---
 
