@@ -28,10 +28,25 @@ import { createMemoryCLI } from "./src/cli.js";
 // Import search components
 import { initializeLLM, disposeDefaultLlamaCpp } from "./src/llm.js";
 import type { HttpLLMConfig } from "./src/llm.js";
-import { createStore as createSearchStore, hybridQuery as searchHybridQuery, searchFTS } from "./src/search.js";
+import {
+  createStore as createSearchStore,
+  getStatus as getDocumentIndexStatus,
+  hybridQuery as searchHybridQuery,
+  searchFTS,
+} from "./src/search.js";
 import { indexAllPaths, embedDocuments, getEmbeddingBacklog } from "./src/doc-indexer.js";
 import { buildRecallContext, MEMORY_INSTRUCTION } from "./src/memory-instructions.js";
-import { initTelemetry } from "./src/telemetry.js";
+import { buildMemoryFlushPlan } from "./src/flush-plan.js";
+import { initTelemetry, Stopwatch } from "./src/telemetry.js";
+import { extractRecallQuery } from "./src/recall-query.js";
+import {
+  aggregateHealthStatus,
+  buildAuditPrompt,
+  collectMemexLogEvidence,
+  extractAuditConclusion,
+  type MemexHealthCheck,
+  type MemexHealthSnapshot,
+} from "./src/health.js";
 
 // ============================================================================
 // Configuration & Types
@@ -210,6 +225,7 @@ function getPluginVersion(): string {
 // ============================================================================
 
 let _telemetrySent = false;
+let _registered = false;
 
 const memoryUnifiedPlugin = {
   id: "memex",
@@ -383,6 +399,206 @@ const memoryUnifiedPlugin = {
     const scopeManager = createScopeManager(config.scopes);
     const pluginVersion = getPluginVersion();
     const track = initTelemetry(pluginVersion);
+    let lastStartupCheck: {
+      at: number;
+      embedding: { success: boolean; error?: string; dimensions?: number };
+      retrieval: { success: boolean; mode: string; hasFtsSupport: boolean; error?: string };
+    } | null = null;
+    let lastBackupState: {
+      at: number;
+      success: boolean;
+      detail: string;
+      file?: string;
+    } | null = null;
+
+    const runWithTimeout = async <T>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      });
+      try {
+        return await Promise.race([promise, timeoutPromise]);
+      } finally {
+        if (timeout) clearTimeout(timeout);
+      }
+    };
+
+    const buildHealthSnapshot = async (opts?: {
+      probe?: boolean;
+      logLines?: number;
+      logPath?: string;
+      logDir?: string;
+    }): Promise<MemexHealthSnapshot & {
+      generatedAt: string;
+      dbPath: string;
+      logs?: { path: string | null; count: number };
+      startup?: typeof lastStartupCheck;
+      backup?: typeof lastBackupState;
+    }> => {
+      const checks: MemexHealthCheck[] = [];
+
+      try {
+        validateStoragePath(resolvedDbPath);
+        checks.push({
+          name: "storage_path",
+          status: "ok",
+          detail: resolvedDbPath,
+        });
+      } catch (err) {
+        checks.push({
+          name: "storage_path",
+          status: "fail",
+          detail: String(err),
+        });
+      }
+
+      try {
+        const liveSearchStore = getSearchStore();
+        const db = liveSearchStore.db;
+        const quickCheck = String(db.prepare("PRAGMA quick_check").pluck().get() ?? "unknown");
+        const exists = existsSync(unifiedDbFile);
+        checks.push({
+          name: "db",
+          status: quickCheck === "ok" ? "ok" : "fail",
+          detail: quickCheck === "ok"
+            ? `${exists ? "present" : "virtual"} at ${unifiedDbFile}`
+            : `PRAGMA quick_check returned ${quickCheck}`,
+          meta: { quickCheck, exists, file: unifiedDbFile },
+        });
+      } catch (err) {
+        checks.push({
+          name: "db",
+          status: "fail",
+          detail: String(err),
+        });
+      }
+
+      try {
+        const stats = await store.stats();
+        checks.push({
+          name: "memory_store",
+          status: "ok",
+          detail: `${stats.totalCount} memories`,
+          meta: stats as unknown as Record<string, unknown>,
+        });
+      } catch (err) {
+        checks.push({
+          name: "memory_store",
+          status: "fail",
+          detail: String(err),
+        });
+      }
+
+      try {
+        refreshEmbeddingMismatchWarning();
+        const needsReEmbed = getStore().needsReEmbed(embeddingModel);
+        checks.push({
+          name: "embedding_state",
+          status: needsReEmbed ? "warn" : "ok",
+          detail: needsReEmbed
+            ? (embeddingMismatchWarning ?? "memories need re-embedding")
+            : `model ${embeddingModel} consistent`,
+        });
+      } catch (err) {
+        checks.push({
+          name: "embedding_state",
+          status: "fail",
+          detail: String(err),
+        });
+      }
+
+      try {
+        const docsEnabled = config.documents?.enabled !== false;
+        if (!docsEnabled) {
+          checks.push({
+            name: "document_index",
+            status: "ok",
+            detail: "disabled",
+          });
+        } else {
+          const backlog = getEmbeddingBacklog(getSearchStore().db);
+          checks.push({
+            name: "document_index",
+            status: backlog > 0 ? "warn" : "ok",
+            detail: backlog > 0 ? `${backlog} documents pending embedding` : "backlog empty",
+            meta: { backlog },
+          });
+        }
+      } catch (err) {
+        checks.push({
+          name: "document_index",
+          status: "fail",
+          detail: String(err),
+        });
+      }
+
+      if (lastBackupState) {
+        checks.push({
+          name: "backup",
+          status: lastBackupState.success ? "ok" : "warn",
+          detail: lastBackupState.detail,
+          meta: { at: lastBackupState.at, file: lastBackupState.file },
+        });
+      } else {
+        checks.push({
+          name: "backup",
+          status: "ok",
+          detail: "not run yet",
+        });
+      }
+
+      if (lastStartupCheck) {
+        const startupOk = lastStartupCheck.embedding.success && lastStartupCheck.retrieval.success;
+        checks.push({
+          name: "startup_probe",
+          status: startupOk ? "ok" : "warn",
+          detail: startupOk
+            ? "cached startup checks passed"
+            : [
+              lastStartupCheck.embedding.success ? null : `embedding: ${lastStartupCheck.embedding.error || "failed"}`,
+              lastStartupCheck.retrieval.success ? null : `retrieval: ${lastStartupCheck.retrieval.error || "failed"}`,
+            ].filter(Boolean).join("; "),
+        });
+      }
+
+      if (opts?.probe) {
+        const embeddingProbe = await runWithTimeout(embedder.test(), 8_000, "memex.health embedder.test()");
+        checks.push({
+          name: "embedding_probe",
+          status: embeddingProbe.success ? "ok" : "fail",
+          detail: embeddingProbe.success
+            ? `${embeddingProbe.dimensions} dimensions`
+            : (embeddingProbe.error ?? "embedding probe failed"),
+        });
+
+        const retrievalProbe = await runWithTimeout(retriever.test(), 8_000, "memex.health retriever.test()");
+        checks.push({
+          name: "retrieval_probe",
+          status: retrievalProbe.success ? "ok" : "fail",
+          detail: retrievalProbe.success
+            ? `${retrievalProbe.mode}, FTS ${retrievalProbe.hasFtsSupport ? "enabled" : "disabled"}`
+            : (retrievalProbe.error ?? "retrieval probe failed"),
+        });
+      }
+
+      const logs = opts?.logLines
+        ? await collectMemexLogEvidence({ logPath: opts.logPath, logDir: opts.logDir, maxLines: opts.logLines })
+        : null;
+
+      return {
+        generatedAt: new Date().toISOString(),
+        status: aggregateHealthStatus(checks),
+        plugin: {
+          id: "memex",
+          version: pluginVersion,
+        },
+        dbPath: unifiedDbFile,
+        checks,
+        logs: logs ? { path: logs.path, count: logs.lines.length } : undefined,
+        startup: lastStartupCheck,
+        backup: lastBackupState,
+      };
+    };
 
     // ========================================================================
     // Initialize document search (Document Search) — optional
@@ -531,7 +747,7 @@ const memoryUnifiedPlugin = {
               const backlog = getEmbeddingBacklog(searchDb);
               if (backlog > 0) {
                 if (!silent) api.logger.info(`memex: embedding ${backlog} document hashes...`);
-                const embedResult = await embedDocuments(searchDb, searchDims);
+                const embedResult = await embedDocuments(searchDb, searchDims, embedder);
                 if (!silent) {
                   api.logger.info(
                     `memex: embedded ${embedResult.embedded} docs (${embedResult.chunks} chunks)${embedResult.errors.length > 0 ? `, ${embedResult.errors.length} errors` : ""}`
@@ -627,6 +843,109 @@ const memoryUnifiedPlugin = {
         queryExpansion: false,
       }
     );
+
+    api.registerMemoryRuntime({
+      async getMemorySearchManager() {
+        const manager = {
+          status() {
+            try {
+              const liveStore = getStore();
+              const memoryCount = liveStore.totalMemories;
+              const cacheStats = embedder.cacheStats;
+              const needsReEmbed = liveStore.needsReEmbed(embeddingModel);
+              const docsEnabled = config.documents?.enabled !== false && docPaths.length > 0;
+              let docCount = 0;
+              let docBacklog = 0;
+              let hasVectorIndex = liveStore.hasVectorSupport;
+              if (docsEnabled) {
+                try {
+                  const docStatus = getDocumentIndexStatus(getSearchStore().db);
+                  docCount = docStatus.totalDocuments;
+                  docBacklog = docStatus.needsEmbedding;
+                  hasVectorIndex = docStatus.hasVectorIndex;
+                } catch {}
+              }
+              const totalUnits = memoryCount + docCount;
+
+              return {
+                backend: "builtin" as const,
+                provider: "memex",
+                model: embeddingModel,
+                files: totalUnits,
+                chunks: totalUnits,
+                dirty: needsReEmbed || docBacklog > 0,
+                dbPath: unifiedDbFile,
+                sources: ["memory", "sessions"],
+                cache: {
+                  enabled: true,
+                  entries: cacheStats.size,
+                },
+                fts: {
+                  enabled: true,
+                  available: liveStore.hasFtsSupport,
+                },
+                vector: {
+                  enabled: true,
+                  available: liveStore.hasVectorSupport && hasVectorIndex,
+                  dims: vectorDim,
+                },
+                custom: {
+                  memories: memoryCount,
+                  documents: docCount,
+                  documentBacklog: docBacklog,
+                  docsEnabled,
+                },
+              };
+            } catch (error) {
+              return {
+                backend: "builtin" as const,
+                provider: "memex",
+                model: embeddingModel,
+                files: 0,
+                chunks: 0,
+                dirty: true,
+                dbPath: unifiedDbFile,
+                sources: ["memory", "sessions"],
+                cache: { enabled: true, entries: 0 },
+                fts: { enabled: true, available: false, error: String(error) },
+                vector: { enabled: true, available: false, dims: vectorDim },
+                custom: {
+                  error: error instanceof Error ? error.message : String(error),
+                  docsEnabled: config.documents?.enabled !== false && docPaths.length > 0,
+                },
+              };
+            }
+          },
+          async probeEmbeddingAvailability() {
+            const probe = await embedder.test();
+            return probe.success
+              ? { ok: true }
+              : { ok: false, error: probe.error ?? "embedding probe failed" };
+          },
+          async probeVectorAvailability() {
+            const liveStore = getStore();
+            try {
+              const docStatus = getDocumentIndexStatus(getSearchStore().db);
+              return liveStore.hasVectorSupport && docStatus.hasVectorIndex;
+            } catch {
+              return liveStore.hasVectorSupport;
+            }
+          },
+          async close() {},
+        };
+
+        return { manager };
+      },
+      resolveMemoryBackendConfig() {
+        return { backend: "builtin" as const };
+      },
+      async closeAllMemorySearchManagers() {},
+    });
+
+    // Everything below runs once — api.on() is additive and OpenClaw
+    // calls register() multiple times during startup phases.
+    if (_registered) return;
+    _registered = true;
 
     api.logger.info(
       `memex@${pluginVersion}: plugin registered (db: ${resolvedDbPath}, model: ${config.embedding.model || "text-embedding-3-small"}, documents: ${unifiedRecall.hasDocumentSearch ? "enabled" : "disabled"})`
@@ -734,12 +1053,13 @@ const memoryUnifiedPlugin = {
     // Uses before_prompt_build (not legacy before_agent_start) per SDK recommendation.
     if (config.autoRecall !== false) {
       api.on("before_prompt_build", async (event: any, ctx: any) => {
-        if (!event.prompt || shouldSkipRetrieval(event.prompt, config.autoRecallMinLength)) {
+        const recallQuery = extractRecallQuery(event);
+        if (!recallQuery || shouldSkipRetrieval(recallQuery, config.autoRecallMinLength)) {
           return;
         }
 
         try {
-          const recallStart = Date.now();
+          const sw = new Stopwatch();
           // Determine agent ID and accessible scopes
           const agentId = ctx?.agentId || "main";
 
@@ -774,13 +1094,14 @@ const memoryUnifiedPlugin = {
               ? workspaceToCollection.get(ctx.workspaceDir)
               : undefined;
 
-            const results = await unifiedRecall.recall(event.prompt, {
+            const results = await unifiedRecall.recall(recallQuery, {
+              // Use only the latest user turn for retrieval. The full built prompt can
+              // exceed local embedding backend context limits and pollute recall intent.
               limit: config.autoRecallLimit ?? 3,
               scopeFilter: accessibleScopes,
               collection: docCollection,
               recentlyRecalled,
             });
-
             if (results.length === 0) {
               return;
             }
@@ -800,7 +1121,7 @@ const memoryUnifiedPlugin = {
               .join("\n");
           } else {
             const results = await retriever.retrieve({
-              query: event.prompt,
+              query: recallQuery,
               limit: config.autoRecallLimit ?? 3,
               scopeFilter: accessibleScopes,
               recentlyRecalled,
@@ -831,7 +1152,7 @@ const memoryUnifiedPlugin = {
             `memex: injecting ${resultCount} memories into context for agent ${agentId}`
           );
 
-          track("recall", { results: resultCount, latency_ms: Date.now() - recallStart, source: "auto" });
+          track("recall", { results: resultCount, source: "auto", ...retriever.lastTimings, ...sw.timings });
 
           return {
             prependContext: buildRecallContext(memoryContext),
@@ -846,6 +1167,24 @@ const memoryUnifiedPlugin = {
     // Auto-capture: inject memory instruction into system prompt
     // Nudges the LLM to store facts via memory_store tool
     // Supports both new `autoCapture` and legacy `memoryInstructions` config
+    api.registerMemoryPromptSection(({ availableTools }) => {
+      if (config.autoCapture === false || config.memoryInstructions === "off") {
+        return [];
+      }
+      if (!availableTools.has("memory_store")) {
+        return [];
+      }
+      const captureAgents = config.autoCaptureAgents as string[] | undefined;
+      if (captureAgents && captureAgents.length > 0) {
+        return ["Memex memory tools are active for configured agents."];
+      }
+      return [`<memory-instructions>\n${MEMORY_INSTRUCTION}\n</memory-instructions>`];
+    });
+
+    if (typeof (api as any).registerMemoryFlushPlan === "function") {
+      (api as any).registerMemoryFlushPlan(buildMemoryFlushPlan);
+    }
+
     if (config.autoCapture !== false && config.memoryInstructions !== "off") {
       const captureAgents = config.autoCaptureAgents as string[] | undefined;
       api.on("before_prompt_build", async (_event: any, ctx: any) => {
@@ -882,6 +1221,116 @@ const memoryUnifiedPlugin = {
     // Auto-capture removed — LLM-driven storage via memory_store tool is preferred.
     // Future: compaction-based extraction via session_before_compact hook.
 
+    api.registerGatewayMethod("memex.health", async ({ params, respond }) => {
+      try {
+        const probe = params?.probe === true;
+        const logLines = typeof params?.logLines === "number"
+          ? Math.max(0, Math.min(500, Math.floor(params.logLines)))
+          : 0;
+
+        const snapshot = await buildHealthSnapshot({ probe, logLines });
+        respond(true, snapshot);
+      } catch (err) {
+        respond(false, undefined, {
+          code: "memex_health_failed",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+
+    api.registerGatewayMethod("memex.audit_logs", async ({ params, respond }) => {
+      try {
+        const model = typeof params?.model === "string" ? params.model : undefined;
+        const provider = typeof params?.provider === "string" ? params.provider : undefined;
+        const logLines = typeof params?.logLines === "number"
+          ? Math.max(10, Math.min(500, Math.floor(params.logLines)))
+          : 100;
+
+        const health = await buildHealthSnapshot({ probe: false, logLines });
+        const evidence = await collectMemexLogEvidence({ maxLines: logLines });
+        const sessionKey = `memex-audit-${Date.now()}`;
+        const prompt = buildAuditPrompt(health, evidence.lines);
+        const run = await api.runtime.subagent.run({
+          sessionKey,
+          message: prompt,
+          provider,
+          model,
+          extraSystemPrompt:
+            "You are auditing memex plugin health. Use only the provided evidence. " +
+            "Do not speculate beyond the health snapshot and log lines.",
+          deliver: false,
+          idempotencyKey: `memex-audit-${Date.now()}`,
+        });
+        const wait = await api.runtime.subagent.waitForRun({ runId: run.runId, timeoutMs: 30_000 });
+
+        if (wait.status !== "ok") {
+          respond(true, {
+            status: "fail",
+            health,
+            logEvidence: {
+              path: evidence.path,
+              count: evidence.lines.length,
+              lines: evidence.lines,
+            },
+            audit: {
+              status: wait.status,
+              error: wait.error ?? `subagent finished with status ${wait.status}`,
+              runId: run.runId,
+            },
+          });
+          await api.runtime.subagent.deleteSession({ sessionKey, deleteTranscript: true }).catch(() => {});
+          return;
+        }
+
+        const messages = await api.runtime.subagent.getSessionMessages({ sessionKey, limit: 12 });
+        const conclusion = extractAuditConclusion(messages.messages);
+        await api.runtime.subagent.deleteSession({ sessionKey, deleteTranscript: true }).catch(() => {});
+
+        respond(true, {
+          status: conclusion ? "ok" : "warn",
+          health,
+          logEvidence: {
+            path: evidence.path,
+            count: evidence.lines.length,
+            lines: evidence.lines,
+          },
+          audit: {
+            status: "ok",
+            runId: run.runId,
+            conclusion: conclusion || "No assistant conclusion was returned by the audit run.",
+          },
+        });
+      } catch (err) {
+        respond(false, undefined, {
+          code: "memex_audit_failed",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    });
+
+    api.registerHttpRoute({
+      path: "/__memex/health",
+      auth: "gateway",
+      async handler(req, res) {
+        try {
+          const url = new URL(req.url || "/__memex/health", "http://127.0.0.1");
+          const probe = url.searchParams.get("probe") === "1";
+          const snapshot = await buildHealthSnapshot({ probe });
+          res.statusCode = 200;
+          res.setHeader("content-type", "application/json; charset=utf-8");
+          res.end(JSON.stringify(snapshot));
+          return true;
+        } catch (err) {
+          res.statusCode = 500;
+          res.setHeader("content-type", "application/json; charset=utf-8");
+          res.end(JSON.stringify({
+            error: err instanceof Error ? err.message : String(err),
+          }));
+          return true;
+        }
+      },
+    });
+
     // ========================================================================
     // Session Memory Hook (replaces built-in session-memory)
     // ========================================================================
@@ -901,7 +1350,14 @@ const memoryUnifiedPlugin = {
         await mkdir(backupDir, { recursive: true });
 
         const allMemories = await store.list(undefined, undefined, 10000, 0);
-        if (allMemories.length === 0) return;
+        if (allMemories.length === 0) {
+          lastBackupState = {
+            at: Date.now(),
+            success: true,
+            detail: "skipped: no memories to back up",
+          };
+          return;
+        }
 
         const dateStr = new Date().toISOString().split("T")[0];
         const backupFile = join(backupDir, `memory-backup-${dateStr}.jsonl`);
@@ -927,8 +1383,19 @@ const memoryUnifiedPlugin = {
           }
         }
 
+        lastBackupState = {
+          at: Date.now(),
+          success: true,
+          detail: `completed (${allMemories.length} entries)`,
+          file: backupFile,
+        };
         api.logger.info(`memex: backup completed (${allMemories.length} entries → ${backupFile})`);
       } catch (err) {
+        lastBackupState = {
+          at: Date.now(),
+          success: false,
+          detail: String(err),
+        };
         api.logger.warn(`memex: backup failed: ${String(err)}`);
       }
     }
@@ -952,24 +1419,21 @@ const memoryUnifiedPlugin = {
 
         refreshEmbeddingMismatchWarning();
 
-        const withTimeout = async <T>(p: Promise<T>, ms: number, label: string): Promise<T> => {
-          let timeout: ReturnType<typeof setTimeout> | undefined;
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            timeout = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
-          });
-          try {
-            return await Promise.race([p, timeoutPromise]);
-          } finally {
-            if (timeout) clearTimeout(timeout);
-          }
-        };
-
         const runStartupChecks = async () => {
+          const startupSw = new Stopwatch();
           try {
             // Test components (bounded time)
-            const embedTest = await withTimeout(embedder.test(), 8_000, "embedder.test()");
-            const retrievalTest = await withTimeout(retriever.test(), 8_000, "retriever.test()");
+            const embedTest = await runWithTimeout(embedder.test(), 8_000, "embedder.test()");
+            startupSw.lap("embed_probe");
+            const retrievalTest = await runWithTimeout(retriever.test(), 8_000, "retriever.test()");
+            startupSw.lap("retrieval_probe");
+            lastStartupCheck = {
+              at: Date.now(),
+              embedding: embedTest,
+              retrieval: retrievalTest,
+            };
 
+            track("startup", startupSw.timings);
             api.logger.info(
               `memex: initialized successfully ` +
               `(embedding: ${embedTest.success ? "OK" : "FAIL"}, ` +
@@ -985,6 +1449,15 @@ const memoryUnifiedPlugin = {
               api.logger.warn(`memex: retrieval test failed: ${retrievalTest.error}`);
             }
           } catch (error) {
+            let hasFtsSupport = false;
+            try {
+              hasFtsSupport = getStore().hasFtsSupport;
+            } catch { /* ignore */ }
+            lastStartupCheck = {
+              at: Date.now(),
+              embedding: { success: false, error: String(error) },
+              retrieval: { success: false, mode: retrievalConfig.mode, hasFtsSupport, error: String(error) },
+            };
             api.logger.warn(`memex: startup checks failed: ${String(error)}`);
           }
         };
@@ -1084,7 +1557,7 @@ const memoryUnifiedPlugin = {
               const pending = getEmbeddingBacklog(db);
               if (pending > 0) {
                 api.logger.info(`memex: document recovery — ${pending} docs indexed but not embedded, embedding now...`);
-                const result = await embedDocuments(db, searchDims);
+                const result = await embedDocuments(db, searchDims, embedder);
                 api.logger.info(
                   `memex: document recovery — embedded ${result.embedded} docs (${result.chunks} chunks)` +
                   (result.errors.length > 0 ? `, ${result.errors.length} errors` : "")
@@ -1219,7 +1692,13 @@ function parsePluginConfig(value: unknown): PluginConfig {
   };
 }
 
-const pluginExport = Object.assign(memoryUnifiedPlugin, { detectCategory });
+/** @internal Reset module-level registration guard (test use only). */
+function _resetRegistration() {
+  _registered = false;
+  _telemetrySent = false;
+}
+
+const pluginExport = Object.assign(memoryUnifiedPlugin, { detectCategory, _resetRegistration });
 
 export default pluginExport;
 
