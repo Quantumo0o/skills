@@ -45,7 +45,7 @@ const VALUE_DESC_MAP = {
     reference: '填写引用记录的JSON，例如 {"id":"1"}',
     system: '系统自动生成，不可赋值',
     serial: '编码自动生成，不可赋值',
-    embed: '嵌入表字段，需在子表操作',
+    embed: '嵌入表字段，不可在主表直接赋值。先在子表创建记录取得ID，再更新主表：{"entry":[{"id":"子记录ID"}]}',
     webpage: '不支持直接提交',
     webpage2: '不支持直接提交',
     comment: '不支持直接提交',

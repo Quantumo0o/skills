@@ -53,7 +53,7 @@
     },
     {
       "name": "mofang_query_records",
-      "description": "查询指定表单中的记录列表，支持条件过滤、分页和排序。传入表单名称（中文），工具内部自动解析空间和表单，并自动获取字段定义用于映射。过滤条件中的字段名可使用中文名称(label)或英文标识(name)，工具自动转换。返回结果包含 fieldLabels 映射。",
+      "description": "查询指定表单中的记录列表，支持条件过滤、分页和排序。传入表单名称（中文），工具内部自动解析空间和表单，并自动获取字段定义用于映射。过滤条件中的字段名可使用中文名称(label)或英文标识(name)，工具自动转换。返回结果包含 fieldLabels 映射。重要：过滤条件参数名必须是 filters（复数、数组），不要使用魔方前端 JSON 里的单数 filter、filterType、value2、filterGroup；日期区间须用 operator between，且起止日期写在同一个 value 里用英文逗号分隔，例如 value:\"2026-03-01,2026-04-01\"。若误传前端的 filter.items（含 BETWEEN 与 value2），在无 filters 时 CLI 会尝试自动转换，但仍推荐直接写 filters。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -85,7 +85,7 @@
           },
           "filters": {
             "type": "array",
-            "description": "过滤条件数组。fieldName 可以用中文名称或英文标识，工具自动转换。",
+            "description": "过滤条件数组（唯一标准方式）。fieldName 可用中文 label 或英文 name。日期区间：operator 为 between，value 为「开始,结束」如 \"2026-03-01,2026-03-31\" 或 \"2026-03-01,2026-04-01\"（按业务是否含边界）。勿使用 filterType/value2。",
             "items": {
               "type": "object",
               "properties": {
@@ -215,6 +215,154 @@
           }
         },
         "required": ["formHint", "recordId"]
+      }
+    },
+    {
+      "name": "mofang_bpm_list_tasks",
+      "description": "列出当前用户的 BPM 待处理任务（Activiti runtime/tasks）。mode: assignee=我的待办，candidate=组待办需认领，delegated=委托待办。可分页、按流程定义 key 或描述模糊过滤。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "assignee | candidate | delegated，默认 assignee",
+            "enum": ["assignee", "candidate", "delegated"]
+          },
+          "page": { "type": "integer", "description": "页码，从 1 开始", "default": 1, "minimum": 1 },
+          "pageSize": { "type": "integer", "description": "每页条数，默认 20，最大 100", "default": 20, "minimum": 1, "maximum": 100 },
+          "processDefinitionKey": { "type": "string", "description": "流程定义 key，可选" },
+          "descriptionLike": { "type": "string", "description": "任务描述模糊匹配，可选" }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "mofang_bpm_query_tasks",
+      "description": "按条件查询 BPM 任务（POST query/tasks），适合按表单+记录号定位。默认 assignee 为当前登录用户。可传 formHint+recordId 解析 formId 与记录过滤。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "formHint": { "type": "string", "description": "表单名称（中文），与 recordId 联用以过滤" },
+          "spaceHint": { "type": "string", "description": "空间名称（中文），可选" },
+          "recordId": { "type": "string", "description": "网表记录序号" },
+          "processDefinitionKey": { "type": "string", "description": "流程定义 key" },
+          "processDefinitionName": { "type": "string", "description": "流程名称" },
+          "taskName": { "type": "string", "description": "任务显示名称" },
+          "taskDefinitionKey": { "type": "string", "description": "任务定义 key" },
+          "assigneeUserId": { "type": "string", "description": "处理人账号 id，不传则用当前用户" },
+          "includeProcessVariables": { "type": "boolean", "description": "是否包含流程变量，默认 true" },
+          "page": { "type": "integer", "default": 1, "minimum": 1 },
+          "pageSize": { "type": "integer", "default": 50, "minimum": 1, "maximum": 100 }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "mofang_bpm_get_task",
+      "description": "获取单个 BPM 任务详情及任务变量，并提取 recordId、spaceId、formId 提示，用于定位办理上下文。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "任务 id（从列表或查询结果获得）" }
+        },
+        "required": ["taskId"]
+      }
+    },
+    {
+      "name": "mofang_bpm_complete_task",
+      "description": "提交/完成任务（action complete）。默认按服务端逻辑同步变量后提交；若 simple=true 则仅发送 variables，需自行传入完整变量数组。写操作前须向用户确认。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "任务 id" },
+          "simple": { "type": "boolean", "description": "为 true 时只 POST complete，且必须提供 variables" },
+          "variables": {
+            "type": "array",
+            "description": "Activiti 变量对象列表，如 [{\"name\",\"value\",\"scope\",\"type\"}]",
+            "items": { "type": "object", "additionalProperties": true }
+          }
+        },
+        "required": ["taskId"]
+      }
+    },
+    {
+      "name": "mofang_bpm_delegate_task",
+      "description": "转办（delegate）任务到指定用户。写操作前须向用户确认。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "任务 id" },
+          "assignee": { "type": "string", "description": "被转办人账号 id（数字账号）" }
+        },
+        "required": ["taskId", "assignee"]
+      }
+    },
+    {
+      "name": "mofang_bpm_claim_task",
+      "description": "认领组任务（claim）。assignee 默认当前用户。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "任务 id" },
+          "assignee": { "type": "string", "description": "认领人账号 id，可选，默认当前用户" }
+        },
+        "required": ["taskId"]
+      }
+    },
+    {
+      "name": "mofang_bpm_resolve_task",
+      "description": "委托归还（resolve），与 delegate 配对使用。写操作前须向用户确认。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "任务 id" }
+        },
+        "required": ["taskId"]
+      }
+    },
+    {
+      "name": "mofang_bpm_jump_task",
+      "description": "流程跳转：abort=终止（可选自动找结束节点），rollback=驳回（需 jumpTargetId 或 targetTaskName），recovery=取回（必须 jumpTargetId）。写操作前须向用户确认。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskId": { "type": "string", "description": "当前任务 id" },
+          "kind": {
+            "type": "string",
+            "enum": ["abort", "rollback", "recovery"],
+            "description": "abort | rollback | recovery"
+          },
+          "jumpTargetId": { "type": "string", "description": "BPMN 元素 id，如 sid-xxx；abort 可省略由服务端模型推断" },
+          "targetTaskName": { "type": "string", "description": "rollback 时用户任务在流程图上的显示名称" }
+        },
+        "required": ["taskId", "kind"]
+      }
+    },
+    {
+      "name": "mofang_bpm_open_transaction",
+      "description": "开启 BPM 事务（如并行加签 COSIGN）。返回 transactionId，后续须调用 close 并配合公式校验与记录保存。写操作前须向用户确认。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "taskAction": { "type": "string", "description": "动作码，如 COSIGN（加签）" },
+          "processName": { "type": "string", "description": "流程名称" },
+          "taskName": { "type": "string", "description": "当前任务名称" },
+          "processKey": { "type": "string", "description": "流程 key" },
+          "taskId": { "type": "string", "description": "任务 id，可选" },
+          "processInstId": { "type": "string", "description": "流程实例 id，可选" }
+        },
+        "required": ["taskAction"]
+      }
+    },
+    {
+      "name": "mofang_bpm_close_transaction",
+      "description": "关闭 BPM 事务，需传入 open 返回的 transactionId。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "transactionId": { "type": "string", "description": "与 mofang_bpm_open_transaction 返回的 transactionId 一致" }
+        },
+        "required": ["transactionId"]
       }
     }
   ]

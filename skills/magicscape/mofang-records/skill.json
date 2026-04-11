@@ -1,10 +1,10 @@
 {
   "name": "mofang-records",
-  "version": "3.0.0",
-  "description": "魔方网表记录管理 Skill，支持通过自然语言对魔方网表中的记录进行查询、创建、修改和删除操作。",
+  "version": "3.1.0",
+  "description": "魔方网表记录与 BPM 流程 Skill：记录 CRUD，以及待办列表、任务定位、提交/转办/认领/跳转与加签事务等流程操作。",
   "author": "magicscape",
   "requiredTools": ["exec"],
-  "tags": ["mofang", "no-code", "records", "crud", "rest-api", "cli"],
+  "tags": ["mofang", "no-code", "records", "crud", "rest-api", "cli", "bpm", "workflow"],
   "config": {
     "BASE_URL": {
       "type": "string",

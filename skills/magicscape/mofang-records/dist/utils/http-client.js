@@ -105,4 +105,181 @@ export async function apiRequest(config, method, path, body, isRetry = false) {
     }
     return { success: true, data, message: 'ok' };
 }
+/** URL-Safe Base64，与 Java Base64.encodeBase64URLSafeString(utf8(userId)) 对齐 */
+export function currentUserDigitalIdCookie(userId) {
+    return Buffer.from(userId, 'utf8').toString('base64url');
+}
+/**
+ * Activiti / BPM 相关请求：Bearer + Cookie CURRENT_USER_DIGITALID（与前端、Java RESTCaller 一致）。
+ * 兼容 204、正文为纯文本 ok、非 JSON。
+ */
+export async function bpmRequest(config, method, path, body, extraCookie, isRetry = false) {
+    await obtainToken(config);
+    const info = getTokenInfo();
+    if (!info) {
+        return { success: false, message: '未获取到 Token 信息。' };
+    }
+    const url = `${normalizeBaseUrl(config.baseUrl)}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = {
+        Authorization: `Bearer ${info.token}`,
+        Accept: 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+    const parts = [];
+    const digitalLogin = (info.username || info.userId || '').trim();
+    if (digitalLogin) {
+        parts.push(`CURRENT_USER_DIGITALID=${currentUserDigitalIdCookie(digitalLogin)}`);
+    }
+    if (extraCookie) {
+        parts.push(extraCookie);
+    }
+    if (parts.length > 0) {
+        headers.Cookie = parts.join('; ');
+    }
+    const init = { method, headers };
+    if (body !== undefined && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(body);
+    }
+    let response;
+    try {
+        response = await fetch(url, init);
+    }
+    catch (err) {
+        return { success: false, message: `网络请求失败: ${err.message}` };
+    }
+    if (response.status === 500 && !isRetry) {
+        clearTokenCache();
+        return bpmRequest(config, method, path, body, extraCookie, true);
+    }
+    if (response.status === 204) {
+        return { success: true, data: null, message: 'ok' };
+    }
+    const raw = await response.text();
+    const trimmed = raw.replace(/^\uFEFF/, '').trim();
+    if (response.ok && (trimmed === '' || trimmed === 'ok')) {
+        return { success: true, data: trimmed === 'ok' ? { ok: true } : null, message: 'ok' };
+    }
+    if (response.ok && trimmed === 'success') {
+        return { success: true, data: { success: true }, message: 'ok' };
+    }
+    if (response.ok && trimmed.startsWith('<')) {
+        return { success: true, data: { xml: trimmed }, message: 'ok' };
+    }
+    let data;
+    if (trimmed && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+        try {
+            data = parseResponseJson(trimmed);
+        }
+        catch {
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: `HTTP ${response.status}，正文非 JSON: ${trimmed.slice(0, 200)}`,
+                };
+            }
+            return { success: true, data: { raw: trimmed }, message: 'ok' };
+        }
+        if (!response.ok) {
+            const errMsg = data?.message || data?.exception || data?.errmsg || `HTTP ${response.status}`;
+            return { success: false, message: `请求失败: ${errMsg}`, data };
+        }
+        return { success: true, data, message: 'ok' };
+    }
+    if (!response.ok) {
+        return {
+            success: false,
+            message: `请求失败: HTTP ${response.status} ${trimmed.slice(0, 240)}`,
+        };
+    }
+    return { success: true, data: trimmed ? { raw: trimmed } : null, message: 'ok' };
+}
+/**
+ * 与 bpmRequest 相同鉴权，可发 JSON 或原始正文（如 `updateDesc` 的空 body）。
+ */
+export async function bpmFetch(config, method, path, options, isRetry = false) {
+    await obtainToken(config);
+    const info = getTokenInfo();
+    if (!info) {
+        return { success: false, message: '未获取到 Token 信息。' };
+    }
+    const url = `${normalizeBaseUrl(config.baseUrl)}${path.startsWith('/') ? path : `/${path}`}`;
+    const headers = {
+        Authorization: `Bearer ${info.token}`,
+        Accept: 'application/json, text/plain, */*',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+    const parts = [];
+    const digitalLogin = (info.username || info.userId || '').trim();
+    if (digitalLogin) {
+        parts.push(`CURRENT_USER_DIGITALID=${currentUserDigitalIdCookie(digitalLogin)}`);
+    }
+    if (options?.extraCookie) {
+        parts.push(options.extraCookie);
+    }
+    if (parts.length > 0) {
+        headers.Cookie = parts.join('; ');
+    }
+    const init = { method, headers };
+    if (options?.jsonBody !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        init.body = JSON.stringify(options.jsonBody);
+    }
+    else if (options?.textBody !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        init.body = options.textBody;
+    }
+    let response;
+    try {
+        response = await fetch(url, init);
+    }
+    catch (err) {
+        return { success: false, message: `网络请求失败: ${err.message}` };
+    }
+    if (response.status === 500 && !isRetry) {
+        clearTokenCache();
+        return bpmFetch(config, method, path, options, true);
+    }
+    if (response.status === 204) {
+        return { success: true, data: null, message: 'ok' };
+    }
+    const raw = await response.text();
+    const trimmed = raw.replace(/^\uFEFF/, '').trim();
+    if (response.ok && (trimmed === '' || trimmed === 'ok')) {
+        return { success: true, data: trimmed === 'ok' ? { ok: true } : null, message: 'ok' };
+    }
+    if (response.ok && trimmed === 'success') {
+        return { success: true, data: { success: true }, message: 'ok' };
+    }
+    if (response.ok && trimmed.startsWith('<')) {
+        return { success: true, data: { xml: trimmed }, message: 'ok' };
+    }
+    let data;
+    if (trimmed && (trimmed.startsWith('{') || trimmed.startsWith('['))) {
+        try {
+            data = parseResponseJson(trimmed);
+        }
+        catch {
+            if (!response.ok) {
+                return {
+                    success: false,
+                    message: `HTTP ${response.status}，正文非 JSON: ${trimmed.slice(0, 200)}`,
+                };
+            }
+            return { success: true, data: { raw: trimmed }, message: 'ok' };
+        }
+        if (!response.ok) {
+            const errMsg = data?.message || data?.exception || data?.errmsg || `HTTP ${response.status}`;
+            return { success: false, message: `请求失败: ${errMsg}`, data };
+        }
+        return { success: true, data, message: 'ok' };
+    }
+    if (!response.ok) {
+        return {
+            success: false,
+            message: `请求失败: HTTP ${response.status} ${trimmed.slice(0, 240)}`,
+        };
+    }
+    return { success: true, data: trimmed ? { raw: trimmed } : null, message: 'ok' };
+}
 //# sourceMappingURL=http-client.js.map

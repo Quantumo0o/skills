@@ -1,6 +1,6 @@
 {
   "name": "mofang-records",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "魔方网表记录管理 OpenClaw Skill",
   "type": "module",
   "bin": {
@@ -11,6 +11,7 @@
     "pack": "npm run build && node ../scripts/pack-skill.mjs",
     "typecheck": "tsc --noEmit",
     "cli": "node cli.mjs",
+    "smoke:cli": "node scripts/smoke-cli-validation.mjs",
     "seed:ai-demo": "node docs/scripts/seed-ai-demo-data.mjs"
   },
   "dependencies": {
