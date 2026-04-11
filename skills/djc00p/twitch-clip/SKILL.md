@@ -17,7 +17,7 @@ Creates a clip of the last 30–60 seconds of a live Twitch stream via the Twitc
 
 ### 2. Get an OAuth token
 Visit this URL in your browser (replace `YOUR_CLIENT_ID`):
-```
+```text
 https://id.twitch.tv/oauth2/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=http://localhost&response_type=token&scope=clips:edit
 ```
 Copy the `access_token` from the redirect URL.
