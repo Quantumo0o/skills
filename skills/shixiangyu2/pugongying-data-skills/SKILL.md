@@ -58,6 +58,59 @@ description: |
 /etl-assistant 创建用户行为数据ETL Pipeline
 ```
 
+---
+
+## 📋 示例快速索引
+
+| 需求场景 | 推荐工作流 | 命令示例 |
+|----------|-----------|----------|
+| 从零建设数仓 | 端到端工作流 | `/skill-hub 端到端建设电商数仓` |
+| 需求澄清 | 需求分析 | `/requirement-analyst 分析需求` |
+| 架构选型 | 需求到架构 | `/requirement-analyst → /architecture-designer` |
+| 数据建模 | 架构到建模 | `/architecture-designer → /modeling-assistant` |
+| 生成SQL | 建模到SQL | `/modeling-assistant → /sql-assistant` |
+| 开发Pipeline | SQL到ETL | `/sql-assistant → /etl-assistant` |
+| 质量监控 | ETL到质量 | `/etl-assistant → /dq-assistant` |
+| 生成测试 | 质量到测试 | `/dq-assistant → /test-engineer` |
+| 部署上线 | 测试驱动部署 | `/test-engineer 验证并部署` |
+| 快速建模开发 | 建模到开发 | `/modeling-assistant → /sql-assistant → /etl-assistant` |
+
+---
+
+## 🔗 上下游联动说明
+
+### 完整数据流
+
+```
+requirement_package.yaml
+    ↓（业务需求、实体定义）
+architecture_package.yaml
+    ↓（分层架构、技术栈）
+modeling_package.yaml
+    ↓（事实表、维度表）
+sql_package.yaml
+    ↓（DDL、转换SQL）
+etl_package.yaml
+    ↓（Pipeline代码）
+dq_package.yaml
+    ↓（质量规则）
+test_package.yaml
+    ↓（测试通过）
+部署上线
+```
+
+### 快捷联动命令
+
+| 联动 | 命令 | 输出 |
+|------|------|------|
+| 需求→架构 | `/architecture-designer --from-requirement` | architecture_package.yaml |
+| 架构→建模 | `/model-design --from-architecture` | modeling_package.yaml |
+| 建模→SQL | `/sql-gen --from-model` | sql_package.yaml |
+| 建模→ETL | `/etl-template --from-model` | etl_package.yaml |
+| SQL→ETL | `/etl-template --from-sql` | etl_package.yaml |
+| ETL→质量 | `/dq-rule-gen --from-etl` | dq_package.yaml |
+| 质量→测试 | `/unit-test --from-dq` | test_package.yaml |
+
 ## 🔗 智能联动系统
 
 本Skill套件包含智能联动中枢，支持模块间自动数据流转：
@@ -97,14 +150,32 @@ pugongying-data-skills/
 ## 🛠️ 技术特色
 
 ### 1. 标准化输出格式
+
 每个模块输出标准化的YAML包文件，便于模块间数据交换：
-- `requirement_package.yaml` - 需求分析包
-- `architecture_package.yaml` - 架构设计包
-- `modeling_package.yaml` - 数据建模包
-- `sql_package.yaml` - SQL开发包
-- `etl_package.yaml` - ETL开发包
-- `dq_package.yaml` - 数据质量包
-- `test_package.yaml` - 测试包
+
+| 包文件 | 生成者 | 主要用途 |
+|--------|--------|----------|
+| `requirement_package.yaml` | requirement-analyst | 业务需求、数据实体、指标定义 |
+| `architecture_package.yaml` | architecture-designer | 架构决策、分层设计、技术栈 |
+| `modeling_package.yaml` | modeling-assistant | 事实表、维度表、SCD策略 |
+| `sql_package.yaml` | sql-assistant | SQL代码、表结构、优化建议 |
+| `etl_package.yaml` | etl-assistant | Pipeline代码、DAG配置、调度策略 |
+| `dq_package.yaml` | dq-assistant | 质量规则、检查结果、数据字典 |
+| `test_package.yaml` | test-engineer | 测试用例、测试报告、部署决策 |
+
+**标准包格式**：
+```yaml
+{package_name}:
+  version: "1.0"
+  metadata:
+    generated_by: "skill-name"
+    generated_at: "2024-01-15T10:00:00Z"
+    upstream_package: "上游包文件名"
+  content: { ... }
+  downstream_specs:
+    - target: "下游skill"
+      input_file: "{package_name}.yaml"
+```
 
 ### 2. 多Agent协作
 - **general-purpose Agent**：用于生成、编辑、执行任务
@@ -119,13 +190,27 @@ pugongying-data-skills/
 
 ## 📚 学习资源
 
-### 配套文档
-- `README.md` - 详细功能说明和使用指南
-- `Skill驱动数据系统开发探讨.md` - 设计理念和技术探讨
-- 各模块内的`references/`目录 - 规范文档和最佳实践
+### 套件文档
 
-### 示例项目
-每个模块包含`examples/`目录，提供典型场景的完整示例。
+| 文档 | 内容 | 场景 |
+|------|------|------|
+| `README.md` | 详细功能说明和使用指南 | 了解套件全貌 |
+| `skill-connections.yaml` | Skill联动配置 | 查看模块间关系 |
+| `skill-hub.md` | 联动中枢文档 | 了解工作流定义 |
+| `skill-template.md` | Skill开发模板 | 开发新Skill |
+| `Skill驱动数据系统开发探讨.md` | 设计理念和技术探讨 | 深入理解设计思想 |
+
+### 各模块文档
+
+| 模块 | 参考文档 | 示例 |
+|------|----------|------|
+| requirement-analyst | `references/requirement-standards.md` | `examples/` |
+| architecture-designer | `references/architecture-standards.md` | `examples/` |
+| modeling-assistant | `references/data-modeling-standards.md` | `examples/` |
+| sql-assistant | `references/sql-standards.md` | `examples/` |
+| etl-assistant | `references/etl-standards.md` | `examples/` |
+| dq-assistant | `references/data-quality-standards.md` | `examples/` |
+| test-engineer | `references/test-standards.md` | `examples/` |
 
 ## 🔄 版本管理
 

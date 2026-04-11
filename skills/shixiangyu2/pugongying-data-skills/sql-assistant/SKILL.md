@@ -165,6 +165,107 @@ description: |
 
 ---
 
+## 标准输出格式
+
+每个SQL开发任务输出标准化的 `sql_package.yaml`，便于下游 Skill 消费：
+
+```yaml
+sql_package:
+  version: "1.0"
+  metadata:
+    generated_by: "sql-assistant"
+    generated_at: "2024-01-15T10:00:00Z"
+    sql_dialect: "MySQL|PostgreSQL|SQL Server|..."
+    query_purpose: "业务用途描述"
+
+  content:
+    query_description: "查询的详细说明"
+    sql_code: "SELECT ..."
+    sql_hash: "sha256_hash"
+    tables_involved: ["table_a", "table_b"]
+    ddl_files:          # 如有建表语句
+      - path: "ddl/create_table_a.sql"
+        table: "table_a"
+
+  optimization:
+    indexes_suggested:
+      - table: "table_a"
+        columns: ["user_id", "created_at"]
+        type: "composite"
+    execution_notes: "执行建议和注意事项"
+
+  performance:
+    estimated_rows: 100000
+    complexity: "O(n log n)"
+
+  downstream_specs:
+    - target: "etl-assistant"
+      input_file: "sql_package.yaml"
+      mapping:
+        - "sql_code → extract_sql"
+        - "tables_involved → source_tables"
+```
+
+---
+
+## 前置强制检查
+
+执行 `/sql-gen` 前，必须完成以下检查：
+
+```markdown
+【强制】SQL 生成前置检查清单：
+- [ ] **数据库类型已确认**（MySQL/PostgreSQL/SQL Server/Oracle/其他）
+  - 如果用户未指定 → 必须主动询问
+  - 如果用户指定不明确 → 要求明确版本（如 MySQL 8.0 vs 5.7）
+- [ ] **表结构信息已知**（有DDL或样本数据）或已在对话中提供
+- [ ] **查询目的明确**（OLTP查询 vs OLAP分析）
+
+如果任何项未确认，必须先询问用户，禁止假设默认值。
+```
+
+---
+
+## 与下游 Skill 的联动
+
+SQL 开发完成后，自动触发下游 Skill：
+
+```bash
+## SQL 输出后的下一步
+
+# 步骤1: 转化为 ETL Pipeline（推荐）
+/etl-assistant 基于以下 SQL 生成 ETL Pipeline：
+- SQL 文件: outputs/sql_package.yaml
+- 抽取逻辑: sql_code 中的 SELECT 部分
+- 源表: tables_involved 列表
+- 目标: [用户指定目标表]
+- 调度: [用户指定调度频率]
+
+# 步骤2: 数据质量检查
+/dq-assistant 为以下查询结果建立质量监控：
+- 目标表: [查询结果表]
+- 检查项: 结果行数监控、数据新鲜度、异常值检测
+
+# 步骤3: 性能测试
+/test-engineer 为以下 SQL 生成性能测试：
+- SQL Hash: [sql_package.metadata.sql_hash]
+- 测试场景: 大数据量查询、并发查询
+- 基准: 执行时间 < [用户指定阈值]
+```
+
+---
+
+## 示例快速索引
+
+| 需求场景 | 推荐命令 | 详情位置 |
+|----------|----------|----------|
+| 生成简单查询 | `/sql-gen [描述]` | [功能1](#功能1sql生成器-sql-gen) |
+| 审查现有 SQL | `/sql-review [SQL]` | [功能2](#功能2sql审查器-sql-reviewer) |
+| 优化慢查询 | `/sql-explain [计划]` | [功能3](#功能3执行计划分析器-sql-explain) |
+| 批量生成报表 | `/sql-assistant 并行开发...` | [多Agent协作](#多agent协作流程) |
+| 转化为ETL | 先生成 SQL → 调用 `/etl-assistant` | [下游联动](#与下游-skill-的联动) |
+
+---
+
 ## 项目初始化（可选）
 
 为团队建立标准化SQL开发工作流：

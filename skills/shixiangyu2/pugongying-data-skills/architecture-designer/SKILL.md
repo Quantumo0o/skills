@@ -14,68 +14,169 @@ description: |
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     数据架构设计助手架构                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   结构化需求 (requirement_package.yaml)                              │
-│      │                                                             │
-│      ▼                                                             │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段1: 架构选型 (arch-select)                      │          │
-│   │  Agent: general-purpose                             │          │
-│   │  功能：选择整体数据架构                              │          │
-│   │        - 数据仓库 vs 数据湖 vs 湖仓一体              │          │
-│   │        - 实时 vs 批量 vs Lambda架构                  │          │
-│   │        - 云原生 vs 自建                              │          │
-│   │        - 成本/性能/扩展性评估                        │          │
-│   └────────────────────┬───────────────────────────────┘          │
-│                        │  [architecture_decision]                  │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段2: 分层设计 (layer-design)                     │          │
-│   │  Agent: general-purpose                             │          │
-│   │  功能：设计数据分层架构                              │          │
-│   │        - ODS/DWD/DWS/ADS 分层                        │          │
-│   │        - 数据流转路径                                │          │
-│   │        - 存储策略（冷热分离）                        │          │
-│   │        - 生命周期管理                                │          │
-│   └────────────────────┬───────────────────────────────┘          │
-│                        │  [layer_architecture]                     │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段3: 技术规划 (tech-planning)                    │          │
-│   │  Agent: Explore                                     │          │
-│   │  功能：选择具体技术组件                              │          │
-│   │        - 存储引擎选型（数仓/湖）                     │          │
-│   │        - 计算引擎选型（批处理/流处理）               │          │
-│   │        - 调度/治理/质量工具                          │          │
-│   │        - 成本估算与资源配置                          │          │
-│   └────────────────────┬───────────────────────────────┘          │
-│                        │  [tech_stack_spec]                        │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段4: 拓扑设计 (topology-design)                  │          │
-│   │  Agent: general-purpose                             │          │
-│   │  功能：设计Pipeline依赖拓扑                          │          │
-│   │        - DAG设计                                     │          │
-│   │        - 依赖关系规划                                │          │
-│   │        - 调度策略（时序/事件驱动）                   │          │
-│   │        - 失败恢复策略                                │          │
-│   └────────────────────────────────────────────────────┘          │
-│                                                                     │
-│   输出: 架构设计包 (architecture_package.yaml)                       │
-│   ──────► 驱动下游建模、开发、部署                                  │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+输入 → [阶段1: 架构选型] → [阶段2: 分层设计] → [阶段3: 技术规划] → [阶段4: 拓扑设计] → 输出
+            │                      │                      │                      │
+            ▼                      ▼                      ▼                      ▼
+       Agent:通用              Agent:通用              Agent:探索            Agent:通用
 ```
+
+| 阶段 | 命令 | Agent | 功能 |
+|------|------|-------|------|
+| 1 | /arch-select | general-purpose | 选择整体数据架构 |
+| 2 | /layer-design | general-purpose | 设计ODS/DWD/DWS/ADS分层 |
+| 3 | /tech-planning | Explore | 选择技术组件与成本估算 |
+| 4 | /topology-design | general-purpose | 设计Pipeline依赖拓扑 |
+
+**输入**: requirement_package.yaml (来自需求分析)  
+**输出**: architecture_package.yaml (驱动下游建模与开发)
 
 ## 参考资料导航
 
-| 需要时读取 | 文件 | 内容 |
-|-----------|------|------|
-| 架构设计规范 | [references/architecture-standards.md](references/architecture-standards.md) | 架构模式、分层规范、技术选型指南、成本评估模型 |
-| 使用示例 | [examples/](examples/) 目录 | 典型架构场景的完整设计示例 |
+| 何时读取 | 文件 | 内容 | 场景 |
+|---------|------|------|------|
+| 架构选型时 | [references/architecture-standards.md](references/architecture-standards.md) | 架构模式对比 | 不确定用Lambda还是Kappa架构 |
+| 分层设计时 | [references/architecture-standards.md](references/architecture-standards.md) | ODS/DWD/DWS/ADS规范 | 需要设计数据分层 |
+| 技术选型时 | [references/architecture-standards.md](references/architecture-standards.md) | 技术选型矩阵、成本模型 | 选择Snowflake vs BigQuery |
+| 成本估算时 | [references/architecture-standards.md](references/architecture-standards.md) | 成本评估模型 | 需要向管理层汇报预算 |
+| 查看示例时 | [examples/](examples/) 目录 | 电商/实时分析等场景 | 参考完整设计案例 |
+
+---
+
+## 示例快速索引
+
+| 需求场景 | 推荐命令 | 上游输入 | 详情位置 |
+|----------|----------|----------|----------|
+| 新建数据平台 | `/arch-select [需求]` | requirement_package.yaml | [功能1](#功能1架构选型助手-arch-select) |
+| 设计数仓分层 | `/layer-design [实体列表]` | architecture_decision | [功能2](#功能2分层设计助手-layer-design) |
+| 选择技术栈 | `/tech-planning [架构]` | layer_architecture | [功能3](#功能3技术规划助手-tech-planning) |
+| 设计Pipeline | `/topology-design [数据流]` | tech_stack_spec | [功能4](#功能4拓扑设计助手-topology-design) |
+| 端到端完整设计 | `/architecture-designer [需求]` | requirement_package.yaml | [方式2](#方式2端到端工作流) |
+| 驱动数据建模 | 调用 `/modeling-assistant` | architecture_package.yaml | [下游联动](#与下游-skill-的联动) |
+
+## 上游输入
+
+本 Skill 消费来自需求分析的标准包：
+
+| 来源 Skill | 输入文件 | 关键字段 | 使用方式 |
+|-----------|----------|----------|----------|
+| requirement-analyst | requirement_package.yaml | business.domain | 确定数据平台范围 |
+| requirement-analyst | requirement_package.yaml | functional.entities | 设计ODS/DWD表 |
+| requirement-analyst | requirement_package.yaml | functional.metrics | 设计DWS/ADS层 |
+| requirement-analyst | requirement_package.yaml | non_functional.freshness | 选择实时/批量架构 |
+| requirement-analyst | requirement_package.yaml | non_functional.retention | 设计生命周期策略 |
+| requirement-analyst | requirement_package.yaml | technical.preferred_stack | 技术选型参考 |
+
+### 自动读取上游包
+
+```bash
+# 方式1: 显式引用需求包
+/arch-select 基于 requirement_package.yaml 选择架构
+
+# 方式2: 自动发现
+/arch-select --auto  # 自动读取 outputs/requirement_package.yaml
+```
+
+---
+
+## 标准输出格式
+
+每个架构设计任务输出标准化的 `architecture_package.yaml`：
+
+```yaml
+architecture_package:
+  version: "1.0"
+  metadata:
+    generated_by: "architecture-designer"
+    generated_at: "2024-01-15T10:00:00Z"
+    source_package: "requirement_package.yaml"
+    project_name: "电商数据平台"
+
+  architecture:
+    pattern: "Lambda + 湖仓一体"
+    decisions:          # ADR 列表
+      - adr_id: "ADR-001"
+        title: "数据平台整体架构选型"
+        status: "accepted"
+
+  layers:
+    ods:
+      tables: [...]
+      retention: "30天"
+    dwd:
+      tables: [...]
+      retention: "1年"
+    dws:
+      tables: [...]
+      retention: "2年"
+    ads:
+      tables: [...]
+
+  tech_stack:
+    storage:
+      data_lake: "S3 + Iceberg"
+      data_warehouse: "Snowflake"
+    compute:
+      batch: "EMR + Spark"
+      streaming: "Flink"
+    orchestration: "Airflow"
+
+  topology:
+    dag_groups: [...]
+    dependencies: [...]
+    scheduling: {...}
+    failure_handling: {...}
+
+  downstream_specs:
+    - target: "modeling-assistant"
+      input_file: "architecture_package.yaml"
+      mapping:
+        - "layers.dws.tables → fact_tables"
+        - "layers.dwd.tables → dimension_sources"
+        - "tech_stack.storage → dbt_adapter"
+
+    - target: "etl-assistant"
+      input_file: "architecture_package.yaml"
+      mapping:
+        - "topology.dag_groups → airflow_dag_structure"
+        - "tech_stack.compute → execution_engine"
+
+    - target: "sql-assistant"
+      input_file: "architecture_package.yaml"
+      mapping:
+        - "tech_stack.storage → sql_dialect"
+```
+
+---
+
+## 与下游 Skill 的联动
+
+架构设计完成后，自动触发下游 Skill：
+
+```bash
+## 架构设计后的下一步
+
+# 步骤1: 数据建模（推荐）
+/modeling-assistant 基于以下架构设计维度模型：
+- 输入文件: outputs/architecture_package.yaml
+- 分层设计: layers.dwd/dws 表定义
+- 技术栈: tech_stack.storage (Snowflake/Iceberg)
+- SCD策略: 根据 entities 确定
+
+# 步骤2: ETL开发
+/etl-assistant 基于以下架构生成Pipeline：
+- 输入文件: outputs/architecture_package.yaml
+- DAG结构: topology.dag_groups
+- 计算引擎: tech_stack.compute
+- 调度策略: topology.scheduling
+
+# 步骤3: SQL开发
+/sql-assistant 生成各层转换SQL：
+- 输入文件: outputs/architecture_package.yaml
+- 方言: tech_stack.storage 指定的数仓类型
+- 分层: layers 定义的表结构
+```
+
+---
 
 ## 项目初始化（推荐）
 

@@ -13,52 +13,41 @@ description: |
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                       数据质量检查助手架构                           │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   数据表                                                          │
-│      │                                                             │
-│      ▼                                                             │
-│   ┌────────────────────────────────────────────────┐              │
-│   │  阶段1: 规则生成 (dq-rule-gen)                  │              │
-│   │  Agent: general-purpose                         │              │
-│   │  功能：基于表结构自动生成质量规则               │              │
-│   │        - 完整性规则（非空、必填）               │              │
-│   │        - 唯一性规则（主键、业务键）             │              │
-│   │        - 有效性规则（格式、范围、枚举）         │              │
-│   │        - 一致性规则（逻辑一致）                 │              │
-│   └────────────────────┬───────────────────────────┘              │
-│                        │                                           │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────┐              │
-│   │  阶段2: 质量检查 (dq-check)                     │              │
-│   │  Agent: general-purpose                         │              │
-│   │  功能：执行质量检查并生成报告                   │              │
-│   │        - 多维度质量评分                         │              │
-│   │        - 问题识别与修复建议                     │              │
-│   │        - 趋势分析与对比                         │              │
-│   └────────────────────┬───────────────────────────┘              │
-│                        │                                           │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────┐              │
-│   │  阶段3: Schema文档 (schema-doc)                 │              │
-│   │  Agent: general-purpose                         │              │
-│   │  功能：生成数据字典和血缘文档                   │              │
-│   │        - 表结构说明                             │              │
-│   │        - 数据血缘分析                           │              │
-│   │        - 样例数据统计                           │              │
-│   └────────────────────────────────────────────────┘              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+输入 → [阶段1: 规则生成] → [阶段2: 质量检查] → [阶段3: 文档生成] → 输出
+            │                      │                      │
+            ▼                      ▼                      ▼
+       Agent:通用              Agent:通用              Agent:通用
 ```
+
+| 阶段 | 命令 | Agent | 功能 |
+|------|------|-------|------|
+| 1 | /dq-rule-gen | general-purpose | 基于表结构自动生成质量规则 |
+| 2 | /dq-check | general-purpose | 执行质量检查并生成报告 |
+| 3 | /schema-doc | general-purpose | 生成数据字典和血缘文档 |
+
+**输入**: etl_package.yaml / modeling_package.yaml / sql_package.yaml（可选）  
+**输出**: dq_package.yaml（驱动下游测试）
 
 ## 参考资料导航
 
-| 需要时读取 | 文件 | 内容 |
-|-----------|------|------|
-| 数据质量标准 | [references/data-quality-standards.md](references/data-quality-standards.md) | 质量维度、规则库、评分标准、常见模式 |
-| 使用示例 | [examples/](examples/) 目录 | 典型场景的输入输出示例 |
+| 何时读取 | 文件 | 内容 | 场景 |
+|---------|------|------|------|
+| 设计质量规则时 | [references/data-quality-standards.md](references/data-quality-standards.md) | 质量维度、规则库、评分标准 | 建立质量监控体系 |
+| 处理异常数据时 | [references/data-quality-standards.md](references/data-quality-standards.md) | 常见模式、修复建议 | 质量问题排查 |
+| 查看示例时 | [examples/](examples/) 目录 | 典型场景的输入输出示例 | 学习使用方法 |
+| 生成数据字典时 | [references/data-quality-standards.md](references/data-quality-standards.md) | 血缘分析规范 | 文档输出 |
+
+---
+
+## 示例快速索引
+
+| 需求场景 | 推荐命令 | 详情位置 |
+|----------|----------|----------|
+| 为新表建立质量规则 | `/dq-rule-gen [表结构]` | [功能1](#功能1质量规则生成器-dq-rule-gen) |
+| 执行质量检查 | `/dq-check [表名]` | [功能2](#功能2质量检查执行器-dq-check) |
+| 生成数据字典 | `/schema-doc [表名]` | [功能3](#功能3schema文档生成器-schema-doc) |
+| 端到端质量体系建设 | `/dq-assistant 建立监控体系...` | [方式2](#方式2端到端工作流) |
+| 基于检查结果生成测试 | 调用 `/test-engineer` | [下游联动](#与下游-skill-的联动) |
 
 ## 快速开始
 
@@ -257,6 +246,115 @@ rules:
 
 ---
 
+## 上游输入
+
+本 Skill 可消费以下标准包自动识别需要检查的表：
+
+| 来源 Skill | 输入文件 | 关键字段 | 使用方式 |
+|-----------|----------|----------|----------|
+| etl-assistant | etl_package.yaml | pipeline.target_tables | 自动为ETL目标表生成质量规则 |
+| modeling-assistant | modeling_package.yaml | schemas | 基于模型Schema生成字段级规则 |
+| sql-assistant | sql_package.yaml | content.tables_involved | 为SQL涉及表生成检查规则 |
+| architecture-designer | architecture_package.yaml | layers.ads | 为应用层表建立监控 |
+
+### 基于上游包的自动规则生成
+
+```bash
+# 方式1: 显式引用上游包
+/dq-rule-gen 基于 etl_package.yaml 为所有目标表生成质量规则
+
+# 方式2: 自动发现上游包
+/dq-rule-gen --auto  # 自动查找 outputs/ 中的上游包并生成对应规则
+```
+
+---
+
+## 标准输出格式
+
+每个数据质量任务输出标准化的 `dq_package.yaml`，便于下游 Skill 消费：
+
+```yaml
+dq_package:
+  version: "1.0"
+  metadata:
+    generated_by: "dq-assistant"
+    generated_at: "2024-01-15T10:00:00Z"
+    target_table: "table_name"
+    check_scope: "full|incremental"
+
+  rules:
+    - rule_id: "COMP_001"
+      name: "email_必填检查"
+      dimension: "完整性"
+      severity: "高"
+      sql: "SELECT COUNT(*) FROM users WHERE email IS NULL"
+      threshold: 0
+
+    - rule_id: "VALID_001"
+      name: "email_格式检查"
+      dimension: "有效性"
+      severity: "中"
+      sql: "SELECT COUNT(*) FROM users WHERE email NOT LIKE '%@%.%'"
+      threshold: 0.01
+
+  check_results:
+    check_time: "2024-01-15T10:00:00Z"
+    overall_score: 99.6
+    dimensions:
+      完整性: 98.5
+      唯一性: 100.0
+      有效性: 99.8
+      一致性: 99.9
+    violations:
+      - rule_id: "VALID_002"
+        count: 23
+        sample_values: ["unknown", "null"]
+    recommendations:
+      - "修复 status 异常值"
+      - "补充 paid_at 缺失数据"
+
+  data_dictionary:
+    table_name: "users"
+    record_count: 1234567
+    quality_score: 99.6
+    columns:
+      - name: "id"
+        type: "BIGINT"
+        nullable: false
+        primary_key: true
+        description: "用户ID"
+
+  downstream_specs:
+    - target: "test-engineer"
+      input_file: "dq_package.yaml"
+      mapping:
+        - "rules → test_assertions"
+        - "violations → test_cases"
+```
+
+---
+
+## 与下游 Skill 的联动
+
+数据质量检查完成后，自动触发下游 Skill：
+
+```bash
+## 质量检查后的下一步
+
+# 步骤1: 生成数据测试（推荐）
+/test-engineer 基于以下质量规则生成测试用例：
+- 规则文件: outputs/dq_package.yaml
+- 测试类型: 数据质量测试、回归测试
+- 重点: violations 中发现的异常模式
+
+# 步骤2: 更新数据文档
+/modeling-assistant 基于质量检查结果更新：
+- 数据血缘: 问题数据的上游来源
+- 模型文档: 字段质量评分说明
+```
+
+---
+
 ## 配合使用流程
 
 ```
@@ -268,7 +366,7 @@ rules:
         ▼
 2. 规则生成 (/dq-rule-gen)
    └─ 自动生成质量检查规则
-   └─ 输出SQL检查脚本
+   └─ 输出 dq_package.yaml
         │
         ▼
 3. 初始数据加载
@@ -276,15 +374,20 @@ rules:
         ▼
 4. 质量检查 (/dq-check)
    └─ 执行全量质量检查
+   └─ 更新 dq_package.yaml 的 check_results
    └─ 确认无严重问题
         │
         ▼
 5. 文档生成 (/schema-doc)
    └─ 生成数据字典
-   └─ 更新数据地图
+   └─ 更新 dq_package.yaml 的 data_dictionary
         │
         ▼
-6. 上线发布
+6. 测试生成（联动 /test-engineer）
+   └─ 基于质量规则生成测试用例
+        │
+        ▼
+7. 上线发布
    └─ 配置定期质量监控
    └─ 接入告警系统
 
@@ -295,7 +398,7 @@ rules:
 
 定时任务 /dq-check 快速检查
         │
-        ├─ 🟢 通过 → 记录日志
+        ├─ 🟢 通过 → 记录日志 → 更新 dq_package.yaml
         │
         └─ 🔴 异常 → 告警通知
                    │
@@ -306,7 +409,7 @@ rules:
               修复数据问题
                    │
                    ▼
-              重新检查验证
+              重新检查验证 → 更新 dq_package.yaml
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```

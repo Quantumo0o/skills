@@ -60,10 +60,24 @@ description: |
 
 ## 参考资料导航
 
-| 需要时读取 | 文件 | 内容 |
-|-----------|------|------|
-| 测试规范 | [references/test-standards.md](references/test-standards.md) | 测试金字塔、命名规范、断言库、覆盖率标准 |
-| 使用示例 | `examples/` 目录 | 典型测试场景的完整示例 |
+| 何时读取 | 文件 | 内容 | 场景 |
+|---------|------|------|------|
+| 设计测试策略时 | [references/test-standards.md](references/test-standards.md) | 测试金字塔、命名规范、断言库 | 规划测试覆盖范围 |
+| 编写断言语句时 | [references/test-standards.md](references/test-standards.md) | 断言最佳实践、容忍度设置 | 需要清晰错误信息 |
+| 设置覆盖率标准时 | [references/test-standards.md](references/test-standards.md) | 覆盖率要求、豁免规则 | 定义最低覆盖率 |
+| 查看示例时 | [examples/](examples/) 目录 | 典型测试场景 | 学习测试写法 |
+
+---
+
+## 示例快速索引
+
+| 需求场景 | 推荐命令 | 上游输入 | 详情位置 |
+|----------|----------|----------|----------|
+| 基于质量规则测试 | `/unit-test --from-dq` | dq_package.yaml | [上游输入](#上游输入) |
+| 基于Pipeline测试 | `/integration-test --from-etl` | etl_package.yaml | [上游输入](#上游输入) |
+| 验证查询性能 | `/performance-test --from-sql` | sql_package.yaml | [上游输入](#上游输入) |
+| 端到端完整测试 | `/test-engineer 端到端测试...` | 所有上游包 | [方式2](#方式2端到端工作流) |
+| 部署前验证 | 检查 test_package.yaml | test_package.yaml | [下游联动](#与下游-skill-的联动) |
 
 ## 快速开始
 
@@ -217,6 +231,116 @@ description: |
 - 性能测试脚本
 - 基准报告
 - 优化建议
+
+---
+
+## 标准输出格式
+
+每个测试任务输出标准化的 `test_package.yaml`：
+
+```yaml
+test_package:
+  version: "1.0"
+  metadata:
+    generated_by: "test-engineer"
+    generated_at: "2024-01-15T10:00:00Z"
+    target_project: "project_name"
+    upstream_packages:
+      - "dq_package.yaml"
+      - "etl_package.yaml"
+
+  test_suites:
+    unit_tests:
+      - name: "test_fct_orders_schema"
+        file: "unit/test_fct_orders.py"
+        status: "passed|failed|pending"
+        coverage: 95
+      - name: "test_dim_user_scd2"
+        file: "unit/test_dim_user.py"
+        status: "passed"
+
+    integration_tests:
+      - name: "test_ods_to_dwd_pipeline"
+        file: "integration/test_pipeline_orders.py"
+        status: "passed"
+        duration: "45s"
+
+    performance_tests:
+      - name: "test_sales_report_query_perf"
+        file: "performance/test_query_perf.py"
+        status: "passed"
+        metrics:
+          p50: "1.2s"
+          p95: "3.5s"
+          p99: "5.1s"
+
+  summary:
+    total_tests: 25
+    passed: 24
+    failed: 1
+    skipped: 0
+    overall_status: "failed"  # 任何失败即失败
+    block_deployment: true    # 是否阻塞部署
+
+  reports:
+    html_report: "reports/2024-01-15/report.html"
+    junit_xml: "reports/2024-01-15/junit.xml"
+    coverage_report: "reports/2024-01-15/coverage.html"
+
+  downstream_specs:
+    - target: "deployment-assistant"  # 或 release-manager
+      input_file: "test_package.yaml"
+      conditions:
+        - "overall_status == 'passed'"
+        - "block_deployment == false"
+```
+
+---
+
+## 上游输入
+
+本 Skill 可消费以下标准包自动生成测试：
+
+| 来源 Skill | 输入文件 | 自动生成的测试 | 触发命令 |
+|-----------|----------|----------------|----------|
+| dq-assistant | dq_package.yaml | 基于 rules 的数据质量单元测试 | `/unit-test --from-dq` |
+| etl-assistant | etl_package.yaml | 基于 pipeline 的集成测试 | `/integration-test --from-etl` |
+| sql-assistant | sql_package.yaml | 基于 query 的性能测试 | `/performance-test --from-sql` |
+| modeling-assistant | modeling_package.yaml | 基于 schema 的模型测试 | `/unit-test --from-model` |
+
+### 基于上游包的自动测试生成
+
+```bash
+# 方式1: 显式引用上游包
+/unit-test 基于 dq_package.yaml 生成单元测试
+
+# 方式2: 自动发现上游包
+/unit-test --auto  # 自动查找 outputs/ 中的上游包并生成对应测试
+```
+
+---
+
+## 与下游 Skill 的联动
+
+测试完成后，自动触发部署流程：
+
+```bash
+## 测试通过后的下一步
+
+# 步骤1: 部署准备（如果测试通过）
+/deployment-assistant 基于以下测试包准备部署：
+- 测试文件: outputs/test_package.yaml
+- 检查项:
+  - overall_status == "passed"
+  - 关键路径测试全部通过
+  - 覆盖率 > 80%
+
+# 步骤2: 生成部署报告
+/deployment-assistant 生成部署检查清单：
+- 代码变更: [diff summary]
+- 测试结果: [test summary]
+- 回滚方案: [rollback plan]
+```
 
 ---
 

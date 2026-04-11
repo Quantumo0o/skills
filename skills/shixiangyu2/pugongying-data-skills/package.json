@@ -1,6 +1,6 @@
 {
   "name": "pugongying-data-skills",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "蒲公英数据开发工程师Skill套件 - 专为数据开发工程师设计的完整AI Skill生态系统",
   "author": "蒲公英 (Dandelion)",
   "license": "MIT",
@@ -57,10 +57,13 @@
   "files": [
     "SKILL.md",
     "README.md",
+    "CLAUDE.md",
+    "CHANGELOG.md",
     "LICENSE",
     "package.json",
     "skill-connections.yaml",
     "skill-hub.md",
+    "skill-template.md",
     "Skill驱动数据系统开发探讨.md",
     "requirement-analyst/",
     "architecture-designer/",

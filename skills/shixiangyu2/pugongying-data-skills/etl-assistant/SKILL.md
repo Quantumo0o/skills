@@ -1,3 +1,11 @@
+---
+name: etl-assistant
+description: |
+  ETL Pipeline开发助手 - 端到端ETL开发工作流。包含代码生成、代码审查、数据测试三大核心功能。
+  当用户需要开发数据同步Pipeline、构建ETL作业、设计数据集成流程、生成Airflow DAG时触发。
+  触发词：ETL开发、Pipeline、数据同步、数据集成、增量同步、Airflow、数据管道、数据迁移。
+---
+
 # ETL Pipeline开发助手
 
 端到端ETL Pipeline开发工作流：代码生成 → 代码审查 → 数据测试。从需求到可部署ETL Pipeline的完整解决方案。
@@ -5,48 +13,28 @@
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                     ETL Pipeline开发助手架构                         │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   业务需求 ───────┬──────────────────────────────────────────►     │
-│                   │                                                │
-│   ┌───────────────▼────────────────┐                              │
-│   │  阶段1: 代码生成 (etl-template) │                              │
-│   │  Agent: general-purpose          │                              │
-│   │  功能：生成ETL代码模板           │                              │
-│   │        - Python ETL脚本          │                              │
-│   │        - Airflow DAG             │                              │
-│   │        - dbt模型                 │                              │
-│   └───────────────┬────────────────┘                              │
-│                   │                                                │
-│   ┌───────────────▼────────────────┐                              │
-│   │  阶段2: 代码审查 (pipeline-review)│                            │
-│   │  Agent: Explore                  │                              │
-│   │  功能：ETL代码审查               │                              │
-│   │        - 性能问题识别            │                              │
-│   │        - 可靠性风险评估          │                              │
-│   │        - 安全漏洞检查            │                              │
-│   └───────────────┬────────────────┘                              │
-│                   │                                                │
-│   ┌───────────────▼────────────────┐                              │
-│   │  阶段3: 数据测试 (data-test)    │                              │
-│   │  Agent: general-purpose          │                              │
-│   │  功能：生成测试代码              │                              │
-│   │        - 单元测试                │                              │
-│   │        - 集成测试                │                              │
-│   │        - 数据质量测试            │                              │
-│   └────────────────────────────────┘                              │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+输入 → [阶段1: 代码生成] → [阶段2: 代码审查] → [阶段3: 数据测试] → 输出
+            │                    │                    │
+            ▼                    ▼                    ▼
+       Agent:通用          Agent:探索           Agent:通用
 ```
+
+| 阶段 | 命令 | Agent | 功能 |
+|------|------|-------|------|
+| 1 | /etl-template | general-purpose | 生成ETL代码模板（Python/Airflow/dbt） |
+| 2 | /pipeline-review | Explore | ETL代码审查（性能/安全/可靠性） |
+| 3 | /data-test | general-purpose | 生成测试代码（单元/集成/质量） |
+
+**输出标准**: 生成 `etl_package.yaml` 便于下游 Skill 消费
 
 ## 参考资料导航
 
-| 需要时读取 | 文件 | 内容 |
-|-----------|------|------|
-| ETL开发规范 | `references/etl-standards.md` | 架构模式、命名规范、代码模板、监控日志 |
-| 使用示例 | `examples/` 目录 | 典型场景的完整示例 |
+| 何时读取 | 文件 | 内容 | 场景 |
+|---------|------|------|------|
+| 设计Pipeline时 | [references/etl-standards.md](references/etl-standards.md) | 架构模式、命名规范、代码模板 | 需要遵循团队规范 |
+| 选择技术栈时 | [references/etl-standards.md](references/etl-standards.md) | 技术选型指南、调度工具对比 | 不确定用Airflow还是其他 |
+| 查看示例时 | [examples/](examples/) 目录 | 典型场景的完整示例 | 学习使用方法 |
+| 配置监控时 | [references/etl-standards.md](references/etl-standards.md) | 监控埋点、日志规范 | 需要添加监控告警 |
 
 ## 项目初始化（推荐）
 
@@ -152,6 +140,67 @@ etl-project/
 ```bash
 /data-test 为订单ETL Pipeline生成完整测试套件，
 包含单元测试、数据质量测试和Airflow DAG测试
+```
+
+---
+
+## 标准输出格式
+
+每个ETL开发任务输出标准化的 `etl_package.yaml`：
+
+```yaml
+etl_package:
+  version: "1.0"
+  metadata:
+    generated_by: "etl-assistant"
+    generated_at: "2024-01-15T10:00:00Z"
+    source_system: "MySQL"
+    target_system: "Snowflake"
+    pipeline_name: "order_sync"
+    
+  pipeline:
+    type: "Python|Airflow DAG|dbt"
+    extract:
+      strategy: "incremental|full|cdc"
+      source_tables: ["orders", "order_items"]
+      watermark_column: "updated_at"
+    transform:
+      logic: ["join", "aggregate", "clean"]
+      dependencies: ["dim_user", "dim_product"]
+    load:
+      target_tables: ["fct_orders"]
+      mode: "upsert|append|replace"
+      schedule: "0 2 * * *"
+      
+  code_artifacts:
+    main_script: "pipelines/order_sync.py"
+    dag_file: "dags/order_sync_dag.py"
+    test_files: ["tests/test_order_sync.py"]
+    
+  quality_gates:
+    row_count_check: true
+    schema_check: true
+    data_freshness_check: true
+```
+
+## 与下游 Skill 的联动
+
+ETL Pipeline 开发完成后，自动触发下游 Skill：
+
+```bash
+## ETL 输出后的下一步
+
+# 步骤1: 数据质量检查（推荐）
+/dq-assistant 基于以下 ETL 配置建立质量监控：
+- 源表: orders, order_items
+- 目标表: fct_orders
+- 检查项: 行数对比、schema一致性、数据新鲜度
+
+# 步骤2: 数据测试（必需）
+/test-engineer 为以下 Pipeline 生成端到端测试：
+- Pipeline: order_sync
+- 测试类型: 集成测试、回归测试
+- 验证点: 数据完整性、业务逻辑正确性
 ```
 
 ## 配合使用流程

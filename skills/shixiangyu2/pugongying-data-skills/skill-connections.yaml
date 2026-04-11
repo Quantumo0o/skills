@@ -1,6 +1,60 @@
 # Skill联动配置
 # 定义数据开发Skill生态中各Skill之间的输入输出关系
 
+# ============================================================================
+# 标准包格式规范
+# ============================================================================
+standard_packages:
+  requirement_package:
+    version: "1.0"
+    required_fields: [version, metadata, business, functional, non_functional, specifications]
+    metadata_fields: [project_name, generated_by, generated_at, confirmed]
+    output_path: "outputs/requirement_package.yaml"
+
+  architecture_package:
+    version: "1.0"
+    required_fields: [version, metadata, architecture, layers, tech_stack]
+    metadata_fields: [generated_by, generated_at, source_package, project_name]
+    optional_fields: [topology, downstream_specs]
+    output_path: "outputs/architecture_package.yaml"
+
+  modeling_package:
+    version: "1.0"
+    required_fields: [version, metadata, fact_tables, dimensions, schemas]
+    metadata_fields: [project_name, generated_by, generated_at, upstream_package]
+    output_path: "outputs/modeling_package.yaml"
+
+  sql_package:
+    version: "1.0"
+    required_fields: [version, metadata, content, optimization]
+    metadata_fields: [generated_by, generated_at, sql_dialect, query_purpose]
+    optional_fields: [performance, downstream_specs]
+    output_path: "outputs/sql_package.yaml"
+
+  etl_package:
+    version: "1.0"
+    required_fields: [version, metadata, pipeline, code_artifacts]
+    metadata_fields: [generated_by, generated_at, source_system, target_system, pipeline_name]
+    optional_fields: [quality_gates]
+    output_path: "outputs/etl_package.yaml"
+
+  dq_package:
+    version: "1.0"
+    required_fields: [version, metadata, rules]
+    metadata_fields: [generated_by, generated_at, target_table, check_scope]
+    optional_fields: [check_results, data_dictionary, downstream_specs]
+    output_path: "outputs/dq_package.yaml"
+
+  test_package:
+    version: "1.0"
+    required_fields: [version, metadata, test_suites, summary]
+    metadata_fields: [generated_by, generated_at, target_project, upstream_packages]
+    optional_fields: [reports, downstream_specs]
+    output_path: "outputs/test_package.yaml"
+
+# ============================================================================
+# Skill联动关系
+# ============================================================================
 skill_connections:
   version: "1.0"
   description: "数据开发Skill生态联动配置"
@@ -60,11 +114,13 @@ skill_connections:
 
     - from: requirement-analyst
       to: modeling-assistant
-      input_file: specs/model_spec.yaml
+      input_file: requirement_package.yaml
       mapping:
         - "functional.entities → model_spec.entities"
         - "functional.dimensions → model_spec.dimensions"
         - "specifications.model_spec → model_design_input"
+      auto_trigger: false
+      command: "/model-design --from-requirement"
 
     - from: requirement-analyst
       to: sql-assistant
@@ -83,6 +139,8 @@ skill_connections:
       input_file: specs/dq_spec.yaml
       mapping:
         - "specifications.dq_spec → quality_config"
+      auto_trigger: false
+      command: "/dq-rule-gen --from-requirement"
 
     # architecture-designer 输出
     - from: architecture-designer
@@ -92,6 +150,8 @@ skill_connections:
         - "layers.dws.tables → fact_tables"
         - "layers.dwd.tables → dimension_sources"
         - "tech_stack.storage → dbt_adapter"
+      auto_trigger: false
+      command: "/modeling-assistant --from-architecture"
 
     - from: architecture-designer
       to: sql-assistant
@@ -99,6 +159,8 @@ skill_connections:
       mapping:
         - "tech_stack.storage → sql_dialect"
         - "layers → ddl_scope"
+      auto_trigger: false
+      command: "/sql-gen --from-architecture"
 
     - from: architecture-designer
       to: etl-assistant
@@ -108,12 +170,17 @@ skill_connections:
         - "topology.dependencies → task_dependencies"
         - "topology.scheduling → dag_schedule"
         - "tech_stack.compute → execution_engine"
+      auto_trigger: false
+      command: "/etl-template --from-architecture"
 
     - from: architecture-designer
       to: dq-assistant
       input_file: architecture_package.yaml
       mapping:
         - "layers.ads → quality_checkpoints"
+        - "layers.dwd.tables → table_names"
+      auto_trigger: false
+      command: "/dq-rule-gen --from-architecture"
 
     # modeling-assistant 输出
     - from: modeling-assistant
@@ -123,6 +190,8 @@ skill_connections:
         - "fact_tables → tables"
         - "dimensions → joins"
         - "schemas → ddl_input"
+      auto_trigger: false
+      command: "/sql-gen --from-model"
 
     - from: modeling-assistant
       to: etl-assistant
@@ -131,6 +200,8 @@ skill_connections:
         - "schemas → target_schema"
         - "fact_tables.grain → etl_config"
         - "lineage → pipeline_logic"
+      auto_trigger: false
+      command: "/etl-template --from-model"
 
     - from: modeling-assistant
       to: dq-assistant
@@ -138,6 +209,8 @@ skill_connections:
       mapping:
         - "schemas → table_schemas"
         - "scd_config → quality_rules"
+      auto_trigger: false
+      command: "/dq-rule-gen --from-model"
 
     - from: modeling-assistant
       to: test-engineer
@@ -145,6 +218,8 @@ skill_connections:
       mapping:
         - "schemas → unit_test_fixtures"
         - "lineage → test_scenarios"
+      auto_trigger: false
+      command: "/unit-test --from-model"
 
     # sql-assistant 输出
     - from: sql-assistant
@@ -160,6 +235,8 @@ skill_connections:
       input_file: sql_package.yaml
       mapping:
         - "ddl_files → schema_validation"
+      auto_trigger: false
+      command: "/dq-rule-gen --from-sql"
 
     - from: sql-assistant
       to: test-engineer
@@ -175,6 +252,8 @@ skill_connections:
       mapping:
         - "target_tables → table_names"
         - "target_columns → column_list"
+      auto_trigger: false
+      command: "/dq-rule-gen --from-etl"
 
     - from: etl-assistant
       to: test-engineer
@@ -183,16 +262,30 @@ skill_connections:
         - "pipeline_dependencies → integration_test_scenarios"
         - "dag_definitions → end_to_end_tests"
         - "target_schemas → test_validations"
+      auto_trigger: false
+      command: "/integration-test --from-etl"
+
+    # test-engineer 输出
+    - from: test-engineer
+      to: deployment  # 虚拟目标，表示部署阶段
+      input_file: test_package.yaml
+      condition: "summary.overall_status == 'passed'"
+      gates:
+        - "summary.block_deployment == false"
+        - "summary.coverage > 80"
+      action: "允许部署"
+      fail_action: "阻塞部署，返回修改"
 
     # dq-assistant 输出
     - from: dq-assistant
       to: test-engineer
       input_file: dq_package.yaml
       mapping:
-        - "expectation_suites → test_assertions"
-        - "table_schemas → test_fixtures"
-        - "quality_rules → test_cases"
-        - "data_dictionary → test_documentation"
+        - "rules → test_suites.unit_tests"
+        - "check_results.violations → test_suites.integration_tests"
+        - "data_dictionary → test_fixtures"
+      auto_trigger: false  # 需要用户确认后触发
+      command: "/unit-test --from-dq"
 
   # ============================================================================
   # 完整工作流定义
@@ -268,6 +361,83 @@ skill_connections:
           skill: test-engineer
           input: dq_package.yaml
           output: test_package.yaml
+
+    requirement_to_architecture:
+      name: 需求到架构
+      description: 基于需求分析结果设计数据平台架构
+      stages:
+        - order: 0
+          skill: requirement-analyst
+          input: 业务需求描述
+          output: requirement_package.yaml
+
+        - order: 1
+          skill: architecture-designer
+          input: requirement_package.yaml
+          output: architecture_package.yaml
+          command: "/architecture-designer --from-requirement"
+
+    model_to_development:
+      name: 建模到开发
+      description: 基于数据模型生成SQL和ETL代码
+      stages:
+        - order: 0
+          skill: modeling-assistant
+          input: 建模需求
+          output: modeling_package.yaml
+
+        - order: 1
+          skill: sql-assistant
+          input: modeling_package.yaml
+          output: sql_package.yaml
+          command: "/sql-gen --from-model"
+
+        - order: 2
+          skill: etl-assistant
+          input: modeling_package.yaml
+          output: etl_package.yaml
+          command: "/etl-template --from-model"
+
+    test_driven_deployment:
+      name: 测试驱动部署
+      description: 完整的测试验证到部署流程
+      stages:
+        - order: 0
+          name: 单元测试
+          skill: test-engineer
+          input: dq_package.yaml
+          output: unit_test_results
+          command: "/unit-test --from-dq"
+
+        - order: 1
+          name: 集成测试
+          skill: test-engineer
+          input: etl_package.yaml
+          output: integration_test_results
+          command: "/integration-test --from-etl"
+
+        - order: 2
+          name: 性能测试
+          skill: test-engineer
+          input: sql_package.yaml
+          output: performance_test_results
+          command: "/performance-test --from-sql"
+
+        - order: 3
+          name: 测试汇总
+          skill: test-engineer
+          input: 所有测试结果
+          output: test_package.yaml
+          action: "生成完整测试报告"
+
+        - order: 4
+          name: 部署决策
+          action: "检查 test_package.yaml"
+          conditions:
+            - "summary.overall_status == 'passed'"
+            - "summary.block_deployment == false"
+          pass_action: "允许部署"
+          fail_action: "返回修改"
 
     delivery_checklist:
       name: 交付检查清单
@@ -345,3 +515,18 @@ skill_connections:
     - name: 质量到测试
       command: "/dq-assistant → /test-engineer"
       workflow: quality_to_test
+
+    - name: 测试驱动部署
+      command: "/test-engineer 验证并部署"
+      workflow: test_driven_deployment
+      description: "执行所有测试，通过后允许部署"
+
+    - name: 需求到架构
+      command: "/requirement-analyst → /architecture-designer"
+      workflow: requirement_to_architecture
+      description: "基于需求分析结果设计数据架构"
+
+    - name: 建模到开发
+      command: "/modeling-assistant → /sql-assistant → /etl-assistant"
+      workflow: model_to_development
+      description: "基于模型生成SQL和ETL代码"

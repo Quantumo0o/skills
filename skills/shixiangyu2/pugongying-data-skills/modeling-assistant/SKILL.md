@@ -13,54 +13,67 @@ description: |
 ## 架构概览
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        数据建模助手架构                              │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   业务需求                                                          │
-│      │                                                             │
-│      ▼                                                             │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段1: 模型设计 (model-design)                     │          │
-│   │  Agent: general-purpose                             │          │
-│   │  功能：维度建模设计                                 │          │
-│   │        - 星型/雪花模型                              │          │
-│   │        - 事实表/维度表设计                          │          │
-│   │        - SCD策略选择                                │          │
-│   │        - ETL映射设计                                │          │
-│   └────────────────────┬───────────────────────────────┘          │
-│                        │                                           │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段2: dbt模型开发 (dbt-model)                     │          │
-│   │  Agent: general-purpose                             │          │
-│   │  功能：生成dbt模型代码                              │          │
-│   │        - Staging模型                                │          │
-│   │        - Intermediate模型                           │          │
-│   │        - Mart模型（Dimension/Fact）                 │          │
-│   │        - Schema配置和测试                           │          │
-│   └────────────────────┬───────────────────────────────┘          │
-│                        │                                           │
-│                        ▼                                           │
-│   ┌────────────────────────────────────────────────────┐          │
-│   │  阶段3: 血缘文档 (lineage-doc)                      │          │
-│   │  Agent: Explore                                     │          │
-│   │  功能：分析数据血缘                                 │          │
-│   │        - 表级血缘分析                               │          │
-│   │        - 字段级血缘映射                             │          │
-│   │        - 可视化血缘图                               │          │
-│   │        - 影响分析                                   │          │
-│   └────────────────────────────────────────────────────┘          │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+输入 → [阶段1: 模型设计] → [阶段2: dbt开发] → [阶段3: 血缘分析] → 输出
+            │                     │                     │
+            ▼                     ▼                     ▼
+       Agent:通用            Agent:通用            Agent:探索
 ```
+
+| 阶段 | 命令 | Agent | 功能 |
+|------|------|-------|------|
+| 1 | /model-design | general-purpose | 维度建模设计（星型/雪花） |
+| 2 | /dbt-model | general-purpose | 生成dbt模型代码（staging/mart） |
+| 3 | /lineage-doc | Explore | 分析数据血缘和影响 |
+
+**输入**: requirement_package.yaml / architecture_package.yaml（可选）  
+**输出**: modeling_package.yaml（驱动SQL开发和质量检查）
 
 ## 参考资料导航
 
-| 需要时读取 | 文件 | 内容 |
-|-----------|------|------|
-| 数据建模规范 | [references/data-modeling-standards.md](references/data-modeling-standards.md) | 维度建模、命名规范、dbt最佳实践、血缘规范 |
-| 使用示例 | [examples/](examples/) 目录 | 典型建模场景的完整示例 |
+| 何时读取 | 文件 | 内容 | 场景 |
+|---------|------|------|------|
+| 模型设计时 | [references/data-modeling-standards.md](references/data-modeling-standards.md) | 维度建模规范、SCD策略 | 设计星型/雪花模型 |
+| dbt开发时 | [references/data-modeling-standards.md](references/data-modeling-standards.md) | dbt最佳实践、分层规范 | 生成dbt模型代码 |
+| 血缘分析时 | [references/data-modeling-standards.md](references/data-modeling-standards.md) | 血缘规范、影响分析 | 分析数据血缘 |
+| 查看示例时 | [examples/](examples/) 目录 | 电商数仓等场景示例 | 学习建模方法 |
+
+---
+
+## 示例快速索引
+
+| 需求场景 | 推荐命令 | 上游输入 | 详情位置 |
+|----------|----------|----------|----------|
+| 设计维度模型 | `/model-design [需求]` | requirement_package.yaml | [功能1](#功能1模型设计助手-model-design) |
+| 生成dbt模型 | `/dbt-model [配置]` | model_design | [功能2](#功能2dbt模型生成器-dbt-model) |
+| 分析血缘关系 | `/lineage-doc [模型]` | dbt模型文件 | [功能3](#功能3血缘文档生成器-lineage-doc) |
+| 端到端建模 | `/modeling-assistant [需求]` | 上游包 | [方式2](#方式2端到端工作流) |
+| 生成SQL | 调用 `/sql-assistant` | modeling_package.yaml | [下游联动](#与下游-skill-的联动) |
+| 质量检查 | 调用 `/dq-assistant` | modeling_package.yaml | [下游联动](#与下游-skill-的联动) |
+
+---
+
+## 上游输入
+
+本 Skill 可消费以下标准包自动识别建模需求：
+
+| 来源 Skill | 输入文件 | 关键字段 | 使用方式 |
+|-----------|----------|----------|----------|
+| requirement-analyst | requirement_package.yaml | functional.entities | 设计事实表和维度表 |
+| requirement-analyst | requirement_package.yaml | functional.metrics | 设计度量字段 |
+| architecture-designer | architecture_package.yaml | layers.dws.tables | 确认建模范围 |
+| architecture-designer | architecture_package.yaml | tech_stack.storage | 适配存储引擎特性 |
+
+### 基于上游包的自动建模
+
+```bash
+# 方式1: 显式引用上游包
+/model-design 基于 requirement_package.yaml 设计维度模型
+
+# 方式2: 自动发现上游包
+/model-design --auto  # 自动读取 outputs/ 中的上游包
+```
+
+---
 
 ## 快速开始
 
@@ -233,6 +246,133 @@ graph LR
     A[raw.orders] --> B[stg_orders]
     B --> C[fct_orders]
 ```
+```
+
+---
+
+## 标准输出格式
+
+每个数据建模任务输出标准化的 `modeling_package.yaml`：
+
+```yaml
+modeling_package:
+  version: "1.0"
+  metadata:
+    generated_by: "modeling-assistant"
+    generated_at: "2024-01-15T10:00:00Z"
+    source_package: "requirement_package.yaml"
+    project_name: "电商数据仓库"
+
+  models:
+    fact_tables:
+      - name: "fct_order_items"
+        grain: "订单项级别"
+        description: "订单商品项事实表"
+        dimensions:
+          - dim_date
+          - dim_user
+          - dim_product
+        measures:
+          - name: "quantity"
+            type: "integer"
+          - name: "total_amount"
+            type: "decimal"
+        scd_dependencies:
+          - "dim_user (SCD2)"
+
+    dimensions:
+      - name: "dim_user"
+        scd_type: 2
+        natural_key: "user_id"
+        attributes:
+          - name: "user_level"
+            track_history: true
+          - name: "city"
+            track_history: true
+
+  schemas:
+    fct_order_items:
+      columns:
+        - name: "order_item_sk"
+          type: "BIGINT"
+          primary_key: true
+        - name: "user_sk"
+          type: "BIGINT"
+          foreign_key: "dim_user.user_sk"
+
+  lineage:
+    table_level:
+      - source: "stg_orders"
+        target: "fct_order_items"
+        relationship: "LEFT JOIN"
+      - source: "stg_order_items"
+        target: "fct_order_items"
+        relationship: "LEFT JOIN"
+
+    column_level:
+      - source: "stg_orders.user_id"
+        target: "fct_order_items.user_sk"
+        transform: "lookup dim_user"
+
+  dbt_artifacts:
+    models:
+      - path: "models/marts/fct_order_items.sql"
+        type: "fact"
+      - path: "models/marts/dim_user.sql"
+        type: "dimension"
+    
+    schema_files:
+      - "models/marts/schema.yml"
+
+  downstream_specs:
+    - target: "sql-assistant"
+      input_file: "modeling_package.yaml"
+      mapping:
+        - "schemas → ddl_input"
+        - "fact_tables → tables"
+
+    - target: "etl-assistant"
+      input_file: "modeling_package.yaml"
+      mapping:
+        - "schemas → target_schema"
+        - "fact_tables.grain → etl_config"
+        - "lineage → pipeline_logic"
+
+    - target: "dq-assistant"
+      input_file: "modeling_package.yaml"
+      mapping:
+        - "schemas → table_schemas"
+        - "scd_config → quality_rules"
+```
+
+---
+
+## 与下游 Skill 的联动
+
+数据建模完成后，自动触发下游 Skill：
+
+```bash
+## 建模后的下一步
+
+# 步骤1: SQL开发（推荐）
+/sql-assistant 基于以下模型生成DDL和ETL SQL：
+- 输入文件: outputs/modeling_package.yaml
+- 表结构: schemas 定义
+- 事实表: fact_tables 列表
+- 维度表: dimensions 列表（含SCD策略）
+
+# 步骤2: ETL开发
+/etl-assistant 基于以下模型生成Pipeline：
+- 输入文件: outputs/modeling_package.yaml
+- 目标Schema: schemas 定义
+- 数据粒度: fact_tables.grain
+- 血缘关系: lineage 用于Pipeline设计
+
+# 步骤3: 数据质量检查
+/dq-assistant 为以下模型建立质量规则：
+- 输入文件: outputs/modeling_package.yaml
+- 表结构: schemas 用于字段级规则
+- SCD配置: scd_config 用于历史数据检查
 ```
 
 ---
