@@ -1,6 +1,6 @@
 ---
 name: mjzj
-description: 卖家之家(跨境电商)平台一体化服务助手（服务商、物流、服务产品、货盘、资讯、问答、供需、私信、全球开店、活动）
+description: 卖家之家(跨境电商)平台一体化服务助手（服务商、物流、服务产品、技能商城、货盘、资讯、问答、供需、私信、全球开店、活动）
 homepage: https://mjzj.com
 metadata:
   clawdbot:
@@ -27,6 +27,7 @@ metadata:
 
 - 服务商、服务商分类、物流、国际物流、海外仓
 - 服务产品、产品标签、产品发布、申请上架
+- 技能商城、搜技能、技能标签、免费技能、付费技能、热门技能、安装技能、SkillHub、ClawHub
 - 货盘、货源、我的货盘、我的申请、审核中
 - 资讯、文章、发布资讯、我的资讯、我的笔名
 - 问答、提问、问题分类、我的问题
@@ -58,7 +59,12 @@ metadata:
 - 我的货盘：`/api/palletManage/getPallets`
 - 我的申请：`/api/palletManage/getApplications`
 
-### 4) 资讯
+### 4) 技能商城
+
+- 技能标签分组：`/api/skill/groupLabels`
+- 技能查询：`/api/skill/query`
+
+### 5) 资讯
 
 - 资讯查询（公开）：`/api/article/search`
 - 发布资讯：`/api/articleManage/create`
@@ -66,14 +72,14 @@ metadata:
 - 我的笔名：`/api/articleManage/getAuthors`
 - 我的资讯：`/api/articleManage/queryMyArticles`
 
-### 5) 问答
+### 6) 问答
 
 - 问答分类：`/api/ask/getCategories`
 - 发布问题：`/api/ask/createQuestion`
 - 问题查询：`/api/ask/queryQuestion`
 - 我的问题：`/api/ask/queryMyQuestions`
 
-### 6) 供需
+### 7) 供需
 
 - 系统标签：`/api/supplydemand/getOfficialTags`
 - 系统平台：`/api/supplydemand/getPlatforms`
@@ -83,17 +89,17 @@ metadata:
 - 刷新供需：`/api/supplydemand/refreshinfo`
 - 删除供需：`/api/supplydemand/deleteinfo`
 
-### 7) 私信
+### 8) 私信
 
 - 会话列表：`/api/message/getConversations`
 - 消息列表：`/api/message/getMessages`
 - 发送私信：`/api/message/sendMessage`
 
-### 8) 全球开店
+### 9) 全球开店
 
 - 开店平台查询：`/api/global/queryPlatform`
 
-### 9) 活动
+### 10) 活动
 
 - 活动查询（公开）：`/api/activity/query`
 - 活动城市：`/api/activity/getActivityCities`
@@ -130,6 +136,14 @@ metadata:
 - `/api/palletManage/applyNew`：可选参数 `price`、`stock`、`oldApplicationId`。
 - `/api/palletManage/getPallets`：常用参数 `onSale`。
 - `/api/palletManage/getApplications`：常用参数 `type`。
+
+### 技能商城
+
+- `/api/skill/groupLabels`：无必填参数。
+- `/api/skill/query`：常用参数 `keywords`、`labelIds`、`orderBy`、`payable`、`position`、`size`。
+- `/api/skill/query`：`orderBy` 仅使用 `default`、`new`、`hot`。
+- 按 `labelIds` 搜技能：先调 `/api/skill/groupLabels` 拿到标签 id，再用逗号拼接到 `labelIds`（示例：`labelIds=101,202`）。
+- `labelIds` 不传或传空表示不按标签筛选；筛选语义为同组 OR、跨组 AND。
 
 ### 资讯
 
@@ -248,6 +262,14 @@ metadata:
   - query：`onSale`
 - `GET /api/palletManage/getApplications`
   - query：`type`
+
+### 技能商城
+
+- `GET /api/skill/groupLabels`
+  - query：无
+- `GET /api/skill/query`
+  - query：`keywords`、`labelIds`、`orderBy`、`payable`、`position`、`size`
+  - 示例：`/api/skill/query?keywords=shopify&labelIds=101,202&orderBy=hot&payable=true&position=&size=20`
 
 ### 资讯
 
