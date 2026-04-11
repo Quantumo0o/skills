@@ -1,6 +1,6 @@
 # 欧路词典/法语助手/德语助手/西语助手 (Eudic OpenAPI)
 
-本技能提供 欧路词典/法语助手/德语助手/西语助手OpenAPI 的调用能力，用于管理生词本、笔记和语音评分等功能。
+本技能提供 欧路词典/法语助手/德语助手/西语助手OpenAPI 的调用能力，用于管理生词本、用户语料、笔记和语音评分等功能。
 
 ## 何时使用 (触发条件)
 
@@ -9,10 +9,12 @@
 - "查看我的生词本"
 - "添加单词到生词本"
 - "查询某个单词"
+- "查询我的语料"
+- "按最近N天或是否已收藏筛选语料"
+- "批量查询语料单词详情"
 - "添加笔记"
 - "查看笔记"
 - "删除生词本/单词/笔记"
-- "语音评分"
 
 ## 环境配置
 
@@ -41,7 +43,7 @@
 ```bash
 # language: en=欧路词典, fr=法语助手, de=德语助手, es=西语助手
 curl -s "https://api.frdic.com/api/open/v1/studylist/category?language=en" \
-  -H "Authorization: NIS {你的Token}"
+  -H "Authorization: NIS {Token}"
 ```
 
 **参数**: 
@@ -55,7 +57,7 @@ curl -s "https://api.frdic.com/api/open/v1/studylist/category?language=en" \
 
 ```bash
 curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/category" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"language": "en", "name": "新单词本"}'
 ```
@@ -70,7 +72,7 @@ curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/category" \
 
 ```bash
 curl -s -X PATCH "https://api.frdic.com/api/open/v1/studylist/category" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"id": "生词本ID", "language": "en", "name": "新名称"}'
 ```
@@ -86,7 +88,7 @@ curl -s -X PATCH "https://api.frdic.com/api/open/v1/studylist/category" \
 
 ```bash
 curl -s -X DELETE "https://api.frdic.com/api/open/v1/studylist/category" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"id": "生词本ID", "language": "en", "name": "生词本名称"}'
 ```
@@ -97,7 +99,7 @@ curl -s -X DELETE "https://api.frdic.com/api/open/v1/studylist/category" \
 
 ```bash
 curl -s "https://api.frdic.com/api/open/v1/studylist/words?language=en&category_id=0&page=1&page_size=100" \
-  -H "Authorization: NIS {你的Token}"
+  -H "Authorization: NIS {Token}"
 ```
 
 **参数**:
@@ -114,7 +116,7 @@ curl -s "https://api.frdic.com/api/open/v1/studylist/words?language=en&category_
 
 ```bash
 curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/words" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"language": "en", "category_id": "0", "words": ["apple", "banana", "orange"]}'
 ```
@@ -130,7 +132,7 @@ curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/words" \
 
 ```bash
 curl -s -X DELETE "https://api.frdic.com/api/open/v1/studylist/words" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"language": "en", "category_id": "0", "words": ["apple"]}'
 ```
@@ -141,7 +143,7 @@ curl -s -X DELETE "https://api.frdic.com/api/open/v1/studylist/words" \
 
 ```bash
 curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/word" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"language": "en", "word": "hello", "star": 2, "context_line": "Hello, how are you?"}'
 ```
@@ -159,7 +161,7 @@ curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/word" \
 
 ```bash
 curl -s "https://api.frdic.com/api/open/v1/studylist/word?language=en&word=hello" \
-  -H "Authorization: NIS {你的Token}"
+  -H "Authorization: NIS {Token}"
 ```
 
 **参数**:
@@ -174,7 +176,7 @@ curl -s "https://api.frdic.com/api/open/v1/studylist/word?language=en&word=hello
 
 ```bash
 curl -s "https://api.frdic.com/api/open/v1/studylist/notes?page=0&page_size=100" \
-  -H "Authorization: NIS {你的Token}"
+  -H "Authorization: NIS {Token}"
 ```
 
 **参数**:
@@ -185,11 +187,46 @@ curl -s "https://api.frdic.com/api/open/v1/studylist/notes?page=0&page_size=100"
 
 ---
 
-### 11. 获取单个单词笔记
+### 11. 查询用户语料列表
+
+```bash
+curl -s "https://api.frdic.com/api/open/v1/studylist/vocab_entries?language=en&recent_days=30&is_favorited=true&page=0&page_size=20" \
+  -H "Authorization: NIS {Token}"
+```
+
+**参数**:
+- `language`: en/fr/de/es (必填)
+- `recent_days`: 最近N天 (可选，小于等于0表示不筛选)
+- `is_favorited`: 是否已收藏到生词本 (可选，`true` 只看已收藏，`false` 只看未收藏)
+- `page`: 页码 (可选，默认 `-1`；`-1` 表示不分页)
+- `page_size`: 每页数量 (可选，默认100；仅在 `page >= 0` 时生效)
+
+**返回**: 语料列表 (word, exp, add_time, rating, contexts)
+
+---
+
+### 12. 批量查询用户语料单词详情
+
+```bash
+curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/vocab_words" \
+  -H "Authorization: NIS {Token}" \
+  -H "Content-Type: application/json" \
+  -d '{"language": "en", "words": ["action", "amplify"]}'
+```
+
+**参数**:
+- `language`: en/fr/de/es (必填)
+- `words`: 单词数组 (必填，会自动忽略空白并去重)
+
+**返回**: 单词详情列表 (word, exp, contexts)
+
+---
+
+### 13. 获取单个单词笔记
 
 ```bash
 curl -s "https://api.frdic.com/api/open/v1/studylist/note?word=hello" \
-  -H "Authorization: NIS {你的Token}"
+  -H "Authorization: NIS {Token}"
 ```
 
 **参数**:
@@ -198,11 +235,11 @@ curl -s "https://api.frdic.com/api/open/v1/studylist/note?word=hello" \
 **返回**:单词笔记不存在会返回404.存在会返回单词内容
 ---
 
-### 12. 新增笔记
+### 14. 新增笔记
 
 ```bash
 curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/note" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"word": "hello", "note": "这是笔记内容"}'
 ```
@@ -213,29 +250,14 @@ curl -s -X POST "https://api.frdic.com/api/open/v1/studylist/note" \
 
 ---
 
-### 13. 删除笔记
+### 15. 删除笔记
 
 ```bash
 curl -s -X DELETE "https://api.frdic.com/api/open/v1/studylist/note" \
-  -H "Authorization: NIS {你的Token}" \
+  -H "Authorization: NIS {Token}" \
   -H "Content-Type: application/json" \
   -d '{"word": "hello"}'
 ```
-
----
-
-### 14. 语音评估
-
-```bash
-curl -s -X POST "https://api.frdic.com/api/open/v1/voice/eval" \
-  -H "Authorization: NIS {你的Token}" \
-  -F "line=Hello world" \
-  -F "voice=@test.wav"
-```
-
-**注意**: 目前只支持英语，语音文件支持 wav 格式
-
-**返回**: 评估结果 (score综合分数, words单词列表, phones音节分数)
 
 ---
 
