@@ -31,7 +31,7 @@ Then fill in each section:
 
 ### Summary
 One or two sentences. What does this PR do and why? Link the issue if there is one.
-```
+```text
 Closes #123
 Adds user authentication via Devise with email confirmation.
 ```
