@@ -27,7 +27,9 @@ FBox MCP Server 是 FBox 物联网设备管理平台的 AI 接口服务，遵循
 
 1. **FBox 账号** — 拥有 FBox 平台账号并绑定了设备
 2. **API 凭证** — 由 FBox 平台管理员分配 `clientId` 和 `clientSecret`
-3. **MCP 客户端** — 任意支持 MCP 协议的 AI 客户端（OpenClaw、Claude Desktop、Cursor、Windsurf 等）
+3. **MCP 客户端** — 任意支持 MCP 协议的 AI 客户端（OpenClaw、Claude Code、Claude Desktop、Cursor、Windsurf 等）
+
+> **快速开始：** 如果你使用 Claude Code 或 OpenClaw，可直接参考 [INSTALL.md](../INSTALL.md) 快速安装。
 
 ---
 
