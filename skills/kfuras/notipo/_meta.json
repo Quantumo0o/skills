@@ -3,9 +3,15 @@
   "slug": "notipo",
   "displayName": "notipo",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774345483195,
-    "commit": "https://github.com/openclaw/skills/commit/77246b59f11feeab7fb16ee918d8a7775213e66d"
+    "version": "1.0.3",
+    "publishedAt": 1775818589653,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774345483195,
+      "commit": "https://github.com/openclaw/skills/commit/77246b59f11feeab7fb16ee918d8a7775213e66d"
+    }
+  ]
 }
