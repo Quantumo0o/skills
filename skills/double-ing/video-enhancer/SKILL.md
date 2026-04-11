@@ -53,6 +53,7 @@ Uploaded data includes:
 - Video duration
 - Video width and height
 - File MD5 checksum
+- Computer name and MAC address to generate a non‑reversible SHA‑256 device ID. Raw data is never uploaded or stored, used only for device identification
 
 Network endpoints used by the bundled script:
 - `https://filmora-cloud-api-alisz.wondershare.cc/open/v1/resources/upload`

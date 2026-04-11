@@ -27,6 +27,7 @@ import urllib.error
 import subprocess
 import hashlib
 import uuid
+import platform
 
 API_BASE = "https://filmora-cloud-api-alisz.wondershare.cc"
 
@@ -170,6 +171,28 @@ def validate_video_file(path: str) -> bool:
     
     return True
 
+def get_language_code() -> str:
+    if sys.platform == 'win32':
+        import ctypes
+        buf = ctypes.create_unicode_buffer(85)
+        ctypes.windll.kernel32.GetUserDefaultLocaleName(buf, 85)
+        return buf.value.replace('-', '_')
+    else:
+        import locale
+        lang, _ = locale.getlocale()
+        return lang
+
+
+def get_device_unique_id():
+    parts = [
+        platform.system(),
+        platform.machine(),
+        platform.node(),
+        str(uuid.getnode()),
+    ]
+    raw = "|".join(parts)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
 def build_auth_headers():
     """
     Build authentication headers
@@ -178,7 +201,9 @@ def build_auth_headers():
     request_id = str(uuid.uuid4())
 
     headers = {
-        'X-Request-Id': request_id
+        'X-Request-Id': request_id,
+        "X-Language": get_language_code(),
+        "X-Device-Id": get_device_unique_id()
     }
     return headers
 
