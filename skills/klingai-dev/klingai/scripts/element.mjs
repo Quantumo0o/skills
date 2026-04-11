@@ -56,7 +56,8 @@ Delete:
   --element_id        Subject ID to delete
 
 Env:
-  KLING_TOKEN         Bearer Token (recommended)`);
+  credentials file    ~/.config/kling/.credentials (access_key_id, secret_access_key)
+  KLING_TOKEN         Session-only Bearer (optional override)`);
 }
 
 async function actionCreate(args, token) {

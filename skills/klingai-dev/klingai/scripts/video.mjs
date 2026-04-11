@@ -372,7 +372,8 @@ Watermark:
   --watermark       Generate with watermark (adds watermark_info: {enabled: true})
 
 Env:
-  KLING_TOKEN       Bearer Token (recommended)
+  credentials file  ~/.config/kling/.credentials (access_key_id, secret_access_key)
+  KLING_TOKEN       Session-only Bearer (optional override)
   KLING_MEDIA_ROOTS Comma-separated extra dirs for local media / --output_dir (default: cwd only)
   KLING_ALLOW_ABSOLUTE_PATHS=1  Allow any local path (e.g. WSL downloads outside project)`);
 }

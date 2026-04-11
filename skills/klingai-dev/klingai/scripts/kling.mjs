@@ -41,19 +41,20 @@ Subcommands:
   video    Video generation (text-to-video, image-to-video, Omni, multi-shot)
   image    Image generation (text-to-image, image-to-image, 4K, series, subject)
   element  Subject management (create, query, list, delete)
-  account  Quota, import/configure credentials
+  account  Quota, bind-url/import credentials, configure
 
 Examples:
   node kling.mjs video --prompt "A cat running on the grass" --output_dir ./out
   node kling.mjs image --prompt "Sunset over mountains" --resolution 4k
   node kling.mjs element --action list
   node kling.mjs account
+  node kling.mjs account --bind-url
 
   node kling.mjs video --help
   node kling.mjs image --help
   node kling.mjs element --help
 
-Env: credentials under ~/.config/kling/.credentials (or KLING_STORAGE_ROOT/.credentials) first; fallback KLING_TOKEN (env first, then kling.env); KLING_API_BASE
+Env: credentials under ~/.config/kling/.credentials (or KLING_STORAGE_ROOT/.credentials), or session KLING_TOKEN; KLING_API_BASE
   --skill-version: version for skill (default from SKILL.md)`);
 }
 

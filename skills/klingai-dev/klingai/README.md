@@ -2,7 +2,13 @@
 
 Video generation, image generation, and subject management.
 
-- **Command**: `node kling.mjs <video|image|element> [options]`
-- **Subcommands**: `video` (video), `image` (image), `element` (subject CRUD). Choose by user intent; if ambiguous, ask the user first.
+- **Command**: `node scripts/kling.mjs <video|image|element|account> [options]`
+- **Subcommands**:
+  - `video`: video generation (text-to-video, image-to-video, omni-video, multi-shot)
+  - `image`: image generation (text-to-image, image-to-image, omni-image, 4K/series)
+  - `element`: subject CRUD
+  - `account`: quota query and credential bind/import
+- Choose by user intent; if ambiguous, ask the user first.
 
-See [SKILL.md](SKILL.md) for full usage and intent routing. [reference.md](reference.md) lists API endpoints.
+See [SKILL.md](SKILL.md) for full routing/parameters and [reference.md](reference.md) for endpoint mapping.
+Official docs: [CN](https://app.klingai.com/cn/dev/document-api) / [Global](https://kling.ai/document-api/quickStart/productIntroduction/overview).

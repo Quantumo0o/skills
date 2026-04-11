@@ -1,43 +1,42 @@
 /**
- * Kling AI — 鉴权与本地凭证（本文件不发起 HTTP）
+ * Kling AI — 鉴权层（无网络）
  *
- * 鉴权优先级：
- *   1. ~/.config/kling/.credentials（INI，[profile] access_key_id / secret_access_key）→ 请求时 makeJwt（30min exp）
- *   2. KLING_TOKEN（进程环境变量）
- *   3. kling.env 注入的 KLING_TOKEN（<storageRoot>/kling.env 或 ~/.config/kling/kling.env）
- * configure / import 写入 credentials，固定 default profile。
+ * 凭证优先级：
+ *   1. 当前进程 KLING_TOKEN（仅环境变量显式传入，不落盘）
+ *   2. ~/.config/kling/.credentials（INI，[profile] access_key_id / secret_access_key）→ 请求时 makeJwt（30min exp）
+ * bind / configure 写入 credentials，固定 default profile。
  * 存储根目录默认 ~/.config/kling；可选 KLING_STORAGE_ROOT 指向统一存储根。
- * 非凭证 env：读取 <storageRoot>/kling.env，并兼容读取 ~/.config/kling/kling.env（不覆盖启动前已在 process.env 中的键）。
+ * 非凭证 env：仅读 <storageRoot>/kling.env，不覆盖启动前已在 process.env 中的键。
  * 探测得到的 API Base 由 client 调用 `persistProbedApiBase` 写回 ~/.config/kling/kling.env 中的 KLING_API_BASE；
- * 不从文件注入 KLING_API_KEY（仅保留 KLING_TOKEN + credentials 模式）。
+ * **不会**从文件注入 KLING_TOKEN（凭证仅 credentials 文件 + 可选进程内 KLING_TOKEN）。
  *
- * 业务 HTTP：client.mjs
+ * 网络与 API Base 探测统一在 client.mjs。
  */
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import {
   readFileSync, writeFileSync, mkdirSync, chmodSync,
 } from 'node:fs';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
+import os from 'node:os';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 
 const KLING_ENV_FILENAME = 'kling.env';
+const IDENTITY_FILENAME = 'identity.json';
 const CREDENTIALS_FILENAME = '.credentials';
 const STORAGE_ROOT_ENV = 'KLING_STORAGE_ROOT';
-const SHELL_ENV_KEYS = new Set(Object.keys(process.env));
-const FILE_INJECTED_ENV_KEYS = new Set();
 
 /** 写入 process.env 时跳过（凭证不走 dotenv 文件） */
-const CREDENTIAL_ENV_DENYLIST = new Set(['KLING_API_KEY']);
+const CREDENTIAL_ENV_DENYLIST = new Set(['KLING_TOKEN']);
 
 /**
  * @param {string} content
  * @param {{ shellKeys: Set<string> }} opts
  */
 function parseEnvContent(content, opts) {
-  const { shellKeys, fileInjectedKeys } = opts;
+  const { shellKeys } = opts;
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -52,7 +51,6 @@ function parseEnvContent(content, opts) {
     // 已在启动前导出的环境变量优先，不被文件覆盖。
     if (!shellKeys.has(key) && !(key in process.env)) {
       process.env[key] = val;
-      fileInjectedKeys.add(key);
     }
   }
 }
@@ -69,12 +67,6 @@ function getDefaultKlingEnvPath() {
   return join(getKlingConfigDir(), KLING_ENV_FILENAME);
 }
 
-function getLegacyHomeKlingEnvPath() {
-  const home = process.env.HOME || process.env.USERPROFILE;
-  if (!home) return null;
-  return join(home, '.config', 'kling', KLING_ENV_FILENAME);
-}
-
 /** 更新或追加 KLING_API_BASE=…，仅写入 ~/.config/kling/kling.env */
 function upsertEnvFileKey(content, key, value) {
   const line = `${key}=${value}`;
@@ -87,22 +79,15 @@ function upsertEnvFileKey(content, key, value) {
 }
 
 (function loadEnvFiles() {
-  const shellKeys = SHELL_ENV_KEYS;
-  const explicitRoot = (process.env[STORAGE_ROOT_ENV] || '').trim();
-  // When storage root is explicitly set, only load that root's env file to
-  // avoid leaking host-level defaults (helps deterministic tests and sandboxing).
-  const paths = explicitRoot
-    ? [getDefaultKlingEnvPath()]
-    : [getDefaultKlingEnvPath(), getLegacyHomeKlingEnvPath()].filter(Boolean);
-  const seen = new Set();
-  for (const p of paths) {
-    if (seen.has(p)) continue;
-    seen.add(p);
-    try {
-      parseEnvContent(readFileSync(p, 'utf-8'), { shellKeys, fileInjectedKeys: FILE_INJECTED_ENV_KEYS });
-    } catch {}
-  }
+  const shellKeys = new Set(Object.keys(process.env));
+  try {
+    parseEnvContent(readFileSync(getDefaultKlingEnvPath(), 'utf-8'), { shellKeys });
+  } catch {}
 })();
+
+export function getIdentityFilePath() {
+  return join(getKlingConfigDir(), IDENTITY_FILENAME);
+}
 
 /** 凭证 INI 路径：<storageRoot>/.credentials */
 export function getCredentialsFilePath() {
@@ -124,7 +109,6 @@ function logAuthSource(source) {
   const messageMap = {
     credentials: 'Auth source / 鉴权来源: credentials (AK/SK -> JWT)',
     env_token: 'Auth source / 鉴权来源: KLING_TOKEN (process env)',
-    file_token: 'Auth source / 鉴权来源: KLING_TOKEN (kling.env)',
   };
   const msg = messageMap[source];
   if (msg) console.error(msg);
@@ -257,43 +241,41 @@ function makeJwt(accessKey, secretKey) {
 }
 
 /**
- * 1) 先使用 credentials 文件 AK/SK（每次调用重新签发 JWT，30min exp）
- * 2) 否则使用进程环境变量中的 KLING_TOKEN
- * 3) 最后使用 kling.env 注入的 KLING_TOKEN
+ * 1) 进程环境变量 KLING_TOKEN（不落盘；kling.env 不会注入 KLING_TOKEN）
+ * 2) 否则 credentials 文件 AK/SK → 每次调用重新签发 JWT（30min exp）
  */
 export function getBearerToken() {
+  let token = (process.env.KLING_TOKEN || '').trim();
+  if (token) {
+    logAuthSource('env_token');
+    if (token.toLowerCase().startsWith('bearer ')) {
+      token = token.slice(7).trim();
+    }
+    return token;
+  }
   const profile = getActiveProfile();
   const { access_key_id, secret_access_key } = readCredentialsProfile(profile);
   if (access_key_id && secret_access_key) {
     logAuthSource('credentials');
     return makeJwt(access_key_id, secret_access_key);
   }
-  const tokenRaw = String(process.env.KLING_TOKEN || '').trim();
-  if (tokenRaw) {
-    const isFileInjected = FILE_INJECTED_ENV_KEYS.has('KLING_TOKEN');
-    if (!isFileInjected || SHELL_ENV_KEYS.has('KLING_TOKEN')) {
-      logAuthSource('env_token');
-      return tokenRaw.toLowerCase().startsWith('bearer ')
-        ? tokenRaw.slice(7).trim()
-        : tokenRaw;
-    }
-  }
-  if (tokenRaw) {
-    logAuthSource('file_token');
-    return tokenRaw.toLowerCase().startsWith('bearer ')
-      ? tokenRaw.slice(7).trim()
-      : tokenRaw;
-  }
   throw new CredentialsMissingError(
-    'Configure AK/SK in credentials under KLING_STORAGE_ROOT (or ~/.config/kling), or set KLING_TOKEN (env first, then kling.env). '
-    + 'Get keys: https://app.klingai.com/cn/dev/console/application (Global: https://app.klingai.com/global/dev/console/application) / '
-    + '请先在 KLING_STORAGE_ROOT（或 ~/.config/kling）下配置 AK/SK（credentials），或设置 KLING_TOKEN（先环境变量，后 kling.env）。'
-    + '密钥获取: https://app.klingai.com/cn/dev/console/application （国际站: https://app.klingai.com/global/dev/console/application）',
+    'Configure credentials under KLING_STORAGE_ROOT (or ~/.config/kling), set KLING_TOKEN for this session, or run account bind/configure / '
+    + '请在 KLING_STORAGE_ROOT（或 ~/.config/kling）下配置 credentials、本次 shell 导出 KLING_TOKEN，或执行 account --bind|--configure',
   );
 }
 
 export function getConfiguredApiBase() {
+  const baseTest = (process.env.KLING_API_BASE_TEST || '').trim();
+  if (baseTest) return baseTest;
   const base = (process.env.KLING_API_BASE || '').trim();
+  return base || null;
+}
+
+export function getConfiguredBindBase() {
+  const baseTest = (process.env.KLING_BIND_BASE_TEST || '').trim();
+  if (baseTest) return baseTest;
+  const base = (process.env.KLING_BIND_BASE || '').trim();
   return base || null;
 }
 
@@ -310,6 +292,87 @@ export function persistProbedApiBase(baseUrl) {
   } catch {}
   writeFileSync(path, upsertEnvFileKey(raw, 'KLING_API_BASE', b));
   process.env.KLING_API_BASE = b;
+}
+
+export function readIdentity() {
+  try {
+    const raw = readFileSync(getIdentityFilePath(), 'utf-8');
+    const o = JSON.parse(raw);
+    return o && typeof o === 'object' ? o : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeIdentity(obj) {
+  const dir = getKlingConfigDir();
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(getIdentityFilePath(), `${JSON.stringify(obj, null, 2)}\n`);
+}
+
+export function ensureIdentityForBind() {
+  const existing = readIdentity() || {};
+  const id = { ...existing };
+  let dirty = Object.keys(existing).length === 0;
+  if (!id.client_instance_id) {
+    id.client_instance_id = randomUUID();
+    dirty = true;
+  }
+  const localHostname = (() => {
+    try {
+      const h = String(os.hostname() || '').trim();
+      return h || 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  })();
+  if (!id.hostname) {
+    id.hostname = localHostname;
+    dirty = true;
+  }
+  if (!id.device_name) {
+    const n = String(process.env.COMPUTERNAME || process.env.HOSTNAME || id.hostname || '').trim();
+    id.device_name = n || 'unknown';
+    dirty = true;
+  }
+  if (!id.platform) {
+    if (process.platform === 'darwin') id.platform = 'macOS';
+    else if (process.platform === 'win32') id.platform = 'Windows';
+    else if (process.platform === 'linux') id.platform = 'Linux';
+    else id.platform = 'unknown';
+    dirty = true;
+  }
+  id.version = id.version ?? 1;
+  if (id.session_id === undefined) id.session_id = null;
+  id.updated_at = Date.now();
+  if (dirty) writeIdentity(id);
+  return id;
+}
+
+export function patchKlingIdentity(patch) {
+  const cur = readIdentity() || {};
+  const next = { ...cur, ...patch, updated_at: Date.now() };
+  writeIdentity(next);
+  return next;
+}
+
+/** 绑定 / configure 成功后写入 credentials；identity 中不保留 AK/SK（并清除历史字段） */
+export function persistBoundApiKeys(accessKey, secretKey, extraIdentity = {}, extraCredentials = {}) {
+  const ak = String(accessKey || '').trim();
+  const sk = String(secretKey || '').trim();
+  if (!ak || !sk) throw new Error('Missing access_key or secret_key / 缺少 access_key 或 secret_key');
+  const profile = getActiveProfile();
+  const savePath = writeCredentialsProfile(profile, ak, sk, extraCredentials);
+  const cur = readIdentity() || {};
+  const next = { ...cur, ...extraIdentity, bound_at: Date.now(), updated_at: Date.now() };
+  delete next.access_key;
+  delete next.secret_key;
+  delete next.credential_id;
+  delete next.account_id;
+  delete next.credentialId;
+  delete next.accountId;
+  writeIdentity(next);
+  return { savePath, token: makeJwt(ak, sk) };
 }
 
 export { makeJwt };
@@ -377,7 +440,6 @@ export async function promptInteractiveCredentialsFile() {
   console.error('\n── Kling AI configure / 可灵凭证配置 ─────────────');
   console.error(`Profile / 配置名: ${getActiveProfile()}`);
   console.error(`File / 文件: ${getCredentialsFilePath()}`);
-  console.error('Get keys / 获取密钥: https://app.klingai.com/cn/dev/console/application');
   console.error('────────────────────────────────────────────────\n');
 
   const rl1 = createInterface({ input: process.stdin, output: process.stderr });
@@ -389,7 +451,6 @@ export async function promptInteractiveCredentialsFile() {
 
   const secretKey = await readHiddenLine('Secret Access Key / 秘密访问密钥（隐藏输入，可粘贴）: ');
   if (!secretKey) throw new Error('Secret Key required / 需要 Secret Key');
-
   const savePath = writeCredentialsProfile(getActiveProfile(), accessKey, secretKey);
   console.error(`\n✓ Saved / 已保存（密钥未在日志中输出）: ${savePath}\n`);
   return makeJwt(accessKey, secretKey);
