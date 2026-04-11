@@ -9,16 +9,22 @@ Check domain availability using `whois` + DNS cross-verification. Single source 
 
 ## Quick Start
 
-Run the bundled script to check one or more domains:
+Run the Python script (no system dependencies — no `whois`/`dig` CLI needed):
 
 ```bash
-bash scripts/check_domains.sh example.com myproject.io brand.ai
+python3 scripts/check_domains.py example.com myproject.io brand.ai
 ```
 
 Or pipe a list:
 
 ```bash
-echo "foo.com bar.ai baz.io" | bash scripts/check_domains.sh
+echo "foo.com bar.ai baz.io" | python3 scripts/check_domains.py
+```
+
+Legacy bash script (requires `whois` + `dig` CLI):
+
+```bash
+bash scripts/check_domains.sh example.com myproject.io brand.ai
 ```
 
 ## Output Format
@@ -48,7 +54,8 @@ A domain is only marked AVAILABLE when whois explicitly says "not found" AND no 
 - **whois web interfaces are unreliable**: Sites like whois.com often return stale/incorrect data. This script uses the `whois` CLI directly.
 - **.ai TLD quirk**: The .ai whois server sometimes returns sparse data. The script handles this by also checking DNS.
 - **Premium/aftermarket domains**: A domain may be "available" in whois but listed at a premium price on registrars. The script cannot detect this — check the registrar for actual purchase price.
-- **Requires**: `whois` and `dig` CLI tools (pre-installed on most Linux/macOS systems).
+- **Python script**: No system dependencies — uses stdlib `socket` for whois (port 43) and DNS resolution.
+- **Bash script** (legacy): Requires `whois` and `dig` CLI tools (pre-installed on most Linux/macOS systems).
 
 ## Batch Domain Brainstorming
 
@@ -62,5 +69,5 @@ When helping users brainstorm project names with domain checks, use this workflo
 Example:
 
 ```bash
-bash scripts/check_domains.sh myapp.com myapp.ai myapp.io coolname.com coolname.ai
+python3 scripts/check_domains.py myapp.com myapp.ai myapp.io coolname.com coolname.ai
 ```
