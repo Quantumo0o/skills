@@ -13,7 +13,7 @@ Professional-grade CAD drawing reading and analysis tool, designed to run as an 
 | Screenshot Visualization | Generate PNG/PDF/SVG by block name/layer/region |
 | Compliance Audit | Zero-layer violations, empty layers, DEFPOINTS checks |
 | PDF Export | Export drawings to vector PDF |
-| Automated Environment Setup | Auto-install all dependencies on first run |
+| Automated Environment Setup | One-command setup with explicit confirmation (`setup --confirm`) |
 
 All commands output structured **JSON** for direct AI Agent parsing.
 
@@ -57,7 +57,7 @@ python3 scripts/cad_tools.py layers /path/to/drawing.dwg --count-entities
 python3 scripts/cad_tools.py texts /path/to/drawing.dwg --keyword "distribution"
 ```
 
-> **First run** automatically installs Python dependencies and runs `setup.sh` to configure external tools. This may take a few minutes.
+> **First run**: If Python dependencies (`ezdxf`, `matplotlib`) are not installed, the tool will display an error with installation instructions. Please install them manually or run `python3 scripts/cad_tools.py setup --confirm` to set up the full environment.
 
 ---
 

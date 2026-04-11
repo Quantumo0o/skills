@@ -13,7 +13,14 @@ Provide professional-grade DWG/DXF drawing file reading and analysis capabilitie
 
 **Before using this skill, please review the following:**
 
-This skill requires **manual confirmation** before installing system dependencies. On first run, it will:
+This skill does **NOT** automatically install any packages or run any setup scripts. If dependencies are missing, it will output a clear error message with manual installation instructions. To set up the environment, the user must explicitly run the setup command:
+
+```bash
+# Assisted setup (requires explicit --confirm flag)
+python3 {SKILL_DIR}/scripts/cad_tools.py setup --confirm
+```
+
+The full setup process (when explicitly confirmed) will:
 - Install Python packages (`ezdxf`, `matplotlib`)
 - Install system packages (`xvfb`, `libGL`) via `sudo`
 - Download and install **ODA File Converter** from `opendesign.com`
@@ -24,6 +31,7 @@ This skill requires **manual confirmation** before installing system dependencie
 ## Prerequisites
 
 - **Python 3.8+** (system installed)
+- **Python packages**: `ezdxf` and `matplotlib` must be installed before use
 - **root/sudo permissions** (only if you choose to run automatic setup)
 - **x86_64 Linux system**
 
@@ -295,6 +303,7 @@ python3 {SKILL_DIR}/scripts/cad_tools.py export-pdf /path/to/drawing.dwg -o /pat
 
 When analyzing a new DWG file, follow this order:
 
+0. **Review past learnings** → Check `.learning/` for relevant experience (see [Self-Learning Mechanism](#self-learning-mechanism))
 1. **`info`** → Understand file basics (version, units, entity count)
 2. **`layers`** → See the organizational structure
 3. **`inserts`** or **`entities`** → Find specific equipment/components
@@ -341,11 +350,11 @@ Example output structure (for `info` command):
 ## Error Handling
 
 - If a file does not exist, the tool exits with a descriptive error message
-- If required Python packages are missing, **the tool automatically installs them** via pip
-- If ODA/QCAD are not available, **the tool automatically runs setup.sh** on first use
+- If required Python packages are missing, **the tool outputs clear installation instructions** and exits
+- If ODA/QCAD are not available, the tool provides manual setup instructions
 - If QCAD is not available for screenshots, the tool automatically falls back to matplotlib rendering
 - All errors are written to stderr in JSON format for programmatic consumption
-- If any auto-installation fails, the tool provides clear manual installation instructions
+- **No packages are installed automatically** — all installation requires explicit user action
 
 ## Notes
 
@@ -357,3 +366,201 @@ Example output structure (for `info` command):
 - Screenshot quality is best with QCAD dwg2bmp; matplotlib is a reasonable fallback
 - Large drawings may take several seconds to load — this is normal for complex engineering files
 - Coordinate values in CAD drawings can be very large (millions); this is normal for real-world projects
+
+## Self-Learning Mechanism
+
+This skill supports a self-learning mechanism that records user preferences, error resolutions, and best practices discovered during usage. These records are stored in a `.learning/` directory within the user's project and are **automatically referenced in subsequent sessions** to provide more accurate and personalized assistance.
+
+### ⚡ Core Principle
+
+**Unless the user explicitly requests to skip past experience (e.g., "don't refer to previous learnings", "start fresh"), the agent MUST review `.learning/` files at the beginning of every task and apply relevant knowledge throughout the session.**
+
+### 📏 Capacity Limits & Eviction
+
+To prevent records from growing indefinitely and losing their effectiveness, strict limits are enforced:
+
+| File | Max Entries | Eviction Trigger |
+|------|-------------|------------------|
+| `LEARNINGS.md` | **50** | When adding a new entry would exceed 50 |
+| `ERRORS.md` | **30** | When adding a new entry would exceed 30 |
+
+**Counting method**: Count the number of `## [` heading lines in the file to determine the current entry count.
+
+**Eviction strategy** — when the limit is reached, before adding a new entry, remove the lowest-value entry using this priority order:
+
+1. **Status = `resolved`** entries are evicted first (already addressed, least future value)
+2. **Status = `wont_fix`** entries are evicted next
+3. Among candidates with the same status, evict the one with the **oldest `Logged` date**
+4. Among candidates with the same status and date, evict the one with the **lowest priority** (`low` < `medium` < `high` < `critical`)
+
+**Important rules**:
+- `pending` and `in_progress` entries are never evicted automatically — if all entries are pending/in_progress and the limit is reached, the agent should ask the user which entry to remove or resolve
+- When evicting, remove the entire entry block (from `## [` to the next `---`)
+- User preference entries (`user_preference` category) have eviction protection — they are only evicted when no other candidates remain, because preferences are persistently valuable
+
+**Quick count check** (the agent should do this before adding a new entry):
+```bash
+grep -c "^## \[" .learning/LEARNINGS.md
+grep -c "^## \[" .learning/ERRORS.md
+```
+
+### First-Use Initialization
+
+Before logging anything, ensure the `.learning/` directory and files exist in the **user's project root** (NOT in the skill directory). If any are missing, create them:
+
+```bash
+mkdir -p .learning
+[ -f .learning/LEARNINGS.md ] || cp {SKILL_DIR}/assets/LEARNINGS.md .learning/LEARNINGS.md
+[ -f .learning/ERRORS.md ] || cp {SKILL_DIR}/assets/ERRORS.md .learning/ERRORS.md
+```
+
+Never overwrite existing files. This is a no-op if `.learning/` is already initialized.
+
+### When to Review Learnings (Start of Session)
+
+At the start of every CAD analysis task, **before executing any commands**:
+
+1. Check if `.learning/` directory exists in the project root
+2. If it exists, read `.learning/LEARNINGS.md` and `.learning/ERRORS.md`
+3. Identify entries relevant to the current task (by file type, command, layer names, error patterns, etc.)
+4. Apply relevant learnings proactively — for example:
+   - If a user preference for screenshot background color was recorded, use it automatically
+   - If a known error with certain DWG versions was logged, warn the user or apply the fix preemptively
+   - If a best practice for specific layer analysis was discovered, follow it
+
+### When to Log
+
+| Situation | Action |
+|-----------|--------|
+| Command fails or produces unexpected output | Log to `.learning/ERRORS.md` |
+| User corrects the agent's approach | Log to `.learning/LEARNINGS.md` with category `correction` |
+| User specifies a preference (e.g., output format, default options) | Log to `.learning/LEARNINGS.md` with category `user_preference` |
+| A non-obvious solution is discovered | Log to `.learning/LEARNINGS.md` with category `insight` |
+| Agent's knowledge about CAD was incorrect or outdated | Log to `.learning/LEARNINGS.md` with category `knowledge_gap` |
+| A better workflow or approach is found | Log to `.learning/LEARNINGS.md` with category `best_practice` |
+
+### Learning Entry Format
+
+Append to `.learning/LEARNINGS.md`:
+
+```markdown
+## [LRN-YYYYMMDD-XXX] category
+
+**Logged**: ISO-8601 timestamp
+**Priority**: low | medium | high | critical
+**Status**: pending
+
+### Summary
+One-line description of what was learned
+
+### Details
+Full context: what happened, what was wrong, what's correct
+
+### Suggested Action
+Specific fix or improvement to apply in future sessions
+
+### Metadata
+- Source: conversation | error | user_feedback
+- Related Files: path/to/file.dwg
+- Tags: tag1, tag2
+- See Also: LRN-YYYYMMDD-XXX (if related to existing entry)
+
+---
+```
+
+### Error Entry Format
+
+Append to `.learning/ERRORS.md`:
+
+```markdown
+## [ERR-YYYYMMDD-XXX] command_name
+
+**Logged**: ISO-8601 timestamp
+**Priority**: high
+**Status**: pending
+
+### Summary
+Brief description of what failed
+
+### Error
+```
+Actual error message or output
+```
+
+### Context
+- Command/operation attempted
+- Input file and parameters used
+- Environment details if relevant
+
+### Resolution
+How the error was resolved (fill in once fixed)
+
+### Metadata
+- Reproducible: yes | no | unknown
+- Related Files: path/to/file.dwg
+- See Also: ERR-YYYYMMDD-XXX (if recurring)
+
+---
+```
+
+### ID Generation
+
+Format: `TYPE-YYYYMMDD-XXX`
+- TYPE: `LRN` (learning), `ERR` (error)
+- YYYYMMDD: Current date
+- XXX: Sequential number (e.g., `001`, `002`)
+
+Examples: `LRN-20260408-001`, `ERR-20260408-001`
+
+### Resolving Entries
+
+When an issue is fixed or a learning is confirmed, update the entry:
+
+1. Change `**Status**: pending` → `**Status**: resolved`
+2. For errors, fill in the `### Resolution` section
+
+### Privacy & Safety
+
+- Do NOT log secrets, tokens, private keys, or sensitive environment variables
+- Prefer short summaries over full command output
+- Do NOT log full file contents — reference file paths instead
+- The `.learning/` directory is local to the project and is NOT committed to version control by default
+
+### Gitignore Recommendation
+
+Add to the project's `.gitignore`:
+
+```gitignore
+.learning/
+```
+
+### Quick Reference for Agent Behavior
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                   Agent Task Start                        │
+│                                                          │
+│  1. Does .learning/ exist?                               │
+│     ├─ YES → Read LEARNINGS.md & ERRORS.md              │
+│     │        Apply relevant past experience               │
+│     └─ NO  → Initialize .learning/ directory             │
+│                                                          │
+│  2. Execute the user's CAD analysis task                 │
+│     └─ Apply past learnings throughout                   │
+│                                                          │
+│  3. During execution, did any of these occur?            │
+│     ├─ Error encountered → Log to ERRORS.md              │
+│     ├─ User correction → Log to LEARNINGS.md             │
+│     ├─ User preference → Log to LEARNINGS.md             │
+│     ├─ New insight → Log to LEARNINGS.md                 │
+│     └─ Nothing notable → No logging needed               │
+│                                                          │
+│  4. Before writing a new entry:                          │
+│     ├─ Count existing entries (grep -c "^## \[" file)    │
+│     ├─ At limit? → Evict lowest-value entry first        │
+│     │   (resolved > wont_fix > oldest > lowest priority) │
+│     └─ Under limit? → Append directly                    │
+│                                                          │
+│  5. Task complete                                        │
+└──────────────────────────────────────────────────────────┘
+```
