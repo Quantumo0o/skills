@@ -8,7 +8,7 @@ New validation added without updating factories or seeds.
 - **Check**: `spec/factories/`, `db/seeds.rb`, `db/migrate/`
 
 ### Missing role trait on user factory
-```
+```text
 User must be a <role> to perform this action
 ```
 - **Fix**: Pass the correct role trait when creating users in specs, e.g. `create(:user, :admin)`
@@ -57,7 +57,7 @@ When new required columns are added, seed data creation breaks.
 ## CI Build / Environment Failures
 
 ### Missing Node, Yarn, or npm
-```
+```text
 yarn: command not found
 npm: not found
 node: command not found
@@ -77,7 +77,7 @@ node: command not found
 - Check that `package.json` has the build script defined
 
 ### Asset precompilation failing
-```
+```text
 ExecJS::RuntimeUnavailable or asset pipeline errors
 ```
 - **Fix**: Add Node setup before asset precompile step in CI
