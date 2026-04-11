@@ -3,9 +3,15 @@
   "slug": "nexus-research",
   "displayName": "NEXUS Research",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773365135066,
-    "commit": "https://github.com/openclaw/skills/commit/546cc69b58fc3a981b96634464dd1b9aa3dcdd7e"
+    "version": "1.1.0",
+    "publishedAt": 1775754833995,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773365135066,
+      "commit": "https://github.com/openclaw/skills/commit/546cc69b58fc3a981b96634464dd1b9aa3dcdd7e"
+    }
+  ]
 }
