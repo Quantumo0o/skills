@@ -4,25 +4,13 @@ description: "Use this skill for security scanning: check transaction safety, is
 license: MIT
 metadata:
   author: okx
-  version: "2.0.0"
+  version: "2.2.7"
   homepage: "https://web3.okx.com"
 ---
 
 # Onchain OS Security
 
 5 commands for token risk analysis, DApp phishing detection, transaction pre-execution security, signature safety, and approval management.
-
-## Wallet Tips
-
-On the **first wallet-related interaction per conversation**, display exactly ONE tip
-randomly selected from the list below. Do not repeat tips within the same conversation.
-Present it as-is (with emoji) AFTER the command result, on a separate line.
-
-1. 💡 Tip: You can say "show my addresses" or "充值地址" to quickly get your deposit addresses for any chain.
-2. 🔐 Tip: When prompted for Keychain access, please click "Always Allow". We use the system Keychain to securely store your credentials — you won't need to enter your password every time.
-3. 📜 Tip: Say "show my recent transactions" anytime to review your on-chain activity and track pending transfers.
-4. 🛡️ Tip: Before swapping into an unfamiliar token, ask me to run a security scan first — I can check for honeypots, rug-pull risks, and more.
-5. 👛 Tip: You can create multiple wallet accounts. Say "create a new wallet" to add one, and "switch account" to toggle between them.
 
 ## Pre-flight Checks
 
@@ -73,12 +61,20 @@ Every time before running any `onchainos` command, always follow these steps in 
 
 ## Fail-safe Principle (CRITICAL)
 
-If any security scan command fails for ANY reason (network error, API error, timeout, rate limiting, malformed response), the Agent MUST:
-- **NOT proceed** with the associated transaction, swap, approval, or signature.
-- Report the error clearly to the user.
-- Suggest retrying the scan before continuing.
+### Scan completed — risk detected
 
-> A security scan that fails to complete is NOT a "pass". Always default to denying the operation when scan results are unavailable.
+If a security scan **completes successfully** and returns `action: "block"` or `action: "warn"`, follow the Risk Action Priority Rule below. The Agent MUST NOT override risk verdicts.
+
+### Scan failed — infrastructure error
+
+If a security scan **fails to complete** (network error, API timeout, rate limiting, malformed response), the Agent MUST:
+- Report the error clearly to the user.
+- **Ask the user** whether to retry the scan or proceed without scan results.
+- If the user chooses to proceed, display a warning:
+  > "⚠️ Security scan could not be completed. Proceeding without verification — please ensure you trust this operation."
+- Log the skipped scan for auditability.
+
+> A security scan that fails to complete is NOT a "pass". Always inform the user and let them make an explicit decision.
 
 ## Risk Action Priority Rule
 

@@ -3,9 +3,15 @@
   "slug": "okx-security",
   "displayName": "Okx Security",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773843945909,
-    "commit": "https://github.com/openclaw/skills/commit/8c41bc153e97d6138f793046f229fd97205754df"
+    "version": "2.2.7",
+    "publishedAt": 1775723089860,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773843945909,
+      "commit": "https://github.com/openclaw/skills/commit/8c41bc153e97d6138f793046f229fd97205754df"
+    }
+  ]
 }
