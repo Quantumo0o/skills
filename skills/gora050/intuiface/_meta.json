@@ -3,9 +3,15 @@
   "slug": "intuiface",
   "displayName": "Intuiface",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774026201366,
-    "commit": "https://github.com/openclaw/skills/commit/c4158f2010a749a0cef5fad9f68b71c037fda4e5"
+    "version": "1.0.2",
+    "publishedAt": 1775165425016,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774026201366,
+      "commit": "https://github.com/openclaw/skills/commit/c4158f2010a749a0cef5fad9f68b71c037fda4e5"
+    }
+  ]
 }
