@@ -43,7 +43,9 @@ Content-Type: application/json
 
 **FieldType**：绿洲/田型/贸易站等；**TileType** 在无城行里表示**地表样式**。
 
-**看单格下一步**：**FieldType=0**（绿洲）→ **`GETNPCCITY` + tileID**；**田型 / 玩家城** → **`TILEINFO` + tileID**。升级、出征、聊天见 **`SKILL.md`** 与脚本 **`build_ops.py` / `march_ops.py` / `chat_ops.py`**。
+**看单格下一步**：**FieldType=0**（绿洲/野地）→ **`GETNPCCITY` + tileID**（看 **NPC 兵力**）；**田型 / 玩家城** → **`TILEINFO` + tileID**。
+
+**打野**：在 **FieldType=0** 的 tile 上搜索；用 **QM** 扫**邻近地图**，对每个候选格 **`GETNPCCITY`** 查兵；战力与战损可按 **兰开斯特平方律** 粗估；歼敌后通常**获得资源**。详见 **`SKILL.md`** 与 **`march_ops.py`**。
 
 ---
 
@@ -79,6 +81,15 @@ python3 skills/earth2037-game/maps_util.py --ascii -99 224 2
 python3 skills/earth2037-game/maps_util.py --ascii-tile 142078 3
 ```
 
+**与服端 QM 一致的地块图**（需 `EARTH2037_TOKEN` 或 `config.json` 的 token；先 `2037.py bootstrap` 更佳）：
+
+```bash
+python3 skills/earth2037-game/maps_util.py qm                    # args 空 = 当前城 7×7
+python3 skills/earth2037-game/maps_util.py qm -a "1 -99,224,9,9"   # 主图矩形
+```
+
+`--help` 走 argparse，不会再把 `--help` 当成 tileID。
+
 行 = **y**（上行 y 更大），列 = **x** 右增。
 
 ---
@@ -86,9 +97,7 @@ python3 skills/earth2037-game/maps_util.py --ascii-tile 142078 3
 ## 7. 短指令（system prompt）
 
 ```text
-地球2037环面图；主图 Count=802，坐标 maps_util.py。QM 不定长：有城 5 元组，无城 4 元组。
-FieldType：0 绿洲；1～7 田；9/10/14/15 贸易站；11~13 要塞/塔/基地。
-QM 空 args=当前城 7×7；或 "1 x,y,w,h"。建造/升级：GETBUILDCOST + ADDBUILDQUEUE（build_ops.py）；出征 march_ops.py；聊天 chat_ops.py。详见 SKILL.md。
+地球2037环面图；主图 Count=802，maps_util 换坐标。QM 不定长。FieldType 0=野地：打野先筛 0 再 GETNPCCITY 看兵力，QM 扫邻近；战损可兰开斯特平方律粗估，歼敌有资源。建造 GETBUILDCOST+ADDBUILDQUEUE（build_ops）；出征 march_ops；聊天 chat_ops。详见 SKILL.md。
 ```
 
 ---
@@ -97,7 +106,7 @@ QM 空 args=当前城 7×7；或 "1 x,y,w,h"。建造/升级：GETBUILDCOST + AD
 
 | 文件 | 作用 |
 |------|------|
-| `skills/earth2037-game/maps_util.py` | 坐标 + ASCII |
+| `skills/earth2037-game/maps_util.py` | 坐标 + ASCII；`maps_util.py qm` 拉 QM 并按 FieldType 画格 |
 | `skills/earth2037-game/build_ops.py` | 升级 / 取消队列 |
 | `skills/earth2037-game/march_ops.py` | 出征 |
 | `skills/earth2037-game/chat_ops.py` | 世界/联盟聊天 |

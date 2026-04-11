@@ -262,13 +262,31 @@ def cmd_newkey(api_base):
         sys.exit(1)
 
 
+def cmd_setcity(api_base, tile_id):
+    """SETCURCITY 切换当前城并同步 userinfo.json / citys.json"""
+    try:
+        from cache import humanize_command_output, set_current_city
+
+        ui, cs, raw = set_current_city(tile_id, api_base=api_base)
+        cv = ui.get("CurrentVillageID") or ui.get("currentVillageID")
+        print("✅ SETCURCITY 已执行，本地缓存已更新")
+        print(f"  CurrentVillageID={cv}, CapitalID={ui.get('CapitalID')}")
+        print(f"  citys.json: {len(cs)} 座城市")
+        if raw.strip():
+            print(f"  服端: {humanize_command_output(raw).strip()[:500]}")
+    except Exception as e:
+        print(f"❌ setcity 失败: {e}")
+        sys.exit(1)
+
+
 def cmd_sync(api_base):
     """同步 userinfo、citys 到本地缓存"""
     try:
         from cache import sync as cache_sync
         ui, cs = cache_sync(api_base=api_base)
         print("✅ 缓存已更新")
-        print(f"  userinfo.json: userID={ui.get('UserID')}, CapitalID={ui.get('CapitalID')}")
+        cv = ui.get("CurrentVillageID") or ui.get("currentVillageID")
+        print(f"  userinfo.json: userID={ui.get('UserID')}, CapitalID={ui.get('CapitalID')}, CurrentVillageID={cv}")
         print(f"  citys.json: {len(cs)} 座城市")
     except Exception as e:
         print(f"❌ 同步失败: {e}")
@@ -310,29 +328,79 @@ def main():
             args = args[1:]
 
     if len(args) < 1:
-        print("用法: 2037.py [--api-base URL] [--lang zh|en] key | ... | sync | bootstrap | show [分类]")
+        print("用法: 2037.py [--api-base URL] [--lang zh|en] key | ... | setcity | sync | bootstrap | show [分类]")
         print("  --api-base: 指定 API 地址，覆盖 config.json")
         print("  --lang zh|en: 按语言选默认服务器（需 config.json 中 apiBaseByLang）")
         print("  register: 可先只输入用户名、密码，再在终端选择种族；或一行写完：register 用户 密码 [1|2|3|种族名]")
         print("  种族: 1=人类联盟 2=旭日帝国 3=鹰之神界（OpenClaw 上应先问用户选族再执行 register）")
         print("  recover: 有用户名密码但无 SK-key 时，凭密码找回 API key（skill token）")
         print("  newkey: 换新 key（需 token，旧 key 作废）")
+        print("  setcity <tileID>: SETCURCITY 切换当前城并刷新 userinfo.json / citys.json（需 token）")
         print("  sync: 仅 USERINFO+CITYLIST → userinfo.json / citys.json（需 token）")
         print("  bootstrap: 服务端一次合并多路命令 → session_cache.json（需 token，推荐）")
         print("  show: 读本地缓存，打印城市/建筑/军队等（不连网）；分类: city build troops task queue hero goods")
-        print("  另见: build_ops.py（GETBUILDCOST/ADDBUILDQUEUE/取消队列） march_ops.py chat_ops.py，需 token")
+        print("  airinfo: 空投次数（已用/总次数，剩余=总-已用）；airdrop [tileID]: 领取空投（省略则用当前城/主城），需 token")
+        print("  另见: build_ops.py（GETBUILDCOST/ADDBUILDQUEUE/取消队列） recruit_ops.py（征兵） march_ops.py chat_ops.py airdrop_ops.py，需 token")
         sys.exit(1)
 
     api_base = load_config(api_base_override=api_base_override, lang=lang)
     cmd = args[0].lower()
 
-    if cmd == "sync":
+    if cmd == "setcity":
+        if len(args) < 2:
+            print("用法: 2037.py setcity <tileID>")
+            sys.exit(1)
+        try:
+            tid = int(args[1])
+        except ValueError:
+            print("❌ tileID 须为整数")
+            sys.exit(1)
+        cmd_setcity(api_base, tid)
+    elif cmd == "sync":
         cmd_sync(api_base)
     elif cmd == "show":
         focus = args[1] if len(args) > 1 else None
         cmd_show(focus)
     elif cmd == "bootstrap":
         cmd_bootstrap(api_base)
+    elif cmd == "airinfo":
+        try:
+            from cache import humanize_command_output
+            from airdrop_ops import airinfo as do_airinfo
+
+            raw, counts = do_airinfo(api_base=api_base)
+            print(humanize_command_output(raw).rstrip())
+            if counts:
+                u, t = counts
+                print(f"remaining={t - u} (used={u}, total={t})")
+        except Exception as e:
+            print(f"❌ {e}")
+            sys.exit(1)
+    elif cmd == "airdrop":
+        try:
+            from cache import humanize_command_output
+            from airdrop_ops import airdropres, get_current_village_id
+
+            tid = None
+            if len(args) > 1:
+                tid = int(args[1])
+            else:
+                tid = get_current_village_id()
+                if tid is None:
+                    print("❌ 请指定 tileID：2037.py airdrop <tileID>，或先 sync 写入 userinfo.json")
+                    sys.exit(1)
+                print(f"(tileID={tid} from userinfo cache)")
+            raw, res, ok = airdropres(tid, api_base=api_base)
+            print(humanize_command_output(raw).rstrip())
+            if res:
+                print(json.dumps(res, ensure_ascii=False, indent=2))
+            if ok:
+                print("✅ getResource 已合并到 session_cache.json（若存在）")
+            else:
+                sys.exit(1)
+        except Exception as e:
+            print(f"❌ {e}")
+            sys.exit(1)
     elif cmd == "newkey":
         cmd_newkey(api_base)
     elif cmd == "key":
