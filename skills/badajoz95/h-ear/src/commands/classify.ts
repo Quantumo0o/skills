@@ -1,10 +1,7 @@
 import type { HearApiClient } from '@h-ear/core';
 import { formatClassifySubmitted, formatClassifyResult } from '../formatter.js';
 
-/** Default gateway webhook receiver — OpenClaw routes results back to the user's channel. */
-const GATEWAY_CALLBACK = 'https://gateway.openclaw.ai/webhooks/h-ear';
-
-/** Async submit — returns immediately with job ID. Results delivered via callbackUrl. */
+/** Async submit — returns immediately with job ID. callbackUrl is optional; client defaults to noop. */
 export async function classifyCommand(
     client: HearApiClient,
     url: string,
@@ -13,7 +10,7 @@ export async function classifyCommand(
     const accepted = await client.submitClassify({
         url,
         threshold: options?.threshold ?? 0.3,
-        callbackUrl: options?.callbackUrl ?? GATEWAY_CALLBACK,
+        ...(options?.callbackUrl ? { callbackUrl: options.callbackUrl } : {}),
     });
     return formatClassifySubmitted(accepted);
 }

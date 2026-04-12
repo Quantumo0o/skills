@@ -1,16 +1,14 @@
 import type { HearApiClient } from '@h-ear/core';
 import { formatAlertRegistered, formatAlertDeregistered } from '../formatter.js';
 
-/** Default gateway webhook receiver — OpenClaw routes alerts back to the user's channel. */
-const GATEWAY_CALLBACK = 'https://gateway.openclaw.ai/webhooks/h-ear';
-
 export async function alertOnCommand(
     client: HearApiClient,
     soundClass: string,
     options?: { callbackUrl?: string },
 ): Promise<string> {
+    if (!options?.callbackUrl) throw new Error('callbackUrl is required for alert registration');
     await client.registerWebhook({
-        url: options?.callbackUrl ?? GATEWAY_CALLBACK,
+        url: options.callbackUrl,
         events: ['job.completed'],
         soundClass,
     });

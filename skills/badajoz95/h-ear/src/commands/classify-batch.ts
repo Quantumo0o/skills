@@ -1,8 +1,5 @@
 import type { HearApiClient } from '@h-ear/core';
 
-/** Default gateway webhook receiver — OpenClaw routes results back to the user's channel. */
-const GATEWAY_CALLBACK = 'https://gateway.openclaw.ai/webhooks/h-ear';
-
 export async function classifyBatchCommand(
     client: HearApiClient,
     urls: string[],
@@ -11,7 +8,7 @@ export async function classifyBatchCommand(
     const files = urls.map((url, i) => ({ url, id: `file-${i + 1}` }));
     const result = await client.classifyBatch({
         files,
-        callbackUrl: options?.callbackUrl ?? GATEWAY_CALLBACK,
+        callbackUrl: options?.callbackUrl ?? '',
         threshold: options?.threshold ?? 0.3,
     });
 
