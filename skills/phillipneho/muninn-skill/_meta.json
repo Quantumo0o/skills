@@ -3,9 +3,15 @@
   "slug": "muninn-skill",
   "displayName": "Muninn Memory",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1774256335662,
-    "commit": "https://github.com/openclaw/skills/commit/2b9e5ff60eb6189aabdb2c971b78e81225db8bf7"
+    "version": "2.0.0",
+    "publishedAt": 1775914624064,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1774256335662,
+      "commit": "https://github.com/openclaw/skills/commit/2b9e5ff60eb6189aabdb2c971b78e81225db8bf7"
+    }
+  ]
 }
