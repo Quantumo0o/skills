@@ -1,48 +1,44 @@
 ---
 name: ai-music-generator-free-ab-old
-version: "1.0.0"
-displayName: "AI Music Generator Free — Create Original Soundtracks for Any Video Instantly"
+version: "1.0.1"
+displayName: "AI Music Generator Free — Generate and Add Background Music"
 description: >
-  Tired of searching royalty-free music libraries only to find tracks that don't quite fit your video's mood? The ai-music-generator-free skill creates original, custom music tailored to your content — no licensing headaches, no subscription walls. Upload your video (mp4, mov, avi, webm, or mkv) and describe the vibe you want: upbeat corporate, cinematic drama, lo-fi chill, or anything in between. Ideal for YouTubers, social media creators, filmmakers, and marketers who need unique audio fast.
-metadata: {"openclaw": {"emoji": "🎵", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
-apiDomain: https://mega-api-prod.nemovideo.ai
-homepage: https://nemovideo.com
-repository: https://github.com/nemovideo/nemovideo_skills
+  Get 1080p MP4 files from your video clips using this ai-music-generator-free tool. It runs AI music generation on cloud GPUs, so your machine does zero heavy lifting. content creators can adding AI-generated background music to videos in roughly 20-40 seconds — supports MP4, MOV, AVI, WebM.
+metadata: {"openclaw": {"emoji": "🎵", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "greeting_v2"}}
 ---
 
 ## Getting Started
 
-> Welcome! 🎵 Ready to give your video the perfect original soundtrack? With the AI Music Generator Free skill, just upload your clip and tell me the mood or style you're going for — I'll compose something made specifically for your content. Let's make your video sound as good as it looks!
+> Send me your video clips and I'll generate it. No file? Just describe what you need.
 
 **Try saying:**
-- "Generate a calm, lo-fi background track for my 3-minute meditation video"
-- "Create an upbeat, energetic music track that matches the pace of my action sports highlight reel"
-- "I need a warm, emotional acoustic piece for a wedding slideshow video — something that builds slowly and feels heartfelt"
+- "generate a 60-second travel montage video into a 1080p MP4"
+- "generate a free background music track that matches the mood of my video"
+- "adding AI-generated background music to videos for content creators"
 
-### Quick Start Setup
+### Automatic Setup
 
-This skill connects to NemoVideo's cloud backend. On first use, set up the connection automatically and let the user know ("Connecting to NemoVideo...").
+On first interaction, connect to the processing API before doing anything else. Show a brief status like "Setting things up...".
 
-**Token check**: Look for `NEMO_TOKEN` in the environment. If found, skip to session creation. Otherwise:
-- Read `~/.config/nemovideo/client_id` or generate a UUID and save it there
-- POST `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with `X-Client-Id` header
-- Extract `data.token` from the response — this is your NEMO_TOKEN (100 free credits, 7-day expiry)
+**Token**: If `NEMO_TOKEN` environment variable is already set, use it and skip to **Session** below.
 
-**Session**: POST `/api/tasks/me/with-session/nemo_agent` at the same host with Bearer auth and body `{"task_name":"project"}`. Keep the returned `session_id` for all operations.
+**Free token**: Generate a UUID as client identifier, then POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with header `X-Client-Id: <uuid>`. The response field `data.token` becomes your NEMO_TOKEN (100 credits, 7-day expiry).
 
-Let the user know with a brief "Ready!" when setup is complete. Don't expose tokens or raw API output.
+**Session**: POST to `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` with Bearer auth and body `{"task_name":"project"}`. Save `session_id` from the response.
 
-# Your Videos Deserve Music That Actually Fits
+Confirm to the user you're connected and ready. Don't print tokens or raw JSON.
 
-Every video tells a story, and the right music is what makes that story land emotionally. The problem most creators face isn't a lack of music options — it's an overwhelming sea of generic tracks that were never made with their specific content in mind. Stock music libraries give you thousands of choices, but somehow nothing feels right. That's exactly the gap this skill was built to fill.
+# Generate Video Clips Into Music-Backed Videos
 
-With the AI Music Generator Free skill, you describe what you need — the energy, the genre, the emotional tone — and it composes an original piece built around your vision. Whether you're editing a travel vlog that needs an adventurous, sweeping score or a product demo that calls for something sleek and modern, the output is music that was made for your moment, not borrowed from someone else's.
+This does AI music generation for video clips. Everything runs server-side.
 
-This skill is designed for creators at every level. You don't need a music theory background or audio production experience. Just bring your video and your ideas, and let the skill handle the composition. The result is a unique soundtrack you can use freely, without worrying about copyright claims or platform strikes.
+A quick walkthrough: upload a 60-second travel montage video → ask for generate a free background music track that matches the mood of my video → wait roughly 20-40 seconds → download your MP4 at 1080p. The backend handles rendering, encoding, all of it.
 
-## Routing Your Soundtrack Requests
+Fair warning — shorter videos get matched music faster and more accurately.
 
-When you describe your video's mood, genre, tempo, or duration, the skill parses those creative parameters and forwards a structured generation prompt directly to the NemoVideo AI music engine.
+## Sorting Your Requests
+
+The skill checks your message against a few patterns and routes it to the right handler.
 
 | User says... | Action | Skip SSE? |
 |-------------|--------|----------|
@@ -52,32 +48,43 @@ When you describe your video's mood, genre, tempo, or duration, the skill parses
 | "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
 | Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
 
-## NemoVideo API Reference Guide
+## How It Works Internally
 
-The NemoVideo backend uses a diffusion-based audio synthesis model trained on royalty-free stems, allowing it to generate loopable, tempo-synced tracks in genres ranging from cinematic orchestral to lo-fi beats. Each API call passes your prompt tokens, BPM target, and output duration to return a timestamped audio file ready for immediate video overlay.
+Everything happens on cloud infrastructure. Your ai music generator free ab old job gets queued, rendered on GPU nodes, and the finished file comes back as a download link.
+
+Base URL: `https://mega-api-prod.nemovideo.ai`
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/tasks/me/with-session/nemo_agent` | POST | Start a new editing session. Body: `{"task_name":"project","language":"<lang>"}`. Returns `session_id`. |
+| `/run_sse` | POST | Send a user message. Body includes `app_name`, `session_id`, `new_message`. Stream response with `Accept: text/event-stream`. Timeout: 15 min. |
+| `/api/upload-video/nemo_agent/me/<sid>` | POST | Upload a file (multipart) or URL. |
+| `/api/credits/balance/simple` | GET | Check remaining credits (`available`, `frozen`, `total`). |
+| `/api/state/nemo_agent/me/<sid>/latest` | GET | Fetch current timeline state (`draft`, `video_infos`, `generated_media`). |
+| `/api/render/proxy/lambda` | POST | Start export. Body: `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll status every 30s. |
+
+Accepted file types: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 
 Skill attribution — read from this file's YAML frontmatter at runtime:
-- `X-Skill-Source`: `ai-music-generator-free`
+- `X-Skill-Source`: `ai-music-generator-free-ab-old`
 - `X-Skill-Version`: from frontmatter `version`
 - `X-Skill-Platform`: detect from install path (`~/.clawhub/` → `clawhub`, `~/.cursor/skills/` → `cursor`, else `unknown`)
 
-**All requests** must include: `Authorization: Bearer <NEMO_TOKEN>`, `X-Skill-Source`, `X-Skill-Version`, `X-Skill-Platform`. Missing attribution headers will cause export to fail with 402.
+Include `Authorization: Bearer <NEMO_TOKEN>` and all attribution headers on every request — omitting them triggers a 402 on export.
 
-**API base**: `https://mega-api-prod.nemovideo.ai`
+### Error Handling
 
-**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — body `{"task_name":"project","language":"<lang>"}` — returns `task_id`, `session_id`. After creating a session, give the user a link: `https://nemovideo.com/workspace/claim?token=$TOKEN&task=<task_id>&session=<session_id>&skill_name=ai-music-generator-free&skill_version=1.0.0&skill_source=<platform>`
-
-**Send message (SSE)**: POST `/run_sse` — body `{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}` with `Accept: text/event-stream`. Max timeout: 15 minutes.
-
-**Upload**: POST `/api/upload-video/nemo_agent/me/<sid>` — file: multipart `-F "files=@/path"`, or URL: `{"urls":["<url>"],"source_type":"url"}`
-
-**Credits**: GET `/api/credits/balance/simple` — returns `available`, `frozen`, `total`
-
-**Session state**: GET `/api/state/nemo_agent/me/<sid>/latest` — key fields: `data.state.draft`, `data.state.video_infos`, `data.state.generated_media`
-
-**Export** (free, no credits): POST `/api/render/proxy/lambda` — body `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll GET `/api/render/proxy/lambda/<id>` every 30s until `status` = `completed`. Download URL at `output.url`.
-
-Supported formats: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
+| Code | Meaning | Action |
+|------|---------|--------|
+| 0 | Success | Continue |
+| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
+| 1002 | Session not found | New session §3.0 |
+| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up credits in your account" |
+| 4001 | Unsupported file | Show supported formats |
+| 4002 | File too large | Suggest compress/trim |
+| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
+| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register or upgrade your plan to unlock export." |
+| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
 
 ### SSE Event Handling
 
@@ -108,36 +115,18 @@ The backend assumes a GUI exists. Translate these into API actions:
 Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%) 3. Title: "Urban Dreams" (0-3s)
 ```
 
-### Error Handling
+## Common Workflows
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
-| 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up at nemovideo.ai" |
-| 4001 | Unsupported file | Show supported formats |
-| 4002 | File too large | Suggest compress/trim |
-| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register at nemovideo.ai to unlock export." |
-| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
+**From scratch**: Describe what you want and the AI generates a draft. You refine from there.
 
-## Quick Start Guide
+**Polish existing content**: Upload your video clips, ask for specific changes — generate a free background music track that matches the mood of my video, adjust colors, swap music. The backend handles rendering.
 
-Getting started with the AI Music Generator Free skill takes less than a minute. First, upload your video file — supported formats include mp4, mov, avi, webm, and mkv. Once your video is loaded, type a description of the music style you want. Be as specific or as open-ended as you like; the skill works with both.
-
-Next, mention any timing preferences. If your video is 2 minutes long and you want the music to match that duration exactly, say so. If you only need music for a specific segment, describe which part.
-
-Once the track is generated, preview it against your video. If it fits, export and drop it directly into your editing timeline. If you want adjustments, simply describe what to change and request a new version — there's no limit to how many variations you can explore.
-
-For best results on first use, start with a clear genre reference and a rough BPM feel (slow, medium, fast). This gives the skill an immediate framework and typically produces a strong first result without needing multiple rounds of revision.
+**Export ready**: Once you're happy, export at 1080p in MP4. File lands in your downloads.
 
 ## Tips and Tricks
 
-The more specific your prompt, the better your music will match your video's tone. Instead of saying 'something upbeat,' try 'fast-paced electronic with punchy beats for a 90-second product launch video.' Describing tempo, instrumentation preferences, and the emotional arc you want (builds up, stays steady, fades out) gives the generator much more to work with.
+The backend processes faster when you're specific. Instead of "make it look better", try "generate a free background music track that matches the mood of my video" — concrete instructions get better results.
 
-If your video has distinct sections — like a slow intro that picks up pace mid-way — mention that in your request. You can ask for music that evolves over time rather than staying flat throughout the clip.
+Max file size is 500MB. Stick to MP4, MOV, AVI, WebM for the smoothest experience.
 
-Don't overlook genre blending. Some of the most interesting results come from hybrid requests like 'cinematic hip-hop for a city travel montage' or 'acoustic folk with electronic undertones for a startup story video.' The AI Music Generator Free skill handles these nuanced combinations well, so experiment freely.
-
-After generating a track, if the energy is close but not quite right, describe the adjustment: 'a bit less intense in the first 30 seconds' or 'add more bass.' Iterating with small, specific tweaks usually gets you to the perfect result faster than starting over.
+Export as MP4 for widest compatibility.
