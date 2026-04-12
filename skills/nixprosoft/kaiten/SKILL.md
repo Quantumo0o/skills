@@ -1,6 +1,8 @@
 ---
 name: kaiten
 description: Manage Kaiten.ru project boards via REST API. Use when the user asks to create, view, update, move, or search cards (tasks), list spaces/boards/columns, manage tags, add comments, work with checklists, track time, or perform any project management action in Kaiten. Also triggers on mentions of "кайтен", "kaiten", "доска", "карточка", "задача" in project management context. NOT for: generic todo lists unrelated to Kaiten, or Jira/Trello/other PM tools.
+metadata:
+  { "openclaw": { "requires": { "env": ["KAITEN_TOKEN", "KAITEN_DOMAIN"] }, "primaryEnv": "KAITEN_TOKEN" } }
 ---
 
 # Kaiten Skill
