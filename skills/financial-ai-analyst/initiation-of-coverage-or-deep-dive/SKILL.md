@@ -35,7 +35,7 @@ metadata:
 | 变量名 | 说明 | 默认 |
 |--------|------|------|
 | `EM_API_KEY` | 接口鉴权密钥（必填） | 无 |
-| `INITIATION_OF_COVERAGE_OR_DEEP_DIVE_OUTPUT_DIR` | 附件输出目录| `miaoxiang/initiation_of_coverage_or_deep_dive`（相对当前工作目录） |
+| `INITIATION_OF_COVERAGE_OR_DEEP_DIVE_OUTPUT_DIR` | 附件输出目录| `./miaoxiang/initiation_of_coverage_or_deep_dive`（相对当前工作目录） |
 
 
 ## 前提条件
@@ -94,38 +94,51 @@ python3 {baseDir}/scripts/generate_deep_research_report.py --query "用户原始
 
 ---
 
-## 输出格式模板
+## 输出格式规范
 
-严格按照以下格式组织响应内容：
+接口返回后，必须严格按以下模板输出，不得增删标题、不得改变顺序、不得添加额外章节：
 
-```
-## {title}
+### 标题
+直接使用接口返回的 `title` 字段，单独成行，一般格式为"XXX公司首次覆盖报告：XXXXXX"。
 
-{此处放置接口返回的报告标题，一般格式为"XXX公司首次覆盖报告：XXXXXX"}
-
----
-
-......此处省略多个章节，包括公司概况、业务模式、核心竞争力、财务分析、盈利预测与估值分析、风险提示等章节，如需查看详细信息，请查看附件PDF或doc.......
-
-### 第七章 总结
-
-{此处放置接口返回的"总结"章节完整内容}
-
----
+### 正文
+如果接口返回的 `content` 字段有相关行业报告信息，则原文透传；
+否则读取接口返回的附件文件内容，总结相关报告信息返回，记住保证返回的正文内容非空。
 
 ### 附件
+接口返回 pdf 以及 docx 格式文件的保存路径。
+
+### 分享链接
+直接使用接口返回的 `shareUrl` 字段，单独成行。
+
+文案必须按以下固定格式输出：
+
+```
+{title}
+
+{content}
+
+---
+
+**附件：**
 
 - 📄 **PDF版完整报告地址**：{pdf_file_path}
 - 📝 **Word版完整报告地址**：{word_file_path}
 
-### 溯源
-详见附件
-
-### 分享链接
-{share_url}
+**分享链接：**
+{shareUrl}
 ```
 
----
+字段映射规则：
+- `{title}` = 脚本返回的 `title`
+- `{content}` = 脚本返回的 `content`
+- `{pdf_file_path}` = 脚本返回的 `pdf_file_path`
+- `{word_file_path}` = 脚本返回的 `word_file_path`
+- `{shareUrl}` = 脚本返回的 `shareUrl`
+
+当附件缺失时：
+- 若仅有一种格式，仅输出存在的那一行（PDF 或 DOCX）。
+- 若两种都不存在，输出：`完整报告：暂无可用附件`
 
 ## 格式要求
 

@@ -162,7 +162,7 @@ async def generate_report(query: str, output_dir: Path) -> Dict:
         word_path = output_dir / f"initiation_of_coverage_or_deep_dive_{unique_suffix}.docx"
         if _save_base64_file(word_b64, word_path):
             result["word_file_path"] = str(word_path)
-
+    
     return result
 
 
