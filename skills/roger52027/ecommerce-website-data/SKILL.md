@@ -1,6 +1,6 @@
 ---
 name: ecommerce-website-data
-version: 1.2.15
+version: 1.2.16
 description: >
   Free, instant access to ecommerce data on 10M+ ecommerce stores and
   ecommerce websites. Search Shopify stores, WooCommerce sites, and more.
@@ -107,7 +107,7 @@ openclaw skills install roger52027/ecommerce-website-data
 Then configure the token (choose one):
 
 **Option A — OpenClaw config** (persistent):
-
+## 
 Add to `~/.openclaw/openclaw.json`:
 
 ```json

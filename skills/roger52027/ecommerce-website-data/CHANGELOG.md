@@ -2,6 +2,11 @@
 
 All notable changes to this skill will be documented in this file.
 
+## [1.2.16] - 2026-04-06
+
+### Changed
+- Optimized `claw.json` description
+
 ## [1.2.15] - 2026-04-02
 
 ### Added
