@@ -1,13 +1,18 @@
 {
   "owner": "sealawyer2026",
   "slug": "zhang-family-law",
-  "displayName": "九章-婚姻家庭法律专家",
+  "displayName": "Zhang Family Law",
   "latest": {
-    "version": "1.5.0",
-    "publishedAt": 1775098793174,
-    "commit": "https://github.com/openclaw/skills/commit/5a7e8551a0d56da32de6462691e7448cc7dc1317"
+    "version": "1.0.0",
+    "publishedAt": 1775484368695,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.0",
+      "publishedAt": 1775098793174,
+      "commit": "https://github.com/openclaw/skills/commit/5a7e8551a0d56da32de6462691e7448cc7dc1317"
+    },
     {
       "version": "1.4.0",
       "publishedAt": 1774502255928,
