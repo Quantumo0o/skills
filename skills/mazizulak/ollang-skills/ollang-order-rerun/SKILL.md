@@ -9,7 +9,7 @@ Rerun an existing order to regenerate its output using the latest available AI m
 
 ## Authentication
 
-All requests require the `X-Api-Key` header from https://lab.ollang.com.
+All requests require the `X-Api-Key` header. The API key is read from the `OLLANG_API_KEY` environment variable. If not set, instruct the user to run: `export OLLANG_API_KEY=<your-api-key>` (get it from https://lab.ollang.com).
 
 ## Endpoint
 
@@ -35,14 +35,14 @@ Optional empty object `{}` or no body.
 ## Example (curl)
 ```bash
 curl -X POST https://api-integration.ollang.com/integration/orders/ORDER_ID/rerun \
-  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "X-Api-Key: $OLLANG_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
 
 ## Behavior
 
-1. Ask the user for their API key if not provided
+1. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 2. Ask for the `orderId` if not provided
 3. Confirm with the user — rerunning will regenerate the translation (may consume credits)
 4. Send the rerun request

@@ -9,7 +9,7 @@ Create, retrieve, and delete revision requests for orders.
 
 ## Authentication
 
-All requests require the `X-Api-Key` header from https://lab.ollang.com.
+All requests require the `X-Api-Key` header. The API key is read from the `OLLANG_API_KEY` environment variable. If not set, instruct the user to run: `export OLLANG_API_KEY=<your-api-key>` (get it from https://lab.ollang.com).
 
 ---
 
@@ -52,7 +52,7 @@ All requests require the `X-Api-Key` header from https://lab.ollang.com.
 ### Example
 ```bash
 curl -X POST https://api-integration.ollang.com/integration/revision/ORDER_ID \
-  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "X-Api-Key: $OLLANG_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "type": "syncError",
@@ -73,7 +73,7 @@ Array of revision objects with `id`, `createdAt`, `type`, `time`, `description`.
 ### Example
 ```bash
 curl -X GET https://api-integration.ollang.com/integration/revision/ORDER_ID \
-  -H "X-Api-Key: YOUR_API_KEY"
+  -H "X-Api-Key: $OLLANG_API_KEY"
 ```
 
 ---
@@ -94,14 +94,14 @@ curl -X GET https://api-integration.ollang.com/integration/revision/ORDER_ID \
 ### Example
 ```bash
 curl -X DELETE https://api-integration.ollang.com/integration/revision/ORDER_ID/REV_ID \
-  -H "X-Api-Key: YOUR_API_KEY"
+  -H "X-Api-Key: $OLLANG_API_KEY"
 ```
 
 ---
 
 ## Behavior
 
-1. Ask the user for their API key if not provided
+1. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 2. Determine the action: create, list, or delete a revision
 3. For **create**: ask for `orderId`, `type`, `time` (HH:MM:SS), and optional `description`
 4. For **list**: ask for `orderId` and display all revisions in a table

@@ -39,9 +39,12 @@ A complete end-to-end translation workflow looks like this:
 
 ## Authentication
 
-All endpoints (except health check) require:
-```
-X-Api-Key: <your-api-key>
+All endpoints (except health check) require the `X-Api-Key` header.
+The API key is read from the `OLLANG_API_KEY` environment variable.
+
+If the variable is not set, instruct the user to configure it:
+```bash
+export OLLANG_API_KEY=<your-api-key>
 ```
 Get your API key at https://lab.ollang.com.
 
@@ -55,6 +58,6 @@ https://api-integration.ollang.com
 
 1. Identify the user's intent from their message
 2. Map it to the correct sub-skill from the table above
-3. Ask for the API key if not already provided in this session
+3. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 4. Execute the operation and present results clearly
 5. Suggest logical next steps (e.g., after upload → offer to create an order)

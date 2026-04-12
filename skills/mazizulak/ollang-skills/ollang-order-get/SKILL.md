@@ -9,7 +9,7 @@ Fetch full details of a single order including its current status, associated do
 
 ## Authentication
 
-All requests require the `X-Api-Key` header from https://lab.ollang.com.
+All requests require the `X-Api-Key` header. The API key is read from the `OLLANG_API_KEY` environment variable. If not set, instruct the user to run: `export OLLANG_API_KEY=<your-api-key>` (get it from https://lab.ollang.com).
 
 ## Endpoint
 
@@ -86,12 +86,12 @@ All requests require the `X-Api-Key` header from https://lab.ollang.com.
 ## Example (curl)
 ```bash
 curl -X GET https://api-integration.ollang.com/integration/orders/ORDER_ID \
-  -H "X-Api-Key: YOUR_API_KEY"
+  -H "X-Api-Key: $OLLANG_API_KEY"
 ```
 
 ## Behavior
 
-1. Ask the user for their API key if not provided
+1. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 2. Ask for the `orderId` if not provided
 3. Fetch and display the order details
 4. Highlight the `status` field prominently

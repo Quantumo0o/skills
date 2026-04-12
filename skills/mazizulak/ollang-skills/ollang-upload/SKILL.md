@@ -9,7 +9,7 @@ Upload files to the Ollang platform via the integration API.
 
 ## Authentication
 
-All requests require the `X-Api-Key` header. The user must provide their API key from https://lab.ollang.com.
+All requests require the `X-Api-Key` header. The API key is read from the `OLLANG_API_KEY` environment variable. If not set, instruct the user to run: `export OLLANG_API_KEY=<your-api-key>` (get it from https://lab.ollang.com).
 
 ## Direct File Upload
 
@@ -34,7 +34,7 @@ Uploads video, audio, document, or spreadsheet files and creates a project.
 ### Example (curl)
 ```bash
 curl -X POST https://api-integration.ollang.com/integration/upload/direct \
-  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "X-Api-Key: $OLLANG_API_KEY" \
   -F "file=@/path/to/video.mp4" \
   -F "name=My Video" \
   -F "sourceLanguage=en" \
@@ -65,7 +65,7 @@ Associates a VTT subtitle file with an existing project.
 ### Example (curl)
 ```bash
 curl -X POST https://api-integration.ollang.com/integration/upload/vtt \
-  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "X-Api-Key: $OLLANG_API_KEY" \
   -F "file=@/path/to/subtitles.vtt" \
   -F "projectId=PROJECT_ID" \
   -F "name=My Subtitles" \
@@ -74,7 +74,7 @@ curl -X POST https://api-integration.ollang.com/integration/upload/vtt \
 
 ## Behavior
 
-1. Ask the user for their API key if not provided
+1. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 2. Determine if uploading a new file (direct upload) or attaching a VTT to existing project
 3. For direct uploads: require `file`, `name`, `sourceLanguage`; optionally `folderId`
 4. For VTT uploads: require `file`, `projectId`, `name`

@@ -9,7 +9,7 @@ Create a new translation/captioning/dubbing order for an existing project.
 
 ## Authentication
 
-All requests require the `X-Api-Key` header from https://lab.ollang.com.
+All requests require the `X-Api-Key` header. The API key is read from the `OLLANG_API_KEY` environment variable. If not set, instruct the user to run: `export OLLANG_API_KEY=<your-api-key>` (get it from https://lab.ollang.com).
 
 ## Endpoint
 
@@ -56,7 +56,7 @@ Array of order objects, one per target language:
 ## Example (curl)
 ```bash
 curl -X POST https://api-integration.ollang.com/integration/order/create \
-  -H "X-Api-Key: YOUR_API_KEY" \
+  -H "X-Api-Key: $OLLANG_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "projectId": "PROJECT_ID",
@@ -72,7 +72,7 @@ curl -X POST https://api-integration.ollang.com/integration/order/create \
 
 ## Behavior
 
-1. Ask the user for their API key if not provided
+1. Read the API key from the `OLLANG_API_KEY` environment variable. If not set, tell the user to set it with: `export OLLANG_API_KEY=<your-api-key>`
 2. Confirm the `projectId` (from a previous upload or get-project)
 3. Determine `orderType` and `level` from the user's intent
 4. Collect target languages — support multiple at once
