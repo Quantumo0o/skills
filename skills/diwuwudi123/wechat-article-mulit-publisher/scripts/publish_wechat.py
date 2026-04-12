@@ -28,6 +28,8 @@ except Exception:
 
 TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token"
 DRAFT_ADD_URL = "https://api.weixin.qq.com/cgi-bin/draft/add"
+DRAFT_BATCHGET_URL = "https://api.weixin.qq.com/cgi-bin/draft/batchget"
+DRAFT_DELETE_URL = "https://api.weixin.qq.com/cgi-bin/draft/delete"
 PUBLISH_SUBMIT_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/submit"
 PUBLISH_GET_URL = "https://api.weixin.qq.com/cgi-bin/freepublish/get"
 MATERIAL_ADD_URL = "https://api.weixin.qq.com/cgi-bin/material/add_material"
@@ -122,6 +124,30 @@ def get_account_config(cfg: dict[str, Any], account_name: str | None) -> dict[st
     return accounts[account_name]
 
 
+def auto_match_account(cfg: dict[str, Any], content: str) -> dict[str, Any]:
+    """根据文章内容自动匹配最合适的账号。"""
+    accounts = cfg["accounts"]
+    if not content:
+        return get_account_config(cfg, None)
+
+    content_lower = content.lower()
+    best_match = None
+    best_score = 0
+
+    for name, acc in accounts.items():
+        topics = acc.get("topics", [])
+        if not topics:
+            continue
+        score = sum(1 for topic in topics if topic.lower() in content_lower)
+        if score > best_score:
+            best_score = score
+            best_match = name
+
+    if best_match:
+        return accounts[best_match]
+    return get_account_config(cfg, None)
+
+
 def list_accounts(cfg: dict[str, Any]) -> list[dict[str, str]]:
     """列出所有配置的账号信息。"""
     default = cfg.get("default_account", "")
@@ -131,6 +157,7 @@ def list_accounts(cfg: dict[str, Any]) -> list[dict[str, str]]:
             "is_default": name == default,
             "author": acc.get("author", ""),
             "default_template": acc.get("default_template", "standard"),
+            "topics": acc.get("topics", []),
         }
         for name, acc in cfg["accounts"].items()
     ]
@@ -885,6 +912,26 @@ class WeChatClient:
             raise WeChatPublishError(f"publish get failed: {data}")
         return data
 
+    def get_drafts(self, token: str, offset: int = 0, count: int = 20, no_content: int = 1) -> dict[str, Any]:
+        data = self._post_json_utf8(
+            DRAFT_BATCHGET_URL,
+            {"access_token": token},
+            {"offset": offset, "count": count, "no_content": no_content},
+        )
+        if data.get("errcode", 0) != 0:
+            raise WeChatPublishError(f"draft batchget failed: {data}")
+        return data
+
+    def delete_draft(self, token: str, media_id: str) -> dict[str, Any]:
+        data = self._post_json_utf8(
+            DRAFT_DELETE_URL,
+            {"access_token": token},
+            {"media_id": media_id},
+        )
+        if data.get("errcode", 0) != 0:
+            raise WeChatPublishError(f"draft delete failed: {data}")
+        return data
+
 
 def parse_args() -> argparse.Namespace:
     default_config = Path(__file__).resolve().parent.parent / "config.json"
@@ -902,6 +949,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--publish", action="store_true", help="Submit draft for publish")
     parser.add_argument("--status", action="store_true", help="Query publish status once")
     parser.add_argument("--install", action="store_true", help="Install Python dependencies")
+    parser.add_argument("--list-drafts", action="store_true", help="List all drafts")
+    parser.add_argument("--delete-draft", default="", help="Delete a draft by media_id")
+    parser.add_argument("--upload-material", default="", help="上传本地图片到素材库（传入图片路径）")
+    parser.add_argument("--upload-material-url", default="", help="上传网络图片到素材库（传入图片URL）")
     return parser.parse_args()
 
 
@@ -921,16 +972,81 @@ def main() -> None:
         print(json.dumps({"success": True, "accounts": accounts}, ensure_ascii=False, indent=2))
         return
 
+    # 列出草稿箱
+    if args.list_drafts:
+        wechat_cfg = get_account_config(cfg, args.account.strip() or None)
+        app_id = (wechat_cfg.get("app_id") or "").strip()
+        app_secret = (wechat_cfg.get("app_secret") or "").strip()
+        if not app_id or not app_secret:
+            raise RuntimeError("配置缺少 app_id 或 app_secret")
+        client = WeChatClient(app_id=app_id, app_secret=app_secret, timeout=args.timeout)
+        token = client.get_token()
+        drafts_data = client.get_drafts(token)
+        items = drafts_data.get("item_count", 0)
+        draft_list = []
+        for item in drafts_data.get("item", []):
+            news_item = item.get("content", {}).get("news_item", [])
+            for news in news_item:
+                draft_list.append({
+                    "media_id": item.get("media_id", ""),
+                    "title": news.get("title", ""),
+                    "author": news.get("author", ""),
+                    "digest": news.get("digest", ""),
+                    "update_time": item.get("update_time", 0),
+                })
+        print(json.dumps({
+            "success": True,
+            "total": drafts_data.get("total_count", 0),
+            "items": items,
+            "drafts": draft_list,
+        }, ensure_ascii=False, indent=2))
+        return
+
+    # 删除草稿
+    if args.delete_draft:
+        wechat_cfg = get_account_config(cfg, args.account.strip() or None)
+        app_id = (wechat_cfg.get("app_id") or "").strip()
+        app_secret = (wechat_cfg.get("app_secret") or "").strip()
+        if not app_id or not app_secret:
+            raise RuntimeError("配置缺少 app_id 或 app_secret")
+        client = WeChatClient(app_id=app_id, app_secret=app_secret, timeout=args.timeout)
+        token = client.get_token()
+        client.delete_draft(token, args.delete_draft.strip())
+        print(json.dumps({"success": True, "deleted": args.delete_draft.strip()}, ensure_ascii=False))
+        return
+
+    # 上传本地图片到素材库
+    if args.upload_material:
+        wechat_cfg = get_account_config(cfg, args.account.strip() or None)
+        app_id = (wechat_cfg.get("app_id") or "").strip()
+        app_secret = (wechat_cfg.get("app_secret") or "").strip()
+        if not app_id or not app_secret:
+            raise RuntimeError("配置缺少 app_id 或 app_secret")
+        client = WeChatClient(app_id=app_id, app_secret=app_secret, timeout=args.timeout)
+        token = client.get_token()
+        image_path = Path(args.upload_material).resolve()
+        if not image_path.exists():
+            raise RuntimeError(f"文件不存在: {image_path}")
+        media_id = client.upload_image_from_path(token, image_path)
+        print(json.dumps({"success": True, "media_id": media_id, "path": str(image_path)}, ensure_ascii=False))
+        return
+
+    # 上传网络图片到素材库
+    if args.upload_material_url:
+        wechat_cfg = get_account_config(cfg, args.account.strip() or None)
+        app_id = (wechat_cfg.get("app_id") or "").strip()
+        app_secret = (wechat_cfg.get("app_secret") or "").strip()
+        if not app_id or not app_secret:
+            raise RuntimeError("配置缺少 app_id 或 app_secret")
+        client = WeChatClient(app_id=app_id, app_secret=app_secret, timeout=args.timeout)
+        token = client.get_token()
+        media_id = client.upload_image_from_url(token, args.upload_material_url.strip())
+        print(json.dumps({"success": True, "media_id": media_id, "url": args.upload_material_url.strip()}, ensure_ascii=False))
+        return
+
     if not args.input:
         raise RuntimeError("缺少输入参数：请传入 Markdown 文件路径或 URL")
 
-    # 获取指定账号的配置
-    wechat_cfg = get_account_config(cfg, args.account.strip() or None)
-
-    template = (args.template or wechat_cfg.get("default_template") or "viral").strip().lower()
-    if template not in {"standard", "viral"}:
-        template = "standard"
-    author = (args.author or wechat_cfg.get("author") or "").strip()
     input_value = args.input.strip()
 
     if is_url(input_value):
@@ -942,6 +1058,17 @@ def main() -> None:
         if not input_path.exists():
             raise RuntimeError(f"文件不存在: {input_path}")
         article = extract_from_markdown(input_path, source_url_override=args.source_url.strip())
+
+    if args.account.strip():
+        wechat_cfg = get_account_config(cfg, args.account.strip())
+    else:
+        wechat_cfg = auto_match_account(cfg, article.content)
+        print(json.dumps({"mode": "auto-match", "account": wechat_cfg.get("name", "unknown")}, ensure_ascii=False), file=sys.stderr)
+
+    template = (args.template or wechat_cfg.get("default_template") or "viral").strip().lower()
+    if template not in {"standard", "viral"}:
+        template = "standard"
+    author = (args.author or wechat_cfg.get("author") or "").strip()
 
     article.content = optimize_for_wechat_html(article.content, template=template)
 
