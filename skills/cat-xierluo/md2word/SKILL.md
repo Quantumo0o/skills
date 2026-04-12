@@ -2,7 +2,7 @@
 name: md2word
 homepage: https://github.com/cat-xierluo/legal-skills
 author: 杨卫薪律师（微信ywxlaw）
-version: "0.4.1"
+version: "1.0.1"
 license: MIT
 description: Markdown转Word文档技能。将Markdown文档转换为符合中文排版标准的专业格式Word文档，支持多种预设格式。适用于正式文档、论文、报告等需要规范排版的文档转换。
 ---
@@ -79,8 +79,9 @@ cp assets/config-template.yaml my-config.yaml
 
 ## 参考文档
 
-**配置参考**: See [references/config-reference.md](references/config-reference.md)
-**使用示例**: See [references/examples.md](references/examples.md)
+- **配置参考**: [references/config-reference.md](references/config-reference.md)
+- **样式映射**: [references/style-mappings.md](references/style-mappings.md)
+- **使用示例**: [references/examples.md](references/examples.md)
 
 ## 错误处理
 
@@ -95,9 +96,9 @@ cp assets/config-template.yaml my-config.yaml
 md2word/
 ├── SKILL.md               # 本文档
 ├── CHANGELOG.md           # 版本记录
-├── STYLE_MAPPINGS.md      # 样式映射参考
 ├── references/            # 参考文档
 │   ├── config-reference.md
+│   ├── style-mappings.md
 │   └── examples.md
 ├── scripts/               # 转换脚本
 │   ├── md2word.py         # 主脚本
