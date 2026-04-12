@@ -3,11 +3,16 @@
   "slug": "ekyc-suite",
   "displayName": "Ekyc Suite",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775115015924,
-    "commit": "https://github.com/openclaw/skills/commit/166583af9606150d229cdeda8675320f384311eb"
+    "version": "1.0.3",
+    "publishedAt": 1775526460599,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775115015924,
+      "commit": "https://github.com/openclaw/skills/commit/166583af9606150d229cdeda8675320f384311eb"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774944398858,
