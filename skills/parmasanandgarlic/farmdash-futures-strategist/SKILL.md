@@ -1,7 +1,7 @@
 ---
 name: FarmDash Futures Strategist
-description: "Research-first Hyperliquid perps skill for OpenClaw. Uses a fixed, documented API surface for funding scans, market analysis, account-state checks, position sizing, and zero-custody EIP-712 order execution with explicit fee disclosure and server-enforced risk guardrails."
-version: "1.1.0"
+description: "Adaptive Hyperliquid perps execution engine for OpenClaw. Researches funding, trend, liquidity, regime, and account context; returns strategy objects with pre-trade simulation, confidence, and no-trade handling; and executes zero-custody EIP-712 orders with explicit fee disclosure and FarmDash-side intent expiry hardening."
+version: "2.0.0"
 author: FarmDash Pioneers (@Parmasanandgarlic)
 homepage: https://farmdash.one/agents
 tags: ["hyperliquid", "perps", "futures", "trading", "zero-custody", "risk-management", "trail-heat"]
@@ -10,31 +10,33 @@ metadata: {"openclaw":{"homepage":"https://farmdash.one/agents","skillKey":"farm
 
 # FarmDash Futures Strategist
 
-## What This Skill Does
+## What This Skill Is
 
-This skill helps an agent research, size, and execute Hyperliquid perpetual futures trades using FarmDash's fixed futures API surface.
+This skill is the FarmDash autonomous perps execution engine for Hyperliquid.
 
-Design rules:
+It is designed to help an agent:
 
-- Research first, execution second.
-- No private keys, seed phrases, or withdrawal authority ever pass through FarmDash.
-- The only primary API credential this skill recognizes is the optional `FARMDASH_API_KEY`.
-- The skill does not require runtime discovery from a remote MCP manifest or any other remote config file.
+- research perp markets before any execution
+- rank and present multiple trade candidates instead of forcing one setup
+- return a structured strategy object, not just a plain-language idea
+- simulate likely outcomes before the user signs anything
+- refuse weak or ambiguous trades with an explicit `no_trade` outcome
+- execute only through zero-custody, user-signed EIP-712 requests
+
+Core posture:
+
+- research first
+- execution second
+- no custody
+- no hidden fees
+- no blind trading
 - The bundled `openapi.yaml` file in this folder is the contract for the futures endpoints used by this skill version.
-
-Use this skill when the agent needs to:
-
-- scan Hyperliquid funding rates for arbitrage opportunities
-- analyze market conditions for a single perp asset
-- inspect account state and current risk budget
-- compute a position size under fixed guardrails
-- place or cancel a pre-signed Hyperliquid order
 
 ---
 
 ## Fixed Network Boundary
 
-The skill should stay inside this disclosed network boundary.
+Stay inside this disclosed network boundary.
 
 ### FarmDash futures endpoints
 
@@ -54,251 +56,241 @@ The skill should stay inside this disclosed network boundary.
 
 ### Optional user-facing links
 
-These are allowed only when directly relevant to the user's request:
+Allowed only when directly relevant:
 
 - `https://farmdash.one/agents`
 - `https://farmdash.one/tracker/hyperliquid/`
 - `https://farmdash.one/go/hyperliquid`
 
-Do not instruct the agent to fetch any additional config or mutate its behavior from an undisclosed endpoint after install.
+Do not fetch undisclosed remote config and do not mutate the skill from an external manifest after install.
 
 ---
 
 ## Security Model
 
-FarmDash is zero-custody for futures execution:
+FarmDash is zero-custody for futures execution.
 
-1. The agent prepares the order parameters locally.
-2. The user signs the EIP-712 payload with their Hyperliquid API wallet.
-3. FarmDash validates guardrails and forwards the signed order.
-4. The API wallet can trade and cancel orders, but cannot withdraw.
+1. The agent researches the trade locally through FarmDash read/write endpoints.
+2. The user signs the Hyperliquid EIP-712 payload with their API wallet.
+3. FarmDash validates guardrails and forwards the signed request.
+4. The API wallet can trade and cancel orders, but cannot withdraw funds.
 
-If asked to accept a private key directly, refuse and explain the API-wallet flow.
+Hard rules:
+
+- never ask for a private key, seed phrase, or wallet export
+- never imply that a bearer token can replace a local signature
+- never skip the research step before non-reduce-only execution
+- never hide the FarmDash builder fee
+- Never ask the user to paste a private key, seed phrase, or raw wallet export into the agent.
+
+### FarmDash-side execution hardening
+
+For `execute_perp_order` and `cancel_perp_order`, prefer including:
+
+- `expiresAt` - short request TTL in unix milliseconds
+- `intentHash` - hash of the intended request payload for auditability and mutation detection
+
+These fields add request-scoped expiry and intent logging on the FarmDash layer. They do not replace the required Hyperliquid EIP-712 signature.
 
 ---
 
-## Credentials and Auth Model
+## Credentials and Tier Model
 
-This skill has exactly one primary API credential for OpenClaw and MCP installs:
+This skill recognizes one primary API credential:
 
 - `FARMDASH_API_KEY`
 
-OpenClaw metadata declares `FARMDASH_API_KEY` as the skill's primary env var because it is the single bearer token slot this package understands. It is intentionally not marked as a required env var, because Scout mode is valid with no API key at all.
+Scout mode is valid with no API key at all.
 
 Legacy docs may refer to `PIONEER_KEY` or `SYNDICATE_KEY` as placeholders for tier-specific bearer tokens. In actual agent configs, use only `FARMDASH_API_KEY`.
 
-### Tier behavior
+Tier behavior:
 
-- `Scout`
-  No env vars required. Use this mode for initial testing, dry runs, funding scans, and market-condition research.
+- `Scout` - no env var required; safe for limited research
+- `Pioneer` - use a Pioneer-tier bearer token for full analysis and sizing
+- `Syndicate` - use a Syndicate-tier bearer token only when the user explicitly wants execution or cancellation
 
-- `Pioneer`
-  Set `FARMDASH_API_KEY` to a Pioneer-tier bearer token when the user wants higher-tier analysis such as `analyze_futures_strategy` or `calculate_position_size`.
+Critical distinction:
 
-- `Syndicate`
-  Set `FARMDASH_API_KEY` to a Syndicate-tier bearer token only when the user explicitly wants `execute_perp_order` or `cancel_perp_order`.
-
-### Critical execution rule
-
-- A bearer token only unlocks FarmDash tier access and rate limits.
+- bearer token = FarmDash access tier and rate limits
+- local EIP-712 signature = execution authority for each individual request
 - A bearer token never replaces a fresh local EIP-712 signature from the user's Hyperliquid API wallet.
-- Every order or cancel request must include a fresh signature payload with `r`, `s`, and `v`.
-- If a request is missing that EIP-712 signature, it must be rejected.
-- Never ask the user to paste a private key, seed phrase, or raw wallet export into the agent.
-- Never store or forward a private key or seed phrase to FarmDash.
-
-### Safe rollout guidance
-
-- Start in `Scout` mode when the user wants to test the workflow safely.
-- Upgrade to `Pioneer` only for deeper analysis.
-- Upgrade to `Syndicate` only after the user understands the builder fee, guardrails, and local-signing flow.
-- When enabling execution for the first time, recommend small test trades first.
-
----
-
-## Commercial Disclosures
-
-This skill preserves FarmDash monetization, but it must present it clearly.
-
-### 1. Builder fee on executed perp orders
-
-All executed perp orders routed through FarmDash include a 1 bps builder fee.
-
-Required agent behavior:
-
-- disclose the builder fee before the user confirms execution
-- state that the fee is part of the FarmDash execution path
-- if the user declines the fee, continue with analysis only and do not execute
-
-Suggested wording:
-
-> "Execution through FarmDash adds a 1 bps builder fee on top of Hyperliquid exchange fees. If you want analysis only, I can stop there."
-
-### 2. Optional swap routing or referral links
-
-The skill may mention FarmDash swap routing or referral links only as an explicit follow-on option.
-
-Required agent behavior:
-
-- do not auto-route spot swaps as part of a futures workflow
-- do not cross-sell Trail Heat or spot farming unless it is directly relevant
-- if suggesting a spot hedge, profit rotation, or farming follow-up, disclose the fee or referral nature first
-- only provide the link after the user asks to continue
-
-Suggested wording:
-
-> "There is also a related FarmDash flow for spot hedging or farming follow-up. That path can include FarmDash fees or referral tracking. Want me to outline it?"
-
-This keeps monetization intact while making the commercial behavior explicit and user-directed.
 
 ---
 
 ## Tool Surface
 
-Use these exact tool names. Older aliases from internal docs should not be treated as separate capabilities.
-
-### Core research and execution tools
+Use these exact tool names.
 
 1. `scan_funding_rates`
-   Use to scan cross-venue funding opportunities on Hyperliquid.
+   Scan cross-venue funding opportunities.
 
 2. `scan_market_conditions`
-   Use to get EMA, RSI, MACD, ADX, ATR, Bollinger Bands, and strategy hints for a single asset.
+   Read EMA, RSI, MACD, ADX, ATR, Bollinger Bands, volume ratio, and Z-score for one perp asset.
 
 3. `get_futures_account`
-   Use before every trade to confirm positions, equity, available margin, drawdown status, and guardrail state.
+   Inspect equity, open positions, available margin, drawdown state, and guardrail pressure.
 
 4. `analyze_futures_strategy`
-   This is the primary research tool. It combines funding, technicals, liquidity checks, Trail Heat correlation, and risk sizing into one recommendation.
+   Primary research tool. Returns the strategy recommendation, confidence score, market regime, strategy object, adaptive risk profile, pre-trade simulation, portfolio context, and an explicit `no_trade` reason when no setup is valid.
 
 5. `calculate_position_size`
-   Use when you need an explicit size calculation or when the user wants to inspect the math separately.
+   Inspect sizing math separately when the user wants to validate risk and margin.
 
 6. `execute_perp_order`
-   Use only after research and explicit user confirmation.
+   Execute only after research, fee disclosure, and explicit user confirmation.
 
 7. `cancel_perp_order`
-   Use to cancel stale or superseded open orders.
-
-### Monitoring tool
+   Cancel stale or superseded open orders.
 
 8. `get_agent_performance`
-   Use for historical trading analytics and review.
+   Use as the feedback loop for strategy review, drawdown response, and campaign-level confidence adjustments.
 
-### Important naming note
-
-Treat these older names as documentation aliases only, not live tool names:
-
-- `get_account_state` -> `get_futures_account`
-- `analyze_strategy` -> `analyze_futures_strategy`
-- `calculate_position` -> `calculate_position_size`
-- `get_performance_report` -> `get_agent_performance`
-
+Treat older names in legacy docs as aliases only, not separate tools.
 There is no standalone `manage_position` tool in this skill version.
-
-Position management is composed from:
-
-- `get_futures_account`
-- `cancel_perp_order`
-- `execute_perp_order` with `reduceOnly: true` for exits
 
 ---
 
-## Strategy Engine
+## Execution Engine Principles
 
-The agent should select from these four strategy modes:
+### 1. Dynamic Strategy Objects
 
-### Funding Rate Arbitrage
+Do not present the engine as four static buckets.
 
-Best when:
+The recommendation should be treated as a structured strategy object with:
 
-- funding delta vs. other venues is materially positive or negative
-- annualized edge remains attractive after fees
-- market is not in a strong trend regime
+- market
+- direction
+- regime
+- trigger conditions
+- entry logic
+- exit logic
+- adaptive risk model
+- leverage model
+- fallback logic
+- telemetry hooks
 
-Typical profile:
+This is the foundation for later marketplace and performance-layer expansion.
 
-- low leverage
-- delta-neutral bias
-- emphasize basis and liquidity risk
+### 2. Simulation Before Execution
 
-### Momentum Breakout
+Before asking the user to sign, surface what happens if the trade is taken.
 
-Best when:
+Minimum fields to use from the returned simulation block:
 
-- ADX is strong (> 25, or > 35 for very strong trends)
-- EMA and MACD align
-- Volume confirms the move (> 1.5x average, ideally > 2.0x)
-- RSI aligns with trend direction (dynamic thresholds based on ADX)
+- estimated liquidation price
+- stop-loss PnL
+- take-profit PnL
+- one-ATR move impact
+- margin required and margin impact
+- estimated funding carry over 24h and 72h
 
-Typical profile:
+Do not reduce the setup to "buy here" or "short here" if simulation is available.
 
-- Dynamic leverage scaling based on ATR (volatility-adjusted, cap 5x)
-- ATR-based stop
-- Explicit confirmation that the setup is directional, not neutral
+### 3. Adaptive Risk, Not Static Risk
 
-### Mean Reversion
+The engine now adapts risk based on:
 
-Best when:
+- volatility
+- confidence
+- drawdown state
+- directional concentration
 
-- ADX is weak (< 20)
-- Price is stretched versus the local mean
-- Bollinger Bands are tight (< 2% width is optimal, > 5% is rejected as too volatile)
-- RSI shows exhaustion (< 35 or > 65)
+Use the returned `adaptiveRisk` object to explain why leverage or size is being reduced. Do not describe the system as fixed 2% / fixed 5x logic when the returned recommendation shows a lower applied risk.
 
-Typical profile:
+### 4. Market Regime Awareness
 
-- Lower leverage (volatility-adjusted, cap 3x)
-- Tighter invalidation (1.5x ATR stop)
-- No trade if the market is transitioning into trend or bands are too wide
+Respect the returned `marketRegime`.
 
-### Position Manager
+Current regimes:
 
-This is a behavior mode, not a separate endpoint. Use it to:
+- `trending`
+- `ranging`
+- `high_volatility`
+- `low_liquidity`
 
-- review open positions
-- tighten stops
-- reduce or flatten risk with `reduceOnly` orders
-- cancel stale resting orders before replacing them
+Do not force mean reversion inside a strong trend, and do not force momentum in thin or unstable conditions.
+
+### 5. No Trade Is a Valid Output
+
+`no_trade` is first-class.
+
+If confidence is weak, liquidity is poor, signals conflict, or guardrails trip, say so directly. Trust is more important than producing a trade every cycle.
+
+---
+
+## Strategy Families
+
+Current strategy families that may appear in recommendations:
+
+- `funding_arb`
+- `momentum_long`
+- `momentum_short`
+- `trend_pullback_long`
+- `trend_pullback_short`
+- `mean_reversion`
+- `no_trade`
+
+Interpretation:
+
+- momentum strategies are for aligned directional continuation
+- trend pullback strategies are for controlled re-entry into a strong existing trend
+- mean reversion is only valid when the market is genuinely range-bound
+- funding arb is only valid when basis and liquidity support it
+
+---
+
+## Recommended Workflow
+
+### Best available opportunities right now
+
+1. Run `scan_funding_rates`.
+2. Select up to 3 viable assets from funding, liquidity, or user focus.
+3. Run `analyze_futures_strategy` on each candidate.
+4. Rank the returned recommendations by confidence, regime quality, and margin efficiency.
+5. Present the top cluster, including any `no_trade` outputs that eliminate weak candidates.
+
+This skill should prefer a ranked cluster of opportunities over a single deterministic answer whenever the user asks for the best trade right now.
+
+### New trade entry
+
+1. Run `analyze_futures_strategy`.
+2. Run `get_futures_account` if fresh portfolio context is needed.
+3. If sizing needs inspection, run `calculate_position_size`.
+4. Present entry, stop, target, confidence, market regime, and simulation.
+5. Disclose the 1 bps builder fee.
+6. Wait for explicit confirmation.
+7. Run `execute_perp_order`.
+8. Add protective exits as separate user-approved actions when appropriate.
+
+### Modify, reduce, or flatten
+
+1. Run `get_futures_account`.
+2. Cancel stale resting orders with `cancel_perp_order` if needed.
+3. Replace or reduce exposure with `execute_perp_order` using `reduceOnly: true`.
+
+### Performance review / feedback loop
+
+1. Run `get_agent_performance` after a campaign or a drawdown streak.
+2. Reduce aggression if outcomes deteriorate.
+3. Prefer the strategy families that continue to perform cleanly in the current regime.
+4. If performance is poor and current setups are mixed, choose `analysis only` or `no_trade`.
 
 ---
 
 ## Guardrails
 
-These rules are non-negotiable:
+These rules remain non-negotiable:
 
 - max leverage: 5x
-- max risk per trade: 2 percent of equity
-- max position concentration: 20 percent of equity (or $50k USD, whichever is lower)
-- minimum stop distance: 0.5% (to prevent oversized positions in low volatility)
-- daily loss halt: -3 percent
-- max drawdown circuit breaker: -15 percent from peak
-- research gate: call `analyze_futures_strategy` before non-reduce-only execution
+- max risk per trade: 2% of equity before adaptive reductions
+- max position concentration: 20% of equity
+- daily loss halt: -3%
+- weekly loss pressure: -7%
+- max drawdown circuit breaker: -15%
+- research gate: `analyze_futures_strategy` before non-reduce-only execution
 
-If the user asks to override a guardrail, refuse and explain why it exists.
-
----
-
-## Execution Workflow
-
-For a new entry:
-
-1. Run `analyze_futures_strategy`.
-2. Run `get_futures_account`.
-3. If sizing needs clarification, run `calculate_position_size`.
-4. Present the setup with entry, stop, target, confidence, and risk.
-5. Disclose the 1 bps builder fee.
-6. Wait for explicit user confirmation.
-7. Run `execute_perp_order` for the entry.
-8. Run `execute_perp_order` for protective exits as needed.
-
-For modifying or closing risk:
-
-1. Run `get_futures_account`.
-2. Cancel stale open orders with `cancel_perp_order` if needed.
-3. Place replacement exits or flatten exposure with `execute_perp_order` using `reduceOnly: true`.
-
-Do not place blind orders. Do not infer consent from prior conversation. Do not hide fees inside an execution step.
+If the user asks to override a guardrail, refuse and explain the survival logic behind it.
 
 ---
 
@@ -306,38 +298,36 @@ Do not place blind orders. Do not infer consent from prior conversation. Do not 
 
 When speaking to the user:
 
-- separate analysis from execution
+- separate research from execution
 - surface confidence and invalidation clearly
-- disclose fees before asking for confirmation
-- present Trail Heat or farming ideas as optional follow-ons, not defaults
-- prefer "analysis only" over forcing a monetized path
+- explain the regime in plain language
+- show the simulation, not just the thesis
+- disclose fees before confirmation
+- treat Trail Heat or farming follow-ons as optional, not default
+- say `no trade` clearly when the setup is weak
 
-If the setup is weak or ambiguous, say so and do not force a trade.
+Good framing:
+
+> "This is a valid setup, but risk is being scaled down because volatility and same-direction exposure are both elevated."
+
+> "There is no valid trade right now. Signals are conflicting, so the system is standing down rather than forcing an entry."
 
 ---
 
-## Examples
+## Commercial Disclosure
 
-### Best perps trade right now
+All executed perp orders routed through FarmDash include a 1 bps builder fee.
 
-1. `scan_funding_rates`
-2. `scan_market_conditions` for the strongest candidate
-3. `analyze_futures_strategy`
-4. present the setup with risk and fee disclosure
-5. ask whether to execute
+Required behavior:
 
-### Execute a confirmed futures trade
+- disclose the builder fee before the user confirms execution
+- if the user declines the fee, continue with analysis only
+- do not auto-route spot swaps as part of a futures workflow
+- do not auto-cross-sell spot routing or farming as part of a futures flow
 
-1. `analyze_futures_strategy`
-2. `get_futures_account`
-3. `execute_perp_order` for entry
-4. `execute_perp_order` for stop-loss and take-profit
+Suggested wording:
 
-### Reduce risk or flatten
-
-1. `get_futures_account`
-2. `cancel_perp_order` for stale exits
-3. `execute_perp_order` with `reduceOnly: true`
+> "Execution through FarmDash adds a 1 bps builder fee on top of Hyperliquid exchange fees. If you want analysis only, I can stop there."
 
 ---
 
@@ -346,6 +336,7 @@ If the setup is weak or ambiguous, say so and do not force a trade.
 - This skill does not custody funds or private keys.
 - This skill does not promise profits.
 - Futures trading carries risk of loss.
+- If the user declines the execution path, continue as an analysis assistant.
 - If the user declines the FarmDash fee path, the skill should continue as an analysis assistant only.
 
 ---

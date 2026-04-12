@@ -3,11 +3,16 @@
   "slug": "farmdash-futures-strategist",
   "displayName": "farmdash futures strategist",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775366771443,
-    "commit": "https://github.com/openclaw/skills/commit/84722da7e331ffc1e8a3adeb04e61f02e40ef76c"
+    "version": "1.0.4",
+    "publishedAt": 1775717298874,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775366771443,
+      "commit": "https://github.com/openclaw/skills/commit/84722da7e331ffc1e8a3adeb04e61f02e40ef76c"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774663225441,
