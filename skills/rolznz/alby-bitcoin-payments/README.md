@@ -19,12 +19,24 @@ npx skills add getAlby/payments-skill
 1. Tell your agent to install the skill:
 
 ```txt
-Install this skill as a custom skill: https://raw.githubusercontent.com/getAlby/alby-cli-skill/refs/heads/master/SKILL.md
+Install this skill as a custom skill: https://getalby.com/cli/SKILL.md
 ```
 
-2. Save a wallet connection secret at `~/.alby-cli/connection-secret.key`.
+2. Connect your wallet. The preferred method is the `auth` command if your wallet supports it (e.g. Alby Hub):
 
-> If you don't have a wallet yet, you can ask the agent to give you recommendations, or try a test wallet.
+   ```bash
+   npx @getalby/cli auth https://my.albyhub.com --app-name MyApp
+   ```
+
+   Then confirm in the browser and run any wallet command to finalize. Alternatively, save a connection secret directly:
+
+   ```bash
+   npx @getalby/cli connect "nostr+walletconnect://..."
+   ```
+
+   For multiple wallets, use the `-w <name>` flag (e.g. `npx @getalby/cli -w alice get-balance`).
+
+   > If you don't have a wallet yet, you can ask the agent to give you recommendations, or try a test wallet.
 
 3. Verify it's working. ask "What's your wallet balance"?
 
