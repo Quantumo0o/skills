@@ -3,11 +3,16 @@
   "slug": "ai-video-editing-tiktok",
   "displayName": "Ai Video Editing Tiktok",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775140843025,
-    "commit": "https://github.com/openclaw/skills/commit/3f2cb34b5b2d877c0cb1f18e9d40a6272e4554d1"
+    "version": "1.1.2",
+    "publishedAt": 1775636047574,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775140843025,
+      "commit": "https://github.com/openclaw/skills/commit/3f2cb34b5b2d877c0cb1f18e9d40a6272e4554d1"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1774856344282,
