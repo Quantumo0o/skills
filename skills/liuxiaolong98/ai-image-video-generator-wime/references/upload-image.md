@@ -1,12 +1,12 @@
 # 图片上传接口
 
-`POST /openapi/wime/1_0/uploadImage`
+## 新版（access-token，推荐）
+
+`POST /waic/core/file/py/upload`
 
 Content-Type: multipart/form-data
 
-限制: ≤20M, 格式 jpeg/jpg/png, 不能违规。上传后有效期 1h。
-
-**签名注意:** 图片上传为 multipart/form-data，签名时 body 传空（`body=None`）。
+直接上传图片文件，返回可访问的图片 URL。**不再返回 mediaId**。
 
 **入参:**
 
@@ -14,34 +14,38 @@ Content-Type: multipart/form-data
 |------|------|------|------|
 | file | MultipartFile | 是 | 文件流数据 |
 
-**出参 (data):**
+**出参:**
+
+```json
+{
+    "errcode": "0",
+    "errmsg": "ok",
+    "data": {
+        "url": "https://image-c-dev.weimobwmc.com/qa-5W/xxx.png"
+    },
+    "globalTicket": "..."
+}
+```
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| mediaId | Long | 图片 ID |
-| width | Integer | 图片宽度 |
-| height | Integer | 图片高度 |
+| data.url | String | 图片可访问 URL（可直接用于抠图/商拍图的 imageUrl 参数） |
 
-## 调用示例
+### 调用示例
 
 ```python
 import requests
-from wime_auth import make_request_headers
+from wime_auth import get_auth
 
-# 图片上传签名时 body_dict=None
-auth = make_request_headers(
-    env="ol",
-    method="POST",
-    uri_path="/openapi/wime/1_0/uploadImage",
-    body_dict=None
-)
+auth = get_auth()
 
 with open("image.png", "rb") as f:
     resp = requests.post(
-        f"{auth['base_url']}/openapi/wime/1_0/uploadImage",
-        headers={"Authorization": auth["Authorization"]},
+        f"{auth['base_url']}/waic/core/file/py/upload",
+        headers={"access-token": auth["headers"]["access-token"]},
         files={"file": ("image.png", f, "image/png")}
     )
 print(resp.json())
-# {"errcode": "0", "errmsg": "ok", "data": {"mediaId": 123456, "width": 1024, "height": 1024}}
+# {"errcode": "0", "errmsg": "ok", "data": {"url": "https://..."}}
 ```
+

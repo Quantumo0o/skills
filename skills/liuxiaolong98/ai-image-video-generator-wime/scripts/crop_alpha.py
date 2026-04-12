@@ -18,10 +18,49 @@
 import os
 import sys
 import tempfile
+import socket
+import ipaddress
+from urllib.parse import urlparse
 import requests as req
 from PIL import Image
 import numpy as np
 from typing import Tuple, Optional
+
+
+def _is_private_host(hostname: str) -> bool:
+    if not hostname:
+        return True
+    h = hostname.strip().lower()
+    if h in {"localhost", "ip6-localhost"} or h.endswith(".local"):
+        return True
+    try:
+        ip = ipaddress.ip_address(h)
+        return ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast
+    except ValueError:
+        pass
+    try:
+        infos = socket.getaddrinfo(h, None)
+    except socket.gaierror:
+        return True
+    for info in infos:
+        addr = info[4][0]
+        try:
+            ip = ipaddress.ip_address(addr)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+                return True
+        except ValueError:
+            return True
+    return False
+
+
+def _validate_remote_url(input_url: str) -> None:
+    parsed = urlparse(input_url)
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("Only http/https URLs are allowed")
+    if not parsed.hostname:
+        raise ValueError("URL hostname is missing")
+    if _is_private_host(parsed.hostname):
+        raise ValueError(f"Refusing private or localhost URL: {parsed.hostname}")
 
 
 def crop_alpha_bbox(
@@ -43,6 +82,7 @@ def crop_alpha_bbox(
     # 1. 获取图片
     tmp_download = None
     if input_path_or_url.startswith(("http://", "https://")):
+        _validate_remote_url(input_path_or_url)
         resp = req.get(input_path_or_url, timeout=30)
         resp.raise_for_status()
         tmp_download = tempfile.NamedTemporaryFile(suffix=".png", delete=False)

@@ -1,34 +1,47 @@
 # 商拍图接口
 
-## 创作商拍图
+## 新版（access-token，推荐）
 
-`POST /openapi/wime/1_0/draw`
+`POST /waic/core/creationDesk/draw`
 
 ### 入参
 
+外层结构：
+
 | 参数 | 类型 | 必传 | 说明 |
 |------|------|------|------|
-| width | Integer | 是 | 生成图片宽度（像素），示例：1024 |
-| height | Integer | 是 | 生成图片高度（像素），示例：1024 |
-| picList | Array\<Object\> | 是 | 图片列表，详见子参数 |
-| num | Integer | 否 | 生成数量，如 num=4 则一次生成 4 张 |
-| promptAi | String | 否 | AI 提示词，为空时由模型自动生成 |
-| prompt | String | 否 | 正向提示词，描述期望生成内容 |
-| negPrompt | String | 否 | 负向提示词，排除不希望出现的内容 |
-| aiStyle | Boolean | 否 | 是否使用 AI 风格，默认 false，建议传 true |
+| ips | Boolean | 否 | 默认 false |
+| needRank | Boolean | 否 | 是否需要排序，默认 true |
+| num | Integer | 是 | 生成数量，如 4 |
+| type | Integer | 是 | 创作类型，固定传 `1002` |
+| data | Object | 是 | 创作参数，见下方子参数 |
+
+### data 子参数
+
+| 参数 | 类型 | 必传 | 说明 |
+|------|------|------|------|
+| aiStyle | Boolean | 否 | 是否使用 AI 风格，建议 true |
+| bgColor | String | 否 | 背景颜色，空字符串表示无指定 |
+| height | Integer | 是 | 画布高度（像素），如 1024 |
+| width | Integer | 是 | 画布宽度（像素），如 1024 |
+| industry | String | 否 | 行业分类，如 "其他" |
+| negPrompt | String | 否 | 负向提示词 |
+| prompt | String | 否 | 正向提示词 |
+| promptAi | String | 否 | AI 提示词，空字符串由模型自动生成 |
 | randomStyle | Boolean | 否 | 是否随机风格，默认 true |
-| styleCode | String | 否 | 风格代码，如 "A0072" |
 | referenceUrl | String | 否 | 风格参考图 URL |
-| bgColor | String | 否 | 背景颜色值，如 "#FFFFFF"，空字符串表示无背景 |
-| industry | String | 否 | 行业分类，如：其他、电商、餐饮等 |
-| seed | Integer | 否 | 随机种子，0 表示随机，固定值可复现结果 |
+| seed | Integer | 否 | 随机种子，0 表示随机 |
+| styleCode | String | 否 | 风格代码，如 "A0072" |
+| skill | Boolean | **是** | **固定传 `true`** |
+| picList | Array\<Object\> | 是 | 图片列表 |
 
 ### picList 子参数
 
 | 参数 | 类型 | 必传 | 说明 |
 |------|------|------|------|
-| imageUrl | String | 是 | 展示图 URL（经过处理的图片，如抠图后） |
-| sourceImageUrl | String | 是 | 原始图 URL（未经处理的原图） |
+| imageUrl | String | 是 | 展示图 URL（抠图后的） |
+| sourceImageUrl | String | 是 | 原始图 URL |
+| imageCaption | String | 否 | 图片描述 |
 | width | Integer | 是 | 图片宽度（像素） |
 | height | Integer | 是 | 图片高度（像素） |
 | left | Float | 是 | X 轴偏移量（px） |
@@ -36,56 +49,75 @@
 | scaleX | Float | 是 | X 轴缩放比例 |
 | scaleY | Float | 是 | Y 轴缩放比例 |
 | type | Integer | 是 | 图片类型，1=产品图 |
-| imageCaption | String | 否 | 图片描述文字 |
 | parentId | String | 否 | 父元素 ID，空字符串表示无父级 |
-
-### 简易 picList 构建示例
-
-```python
-scale = min(canvas_w / img_w, canvas_h / img_h) * 0.8  # 留 20% 边距
-pic_item = {
-    "imageUrl": cutout_url,
-    "sourceImageUrl": source_url,
-    "width": img_w,
-    "height": img_h,
-    "left": (canvas_w - img_w * scale) / 2,
-    "top": (canvas_h - img_h * scale) / 2,
-    "scaleX": scale,
-    "scaleY": scale,
-    "type": 1,
-    "imageCaption": "",
-    "parentId": ""
-}
-```
 
 ### 出参
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| taskItemIds | List\<Long\> | 工作项 ID 列表，用于轮询异步结果 |
-
-使用 taskItemId 作为 batchId 调用 `getResultByBatchId` 轮询，当 result 字段有值时即为结果图 URL。
-
-### 签名注意
-
-商拍图请求体较复杂（含中文、布尔值、嵌套 picList），**必须用签名时的 body_str 发送请求**：
-
-```python
-body_str = json.dumps(body, separators=(',',':'), sort_keys=True, ensure_ascii=False)
-auth = sign(ak, sk, ts, 1800, 'POST', path, body=body_str)
-# 必须用 data= 发送，不能用 json=
-resp = requests.post(url, headers={'Authorization': auth, 'Content-Type': 'application/json'},
-                     data=body_str.encode('utf-8'))
-```
-
-### 商拍图回调结构
-
 ```json
 {
-  "type": 1002,
-  "taskItemId": 1000,
-  "data": {
-    "resultUrl": "https://xxx.png"
-  }
+    "errcode": "0",
+    "errmsg": "ok",
+    "data": {
+        "creationId": 238562,
+        "taskId": 634422,
+        "taskItemIds": [902024, 902025, 902026, 902027],
+        "ranks": [0, 0, 0, 0]
+    },
+    "globalTicket": "..."
 }
 ```
+
+### 调用示例
+
+```python
+import requests, json
+from wime_auth import get_auth
+
+body = {
+    "ips": False,
+    "needRank": True,
+    "num": 4,
+    "type": 1002,
+    "data": {
+        "aiStyle": True,
+        "bgColor": "",
+        "height": 1024,
+        "industry": "其他",
+        "negPrompt": "",
+        "picList": [
+            {
+                "height": 396,
+                "imageCaption": "A blue and gold microfiber mop",
+                "imageUrl": "https://image-c.weimobwmc.com/...",
+                "left": 356.07,
+                "parentId": "",
+                "scaleX": 1.55,
+                "scaleY": 1.55,
+                "sourceImageUrl": "https://image-c.weimobwmc.com/...",
+                "top": 266,
+                "type": 1,
+                "width": 201
+            }
+        ],
+        "prompt": "",
+        "promptAi": "",
+        "randomStyle": True,
+        "referenceUrl": "",
+        "seed": 0,
+        "styleCode": "A0072",
+        "width": 1024,
+        "skill": True
+    }
+}
+
+auth = get_auth(uri_path="/waic/core/creationDesk/draw", body_dict=body)
+
+resp = requests.post(
+    f"{auth['base_url']}/waic/core/creationDesk/draw",
+    headers=auth["headers"],
+    data=auth["body_str"].encode("utf-8")
+)
+print(resp.json())
+# 用返回的 taskItemIds 轮询 queryItemForSaas
+```
+

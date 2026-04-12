@@ -1,51 +1,55 @@
 # 抠图接口
 
-`POST /openapi/wime/1_0/cutout`
+## 新版（access-token，推荐）
 
-**同步接口**，直接返回抠图结果。
+`POST /waic/core/creationDesk/removeBg`
+
+**同步接口**，直接返回抠图结果。传入 imageUrl 列表，无需 mediaId。
 
 **入参:**
 
 | 参数 | 类型 | 必传 | 说明 |
 |------|------|------|------|
-| imageUrl | String | 条件必传 | 图片 URL（imageUrl 和 mediaId 必须存在一个） |
-| mediaId | Long | 条件必传 | 图片 ID（通过 uploadImage 获取） |
+| data | String (JSON array) | 是 | imageUrl 的 JSON 数组字符串，如 `"[{\"imageUrl\":\"https://...\"}]"` |
+| skill | Boolean | 是 | 固定传 `true` |
 
-**出参 (data):**
+**出参:**
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| imageUrl | String | 抠图结果 URL |
-| imageCaption | String | 图片描述 |
+```json
+{
+    "errcode": "0",
+    "errmsg": "ok",
+    "data": {
+        "creationId": 238564,
+        "taskId": 634428,
+        "taskItemIds": [902035],
+        "ranks": null
+    },
+    "globalTicket": "..."
+}
+```
 
-## 调用示例
+**注意：** 新版抠图为**异步接口**，返回 `taskItemIds`，需要用结果轮询接口查询结果。
+
+### 调用示例
 
 ```python
 import requests, json
-from wime_auth import make_request_headers
+from wime_auth import get_auth
 
-body = {"mediaId": 123456}
-auth = make_request_headers(
-    env="ol",
-    method="POST",
-    uri_path="/openapi/wime/1_0/cutout",
-    body_dict=body
-)
+body = {
+    "data": json.dumps([{"imageUrl": "https://example.com/image.webp"}]),
+    "skill": True
+}
+
+auth = get_auth(uri_path="/waic/core/creationDesk/removeBg", body_dict=body)
 
 resp = requests.post(
-    f"{auth['base_url']}/openapi/wime/1_0/cutout",
-    headers={
-        "Authorization": auth["Authorization"],
-        "Content-Type": "application/json"
-    },
-    json=body
+    f"{auth['base_url']}/waic/core/creationDesk/removeBg",
+    headers=auth["headers"],
+    data=auth["body_str"].encode("utf-8")
 )
-print(resp.json())
-# {"errcode": "0", "errmsg": "ok", "data": {"imageUrl": "https://...", "imageCaption": "A white product"}}
+result = resp.json()
+# 用 taskItemIds 去轮询 queryItemForSaas 获取抠图结果
 ```
 
-## 典型使用流程
-
-1. 调用 `uploadImage` 上传原图 → 获得 `mediaId`
-2. 调用 `cutout` 传入 `mediaId` → 获得抠图结果 `imageUrl`
-3. 抠图结果可用于商拍图等后续创作
