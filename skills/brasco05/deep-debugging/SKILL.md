@@ -1,213 +1,352 @@
----
-name: deep-debugging
-description: "Systematic, evidence-based debugging methodology. No guessing, no blind fixes — prove the cause first, then solve it. Use when: (1) a bug persists after the first fix attempt, (2) you're tempted to 'just try something', (3) you can't reproduce the issue consistently, (4) debugging auth/session/API issues, (5) the error message is vague or missing. Trigger phrases: 'debug', 'debugging', 'why doesn't X work', 'still broken', 'can't figure out', 'investigate this bug'."
----
+# Deep Debugging Skill
 
-# Deep Debugging
+**Kein blindes Fixen. Kein Raten. Erst beweisen, dann lösen.**
 
-**No blind fixes. No guessing. Prove the cause first, then solve it.**
+## Trigger-Wörter (Skill sofort laden)
 
----
-
-## When you read this skill: STOP.
-
-Set aside all fix ideas. You will change **nothing** until you know the root cause with 100% certainty.
-
----
-
-## PHASE 1 — Gather Evidence (observe only, touch nothing)
-
-Answer these 4 questions with real evidence from logs/code:
-
-### 1. What exactly happens?
-- Exact error message or stack trace from logs
-- HTTP status code (401? 403? 500? Redirect?)
-- Which endpoint / function / service is affected
-- What the user sees vs. what happens in the backend
-
-### 2. When does it happen?
-- Always or only sometimes?
-- Only for specific users / roles / inputs?
-- Since when — after which commit / change?
-- Reproducible in which exact steps?
-
-### 3. What should happen instead?
-- Expected behavior in one clear sentence
-- Actual behavior in one clear sentence
-
-### 4. What was changed last?
-- Last relevant commit
-- New ENV variables, new dependencies, new migrations?
-
-**→ STOP. Only proceed to Phase 2 when all 4 questions are answered.**
+Dieser Skill wird **sofort aktiviert** wenn der User eines dieser Wörter schreibt:
+- `debug`, `debugg`, `debugge`, `debugging`
+- `bug`, `bugfix`, `buggy`
+- `broken`, `kaputt`, `geht nicht`, `funktioniert nicht`
+- `fehler`, `error`, `crash`, `absturz`
+- `tief debuggen`, `tief analysieren`, `schau tiefer`, `such mal tiefer`
+- `immer noch kaputt`, `immer noch ein fehler`
+- `warum funktioniert X nicht`, `was ist falsch`
+- `401`, `403`, `500` (direkt als Nachricht)
 
 ---
 
-## PHASE 2 — Form a Hypothesis (REQUIRED)
+## Wenn du diesen Skill liest: STOPP.
 
-Write ONE concrete, testable hypothesis before touching anything:
-
-```
-"The bug occurs because [specific cause],
-which I will prove/disprove by [concrete test]."
-```
-
-**Good hypothesis:**
-```
-"The user gets logged out because the JWT is not correctly set 
-in the cookie after login, which I'll prove by checking the 
-Set-Cookie header in the login response in backend logs."
-```
-
-**Bad hypothesis:**
-```
-"Something is wrong with the auth."
-→ Too vague. Try again. Name the specific cause.
-```
-
-**Report your hypothesis before continuing.**
-Format: `🔬 HYPOTHESIS: [your hypothesis]`
+Leg alle Fix-Ideen beiseite. Du wirst NICHTS ändern bevor du die Ursache zu 100% kennst.
 
 ---
 
-## PHASE 3 — Binary Search (narrow down the bug)
+## PRE-PHASE — Quick Triage (30 Sekunden, IMMER zuerst)
 
-Split the problem in half. Test one half.
-- Bug is there → split further
-- Bug is not there → test the other half
+Bevor du irgendwas analysierst — diese 5 Dinge in 30 Sekunden prüfen:
 
-### For API / Backend bugs:
 ```
-Request in → Middleware → Guard → Controller → Service → DB → Response
-     ↑              ↑         ↑          ↑          ↑
-     Where does the chain break? Test each step individually.
-```
-
-### For Auth / Session bugs:
-```
-Step 1: Login request → is JWT correctly generated?
-Step 2: JWT in response → does it reach the client?
-Step 3: Follow-up request → is JWT sent in the request?
-Step 4: Guard/Middleware → is JWT correctly validated?
-Step 5: Secret → is the same secret used for signing and verification?
+□ Server neu gestartet nach letzter Änderung?
+□ ENV-Variablen korrekt gesetzt (auch in .env.local)?
+□ npm install / yarn nach Package-Änderungen ausgeführt?
+□ Datenbank-Migration gelaufen? (npx prisma migrate dev)
+□ Browser-Cache geleert / Hard Reload (Ctrl+Shift+R)?
 ```
 
-### For Frontend bugs:
-```
-User action → State update → API call → Process response → UI update
-     ↑              ↑            ↑              ↑
-     Where does the chain break?
-```
-
-**After each test step, report:**
-- ✅ [Step X] OK — bug is not here
-- ❌ [Step X] BUG FOUND — [what exactly]
+**Wenn eines davon "Nein" → erst das fixen, dann weiter.**
+Wenn alle "Ja" → weiter zu Phase 1.
 
 ---
 
-## PHASE 4 — Fix (only now)
+## PHASE 1 — Daten sammeln (nur beobachten, nichts anfassen)
 
-Only when the root cause is proven through Phases 1-3:
+Beantworte diese 4 Fragen mit echten Beweisen aus Logs/Code:
 
-1. **Apply minimal fix** — only what fixes the bug, nothing else
-2. **Don't refactor while debugging** — one problem, one fix
-3. **Test immediately** that the specific bug is gone
-4. **Verify** before reporting done
+### 1. Was genau passiert?
+- Exakte Fehlermeldung oder Stack Trace aus den Logs
+- HTTP Status Code (401? 403? 500? Redirect?)
+- Welcher Endpoint / welche Funktion / welcher Service ist betroffen
+- Was sieht der User vs. was passiert im Backend
+
+### 2. Wann passiert es?
+- Immer oder nur manchmal?
+- Nur bei bestimmten Usern / Rollen / Inputs?
+- Seit wann — nach welchem Commit / welcher Änderung?
+- Reproduzierbar in welchen Schritten genau?
+
+### 3. Was sollte stattdessen passieren?
+- Erwartetes Verhalten klar in einem Satz benennen
+- Tatsächliches Verhalten klar in einem Satz benennen
+
+### 4. Was wurde zuletzt geändert?
+- Letzter relevanter Commit
+- Neue ENV-Variablen, neue Abhängigkeiten, neue Migrationen?
+
+**→ STOPP. Erst wenn alle 4 Fragen beantwortet sind: weiter zu Phase 2.**
 
 ---
 
-## Common Error Patterns
+## PHASE 2 — Hypothese aufstellen (PFLICHT)
 
-| Symptom | Check First |
-|---------|-------------|
-| User logged out after login | JWT secret mismatch, Cookie SameSite/Secure settings, CORS config |
-| HTTP 401 on authenticated requests | JWT expired, wrong secret, missing Bearer token, validate() not called |
-| HTTP 403 | Missing role, Guard logic, Tenant isolation blocking |
-| HTTP 500 without stack trace | Unhandled Promise rejection, search console.error in logs |
-| "Cannot read property of undefined" | Missing null checks, DB query returning null |
-| Route not found (404) | Module not imported in AppModule, wrong controller prefix |
-| DB error on startup | Migration not run, column doesn't exist, missing ENV variable |
-| Cookie not set | SameSite=None + Secure=true needed for cross-origin |
-| Cookie not sent | Cross-origin fetch needs `credentials: 'include'` |
+Formuliere EINE konkrete, testbare Hypothese bevor du irgendetwas anfasst:
+
+```
+"Der Fehler tritt auf weil [konkrete Ursache],
+was ich beweise/widerlege indem ich [konkreter Test]."
+```
+
+**Gute Hypothese:**
+```
+"Der User wird rausgeworfen weil das JWT nach dem Login nicht 
+korrekt im Cookie gesetzt wird, was ich beweise indem ich 
+den Set-Cookie Header in der Login-Response in den Backend 
+Logs überprüfe."
+```
+
+**Schlechte Hypothese:**
+```
+"Irgendwas stimmt mit der Auth nicht."
+→ Zu vage. Nochmal. Konkrete Ursache benennen.
+```
+
+**Melde die Hypothese bevor du weitermachst.**
+Format: `🔬 HYPOTHESE: [deine Hypothese]`
 
 ---
 
-## Debug Commands
+## PHASE 3 — Binary Search (Fehler eingrenzen)
 
+Teile das Problem in zwei Hälften. Teste eine Hälfte.
+- Liegt der Fehler dort → weiter aufteilen
+- Liegt er nicht dort → andere Hälfte testen
+
+### Für Auth/Session-Bugs (häufigster Fall):
+```
+Schritt 1: Login-Request → wird JWT korrekt generiert?
+ → Logs: POST /auth/login → 200 oder Fehler?
+
+Schritt 2: JWT im Response → landet er korrekt beim Client?
+ → Set-Cookie Header vorhanden? LocalStorage befüllt?
+
+Schritt 3: Folge-Request → wird JWT mitgeschickt?
+ → Authorization: Bearer [token] im Request-Header? Cookie present?
+
+Schritt 4: Guard/Middleware → wird JWT korrekt validiert?
+ → JwtAuthGuard wirft 401? Welche Fehlermeldung?
+
+Schritt 5: JWT_SECRET → ist er korrekt gesetzt?
+ → Gleicher Secret beim Generieren (JwtModule) und Validieren (JwtStrategy)?
+```
+
+### Für allgemeine API-Bugs:
+```
+Request rein → Middleware → Guard → Controller → Service → DB → Response
+     ↑              ↑          ↑         ↑           ↑
+     Wo bricht die Kette? Jeden Schritt einzeln testen.
+```
+
+### Für Frontend-Bugs (React/Next.js):
+```
+User-Action → Event Handler → State-Update → Re-render → API-Call → Response → UI-Update
+     ↑               ↑              ↑             ↑           ↑          ↑
+     Wo bricht die Kette?
+
+Checkliste:
+□ Console.log DIREKT nach dem Event: kommt die Action überhaupt an?
+□ State korrekt? (React DevTools → Components → State inspizieren)
+□ useEffect dependencies richtig? (zu wenige → stale closure, zu viele → infinite loop)
+□ API-Call: Network Tab → Request Payload korrekt? Response korrekt?
+□ Hydration Error: passiert nur SSR? Client-only Code in Server Component?
+□ Keys fehlen in Liste? → React warnt, aber rendert falsch
+□ Async State: wird State gesetzt bevor Component unmounted?
+```
+
+### Für Datenbank-Bugs (Prisma/TypeORM):
+```
+□ Schema stimmt mit Migration überein? → prisma db push oder migrate dev
+□ Fehlende Relation: include/join vergessen?
+□ Null-Safety: Feld optional aber kein null-check?
+□ Transaction abgebrochen: welcher Teil schlägt fehl?
+□ Connection Pool erschöpft: zu viele offene Connections?
+
+Prisma Debug-Modus aktivieren:
+const prisma = new PrismaClient({ log: ['query', 'error', 'warn'] })
+→ Zeigt jeden SQL-Query mit Parametern
+```
+
+### Für Performance-Bugs:
+```
+□ N+1 Problem: wird in einer Schleife jedes Mal eine DB-Query gemacht?
+□ Missing Index: EXPLAIN ANALYZE auf den langsamen Query
+□ Re-renders: React DevTools Profiler → was rendert unnötig?
+□ Bundle Size: next build → welche Packages sind zu groß?
+□ Memory Leak: Interval/EventListener nicht aufgeräumt bei unmount?
+```
+
+**Melde nach jeder Testphase:**
+- ✅ [Schritt X] OK — Fehler liegt nicht hier
+- ❌ [Schritt X] FEHLER GEFUNDEN — [was genau]
+
+---
+
+## PHASE 4 — Fix (erst jetzt)
+
+Nur wenn die Ursache durch Phase 1-3 bewiesen ist:
+
+1. **Minimalen Fix implementieren** — nur das was den Fehler behebt, nichts anderes
+2. **Nicht gleichzeitig refactoren** — ein Problem, ein Fix
+3. **Direkt testen** ob der spezifische Fehler weg ist
+4. **Verification** ausführen bevor "fertig" gemeldet wird
+
+---
+
+## Häufige Fehlerquellen (NestJS/Next.js-Stack)
+
+| Symptom | Zuerst prüfen |
+|---|---|
+| User wird nach Login rausgeworfen | JWT_SECRET Mismatch zwischen JwtModule und JwtStrategy, Cookie SameSite/Secure Settings, CORS-Config |
+| HTTP 401 bei authentifizierten Requests | JWT expired, falscher Secret, Bearer Token fehlt im Header, `validate()` wird nicht aufgerufen |
+| HTTP 403 | Rolle fehlt, Guard-Logik prüfen, Tenant-Isolation blockiert |
+| HTTP 500 ohne Stack Trace | Unbehandelte Promise-Rejection, console.error in Logs suchen |
+| "Cannot read property of undefined" | Null-checks fehlen, DB-Query gibt null zurück |
+| Route nicht gefunden (404) | Module nicht in AppModule importiert, falscher Controller-Prefix, Global-Prefix-Dopplung (api/api/) |
+| DB-Fehler beim Start | Migration nicht ausgeführt, Spalte existiert nicht, ENV-Variable fehlt |
+| Cookie wird nicht gesetzt | SameSite=None + Secure=true nötig bei Cross-Origin; SameSite=Lax für same-site |
+| Cookie wird nicht mitgeschickt | Cross-Origin Fetch braucht `credentials: 'include'`, Next.js Rewrites funktionieren nur SSR-seitig |
+| JWT Strategy extrahiert Token aber 401 | `secretOrKey` in JwtStrategy stimmt NICHT mit secret in JwtModule überein (Fallback-Wert-Problem!) |
+| Hydration Error (Next.js) | Client-only API (window/localStorage) in Server Component, Date/Math.random() Mismatch |
+| Infinite Re-render Loop | useEffect dependency array falsch, State-Update in Render-Funktion |
+| "React Hook called conditionally" | useState/useEffect NACH einem Early Return — alle Hooks VOR Early Returns |
+| Prisma: "Unknown field" | Schema geändert aber kein `prisma generate` ausgeführt |
+| CORS Error trotz CORS-Config | Preflight OPTIONS-Request nicht behandelt, Origin-Whitelist unvollständig |
+
+---
+
+## Debugging-Tools
+
+### NestJS Backend
 ```bash
-# JWT decode manually
+# Live-Logs mit tee
+npm run start:dev 2>&1 | tee /tmp/backend-debug.log
+
+# JWT manuell dekodieren
 echo "$TOKEN" | cut -d. -f2 | base64 -d | jq .
 
-# Test login + auth flow
+# Login + /me curl-Test
 curl -X POST http://localhost:4000/api/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"test@test.com","password":"test"}' \
+  -d '{"email":"...","password":"..."}' \
   -c /tmp/cookies.txt -v 2>&1 | grep "Set-Cookie"
 
 curl http://localhost:4000/api/auth/me \
   -b /tmp/cookies.txt -v 2>&1 | grep "HTTP"
-
-# What's using this port?
-lsof -i :PORT
-
-# Git bisect — find which commit introduced the bug
-git bisect start
-git bisect bad              # current commit is broken
-git bisect good abc1234     # known good commit
-# Test each checkout, then: git bisect good / git bisect bad
-git bisect reset
 ```
 
-For framework-specific debugging commands, see:
-- `references/nestjs.md` — NestJS + Next.js
-- `references/patterns.md` — Common bug patterns with real examples
+### Prisma
+```bash
+# Alle Queries loggen
+DATABASE_URL=... npx prisma studio   # DB direkt inspizieren
+
+# Migration Status prüfen
+npx prisma migrate status
+
+# Schema mit DB vergleichen
+npx prisma db pull  # zieht aktuelles DB-Schema
+```
+
+### React / Next.js
+```bash
+# Build-Fehler analysieren
+next build 2>&1 | grep -E "Error|Warning"
+
+# Bundle-Größe analysieren
+ANALYZE=true next build  # mit @next/bundle-analyzer
+
+# TypeScript-Fehler finden
+tsc --noEmit
+```
+
+### Allgemein
+```bash
+# Letzten Commit der eine Datei geändert hat
+git log --oneline --follow -p -- src/auth/jwt.strategy.ts | head -50
+
+# Wann hat ein Bug angefangen? Binary search in Git
+git bisect start
+git bisect bad HEAD
+git bisect good [letzter-funktionierender-commit]
+```
 
 ---
 
-## Required Reporting Format
+## Reporting-Format (PFLICHT nach jedem Debugging)
 
 ```
 🔍 DEBUG REPORT
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Bug: [Exact error message from logs]
-Located: [File:Line / Function / Service]
-Root cause: [What actually happened — one clear explanation]
-Evidence: [How the cause was proven]
-Fix: [What was changed exactly — file + what]
-Verified: [Yes — how tested, which test is green]
+Fehler: [Exakte Fehlermeldung aus Logs]
+Lokalisiert: [Datei:Zeile / Funktion / Service]
+Ursache: [Was wirklich passiert ist — eine klare Erklärung]
+Beweis: [Wie die Ursache bewiesen wurde]
+Fix: [Was genau geändert wurde — Datei + was]
+Verifiziert: [Ja — wie getestet, welcher Test grün]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 ---
 
-## Escalation Protocol
+## Absolute Regeln
 
-If the bug still exists after **3 complete phase cycles**:
-
-1. **Document everything** — write a full summary of what was tried and why it didn't work
-2. **Escalate with context** — don't just say "it's broken", say:
-   ```
-   🚨 ESCALATION NEEDED
-   Bug: [description]
-   Tried: [3 hypotheses + what was proven/disproven]
-   Current state: [what we know for certain]
-   Help needed: [specific question or fresh eyes]
-   ```
-3. **Options:**
-   - Ask a second developer / AI instance with full context
-   - Revert to last known working commit and debug the diff
-   - Add extensive logging and let it run in staging to gather more data
-   - Temporarily disable the feature and fix properly later
-
-**Rule: Never spend more than 3 cycles without escalating or reverting.**
+- **NIEMALS** fixen ohne Hypothese aus Phase 2
+- **NIEMALS** mehrere Dinge gleichzeitig ändern
+- **NIEMALS** "probieren ob es hilft" — nur beweisbasierte Fixes
+- **NIEMALS** Phase überspringen weil der Fix "offensichtlich" wirkt
+- Wenn nach 3 Fix-Versuchen der Bug noch existiert → zurück zu Phase 1, neue Hypothese
+- **Scope-Disziplin:** Nur den gemeldeten Bug fixen, keine anderen Baustellen anfassen
 
 ---
 
-## Absolute Rules
+## Lessons Learned (aus echten Bugs)
 
-- **NEVER** fix without a hypothesis from Phase 2
-- **NEVER** change multiple things at once
-- **NEVER** "try something to see if it helps" — evidence-based fixes only
-- **NEVER** skip a phase because the fix seems obvious
-- After 3 fix attempts without resolution → **escalate using the Escalation Protocol above**
-- **Scope discipline:** Fix only the reported bug, don't touch other issues
+### JWT Secret Mismatch (2026-03-19)
+**Symptom:** User wird nach Login sofort rausgeworfen, `/auth/me` gibt 401
+
+**Falle:** `JwtModule.register()` und `JwtStrategy` hatten **unterschiedliche Fallback-Secrets**:
+- Login signierte mit: `'caresys-super-secret-jwt-key-2026'`
+- Strategy verifizierte mit: `'fallback-secret-for-dev'`
+
+**Beweis-Methode:** `validate()` in JwtStrategy temporär loggen → wurde NIE aufgerufen → Signatur-Verifikation schlägt fehl → Secrets stimmen nicht überein
+
+**Fix:** Fallback-Secret in `jwt.strategy.ts` angleichen:
+```typescript
+secretOrKey: process.env.JWT_SECRET || 'caresys-super-secret-jwt-key-2026',
+```
+
+### Cross-Origin Cookie Problem (2026-03-19)
+**Symptom:** Login erfolgreich, aber alle API-Calls geben 401
+
+**Falle:** `fetch()` vom Browser sendet Cookies **NICHT** bei Cross-Origin-Requests (localhost:3000 → localhost:4000), auch wenn `credentials: 'include'` gesetzt ist und Next.js Rewrites konfiguriert sind.
+
+**Warum Next.js Rewrites nicht helfen:** Rewrites funktionieren nur für **SSR-seitige** Requests, nicht für client-side `fetch()`.
+
+**Fix:** Sicherstellen dass alle API-Calls über die **gleiche Origin** laufen (Next.js als Proxy) ODER JWT auch im Response-Body zurückgeben und im `Authorization` Header senden.
+
+### NestJS Controller-Prefix-Dopplung (2026-03-21)
+**Symptom:** API-Endpoint gibt 404, obwohl Controller und Route korrekt aussehen
+
+**Falle:** Global Prefix `api` + Controller-Pfad `api/something` → `/api/api/something` → 404
+
+**Fix:** Controller-Pfad niemals mit `api/` prefixen. Nur den Ressourcennamen:
+```typescript
+@Controller('users')  // ✅ → /api/users
+@Controller('api/users')  // ❌ → /api/api/users
+```
+
+### React Rules of Hooks Violation (2026-03-22)
+**Symptom:** "React Hook useState is called conditionally" Error, App crasht
+
+**Falle:** `useState` oder `useEffect` nach einem Early Return:
+```typescript
+if (!user) return null  // ← Early Return
+const [data, setData] = useState([])  // ← Hook DANACH → Fehler!
+```
+
+**Fix:** Alle Hooks VOR jeden Early Return verschieben:
+```typescript
+const [data, setData] = useState([])  // ← Erst Hooks
+if (!user) return null  // ← Dann Early Return
+```
+
+### req.user.id vs req.user.sub (2026-03-22)
+**Symptom:** `req.user.id` ist `undefined` in NestJS Controller, obwohl JWT korrekt
+
+**Falle:** JWT-Standard speichert die User-ID in `sub`, nicht in `id`. NestJS JwtStrategy gibt das decoded JWT payload zurück — also `sub`, nicht `id`.
+
+**Fix:** Immer `req.user.sub` statt `req.user.id` in NestJS-Controllern:
+```typescript
+@Get('me')
+getMe(@Request() req) {
+  return this.usersService.findOne(req.user.sub)  // ✅
+}
+```

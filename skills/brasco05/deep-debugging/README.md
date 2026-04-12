@@ -1,32 +1,36 @@
-# deep-debugging
+# Deep Debugging Skill
 
-Systematic, evidence-based debugging methodology for software developers. No guessing, no blind fixes — prove the root cause first, then solve it.
+**Stop guessing. Start proving.**
 
-## The Problem This Solves
+A structured 4-phase debugging protocol for AI agents and developers. No more random fixes — this skill forces hypothesis-driven debugging that actually finds root causes.
 
-Most developers debug by instinct: "Let me try X and see if it helps." This leads to:
-- Multiple fixes applied simultaneously (you don't know which one worked)
-- Hours wasted on symptoms instead of root causes
-- The same bug appearing again because it was never truly understood
+## What it does
 
-## The Solution
+Activates automatically when you write `debug`, `bug`, `broken`, `error`, `401`, `500`, or similar keywords. Then guides you through:
 
-A 4-phase protocol that forces evidence-based debugging:
-1. **Gather Evidence** — observe only, don't touch anything
-2. **Form a Hypothesis** — specific and testable
-3. **Binary Search** — narrow down the bug systematically
-4. **Fix** — minimal, targeted fix with verification
+- **Pre-Phase**: 30-second Quick Triage (server restarted? ENV set? migration ran?)
+- **Phase 1**: Gather evidence — exact error, when it happens, what changed
+- **Phase 2**: Write a concrete, testable hypothesis BEFORE touching anything
+- **Phase 3**: Binary search to isolate the root cause (Auth, API, Frontend, DB, Performance)
+- **Phase 4**: Minimal fix, verify, report
 
-## What's Included
+## Includes
 
-- `SKILL.md` — Core debugging protocol (language-agnostic)
-- `references/nestjs.md` — NestJS + Next.js specific debugging
-- `references/patterns.md` — Real bug patterns with root cause analysis
+- Auth/JWT debugging flow (NestJS)
+- React/Next.js debugging (Hydration, useEffect, Hooks)
+- Prisma/DB debugging (schema sync, N+1, connection pool)
+- Performance debugging (re-renders, memory leaks, bundle size)
+- Common error quick-reference table (20+ symptoms → root causes)
+- Debug tools & curl snippets
+- 6 real-world Lessons Learned from production bugs
+- Mandatory DEBUG REPORT format
 
-## Who This Is For
+## Stack
 
-Backend and full-stack developers who want to debug systematically instead of randomly. Especially useful for:
-- Auth / session bugs
-- API issues (401, 403, 500)
-- Cross-origin / CORS problems
-- Bugs that return after being "fixed"
+Optimized for NestJS + Next.js, but the methodology works with any stack.
+
+## Why it works
+
+Most debugging fails because developers fix symptoms instead of causes. This skill makes you **prove** the root cause before writing a single line of fix code.
+
+> "Don't debug with your gut. Debug with evidence."
