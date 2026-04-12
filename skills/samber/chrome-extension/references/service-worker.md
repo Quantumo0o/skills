@@ -1,6 +1,7 @@
 # Service Worker Reference
 
 ## Table of contents
+
 1. Lifecycle and termination rules
 2. Event listener registration rules
 3. State management patterns
@@ -12,24 +13,21 @@
 
 ## 1. Lifecycle and termination rules
 
-The service worker is Chrome's replacement for MV2's persistent background page. It is
-**event-driven and ephemeral**.
+The service worker is Chrome's replacement for MV2's persistent background page. It is **event-driven and ephemeral**.
 
 ### Termination timeline
 
-| Condition | Timeout |
-|-----------|---------|
-| No pending events or API calls | **30 seconds** |
-| Single long-running task | **5 minutes** hard cap |
-| Active fetch() request | **30 seconds** from last network activity |
-| Active chrome.* API call | Resets the 30s idle timer |
-| DevTools open on SW | **Never terminates** (masks bugs!) |
+| Condition                      | Timeout                                   |
+| ------------------------------ | ----------------------------------------- |
+| No pending events or API calls | **30 seconds**                            |
+| Single long-running task       | **5 minutes** hard cap                    |
+| Active fetch() request         | **30 seconds** from last network activity |
+| Active chrome.\* API call      | Resets the 30s idle timer                 |
+| DevTools open on SW            | **Never terminates** (masks bugs!)        |
 
 ### What resets the 30s idle timer (Chrome 110+)
 
-Any chrome.* API call or event: `onMessage`, `onAlarm`, `onClicked`, `tabs.onUpdated`,
-`webNavigation.*`, etc. Also: active `fetch()`, WebSocket messages (Chrome 116+),
-native messaging host communication (Chrome 105+).
+Any chrome._ API call or event: `onMessage`, `onAlarm`, `onClicked`, `tabs.onUpdated`, `webNavigation._`, etc. Also: active `fetch()`, WebSocket messages (Chrome 116+), native messaging host communication (Chrome 105+).
 
 ### What does NOT keep it alive
 
@@ -42,18 +40,16 @@ native messaging host communication (Chrome 105+).
 
 ```javascript
 // ALL of these vanish:
-let cache = {};           // gone
-let counter = 0;          // gone
-const ws = new WebSocket(url);  // disconnected
-setTimeout(fn, 60000);    // cancelled
+let cache = {}; // gone
+let counter = 0; // gone
+const ws = new WebSocket(url); // disconnected
+setTimeout(fn, 60000); // cancelled
 const pending = fetch(url); // if SW terminates before response, lost
 ```
 
 ## 2. Event listener registration rules
 
-**CRITICAL**: All event listeners MUST be registered synchronously at the top level of the
-service worker file. Chrome records which events a SW listens to. If a listener isn't
-registered synchronously on startup, Chrome won't wake the SW for that event.
+**CRITICAL**: All event listeners MUST be registered synchronously at the top level of the service worker file. Chrome records which events a SW listens to. If a listener isn't registered synchronously on startup, Chrome won't wake the SW for that event.
 
 ```javascript
 // ✅ CORRECT: top-level, synchronous
@@ -65,26 +61,26 @@ chrome.action.onClicked.addListener(handleClick);
 
 // ✅ CORRECT: conditional logic inside the handler is fine
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'A') handleA(msg, sendResponse);
-  if (msg.type === 'B') handleB(msg, sendResponse);
+  if (msg.type === "A") handleA(msg, sendResponse);
+  if (msg.type === "B") handleB(msg, sendResponse);
   return true;
 });
 
 // ❌ BROKEN: listener inside async/callback
-chrome.storage.local.get('config', (config) => {
+chrome.storage.local.get("config", (config) => {
   if (config.enableFeature) {
     chrome.tabs.onUpdated.addListener(handleTabUpdate); // LOST after restart
   }
 });
 
 // ❌ BROKEN: listener inside import().then()
-import('./handlers.js').then(module => {
+import("./handlers.js").then((module) => {
   chrome.runtime.onMessage.addListener(module.handler); // LOST after restart
 });
 
 // ✅ WORKAROUND for dynamic imports: register first, delegate later
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  import('./handlers.js').then(m => m.handler(msg, sender, sendResponse));
+  import("./handlers.js").then((m) => m.handler(msg, sender, sendResponse));
   return true;
 });
 ```
@@ -93,7 +89,7 @@ With `"type": "module"` in manifest, **static** `import` statements are fine:
 
 ```javascript
 // background.js with "type": "module"
-import { handleMessage } from './handlers.js';  // ✅ static import is OK
+import { handleMessage } from "./handlers.js"; // ✅ static import is OK
 chrome.runtime.onMessage.addListener(handleMessage);
 ```
 
@@ -101,13 +97,12 @@ chrome.runtime.onMessage.addListener(handleMessage);
 
 ### Use chrome.storage.session for ephemeral state
 
-`chrome.storage.session` persists across SW restarts but clears on browser close.
-Perfect for auth tokens, computed caches, in-progress operations.
+`chrome.storage.session` persists across SW restarts but clears on browser close. Perfect for auth tokens, computed caches, in-progress operations.
 
 ```typescript
 // Initialize access for content scripts (call once at top level)
 chrome.storage.session.setAccessLevel({
-  accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS'
+  accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS",
 });
 
 // State helpers
@@ -120,7 +115,11 @@ async function setState(key: string, value: unknown): Promise<void> {
   await chrome.storage.session.set({ [key]: value });
 }
 
-async function updateState<T>(key: string, fallback: T, updater: (prev: T) => T): Promise<T> {
+async function updateState<T>(
+  key: string,
+  fallback: T,
+  updater: (prev: T) => T,
+): Promise<T> {
   const current = await getState(key, fallback);
   const next = updater(current);
   await setState(key, next);
@@ -129,8 +128,8 @@ async function updateState<T>(key: string, fallback: T, updater: (prev: T) => T)
 
 // Usage
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === 'INCREMENT') {
-    updateState('counter', 0, n => n + 1).then(sendResponse);
+  if (msg.type === "INCREMENT") {
+    updateState("counter", 0, (n) => n + 1).then(sendResponse);
     return true;
   }
 });
@@ -141,38 +140,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 ```typescript
 // Batch reads for performance
 const { token, settings, cache } = await chrome.storage.local.get([
-  'token', 'settings', 'cache'
+  "token",
+  "settings",
+  "cache",
 ]);
 
 // Atomic batch writes
 await chrome.storage.local.set({
   token: newToken,
-  settings: { ...settings, theme: 'dark' },
+  settings: { ...settings, theme: "dark" },
   lastUpdated: Date.now(),
 });
 ```
 
 ## 4. Alarms: replacing setTimeout/setInterval
 
-`chrome.alarms` survives SW termination. Requires `"alarms"` permission.
-Minimum interval: **30 seconds** (Chrome 120+, was 1 minute before).
+`chrome.alarms` survives SW termination. Requires `"alarms"` permission. Minimum interval: **30 seconds** (Chrome 120+, was 1 minute before).
 
 ```typescript
 // Create alarms
-chrome.alarms.create('periodic-sync', { periodInMinutes: 1 });           // recurring
-chrome.alarms.create('delayed-task', { delayInMinutes: 0.5 });           // one-shot (30s)
-chrome.alarms.create('daily-check', { periodInMinutes: 1440 });          // daily
-chrome.alarms.create('specific-time', { when: Date.now() + 60000 });     // absolute time
+chrome.alarms.create("periodic-sync", { periodInMinutes: 1 }); // recurring
+chrome.alarms.create("delayed-task", { delayInMinutes: 0.5 }); // one-shot (30s)
+chrome.alarms.create("daily-check", { periodInMinutes: 1440 }); // daily
+chrome.alarms.create("specific-time", { when: Date.now() + 60000 }); // absolute time
 
 // Handle alarms (TOP LEVEL)
 chrome.runtime.onMessage.addListener(handleMessage); // other listeners...
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   switch (alarm.name) {
-    case 'periodic-sync':
+    case "periodic-sync":
       await syncData();
       break;
-    case 'delayed-task':
+    case "delayed-task":
       await processQueue();
       break;
   }
@@ -181,9 +181,9 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 // Idempotent alarm creation (don't duplicate on every SW wake)
 async function ensureAlarms() {
   const existing = await chrome.alarms.getAll();
-  const names = existing.map(a => a.name);
-  if (!names.includes('periodic-sync')) {
-    chrome.alarms.create('periodic-sync', { periodInMinutes: 1 });
+  const names = existing.map((a) => a.name);
+  if (!names.includes("periodic-sync")) {
+    chrome.alarms.create("periodic-sync", { periodInMinutes: 1 });
   }
 }
 ensureAlarms();
@@ -195,18 +195,20 @@ ensureAlarms();
 // Runs on install, update, and Chrome update
 chrome.runtime.onInstalled.addListener((details) => {
   switch (details.reason) {
-    case 'install':
+    case "install":
       // First install: set defaults, open onboarding tab
-      chrome.storage.sync.set({ theme: 'light', enabled: true });
-      chrome.tabs.create({ url: 'onboarding.html' });
+      chrome.storage.sync.set({ theme: "light", enabled: true });
+      chrome.tabs.create({ url: "onboarding.html" });
       break;
-    case 'update':
+    case "update":
       // Extension updated: migrate data, re-inject content scripts
       const prev = details.previousVersion;
-      console.log(`Updated from ${prev} to ${chrome.runtime.getManifest().version}`);
+      console.log(
+        `Updated from ${prev} to ${chrome.runtime.getManifest().version}`,
+      );
       reInjectContentScripts();
       break;
-    case 'chrome_update':
+    case "chrome_update":
       // Chrome browser itself updated
       break;
   }
@@ -221,10 +223,9 @@ chrome.runtime.onStartup.addListener(() => {
 
 ## 6. Keep-alive patterns (use sparingly)
 
-Sometimes you need the SW alive for longer operations (e.g., streaming responses).
-These patterns extend lifetime but should be last resorts.
+Sometimes you need the SW alive for longer operations (e.g., streaming responses). These patterns extend lifetime but should be last resorts.
 
-### Periodic chrome.* API call
+### Periodic chrome.\* API call
 
 ```typescript
 // Keep alive for up to 5 minutes during a long operation
@@ -256,9 +257,7 @@ async function longRunningTask() {
 
 ### Port-based keep-alive (offscreen document keeps SW alive)
 
-An open port from an offscreen document keeps the SW alive indefinitely. This is the
-nuclear option and should only be used for genuinely persistent requirements (e.g.,
-real-time WebSocket proxy). Even then, implement cleanup.
+An open port from an offscreen document keeps the SW alive indefinitely. This is the nuclear option and should only be used for genuinely persistent requirements (e.g., real-time WebSocket proxy). Even then, implement cleanup.
 
 ## 7. Identity and OAuth
 
@@ -269,8 +268,8 @@ real-time WebSocket proxy). Even then, implement cleanup.
 // Also needs "oauth2": { "client_id": "...", "scopes": ["..."] }
 
 const token = await chrome.identity.getAuthToken({ interactive: true });
-const response = await fetch('https://www.googleapis.com/userinfo/v2/me', {
-  headers: { Authorization: `Bearer ${token.token}` }
+const response = await fetch("https://www.googleapis.com/userinfo/v2/me", {
+  headers: { Authorization: `Bearer ${token.token}` },
 });
 ```
 
@@ -278,11 +277,11 @@ const response = await fetch('https://www.googleapis.com/userinfo/v2/me', {
 
 ```typescript
 const redirectUrl = chrome.identity.getRedirectURL(); // https://<ext-id>.chromiumapp.org/
-const authUrl = new URL('https://provider.com/oauth/authorize');
-authUrl.searchParams.set('client_id', CLIENT_ID);
-authUrl.searchParams.set('redirect_uri', redirectUrl);
-authUrl.searchParams.set('response_type', 'token');
-authUrl.searchParams.set('scope', 'read write');
+const authUrl = new URL("https://provider.com/oauth/authorize");
+authUrl.searchParams.set("client_id", CLIENT_ID);
+authUrl.searchParams.set("redirect_uri", redirectUrl);
+authUrl.searchParams.set("response_type", "token");
+authUrl.searchParams.set("scope", "read write");
 
 const responseUrl = await chrome.identity.launchWebAuthFlow({
   url: authUrl.toString(),
@@ -290,7 +289,10 @@ const responseUrl = await chrome.identity.launchWebAuthFlow({
 });
 
 const url = new URL(responseUrl);
-const token = url.hash.split('&').find(p => p.startsWith('access_token='))?.split('=')[1];
+const token = url.hash
+  .split("&")
+  .find((p) => p.startsWith("access_token="))
+  ?.split("=")[1];
 await chrome.storage.session.set({ accessToken: token });
 ```
 
@@ -302,21 +304,25 @@ When you need DOM APIs unavailable in service workers (DOMParser, Canvas, Audio,
 // background.ts
 async function ensureOffscreen() {
   const contexts = await chrome.runtime.getContexts({
-    contextTypes: ['OFFSCREEN_DOCUMENT'],
-    documentUrls: [chrome.runtime.getURL('offscreen.html')],
+    contextTypes: ["OFFSCREEN_DOCUMENT"],
+    documentUrls: [chrome.runtime.getURL("offscreen.html")],
   });
   if (contexts.length > 0) return;
   await chrome.offscreen.createDocument({
-    url: 'offscreen.html',
+    url: "offscreen.html",
     reasons: [chrome.offscreen.Reason.DOM_PARSER],
-    justification: 'Parse HTML responses',
+    justification: "Parse HTML responses",
   });
 }
 
 // Delegate work to offscreen doc
 async function parseHTML(html: string) {
   await ensureOffscreen();
-  return chrome.runtime.sendMessage({ target: 'offscreen', type: 'PARSE', html });
+  return chrome.runtime.sendMessage({
+    target: "offscreen",
+    type: "PARSE",
+    html,
+  });
 }
 ```
 
@@ -328,18 +334,15 @@ async function parseHTML(html: string) {
 ```javascript
 // offscreen.js
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.target !== 'offscreen') return;
-  if (msg.type === 'PARSE') {
-    const doc = new DOMParser().parseFromString(msg.html, 'text/html');
-    const title = doc.querySelector('title')?.textContent;
-    const links = [...doc.querySelectorAll('a')].map(a => a.href);
+  if (msg.target !== "offscreen") return;
+  if (msg.type === "PARSE") {
+    const doc = new DOMParser().parseFromString(msg.html, "text/html");
+    const title = doc.querySelector("title")?.textContent;
+    const links = [...doc.querySelectorAll("a")].map((a) => a.href);
     sendResponse({ title, links });
     return true;
   }
 });
 ```
 
-**Limitations**: only one offscreen document per extension, only `chrome.runtime` API
-available, must specify a `Reason` enum value. Available reasons: `TESTING`, `AUDIO_PLAYBACK`,
-`IFRAME_SCRIPTING`, `DOM_SCRAPING`, `DOM_PARSER`, `BLOBS`, `CLIPBOARD`, `LOCAL_STORAGE`,
-`WORKERS`, `BATTERY_STATUS`, `MATCH_MEDIA`, `GEOLOCATION`, `USER_MEDIA`, `DISPLAY_MEDIA`.
+**Limitations**: only one offscreen document per extension, only `chrome.runtime` API available, must specify a `Reason` enum value. Available reasons: `TESTING`, `AUDIO_PLAYBACK`, `IFRAME_SCRIPTING`, `DOM_SCRAPING`, `DOM_PARSER`, `BLOBS`, `CLIPBOARD`, `LOCAL_STORAGE`, `WORKERS`, `BATTERY_STATUS`, `MATCH_MEDIA`, `GEOLOCATION`, `USER_MEDIA`, `DISPLAY_MEDIA`.

@@ -1,6 +1,7 @@
 # Storage Reference
 
 ## Table of contents
+
 1. Storage areas comparison
 2. Basic CRUD operations
 3. Quota limits and handling
@@ -14,7 +15,7 @@
 All require `"storage"` permission. All APIs are async (Promise-based in MV3).
 
 | Feature | `storage.local` | `storage.sync` | `storage.session` |
-|---------|-----------------|----------------|-------------------|
+| --- | --- | --- | --- |
 | Quota | 10 MB (unlimited with permission) | 100 KB total | 10 MB |
 | Per-item limit | None | 8,192 bytes | None |
 | Max items | None | 512 | None |
@@ -37,38 +38,41 @@ All require `"storage"` permission. All APIs are async (Promise-based in MV3).
 ```typescript
 // === WRITE ===
 // Single key
-await chrome.storage.local.set({ username: 'alice' });
+await chrome.storage.local.set({ username: "alice" });
 
 // Multiple keys (atomic: all succeed or all fail)
 await chrome.storage.local.set({
-  username: 'alice',
-  settings: { theme: 'dark', lang: 'en' },
+  username: "alice",
+  settings: { theme: "dark", lang: "en" },
   lastLogin: Date.now(),
 });
 
 // === READ ===
 // Single key
-const { username } = await chrome.storage.local.get('username');
+const { username } = await chrome.storage.local.get("username");
 
 // Multiple keys
-const { username, settings } = await chrome.storage.local.get(['username', 'settings']);
+const { username, settings } = await chrome.storage.local.get([
+  "username",
+  "settings",
+]);
 
 // All keys
 const everything = await chrome.storage.local.get(null);
 
 // With defaults (returned if key doesn't exist)
-const { theme } = await chrome.storage.local.get({ theme: 'light' });
+const { theme } = await chrome.storage.local.get({ theme: "light" });
 
 // === DELETE ===
-await chrome.storage.local.remove('username');
-await chrome.storage.local.remove(['username', 'settings']);
+await chrome.storage.local.remove("username");
+await chrome.storage.local.remove(["username", "settings"]);
 
 // Clear everything
 await chrome.storage.local.clear();
 
 // === CHECK QUOTA ===
-const bytes = await chrome.storage.local.getBytesInUse(null);       // total
-const keyBytes = await chrome.storage.local.getBytesInUse('cache'); // specific key
+const bytes = await chrome.storage.local.getBytesInUse(null); // total
+const keyBytes = await chrome.storage.local.getBytesInUse("cache"); // specific key
 ```
 
 ## 3. Quota limits and handling
@@ -76,19 +80,24 @@ const keyBytes = await chrome.storage.local.getBytesInUse('cache'); // specific 
 When quota is exceeded, the `set()` call rejects. No partial writes occur.
 
 ```typescript
-async function safeSet(area: chrome.storage.StorageArea, data: Record<string, unknown>) {
+async function safeSet(
+  area: chrome.storage.StorageArea,
+  data: Record<string, unknown>,
+) {
   try {
     await area.set(data);
     return true;
   } catch (err: any) {
-    if (err.message?.includes('QUOTA_BYTES')) {
-      console.error('Storage quota exceeded. Clearing old data...');
+    if (err.message?.includes("QUOTA_BYTES")) {
+      console.error("Storage quota exceeded. Clearing old data...");
       // Implement eviction strategy
       await evictOldEntries(area);
       try {
         await area.set(data);
         return true;
-      } catch { return false; }
+      } catch {
+        return false;
+      }
     }
     throw err;
   }
@@ -98,11 +107,13 @@ async function safeSet(area: chrome.storage.StorageArea, data: Record<string, un
 async function evictOldEntries(area: chrome.storage.StorageArea) {
   const data = await area.get(null);
   const entries = Object.entries(data)
-    .filter(([k]) => k.startsWith('cache:'))
+    .filter(([k]) => k.startsWith("cache:"))
     .sort((a, b) => (a[1] as any).timestamp - (b[1] as any).timestamp);
 
   // Remove oldest 25%
-  const toRemove = entries.slice(0, Math.ceil(entries.length / 4)).map(([k]) => k);
+  const toRemove = entries
+    .slice(0, Math.ceil(entries.length / 4))
+    .map(([k]) => k);
   await area.remove(toRemove);
 }
 ```
@@ -213,7 +224,11 @@ function Settings() {
 ### Vue 3 composable
 
 ```typescript
-function useChromeStorage<T>(key: string, defaultValue: T, area: 'local' | 'sync' = 'local') {
+function useChromeStorage<T>(
+  key: string,
+  defaultValue: T,
+  area: "local" | "sync" = "local",
+) {
   const value = ref<T>(defaultValue) as Ref<T>;
   const loading = ref(true);
   const storageArea = chrome.storage[area];
@@ -229,7 +244,13 @@ function useChromeStorage<T>(key: string, defaultValue: T, area: 'local' | 'sync
   storageArea.onChanged.addListener(listener);
   onUnmounted(() => storageArea.onChanged.removeListener(listener));
 
-  watch(value, (newVal) => { storageArea.set({ [key]: newVal }); }, { deep: true });
+  watch(
+    value,
+    (newVal) => {
+      storageArea.set({ [key]: newVal });
+    },
+    { deep: true },
+  );
 
   return { value, loading };
 }
@@ -243,22 +264,22 @@ Handle data format changes across extension versions:
 const CURRENT_SCHEMA_VERSION = 3;
 
 chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason !== 'update') return;
+  if (details.reason !== "update") return;
 
-  const { schemaVersion = 1 } = await chrome.storage.local.get('schemaVersion');
+  const { schemaVersion = 1 } = await chrome.storage.local.get("schemaVersion");
 
   if (schemaVersion < 2) {
     // v1 -> v2: rename 'prefs' to 'settings'
-    const { prefs } = await chrome.storage.local.get('prefs');
+    const { prefs } = await chrome.storage.local.get("prefs");
     if (prefs) {
       await chrome.storage.local.set({ settings: prefs });
-      await chrome.storage.local.remove('prefs');
+      await chrome.storage.local.remove("prefs");
     }
   }
 
   if (schemaVersion < 3) {
     // v2 -> v3: move theme from local to sync
-    const { settings } = await chrome.storage.local.get('settings');
+    const { settings } = await chrome.storage.local.get("settings");
     if (settings?.theme) {
       await chrome.storage.sync.set({ theme: settings.theme });
       delete settings.theme;
@@ -272,18 +293,17 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 ## 7. IndexedDB in extensions
 
-For complex data (large blobs, structured queries, indexes), use IndexedDB.
-Available in service worker, popup, options, and content scripts.
+For complex data (large blobs, structured queries, indexes), use IndexedDB. Available in service worker, popup, options, and content scripts.
 
 ```typescript
 // In service worker (no DOM, but IndexedDB works)
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('MyExtDB', 1);
+    const request = indexedDB.open("MyExtDB", 1);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains('items')) {
-        db.createObjectStore('items', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains("items")) {
+        db.createObjectStore("items", { keyPath: "id" });
       }
     };
     request.onsuccess = () => resolve(request.result);
@@ -292,5 +312,4 @@ function openDB(): Promise<IDBDatabase> {
 }
 ```
 
-Prefer `chrome.storage` for simple key-value data. Use IndexedDB only when you
-need indexes, transactions, or binary blob storage.
+Prefer `chrome.storage` for simple key-value data. Use IndexedDB only when you need indexes, transactions, or binary blob storage.

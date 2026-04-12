@@ -1,6 +1,7 @@
 # Manifest V3 Complete Reference
 
 ## Table of contents
+
 1. Required fields
 2. All manifest fields
 3. Icons
@@ -21,8 +22,7 @@ Every MV3 extension must declare these three fields:
 }
 ```
 
-`version` must be 1-4 dot-separated integers (e.g., `1.0.0.1`). Use `version_name` for
-human-readable display (e.g., `"1.0 beta"`).
+`version` must be 1-4 dot-separated integers (e.g., `1.0.0.1`). Use `version_name` for human-readable display (e.g., `"1.0 beta"`).
 
 ## 2. All manifest fields
 
@@ -44,7 +44,7 @@ human-readable display (e.g., `"1.0 beta"`).
   // === BACKGROUND ===
   "background": {
     "service_worker": "background.js",
-    "type": "module"                    // enables ES import/export
+    "type": "module" // enables ES import/export
   },
 
   // === CONTENT SCRIPTS ===
@@ -53,11 +53,11 @@ human-readable display (e.g., `"1.0 beta"`).
       "matches": ["https://*.example.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
-      "run_at": "document_idle",        // document_start | document_end | document_idle
-      "all_frames": false,              // inject into iframes too?
-      "match_about_blank": false,       // inject into about:blank frames?
+      "run_at": "document_idle", // document_start | document_end | document_idle
+      "all_frames": false, // inject into iframes too?
+      "match_about_blank": false, // inject into about:blank frames?
       "match_origin_as_fallback": false, // inject into blob:/data: frames?
-      "world": "ISOLATED",             // ISOLATED | MAIN
+      "world": "ISOLATED", // ISOLATED | MAIN
       "exclude_matches": ["*://example.com/admin/*"],
       "include_globs": [],
       "exclude_globs": []
@@ -70,8 +70,9 @@ human-readable display (e.g., `"1.0 beta"`).
     "default_icon": { "16": "icon16.png", "48": "icon48.png" },
     "default_title": "Click to open"
   },
-  "options_page": "options.html",       // full-page options
-  "options_ui": {                       // embedded in chrome://extensions
+  "options_page": "options.html", // full-page options
+  "options_ui": {
+    // embedded in chrome://extensions
     "page": "options.html",
     "open_in_tab": false
   },
@@ -82,19 +83,19 @@ human-readable display (e.g., `"1.0 beta"`).
 
   // === PERMISSIONS ===
   "permissions": [
-    "storage",          // chrome.storage
-    "activeTab",        // temporary access to current tab on user gesture
-    "scripting",        // chrome.scripting.executeScript
-    "alarms",           // chrome.alarms
-    "contextMenus",     // chrome.contextMenus
-    "notifications",    // chrome.notifications
-    "sidePanel",        // chrome.sidePanel
-    "offscreen",        // chrome.offscreen
-    "tabs",             // chrome.tabs (url, title, favIconUrl access)
-    "identity",         // chrome.identity (OAuth)
-    "cookies",          // chrome.cookies
-    "webNavigation",    // chrome.webNavigation
-    "declarativeNetRequest",           // Rule-based network modification
+    "storage", // chrome.storage
+    "activeTab", // temporary access to current tab on user gesture
+    "scripting", // chrome.scripting.executeScript
+    "alarms", // chrome.alarms
+    "contextMenus", // chrome.contextMenus
+    "notifications", // chrome.notifications
+    "sidePanel", // chrome.sidePanel
+    "offscreen", // chrome.offscreen
+    "tabs", // chrome.tabs (url, title, favIconUrl access)
+    "identity", // chrome.identity (OAuth)
+    "cookies", // chrome.cookies
+    "webNavigation", // chrome.webNavigation
+    "declarativeNetRequest", // Rule-based network modification
     "declarativeNetRequestWithHostAccess" // Same + host permission check
   ],
   "optional_permissions": ["bookmarks", "history", "downloads"],
@@ -121,13 +122,14 @@ human-readable display (e.g., `"1.0 beta"`).
     {
       "resources": ["worker.js"],
       "matches": ["<all_urls>"],
-      "use_dynamic_url": true           // randomized URL, prevents fingerprinting
+      "use_dynamic_url": true // randomized URL, prevents fingerprinting
     }
   ],
 
   // === COMMANDS (keyboard shortcuts) ===
   "commands": {
-    "_execute_action": {                // built-in: triggers action click
+    "_execute_action": {
+      // built-in: triggers action click
       "suggested_key": { "default": "Ctrl+Shift+Y", "mac": "Command+Shift+Y" },
       "description": "Open popup"
     },
@@ -138,7 +140,7 @@ human-readable display (e.g., `"1.0 beta"`).
   },
 
   // === INTERNATIONALIZATION ===
-  "default_locale": "en",              // required if _locales/ exists
+  "default_locale": "en", // required if _locales/ exists
 
   // === CONTENT SECURITY POLICY ===
   "content_security_policy": {
@@ -148,23 +150,23 @@ human-readable display (e.g., `"1.0 beta"`).
 
   // === OTHER ===
   "homepage_url": "https://example.com",
-  "short_name": "Ext",                 // max 12 chars, used when space is limited
+  "short_name": "Ext", // max 12 chars, used when space is limited
   "author": "Your Name",
-  "version_name": "1.0 beta",          // human-readable, not used for updates
+  "version_name": "1.0 beta", // human-readable, not used for updates
   "minimum_chrome_version": "116",
-  "incognito": "spanning",             // spanning | split | not_allowed
+  "incognito": "spanning", // spanning | split | not_allowed
   "sandbox": {
-    "pages": ["sandbox.html"]           // pages with relaxed CSP (allow eval)
+    "pages": ["sandbox.html"] // pages with relaxed CSP (allow eval)
   },
   "externally_connectable": {
     "matches": ["https://*.example.com/*"],
-    "ids": ["other_extension_id"]       // allow cross-extension messaging
+    "ids": ["other_extension_id"] // allow cross-extension messaging
   },
   "chrome_url_overrides": {
-    "newtab": "newtab.html"            // or "bookmarks" or "history"
+    "newtab": "newtab.html" // or "bookmarks" or "history"
   },
   "omnibox": { "keyword": "myext" },
-  "update_url": "https://example.com/updates.xml"  // enterprise self-hosting
+  "update_url": "https://example.com/updates.xml" // enterprise self-hosting
 }
 ```
 
@@ -172,17 +174,16 @@ human-readable display (e.g., `"1.0 beta"`).
 
 Provide at least 16, 48, and 128px PNG icons. Chrome uses them in different contexts:
 
-| Size | Used in |
-|------|---------|
-| 16px | Toolbar, favicon, context menus |
-| 32px | Windows taskbar (2x of 16) |
-| 48px | Extensions management page |
+| Size  | Used in                               |
+| ----- | ------------------------------------- |
+| 16px  | Toolbar, favicon, context menus       |
+| 32px  | Windows taskbar (2x of 16)            |
+| 48px  | Extensions management page            |
 | 128px | Chrome Web Store, installation dialog |
 
 SVG is NOT supported in manifest icon fields. Use PNG with transparency.
 
-For the action icon specifically, provide 16 and 32 (or 19 and 38 for exact toolbar sizing).
-Chrome auto-scales, but crisp icons at native sizes look best.
+For the action icon specifically, provide 16 and 32 (or 19 and 38 for exact toolbar sizing). Chrome auto-scales, but crisp icons at native sizes look best.
 
 ## 4. Versioning
 
@@ -193,8 +194,7 @@ Chrome auto-scales, but crisp icons at native sizes look best.
 
 ## 5. Content Security Policy (extension pages)
 
-MV3 extensions cannot use `unsafe-eval` or `unsafe-inline` in extension_pages CSP.
-The default is already restrictive:
+MV3 extensions cannot use `unsafe-eval` or `unsafe-inline` in extension_pages CSP. The default is already restrictive:
 
 ```
 script-src 'self'; object-src 'self'
@@ -210,7 +210,7 @@ For sandbox pages, `unsafe-eval` IS allowed (useful for template engines):
 }
 ```
 
-Sandbox pages have no access to chrome.* APIs.
+Sandbox pages have no access to chrome.\* APIs.
 
 ## 6. Web accessible resources (MV3 changes)
 
@@ -240,6 +240,7 @@ Special: <all_urls> = matches everything (avoid for CWS approval)
 ```
 
 Examples:
+
 - `https://*.google.com/*` - all Google subdomains over HTTPS
 - `*://example.com/api/*` - HTTP or HTTPS, specific path
 - `file:///*` - local files (requires user opt-in)

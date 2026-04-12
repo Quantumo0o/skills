@@ -1,6 +1,7 @@
 # Chrome Web Store Publishing Reference
 
 ## Table of contents
+
 1. Submission checklist
 2. Required assets
 3. Privacy policy requirements
@@ -31,13 +32,13 @@ Before submitting to the Chrome Web Store:
 
 ### Store listing images
 
-| Asset | Size | Required |
-|-------|------|----------|
-| Icon | 128x128 PNG | Yes |
-| Screenshots | 1280x800 or 640x400 | Yes (1-5) |
-| Small promo tile | 440x280 | No but recommended |
-| Large promo tile | 920x680 | No |
-| Marquee promo tile | 1400x560 | No |
+| Asset              | Size                | Required           |
+| ------------------ | ------------------- | ------------------ |
+| Icon               | 128x128 PNG         | Yes                |
+| Screenshots        | 1280x800 or 640x400 | Yes (1-5)          |
+| Small promo tile   | 440x280             | No but recommended |
+| Large promo tile   | 920x680             | No                 |
+| Marquee promo tile | 1400x560            | No                 |
 
 ### Store listing text
 
@@ -50,12 +51,14 @@ Before submitting to the Chrome Web Store:
 ## 3. Privacy policy requirements
 
 Required if your extension:
+
 - Collects, transmits, or stores user data
 - Uses any personal or sensitive data
 - Has `host_permissions` or `tabs` permission
 - Uses `cookies`, `history`, `bookmarks`, `identity`
 
 The privacy policy must disclose:
+
 - What data is collected
 - How data is used
 - Whether data is shared with third parties
@@ -64,17 +67,16 @@ The privacy policy must disclose:
 
 Host it on a publicly accessible URL (your website, GitHub page, Notion page).
 
-**Even for extensions that don't collect data**, consider adding a simple policy:
-"This extension does not collect, store, or transmit any user data."
+**Even for extensions that don't collect data**, consider adding a simple policy: "This extension does not collect, store, or transmit any user data."
 
 ## 4. Common rejection reasons and fixes
 
 ### Excessive permissions (~36% of rejections)
 
-**Problem**: requesting permissions you don't use or requesting broad permissions
-when narrow ones suffice.
+**Problem**: requesting permissions you don't use or requesting broad permissions when narrow ones suffice.
 
 **Fix**:
+
 - Remove every permission not actively used in code
 - Replace `<all_urls>` with specific domains
 - Replace `tabs` with `activeTab` if you only need the current tab
@@ -85,45 +87,39 @@ when narrow ones suffice.
 
 **Problem**: no privacy policy, or policy doesn't match actual data practices.
 
-**Fix**: create a privacy policy page that specifically addresses your extension's
-data handling. Update it when you add features.
+**Fix**: create a privacy policy page that specifically addresses your extension's data handling. Update it when you add features.
 
 ### Single purpose violation
 
 **Problem**: extension does too many unrelated things.
 
-**Fix**: each extension should have ONE clear purpose. If you have multiple features,
-they should all serve the same core purpose. Example: "Tab manager" is OK. "Tab manager
-+ ad blocker + screenshot tool" is not.
+**Fix**: each extension should have ONE clear purpose. If you have multiple features, they should all serve the same core purpose. Example: "Tab manager" is OK. "Tab manager
+
+- ad blocker + screenshot tool" is not.
 
 ### Remote code execution
 
-**Problem**: loading JS from external servers, using `eval()`, or using `document.write()`
-with dynamic content.
+**Problem**: loading JS from external servers, using `eval()`, or using `document.write()` with dynamic content.
 
-**Fix**: bundle ALL code locally. If you need dynamic behavior, use `chrome.storage`
-for configuration, not remote scripts. For template engines, use sandbox pages.
+**Fix**: bundle ALL code locally. If you need dynamic behavior, use `chrome.storage` for configuration, not remote scripts. For template engines, use sandbox pages.
 
 ### Obfuscated code
 
 **Problem**: code is intentionally made unreadable (not just minified).
 
-**Fix**: submit readable or minified (not obfuscated) code. Reviewers must be able
-to understand what your code does. Source maps are not a substitute.
+**Fix**: submit readable or minified (not obfuscated) code. Reviewers must be able to understand what your code does. Source maps are not a substitute.
 
 ### Deceptive functionality
 
 **Problem**: extension does something different than described, or has hidden features.
 
-**Fix**: store listing must accurately describe ALL extension behavior. No hidden
-data collection, no undisclosed network requests.
+**Fix**: store listing must accurately describe ALL extension behavior. No hidden data collection, no undisclosed network requests.
 
 ### Keyword spam in listing
 
 **Problem**: stuffing description with competitor names or unrelated keywords.
 
-**Fix**: describe your extension's actual features. Don't mention competitors by name
-in the description.
+**Fix**: describe your extension's actual features. Don't mention competitors by name in the description.
 
 ## 5. Update process
 
@@ -148,7 +144,7 @@ When updating, handle data migration in `chrome.runtime.onInstalled`:
 
 ```typescript
 chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
-  if (reason === 'update') {
+  if (reason === "update") {
     // Migrate data, re-inject content scripts, etc.
   }
 });
@@ -156,8 +152,7 @@ chrome.runtime.onInstalled.addListener(async ({ reason, previousVersion }) => {
 
 ### Staged rollout
 
-CWS supports percentage-based rollout (5%, 10%, 50%, 100%). Use this for risky
-updates to catch issues early.
+CWS supports percentage-based rollout (5%, 10%, 50%, 100%). Use this for risky updates to catch issues early.
 
 ## 6. Enterprise distribution
 
@@ -189,5 +184,4 @@ Requires enterprise policy to allowlist the extension ID.
 
 ### Developer mode (testing only)
 
-Load unpacked at `chrome://extensions` with Developer Mode enabled.
-Not suitable for distribution. Extension ID changes between machines.
+Load unpacked at `chrome://extensions` with Developer Mode enabled. Not suitable for distribution. Extension ID changes between machines.

@@ -1,6 +1,7 @@
 # Content Scripts Reference
 
 ## Table of contents
+
 1. Isolated world vs main world
 2. Static declaration (manifest)
 3. Dynamic/programmatic injection
@@ -12,21 +13,20 @@
 
 ## 1. Isolated world vs main world
 
-Content scripts default to the **isolated world**: a separate JavaScript execution
-environment that shares the page's DOM but not its JavaScript objects.
+Content scripts default to the **isolated world**: a separate JavaScript execution environment that shares the page's DOM but not its JavaScript objects.
 
-| Capability | Isolated world | Main world |
-|-----------|---------------|------------|
-| Read/modify DOM | Yes | Yes |
-| Access page JS variables (`window.myApp`) | No | Yes |
-| Intercept page `fetch`/`XMLHttpRequest` | No | Yes |
-| Access `chrome.runtime` | Yes | No |
-| Access `chrome.storage` | Yes | No |
-| Access `chrome.i18n` | Yes | No |
-| Subject to page CSP (scripts) | No | Yes |
-| Subject to page CSP (network) | Yes | Yes |
-| Page can see script variables | No | Yes |
-| Can modify `window` prototypes | No | Yes |
+| Capability                                | Isolated world | Main world |
+| ----------------------------------------- | -------------- | ---------- |
+| Read/modify DOM                           | Yes            | Yes        |
+| Access page JS variables (`window.myApp`) | No             | Yes        |
+| Intercept page `fetch`/`XMLHttpRequest`   | No             | Yes        |
+| Access `chrome.runtime`                   | Yes            | No         |
+| Access `chrome.storage`                   | Yes            | No         |
+| Access `chrome.i18n`                      | Yes            | No         |
+| Subject to page CSP (scripts)             | No             | Yes        |
+| Subject to page CSP (network)             | Yes            | Yes        |
+| Page can see script variables             | No             | Yes        |
+| Can modify `window` prototypes            | No             | Yes        |
 
 ### When to use main world
 
@@ -37,8 +37,7 @@ environment that shares the page's DOM but not its JavaScript objects.
 
 ### When to use isolated world (default)
 
-- Everything else. It's safer: the page can't tamper with your code, and you retain
-  chrome.* API access.
+- Everything else. It's safer: the page can't tamper with your code, and you retain chrome.\* API access.
 
 ## 2. Static declaration (manifest)
 
@@ -63,8 +62,7 @@ Scripts in `js` array execute in order. CSS in `css` array is injected before an
 
 ## 3. Dynamic/programmatic injection
 
-Use `chrome.scripting` (requires `"scripting"` permission) for on-demand injection.
-This is preferred over static when injection depends on user action or runtime conditions.
+Use `chrome.scripting` (requires `"scripting"` permission) for on-demand injection. This is preferred over static when injection depends on user action or runtime conditions.
 
 ### Execute a function
 
@@ -75,8 +73,8 @@ chrome.scripting.executeScript({
   func: (color: string) => {
     document.body.style.backgroundColor = color;
   },
-  args: ['yellow'],
-  world: 'ISOLATED',       // or 'MAIN'
+  args: ["yellow"],
+  world: "ISOLATED", // or 'MAIN'
 });
 ```
 
@@ -85,7 +83,7 @@ chrome.scripting.executeScript({
 ```typescript
 chrome.scripting.executeScript({
   target: { tabId },
-  files: ['content/injected.js'],
+  files: ["content/injected.js"],
 });
 ```
 
@@ -95,25 +93,29 @@ Dynamic content scripts persist across browser restarts (unlike executeScript):
 
 ```typescript
 // Register (persists until explicitly removed)
-await chrome.scripting.registerContentScripts([{
-  id: 'my-dynamic-script',
-  matches: ['https://example.com/*'],
-  js: ['content/dynamic.js'],
-  runAt: 'document_idle',
-  persistAcrossSessions: true,    // default true
-}]);
+await chrome.scripting.registerContentScripts([
+  {
+    id: "my-dynamic-script",
+    matches: ["https://example.com/*"],
+    js: ["content/dynamic.js"],
+    runAt: "document_idle",
+    persistAcrossSessions: true, // default true
+  },
+]);
 
 // Update
-await chrome.scripting.updateContentScripts([{
-  id: 'my-dynamic-script',
-  excludeMatches: ['https://example.com/admin/*'],
-}]);
+await chrome.scripting.updateContentScripts([
+  {
+    id: "my-dynamic-script",
+    excludeMatches: ["https://example.com/admin/*"],
+  },
+]);
 
 // List registered
 const scripts = await chrome.scripting.getRegisteredContentScripts();
 
 // Remove
-await chrome.scripting.unregisterContentScripts({ ids: ['my-dynamic-script'] });
+await chrome.scripting.unregisterContentScripts({ ids: ["my-dynamic-script"] });
 ```
 
 ### CSS injection
@@ -122,26 +124,26 @@ await chrome.scripting.unregisterContentScripts({ ids: ['my-dynamic-script'] });
 // Insert CSS
 await chrome.scripting.insertCSS({
   target: { tabId },
-  css: 'body { border: 2px solid red !important; }',
+  css: "body { border: 2px solid red !important; }",
 });
 
 // Or from file
 await chrome.scripting.insertCSS({
   target: { tabId },
-  files: ['styles/highlight.css'],
+  files: ["styles/highlight.css"],
 });
 
 // Remove CSS (same parameters as insert)
 await chrome.scripting.removeCSS({
   target: { tabId },
-  css: 'body { border: 2px solid red !important; }',
+  css: "body { border: 2px solid red !important; }",
 });
 ```
 
 ## 4. Injection timing (run_at)
 
 | Value | When | DOM state | Use case |
-|-------|------|-----------|----------|
+| --- | --- | --- | --- |
 | `document_start` | Before any page scripts or DOM | Only `<html>` exists, no `<body>` | Monkey-patching APIs before page runs, blocking early scripts |
 | `document_end` | After DOM parsed, before subresources | Full DOM, images/iframes may still load | Most content modifications |
 | `document_idle` | After load event or small idle period | Everything loaded | Default. Safest. Use unless you need earlier access |
@@ -149,6 +151,7 @@ await chrome.scripting.removeCSS({
 ### document_start gotchas
 
 - `document.body` does not exist yet. Use `document.documentElement` or wait:
+
   ```javascript
   // At document_start, wait for body
   const observer = new MutationObserver(() => {
@@ -160,21 +163,20 @@ await chrome.scripting.removeCSS({
   observer.observe(document.documentElement, { childList: true });
   ```
 
-- Script injection at document_start with `world: "MAIN"` runs before ANY page scripts,
-  making it ideal for API interception:
+- Script injection at document_start with `world: "MAIN"` runs before ANY page scripts, making it ideal for API interception:
+
   ```javascript
   // main-world-early.js (run_at: document_start, world: MAIN)
   const originalFetch = window.fetch;
-  window.fetch = async function(...args) {
-    console.log('Intercepted fetch:', args[0]);
+  window.fetch = async function (...args) {
+    console.log("Intercepted fetch:", args[0]);
     return originalFetch.apply(this, args);
   };
   ```
 
 ## 5. SPA navigation handling
 
-Single-page applications (YouTube, Gmail, Twitter) use History API for navigation.
-Content scripts only inject on **full page loads**, not SPA navigations.
+Single-page applications (YouTube, Gmail, Twitter) use History API for navigation. Content scripts only inject on **full page loads**, not SPA navigations.
 
 ### Detection from service worker
 
@@ -182,19 +184,23 @@ Content scripts only inject on **full page loads**, not SPA navigations.
 // Detect SPA navigations
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
   if (details.frameId !== 0) return; // main frame only
-  chrome.tabs.sendMessage(details.tabId, {
-    type: 'SPA_NAVIGATION',
-    url: details.url,
-  }).catch(() => {}); // Content script may not be ready
+  chrome.tabs
+    .sendMessage(details.tabId, {
+      type: "SPA_NAVIGATION",
+      url: details.url,
+    })
+    .catch(() => {}); // Content script may not be ready
 });
 
 // Also handle hash changes
 chrome.webNavigation.onReferenceFragmentUpdated.addListener((details) => {
   if (details.frameId !== 0) return;
-  chrome.tabs.sendMessage(details.tabId, {
-    type: 'SPA_NAVIGATION',
-    url: details.url,
-  }).catch(() => {});
+  chrome.tabs
+    .sendMessage(details.tabId, {
+      type: "SPA_NAVIGATION",
+      url: details.url,
+    })
+    .catch(() => {});
 });
 ```
 
@@ -205,7 +211,7 @@ chrome.webNavigation.onReferenceFragmentUpdated.addListener((details) => {
 const observer = new MutationObserver((mutations) => {
   // Check if significant content changed
   for (const mutation of mutations) {
-    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+    if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
       onContentChanged();
       break;
     }
@@ -223,8 +229,8 @@ new MutationObserver(() => {
 }).observe(document.body, { childList: true, subtree: true });
 
 // Navigation API (Chrome 102+, more reliable)
-if ('navigation' in window) {
-  navigation.addEventListener('navigatesuccess', () => {
+if ("navigation" in window) {
+  navigation.addEventListener("navigatesuccess", () => {
     onUrlChanged(location.href);
   });
 }
@@ -232,8 +238,7 @@ if ('navigation' in window) {
 
 ## 6. Content script orphaning on extension update
 
-When an extension updates, existing content scripts become **orphaned**: they continue
-running but lose access to `chrome.runtime`. All messaging throws errors.
+When an extension updates, existing content scripts become **orphaned**: they continue running but lose access to `chrome.runtime`. All messaging throws errors.
 
 ### Detection
 
@@ -250,7 +255,7 @@ function isExtensionAlive(): boolean {
 function safeSendMessage(message: any): Promise<any> {
   return new Promise((resolve, reject) => {
     if (!isExtensionAlive()) {
-      reject(new Error('Extension context invalidated'));
+      reject(new Error("Extension context invalidated"));
       showRefreshBanner();
       return;
     }
@@ -269,9 +274,9 @@ function safeSendMessage(message: any): Promise<any> {
 
 ```typescript
 function showRefreshBanner() {
-  if (document.getElementById('ext-refresh-banner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'ext-refresh-banner';
+  if (document.getElementById("ext-refresh-banner")) return;
+  const banner = document.createElement("div");
+  banner.id = "ext-refresh-banner";
   banner.innerHTML = `
     <div style="position:fixed;top:0;left:0;right:0;z-index:999999;
                 background:#f59e0b;color:#000;padding:8px 16px;text-align:center;
@@ -280,7 +285,7 @@ function showRefreshBanner() {
       text-decoration:underline;">refresh this page</a> to continue using it.
     </div>
   `;
-  banner.querySelector('a')!.addEventListener('click', (e) => {
+  banner.querySelector("a")!.addEventListener("click", (e) => {
     e.preventDefault();
     location.reload();
   });
@@ -292,13 +297,15 @@ function showRefreshBanner() {
 
 ```typescript
 chrome.runtime.onInstalled.addListener(async (details) => {
-  if (details.reason !== 'update') return;
+  if (details.reason !== "update") return;
   const manifest = chrome.runtime.getManifest();
   const tabs = await chrome.tabs.query({});
   for (const cs of manifest.content_scripts ?? []) {
     for (const tab of tabs) {
       if (!tab.id || !tab.url) continue;
-      const matches = cs.matches?.some(pattern => matchesPattern(tab.url!, pattern));
+      const matches = cs.matches?.some((pattern) =>
+        matchesPattern(tab.url!, pattern),
+      );
       if (!matches) continue;
       try {
         if (cs.js) {
@@ -313,7 +320,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
             files: cs.css,
           });
         }
-      } catch { /* chrome:// pages, permission denied, etc. */ }
+      } catch {
+        /* chrome:// pages, permission denied, etc. */
+      }
     }
   }
 });
@@ -324,7 +333,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 ```typescript
 // content-script.ts (idempotent entry point)
 (() => {
-  const MARKER = '__myext_v2_injected';
+  const MARKER = "__myext_v2_injected";
   if ((window as any)[MARKER]) {
     // Old instance exists; clean it up
     (window as any).__myext_cleanup?.();
@@ -350,9 +359,9 @@ Inject UI that won't be affected by the page's CSS and vice versa:
 
 ```typescript
 function createIsolatedUI() {
-  const host = document.createElement('div');
-  host.id = 'myext-root';
-  const shadow = host.attachShadow({ mode: 'closed' });
+  const host = document.createElement("div");
+  host.id = "myext-root";
+  const shadow = host.attachShadow({ mode: "closed" });
 
   shadow.innerHTML = `
     <style>
@@ -368,8 +377,8 @@ function createIsolatedUI() {
     </div>
   `;
 
-  shadow.getElementById('action-btn')!.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ type: 'ACTION' });
+  shadow.getElementById("action-btn")!.addEventListener("click", () => {
+    chrome.runtime.sendMessage({ type: "ACTION" });
   });
 
   document.body.appendChild(host);
@@ -381,9 +390,9 @@ function createIsolatedUI() {
 
 ```typescript
 // Load CSS from extension bundle
-const link = document.createElement('link');
-link.rel = 'stylesheet';
-link.href = chrome.runtime.getURL('styles/content.css');
+const link = document.createElement("link");
+link.rel = "stylesheet";
+link.href = chrome.runtime.getURL("styles/content.css");
 document.head.appendChild(link);
 ```
 
@@ -391,19 +400,21 @@ Requires the CSS file to be listed in `web_accessible_resources`.
 
 ## 8. Communication between worlds
 
-Content scripts in isolated world and main world scripts on the same page communicate
-through the shared DOM via `window.postMessage` or custom DOM events.
+Content scripts in isolated world and main world scripts on the same page communicate through the shared DOM via `window.postMessage` or custom DOM events.
 
 ### window.postMessage (bidirectional)
 
 ```typescript
 // Main world script
-window.postMessage({ source: 'MY_EXT_PAGE', type: 'DATA', payload: window.appState }, '*');
+window.postMessage(
+  { source: "MY_EXT_PAGE", type: "DATA", payload: window.appState },
+  "*",
+);
 
 // Content script (isolated world)
-window.addEventListener('message', (event) => {
+window.addEventListener("message", (event) => {
   if (event.source !== window) return;
-  if (event.data?.source !== 'MY_EXT_PAGE') return;
+  if (event.data?.source !== "MY_EXT_PAGE") return;
   chrome.runtime.sendMessage(event.data);
 });
 ```
@@ -412,15 +423,16 @@ window.addEventListener('message', (event) => {
 
 ```typescript
 // Main world: dispatch custom event
-document.dispatchEvent(new CustomEvent('myext-data', {
-  detail: JSON.parse(JSON.stringify(window.appState)) // must be cloneable
-}));
+document.dispatchEvent(
+  new CustomEvent("myext-data", {
+    detail: JSON.parse(JSON.stringify(window.appState)), // must be cloneable
+  }),
+);
 
 // Content script: listen
-document.addEventListener('myext-data', (event: CustomEvent) => {
-  chrome.runtime.sendMessage({ type: 'PAGE_DATA', data: event.detail });
+document.addEventListener("myext-data", (event: CustomEvent) => {
+  chrome.runtime.sendMessage({ type: "PAGE_DATA", data: event.detail });
 });
 ```
 
-Custom events are slightly more targeted than postMessage (no cross-origin concerns)
-but require serializable data via `JSON.parse(JSON.stringify(...))`.
+Custom events are slightly more targeted than postMessage (no cross-origin concerns) but require serializable data via `JSON.parse(JSON.stringify(...))`.

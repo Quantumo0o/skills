@@ -107,7 +107,7 @@ The SW **must know the tabId** to push messages to a content script. It does not
 
 ### Three-layer bridge: web page to extension
 
-When the page's own JavaScript (no chrome.* access) needs to talk to the extension:
+When the page's own JavaScript (no chrome.\* access) needs to talk to the extension:
 
 ```
   ┌────────────────┐   window.postMessage    ┌────────────────┐   chrome.runtime     ┌───────────────┐
@@ -164,7 +164,7 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 ## 2. Communication methods matrix
 
 | Method | Direction | Use case | Response? | Keeps SW alive? | Size limit |
-|--------|-----------|----------|-----------|-----------------|------------|
+| --- | --- | --- | --- | --- | --- |
 | `chrome.runtime.sendMessage` | Any ext context -> SW | One-shot request/response | Yes (via sendResponse) | Resets 30s timer | ~64 MB |
 | `chrome.tabs.sendMessage` | SW -> content script (by tabId) | Push data to a specific tab | Yes (via sendResponse) | Resets 30s timer | ~64 MB |
 | `chrome.runtime.connect` (Port) | Bidirectional, any ext context | Streaming, progress, real-time | Continuous | Yes, while active | ~64 MB/msg |
@@ -187,24 +187,24 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 
 ### Service Worker (background)
 
-| Capability | Status |
-|------------|--------|
-| DOM access | None |
-| chrome.* APIs | All (full API surface) |
-| `fetch()` | Yes, bypasses CORS with host_permissions |
-| Subject to page CSP | No |
-| `localStorage` / `sessionStorage` | Not available |
-| `XMLHttpRequest` | Not available (fetch only) |
-| Dynamic code generation | Forbidden by MV3 |
-| IndexedDB | Yes |
-| `chrome.storage.*` | All areas (local, sync, session) |
+| Capability                        | Status                                   |
+| --------------------------------- | ---------------------------------------- |
+| DOM access                        | None                                     |
+| chrome.\* APIs                    | All (full API surface)                   |
+| `fetch()`                         | Yes, bypasses CORS with host_permissions |
+| Subject to page CSP               | No                                       |
+| `localStorage` / `sessionStorage` | Not available                            |
+| `XMLHttpRequest`                  | Not available (fetch only)               |
+| Dynamic code generation           | Forbidden by MV3                         |
+| IndexedDB                         | Yes                                      |
+| `chrome.storage.*`                | All areas (local, sync, session)         |
 
 **Lifetime**: Ephemeral. Terminates after 30s of inactivity. Hard cap of 5 minutes for any single task.
 
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | 30s idle termination | Global variables lost, timers cancelled | Persist state to `chrome.storage.session`; use `chrome.alarms` instead of setTimeout |
 | 5-minute hard cap | Long tasks killed | Break into alarm-driven steps; delegate to offscreen document |
 | No DOM | Cannot use DOMParser, Canvas, Audio | Create offscreen document with appropriate Reason |
@@ -216,9 +216,9 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 ### Popup
 
 | Capability | Status |
-|------------|--------|
+| --- | --- |
 | DOM access | Full (own document) |
-| chrome.* APIs | All |
+| chrome.\* APIs | All |
 | `fetch()` | Yes, same as SW (extension origin) |
 | Subject to page CSP | No (extension CSP applies) |
 | `localStorage` | Available but discouraged (not shared, lost on reinstall) |
@@ -230,7 +230,7 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | Destroyed on blur | All JS state and DOM lost | Persist any important state to `chrome.storage` before/during interaction |
 | Small viewport (800x600 max) | Limited UI real estate | Use side panel for complex UIs that need persistence |
 | Cannot be opened programmatically | SW cannot show the popup | Use `chrome.action.openPopup()` (Chrome 127+, requires user gesture) or notifications |
@@ -238,39 +238,39 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 
 ### Options Page
 
-| Capability | Status |
-|------------|--------|
-| DOM access | Full (own document) |
-| chrome.* APIs | All |
-| `fetch()` | Yes (extension origin) |
-| `localStorage` | Available but discouraged |
-| `chrome.storage.*` | All areas |
+| Capability         | Status                    |
+| ------------------ | ------------------------- |
+| DOM access         | Full (own document)       |
+| chrome.\* APIs     | All                       |
+| `fetch()`          | Yes (extension origin)    |
+| `localStorage`     | Available but discouraged |
+| `chrome.storage.*` | All areas                 |
 
 **Lifetime**: Persistent while tab is open. Survives as long as the user keeps the tab.
 
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | Extension CSP blocks inline scripts | Same as popup | Use separate .js files |
 | Dynamic code generation forbidden | Same as popup | Bundle at build time |
 | No special limits | Options page is a regular extension page | N/A |
 
 ### Side Panel
 
-| Capability | Status |
-|------------|--------|
-| DOM access | Full (own document) |
-| chrome.* APIs | All |
-| `fetch()` | Yes (extension origin) |
-| `chrome.storage.*` | All areas |
+| Capability         | Status                 |
+| ------------------ | ---------------------- |
+| DOM access         | Full (own document)    |
+| chrome.\* APIs     | All                    |
+| `fetch()`          | Yes (extension origin) |
+| `chrome.storage.*` | All areas              |
 
 **Lifetime**: Persists while panel is open. Survives navigation in the main tab (unlike popup). Can be global or per-tab.
 
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | One side panel per extension | Cannot show multiple panels | Use tabbed UI within the panel |
 | Extension CSP blocks inline scripts | Same as popup | Use separate .js files |
 | Chrome 114+ only | Not available on older browsers | Feature-detect with `chrome.sidePanel` check; fall back to popup |
@@ -278,9 +278,9 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 ### Content Script (Isolated World) — default
 
 | Capability | Status |
-|------------|--------|
+| --- | --- |
 | DOM access | Full (shared with page) |
-| chrome.* APIs | Limited: `runtime`, `storage`, `i18n` only |
+| chrome.\* APIs | Limited: `runtime`, `storage`, `i18n` only |
 | `fetch()` | Subject to page's CSP `connect-src` and CORS |
 | Page JS variables | Not accessible (separate JS scope) |
 | `localStorage` | Page's localStorage (not extension's) |
@@ -291,7 +291,7 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | Page CSP blocks fetch to external APIs | Cannot call your API directly | Relay through service worker (the standard pattern) |
 | No chrome.tabs, chrome.scripting, etc. | Cannot manage tabs or inject into other pages | Send message to SW, let SW handle it |
 | Orphaned on extension update | All chrome.runtime calls throw | Check `chrome.runtime?.id` before calls; show refresh banner |
@@ -301,43 +301,43 @@ This is the simplest way to keep all contexts in sync. Any context writes, all o
 
 ### Content Script (Main World)
 
-| Capability | Status |
-|------------|--------|
-| DOM access | Full (shared with page) |
-| chrome.* APIs | None |
-| `fetch()` | Subject to page's full CSP and CORS |
-| Page JS variables | Full access (same scope as page) |
-| `localStorage` | Page's localStorage |
-| `chrome.storage.*` | Not available |
+| Capability         | Status                              |
+| ------------------ | ----------------------------------- |
+| DOM access         | Full (shared with page)             |
+| chrome.\* APIs     | None                                |
+| `fetch()`          | Subject to page's full CSP and CORS |
+| Page JS variables  | Full access (same scope as page)    |
+| `localStorage`     | Page's localStorage                 |
+| `chrome.storage.*` | Not available                       |
 
 **Lifetime**: Same as page. Runs in the page's JS context.
 
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
-| No chrome.* APIs at all | Cannot message SW, cannot use storage | Bridge through isolated-world content script via postMessage/DOM events |
+| --- | --- | --- |
+| No chrome.\* APIs at all | Cannot message SW, cannot use storage | Bridge through isolated-world content script via postMessage/DOM events |
 | Subject to full page CSP | Cannot load external scripts, restricted fetch | All code must be bundled; relay network through content script -> SW |
 | Page can tamper with your code | Page can override prototypes, intercept calls | Capture references to builtins at `document_start` before page runs |
 | No direct extension storage | Cannot persist data | Send data to content script (isolated) via postMessage, which writes to chrome.storage |
 
 ### Offscreen Document
 
-| Capability | Status |
-|------------|--------|
-| DOM access | Full (own document, not visible) |
-| chrome.* APIs | `chrome.runtime` only |
-| `fetch()` | Yes (extension origin, bypasses page CSP) |
-| `localStorage` | Available (extension origin) |
-| Canvas, Audio, DOMParser | All available |
-| `chrome.storage.*` | Not directly (only via messaging to SW) |
+| Capability               | Status                                    |
+| ------------------------ | ----------------------------------------- |
+| DOM access               | Full (own document, not visible)          |
+| chrome.\* APIs           | `chrome.runtime` only                     |
+| `fetch()`                | Yes (extension origin, bypasses page CSP) |
+| `localStorage`           | Available (extension origin)              |
+| Canvas, Audio, DOMParser | All available                             |
+| `chrome.storage.*`       | Not directly (only via messaging to SW)   |
 
 **Lifetime**: Created on demand, persists until closed or browser restart. One per extension.
 
 **Hard limits and workarounds**:
 
 | Limit | Impact | Workaround |
-|-------|--------|------------|
+| --- | --- | --- |
 | Only chrome.runtime API | Cannot use tabs, scripting, etc. | Message the SW for anything beyond runtime |
 | One per extension | Cannot run multiple offscreen tasks in parallel | Multiplex: use message types to route different tasks to the same document |
 | Must specify a Reason enum | Chrome validates the reason matches usage | Pick the correct Reason (DOM_PARSER, AUDIO_PLAYBACK, CLIPBOARD, etc.) |

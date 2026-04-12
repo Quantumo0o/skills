@@ -1,6 +1,7 @@
 # UI Surfaces Reference
 
 ## Table of contents
+
 1. Popup
 2. Options page
 3. Side panel
@@ -13,8 +14,7 @@
 
 ## 1. Popup
 
-The popup is an HTML page shown when the user clicks the extension icon. It is
-**destroyed immediately** when it loses focus (clicking elsewhere, switching tabs).
+The popup is an HTML page shown when the user clicks the extension icon. It is **destroyed immediately** when it loses focus (clicking elsewhere, switching tabs).
 
 ### Manifest
 
@@ -31,7 +31,7 @@ The popup is an HTML page shown when the user clicks the extension icon. It is
 ### Key behaviors
 
 - Created fresh every time it opens. No state persists between opens.
-- Has full access to all chrome.* APIs the extension has permission for.
+- Has full access to all chrome.\* APIs the extension has permission for.
 - Max dimensions: 800x600 px. Set dimensions via CSS on `body`/`html`.
 - Cannot be opened programmatically (only by user clicking the icon).
 - `console.log` output appears in the popup's own DevTools (right-click icon → Inspect Popup).
@@ -42,8 +42,20 @@ The popup is an HTML page shown when the user clicks the extension icon. It is
 <!-- popup.html -->
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><style>body{width:350px;min-height:200px;margin:0;}</style></head>
-<body><div id="root"></div><script src="popup.js" type="module"></script></body>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        width: 350px;
+        min-height: 200px;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="popup.js" type="module"></script>
+  </body>
 </html>
 ```
 
@@ -81,15 +93,15 @@ createRoot(document.getElementById('root')!).render(<Popup />);
 
 ```typescript
 // Set badge text and color (from service worker or popup)
-chrome.action.setBadgeText({ text: '42' });
-chrome.action.setBadgeBackgroundColor({ color: '#e53e3e' });
-chrome.action.setBadgeTextColor({ color: '#ffffff' }); // Chrome 110+
+chrome.action.setBadgeText({ text: "42" });
+chrome.action.setBadgeBackgroundColor({ color: "#e53e3e" });
+chrome.action.setBadgeTextColor({ color: "#ffffff" }); // Chrome 110+
 
 // Per-tab badge
-chrome.action.setBadgeText({ text: 'ON', tabId: tab.id });
+chrome.action.setBadgeText({ text: "ON", tabId: tab.id });
 
 // Clear badge
-chrome.action.setBadgeText({ text: '' });
+chrome.action.setBadgeText({ text: "" });
 ```
 
 ### Dynamic icon
@@ -97,7 +109,7 @@ chrome.action.setBadgeText({ text: '' });
 ```typescript
 // Set icon per state
 chrome.action.setIcon({
-  path: { 16: 'icons/active-16.png', 48: 'icons/active-48.png' },
+  path: { 16: "icons/active-16.png", 48: "icons/active-48.png" },
 });
 
 // Canvas-drawn icon (from offscreen doc, since SW has no Canvas)
@@ -133,13 +145,11 @@ chrome.action.enable(tabId);
 
 Open programmatically: `chrome.runtime.openOptionsPage()`.
 
-Both have full chrome.* API access. Use `chrome.storage.sync` for settings
-so they sync across devices.
+Both have full chrome.\* API access. Use `chrome.storage.sync` for settings so they sync across devices.
 
 ## 3. Side panel (Chrome 114+)
 
-Unlike popups, side panels **persist across tab switches** and don't close on
-focus loss. Requires `"sidePanel"` permission.
+Unlike popups, side panels **persist across tab switches** and don't close on focus loss. Requires `"sidePanel"` permission.
 
 ### Manifest
 
@@ -166,16 +176,16 @@ chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
   if (!tab.url) return;
   const url = new URL(tab.url);
 
-  if (url.hostname === 'github.com') {
+  if (url.hostname === "github.com") {
     await chrome.sidePanel.setOptions({
       tabId,
-      path: 'panels/github.html',
+      path: "panels/github.html",
       enabled: true,
     });
   } else {
     await chrome.sidePanel.setOptions({
       tabId,
-      path: 'panels/default.html',
+      path: "panels/default.html",
       enabled: true,
     });
   }
@@ -197,47 +207,48 @@ Requires `"contextMenus"` permission.
 // Create menus in onInstalled (they persist, so don't recreate every SW wake)
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
-    id: 'lookup-selection',
-    title: 'Look up "%s"',           // %s = selected text
-    contexts: ['selection'],          // only shows when text is selected
+    id: "lookup-selection",
+    title: 'Look up "%s"', // %s = selected text
+    contexts: ["selection"], // only shows when text is selected
   });
 
   chrome.contextMenus.create({
-    id: 'save-image',
-    title: 'Save to collection',
-    contexts: ['image'],              // only on images
+    id: "save-image",
+    title: "Save to collection",
+    contexts: ["image"], // only on images
   });
 
   chrome.contextMenus.create({
-    id: 'parent-menu',
-    title: 'My Extension',
-    contexts: ['page'],
+    id: "parent-menu",
+    title: "My Extension",
+    contexts: ["page"],
   });
 
   chrome.contextMenus.create({
-    id: 'child-action-1',
-    parentId: 'parent-menu',
-    title: 'Action 1',
-    contexts: ['page'],
+    id: "child-action-1",
+    parentId: "parent-menu",
+    title: "Action 1",
+    contexts: ["page"],
   });
 });
 
 // Handle clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   switch (info.menuItemId) {
-    case 'lookup-selection':
+    case "lookup-selection":
       const query = info.selectionText;
-      chrome.tabs.create({ url: `https://search.com?q=${encodeURIComponent(query!)}` });
+      chrome.tabs.create({
+        url: `https://search.com?q=${encodeURIComponent(query!)}`,
+      });
       break;
-    case 'save-image':
+    case "save-image":
       saveImage(info.srcUrl!);
       break;
   }
 });
 ```
 
-Context types: `all`, `page`, `frame`, `selection`, `link`, `editable`, `image`,
-`video`, `audio`, `launcher` (ChromeOS), `browser_action`, `page_action`, `action`.
+Context types: `all`, `page`, `frame`, `selection`, `link`, `editable`, `image`, `video`, `audio`, `launcher` (ChromeOS), `browser_action`, `page_action`, `action`.
 
 ## 5. Commands (keyboard shortcuts)
 
@@ -265,14 +276,13 @@ Context types: `all`, `page`, `frame`, `selection`, `link`, `editable`, `image`,
 
 ```typescript
 chrome.commands.onCommand.addListener((command, tab) => {
-  if (command === 'toggle-feature') {
-    chrome.tabs.sendMessage(tab!.id!, { type: 'TOGGLE' });
+  if (command === "toggle-feature") {
+    chrome.tabs.sendMessage(tab!.id!, { type: "TOGGLE" });
   }
 });
 ```
 
-`_execute_action` triggers the popup or `action.onClicked` (if no popup). No need
-to listen for it explicitly.
+`_execute_action` triggers the popup or `action.onClicked` (if no popup). No need to listen for it explicitly.
 
 Users can remap shortcuts at `chrome://extensions/shortcuts`.
 
@@ -282,23 +292,20 @@ Requires `"notifications"` permission.
 
 ```typescript
 // Basic notification
-chrome.notifications.create('notif-id', {
-  type: 'basic',
-  iconUrl: 'icons/icon128.png',
-  title: 'Task Complete',
-  message: 'Your export finished successfully.',
-  priority: 2,              // -2 to 2
+chrome.notifications.create("notif-id", {
+  type: "basic",
+  iconUrl: "icons/icon128.png",
+  title: "Task Complete",
+  message: "Your export finished successfully.",
+  priority: 2, // -2 to 2
   requireInteraction: true, // don't auto-dismiss
-  buttons: [
-    { title: 'Open File' },
-    { title: 'Dismiss' },
-  ],
+  buttons: [{ title: "Open File" }, { title: "Dismiss" }],
 });
 
 // Handle button clicks
 chrome.notifications.onButtonClicked.addListener((notifId, buttonIndex) => {
-  if (notifId === 'notif-id' && buttonIndex === 0) {
-    chrome.tabs.create({ url: 'results.html' });
+  if (notifId === "notif-id" && buttonIndex === 0) {
+    chrome.tabs.create({ url: "results.html" });
   }
   chrome.notifications.clear(notifId);
 });
@@ -309,12 +316,12 @@ chrome.notifications.onClicked.addListener((notifId) => {
 });
 
 // Image notification
-chrome.notifications.create('image-notif', {
-  type: 'image',
-  iconUrl: 'icons/icon128.png',
-  title: 'New Photo',
-  message: 'Check out this image',
-  imageUrl: 'path/to/image.png',
+chrome.notifications.create("image-notif", {
+  type: "image",
+  iconUrl: "icons/icon128.png",
+  title: "New Photo",
+  message: "Check out this image",
+  imageUrl: "path/to/image.png",
 });
 ```
 
@@ -330,25 +337,31 @@ Register a keyword trigger in the address bar.
 // Provide suggestions as user types "myext <query>"
 chrome.omnibox.onInputChanged.addListener((text, suggest) => {
   suggest([
-    { content: `search ${text}`, description: `Search for: <match>${text}</match>` },
-    { content: `lucky ${text}`, description: `I'm feeling lucky: <match>${text}</match>` },
+    {
+      content: `search ${text}`,
+      description: `Search for: <match>${text}</match>`,
+    },
+    {
+      content: `lucky ${text}`,
+      description: `I'm feeling lucky: <match>${text}</match>`,
+    },
   ]);
 });
 
 // Handle selection
 chrome.omnibox.onInputEntered.addListener((text, disposition) => {
-  const url = text.startsWith('search ')
+  const url = text.startsWith("search ")
     ? `https://search.com?q=${encodeURIComponent(text.slice(7))}`
     : `https://example.com/${encodeURIComponent(text)}`;
 
   switch (disposition) {
-    case 'currentTab':
+    case "currentTab":
       chrome.tabs.update({ url });
       break;
-    case 'newForegroundTab':
+    case "newForegroundTab":
       chrome.tabs.create({ url });
       break;
-    case 'newBackgroundTab':
+    case "newBackgroundTab":
       chrome.tabs.create({ url, active: false });
       break;
   }
@@ -366,19 +379,24 @@ Extend Chrome DevTools with a custom panel.
 ```html
 <!-- devtools.html (invisible, just loads the script) -->
 <!DOCTYPE html>
-<html><body><script src="devtools.js"></script></body></html>
+<html>
+  <body>
+    <script src="devtools.js"></script>
+  </body>
+</html>
 ```
 
 ```javascript
 // devtools.js
 chrome.devtools.panels.create(
-  'My Panel',          // title
-  'icons/icon16.png',  // icon
-  'panel.html'         // page
+  "My Panel", // title
+  "icons/icon16.png", // icon
+  "panel.html", // page
 );
 ```
 
 The panel page (panel.html) has access to `chrome.devtools` APIs:
+
 - `chrome.devtools.inspectedWindow.eval()` - run JS in the inspected page
 - `chrome.devtools.network` - network request monitoring
 - `chrome.devtools.panels` - sidebar panes, element selection
@@ -386,7 +404,7 @@ The panel page (panel.html) has access to `chrome.devtools` APIs:
 ## 9. Choosing the right surface
 
 | Need | Surface | Why |
-|------|---------|-----|
+| --- | --- | --- |
 | Quick action, no persistent state | Popup | Simple, familiar UX |
 | Persistent side content while browsing | Side panel | Survives tab switches |
 | Extension configuration | Options page | Standard pattern |

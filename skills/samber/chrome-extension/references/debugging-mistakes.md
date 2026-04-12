@@ -1,6 +1,7 @@
 # Debugging and Common Mistakes Reference
 
 ## Table of contents
+
 1. DevTools for each extension context
 2. Testing service worker termination
 3. Common error messages and fixes
@@ -13,7 +14,7 @@
 Each extension context has its own DevTools instance:
 
 | Context | How to open DevTools |
-|---------|---------------------|
+| --- | --- |
 | Service worker | chrome://extensions → click "Inspect views: service worker" |
 | Popup | Right-click extension icon → "Inspect popup" |
 | Options page | Right-click in options page → "Inspect" |
@@ -23,16 +24,13 @@ Each extension context has its own DevTools instance:
 
 ### Content script debugging tips
 
-Content script console logs appear in the PAGE's DevTools console, not the extension's.
-Filter by your extension name or use `console.log('[MyExt]', ...)` prefix.
+Content script console logs appear in the PAGE's DevTools console, not the extension's. Filter by your extension name or use `console.log('[MyExt]', ...)` prefix.
 
 In Sources panel: look under "Content scripts" folder to set breakpoints.
 
 ### Service worker debugging
 
-The service worker console is separate. Use `chrome://extensions` → Inspect to open it.
-Warning: **keeping DevTools open on the SW prevents it from terminating**, masking
-lifecycle bugs.
+The service worker console is separate. Use `chrome://extensions` → Inspect to open it. Warning: **keeping DevTools open on the SW prevents it from terminating**, masking lifecycle bugs.
 
 ## 2. Testing service worker termination
 
@@ -50,7 +48,7 @@ lifecycle bugs.
 ```typescript
 // Add a test-only handler
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === '__TEST_TERMINATE_SW') {
+  if (msg.type === "__TEST_TERMINATE_SW") {
     // Force terminate by not returning true and doing nothing
     // The SW will idle out in 30 seconds
     // OR: more aggressively, just stop doing anything
@@ -60,8 +58,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 ### Chrome flag for testing
 
-`chrome://flags/#enable-extension-service-worker-test-flag` (if available in your
-Chrome version) can help with automated testing of SW suspension.
+`chrome://flags/#enable-extension-service-worker-test-flag` (if available in your Chrome version) can help with automated testing of SW suspension.
 
 ### Automated test pattern
 
@@ -78,12 +75,12 @@ Chrome version) can help with automated testing of SW suspension.
 
 ### "Extension context invalidated"
 
-**Cause**: Content script trying to use chrome.runtime after extension was updated/reloaded.
-**Fix**: Check `chrome.runtime?.id` before any chrome.runtime call. Show refresh banner.
+**Cause**: Content script trying to use chrome.runtime after extension was updated/reloaded. **Fix**: Check `chrome.runtime?.id` before any chrome.runtime call. Show refresh banner.
 
 ### "Could not establish connection. Receiving end does not exist."
 
 **Causes**:
+
 1. No content script in the target tab
 2. Content script orphaned
 3. Sending to chrome:// or other restricted page
@@ -93,14 +90,11 @@ Chrome version) can help with automated testing of SW suspension.
 
 ### "The message port closed before a response was received."
 
-**Cause**: Message listener didn't call sendResponse and didn't return true.
-**Fix**: return `true` from the listener if response is async.
+**Cause**: Message listener didn't call sendResponse and didn't return true. **Fix**: return `true` from the listener if response is async.
 
 ### "Unchecked runtime.lastError: ..."
 
-**Cause**: chrome.* API callback error not checked.
-**Fix**: always check `chrome.runtime.lastError` in callbacks, or use Promise-based
-APIs and catch rejections:
+**Cause**: chrome.\* API callback error not checked. **Fix**: always check `chrome.runtime.lastError` in callbacks, or use Promise-based APIs and catch rejections:
 
 ```typescript
 // Callback style
@@ -116,61 +110,66 @@ chrome.tabs.sendMessage(tabId, msg, (response) => {
 try {
   const response = await chrome.tabs.sendMessage(tabId, msg);
 } catch (err) {
-  console.warn('Tab unreachable:', err);
+  console.warn("Tab unreachable:", err);
 }
 ```
 
 ### "Cannot access contents of url ... Extension manifest must request permission."
 
-**Cause**: missing host_permissions for the target URL.
-**Fix**: add the origin to `host_permissions` or `optional_host_permissions`.
+**Cause**: missing host_permissions for the target URL. **Fix**: add the origin to `host_permissions` or `optional_host_permissions`.
 
 ### "Service worker registration failed."
 
 **Causes**:
+
 1. Syntax error in the service worker file
 2. Import of a nonexistent module
 3. Top-level await with incorrect module config
 4. Missing `"type": "module"` when using `import` statements
 
-**Fix**: check the error details in chrome://extensions. Fix syntax errors.
-Ensure `"type": "module"` is set if using ES imports.
+**Fix**: check the error details in chrome://extensions. Fix syntax errors. Ensure `"type": "module"` is set if using ES imports.
 
 ## 4. The top 10 MV3 mistakes
 
 ### 1. Storing state in global variables
+
 Global variables reset when SW terminates. Use chrome.storage.session instead.
 
 ### 2. Using setTimeout/setInterval in the service worker
+
 Cancelled on termination. Use chrome.alarms (30s minimum interval).
 
 ### 3. Forgetting `return true` in async message listeners
+
 The channel closes before sendResponse fires. Use the asyncHandler wrapper.
 
 ### 4. Using `async` directly on message listeners
+
 Async functions return Promise, not literal true. Wrap in synchronous function.
 
 ### 5. Registering listeners inside callbacks
-Chrome records listener registrations at SW startup. Listeners registered inside
-callbacks, promises, or dynamic imports are missed after restart.
+
+Chrome records listener registrations at SW startup. Listeners registered inside callbacks, promises, or dynamic imports are missed after restart.
 
 ### 6. Testing with DevTools open (hides SW termination)
+
 DevTools keeps the SW alive indefinitely. Always test with DevTools closed.
 
 ### 7. Requesting excessive permissions
+
 Slows CWS review, scares users. Use activeTab + optional_permissions.
 
 ### 8. Not handling content script orphaning
-After extension update, old content scripts lose chrome.runtime. Always check
-`chrome.runtime?.id` and show a refresh prompt.
+
+After extension update, old content scripts lose chrome.runtime. Always check `chrome.runtime?.id` and show a refresh prompt.
 
 ### 9. Confusing CORS and CSP
-CORS is server-side (who can read responses). CSP is page-side (what can connect).
-Content scripts are subject to both. Service worker bypasses both with host_permissions.
+
+CORS is server-side (who can read responses). CSP is page-side (what can connect). Content scripts are subject to both. Service worker bypasses both with host_permissions.
 
 ### 10. Using eval() or loading remote code
-Forbidden in MV3. All code must be bundled locally. Use chrome.scripting.executeScript
-with `func` parameter instead of `code` string.
+
+Forbidden in MV3. All code must be bundled locally. Use chrome.scripting.executeScript with `func` parameter instead of `code` string.
 
 ## 5. Performance pitfalls
 
@@ -180,13 +179,13 @@ Content scripts persist as long as the page is open. Common leaks:
 
 ```typescript
 // ❌ LEAK: never cleaned up
-document.addEventListener('scroll', onScroll);
+document.addEventListener("scroll", onScroll);
 const observer = new MutationObserver(callback);
 observer.observe(document.body, { childList: true, subtree: true });
 
 // ✅ CLEAN UP
 function destroy() {
-  document.removeEventListener('scroll', onScroll);
+  document.removeEventListener("scroll", onScroll);
   observer.disconnect();
   ui?.remove();
 }
@@ -194,7 +193,11 @@ function destroy() {
 // Clean up on extension update
 chrome.runtime.onConnect.addListener(() => {});
 // If this throws, extension was updated
-try { chrome.runtime.id; } catch { destroy(); }
+try {
+  chrome.runtime.id;
+} catch {
+  destroy();
+}
 ```
 
 ### Storage performance
@@ -222,8 +225,10 @@ chrome.runtime.onMessage.addListener(handleMessage);
 let lookupTable: Map<string, any> | null = null;
 async function getTable() {
   if (!lookupTable) {
-    const cached = await chrome.storage.session.get('lookupTable');
-    lookupTable = cached.lookupTable ? new Map(cached.lookupTable) : await computeTable();
+    const cached = await chrome.storage.session.get("lookupTable");
+    lookupTable = cached.lookupTable
+      ? new Map(cached.lookupTable)
+      : await computeTable();
   }
   return lookupTable;
 }
@@ -245,7 +250,7 @@ chrome.runtime.onMessage.addListener(handleMessage);
 ### Automated testing with Puppeteer
 
 ```typescript
-import puppeteer from 'puppeteer';
+import puppeteer from "puppeteer";
 
 const browser = await puppeteer.launch({
   headless: false,
@@ -257,9 +262,9 @@ const browser = await puppeteer.launch({
 
 // Get extension ID
 const targets = await browser.targets();
-const extensionTarget = targets.find(t => t.type() === 'service_worker');
-const extensionUrl = extensionTarget?.url() ?? '';
-const extensionId = extensionUrl.split('/')[2];
+const extensionTarget = targets.find((t) => t.type() === "service_worker");
+const extensionUrl = extensionTarget?.url() ?? "";
+const extensionId = extensionUrl.split("/")[2];
 
 // Test popup
 const popupPage = await browser.newPage();
@@ -269,16 +274,17 @@ await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
 
 ### Unit testing shared code
 
-Shared utilities (message types, storage helpers, pure functions) can be tested with
-any standard test runner (Vitest, Jest) without a browser:
+Shared utilities (message types, storage helpers, pure functions) can be tested with any standard test runner (Vitest, Jest) without a browser:
 
 ```typescript
 // shared/utils.test.ts
-import { debounce, formatTimestamp } from './utils';
-test('debounce delays execution', async () => { /* ... */ });
+import { debounce, formatTimestamp } from "./utils";
+test("debounce delays execution", async () => {
+  /* ... */
+});
 ```
 
-Mock chrome.* APIs for integration tests:
+Mock chrome.\* APIs for integration tests:
 
 ```typescript
 // test/mocks/chrome.ts
