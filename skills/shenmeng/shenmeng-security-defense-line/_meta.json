@@ -3,11 +3,16 @@
   "slug": "shenmeng-security-defense-line",
   "displayName": "Security Defense Line 安全防线",
   "latest": {
-    "version": "2025.4.6",
-    "publishedAt": 1775467390582,
-    "commit": "https://github.com/openclaw/skills/commit/05b219cba7d05634b668a3443c66e24ab5daeb35"
+    "version": "1000001.0.0",
+    "publishedAt": 1775960145920,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2025.4.6",
+      "publishedAt": 1775467390582,
+      "commit": "https://github.com/openclaw/skills/commit/05b219cba7d05634b668a3443c66e24ab5daeb35"
+    },
     {
       "version": "2026.4.5",
       "publishedAt": 1775353294089,
