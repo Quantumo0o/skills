@@ -1,224 +1,159 @@
-# POWPOW Integration Skill
+# POWPOW Integration Skill v1.0.2
 
 ## 基本信息
 
 - **Name**: powpow-integration
-- **Version**: 1.0.1
-- **Description**: POWPOW integration for digital human management and communication
-- **Author**: OpenClaw Team
+- **Version**: 4.0.0
+- **Description**: POWPOW 简化版集成 - 用户注册、数字人创建、自动对话
+- **Author**: durenzidu
 - **License**: MIT
 
-## 功能
+## 功能概述
 
-此 Skill 允许 OpenClaw 用户：
+此 Skill 帮助 OpenClaw 用户完成以下三件事：
 
-1. **注册 PowPow 账号**（获得 3 枚徽章）
-2. **登录现有 PowPow 账号**
-3. **创建数字人**（消耗 2 枚徽章）
-4. **列出数字人**
-5. **与数字人聊天**
-6. **续期数字人**（消耗 1 枚徽章）
+| 步骤 | 功能 | 说明 |
+|------|------|------|
+| 1 | 注册 PowPow 账号 | 获得用户名和密码，可用于登录 PowPow 网站 |
+| 2 | 创建数字人 | 设置名字和人设，数字人自动绑定到你的账号 |
+| 3 | 自动对话 | PowPow 后端自动处理对话，无需配置 OpenClaw Gateway |
+
+## 简化版特点
+
+**不需要用户提供 OpenClaw Gateway 地址！**
+
+PowPow 后端会自动：
+- 接收用户消息
+- 调用 AI API
+- 返回回复
+
+用户只需要：
+1. 注册账号
+2. 创建数字人
+3. 完成！
 
 ## 命令
 
-### 认证命令
+### 第一步：注册账号
 
 #### `register`
-注册新的 PowPow 账号
+注册 PowPow 账号
 
 **参数**:
-- `username` (string, required): 用户名，3-50 字符
+- `username` (string, required): 用户名（3-20字符，支持中文、字母、数字、下划线）
+- `email` (string, required): 邮箱地址
+- `password` (string, required): 密码（至少6位）
 
 **示例**:
 ```
-register username=myagent
+register username="我的数字人" email="user@example.com" password="123456"
 ```
-
-**返回**:
-- 用户 ID
-- 初始徽章数（3 枚）
 
 #### `login`
-登录现有 PowPow 账号
-
-**参数**:
-- `username` (string, required): 用户名
+登录已有账号
 
 **示例**:
 ```
-login username=myagent
+login username="我的数字人" password="123456"
 ```
 
-**返回**:
-- 用户 ID
-- 徽章余额
-- Token
+---
 
-### 数字人管理命令
+### 第二步：创建数字人
 
 #### `createDigitalHuman`
-创建数字人到 PowPow 地图
+创建数字人（自动绑定到当前账号）
 
 **参数**:
-- `name` (string, required): 数字人名称，1-100 字符
-- `description` (string, required): 人设描述，最多 500 字符
-- `lat` (number, optional): 纬度，-90 到 90，默认 39.9042
-- `lng` (number, optional): 经度，-180 到 180，默认 116.4074
-- `locationName` (string, optional): 位置名称，默认 "Beijing"
+- `name` (string, required): 数字人名字
+- `description` (string, required): 数字人描述/人设
+- `lat` (number, optional): 纬度，默认 39.9042（北京）
+- `lng` (number, optional): 经度，默认 116.4074（北京）
+- `locationName` (string, optional): 位置名称，默认"北京"
 
 **示例**:
 ```
-createDigitalHuman name="AI助手" description="我是一个友好的AI助手" lat=31.2304 lng=121.4737 locationName="上海"
+createDigitalHuman name="小助手" description="一个友好的AI助手，乐于助人，知识渊博"
+createDigitalHuman name="导游小明" description="北京导游，熟悉北京历史文化" lat=39.9 lng=116.4 locationName="北京天安门"
 ```
-
-**消耗**: 2 枚徽章
-
-**返回**:
-- 数字人 ID
-- 名称
-- 位置
-- 过期时间（30 天后）
 
 #### `listDigitalHumans`
-列出所有数字人
-
-**参数**: 无
+列出我的所有数字人
 
 **示例**:
 ```
 listDigitalHumans
 ```
 
-**返回**:
-- 数字人列表（包含 ID、名称、位置、剩余天数）
+---
 
-### 通信命令
+### 第三步：对话
 
-#### `chat`
-与数字人聊天
-
-**参数**:
-- `dhId` (string, required): 数字人 ID
-- `message` (string, required): 消息内容，最多 2000 字符
-
-**示例**:
-```
-chat dhId=abc123 message="你好！"
-```
-
-**返回**:
-- 数字人回复内容
-
-### 账户命令
-
-#### `renew`
-续期数字人
+#### `send`
+发送消息给数字人
 
 **参数**:
-- `dhId` (string, required): 数字人 ID
+- `message` (string, required): 消息内容
 
 **示例**:
 ```
-renew dhId=abc123
+send message="你好！有什么可以帮助你的吗？"
 ```
 
-**消耗**: 1 枚徽章（延长 30 天）
-
-#### `checkBadges`
-检查徽章余额
-
-**参数**: 无
+#### `status`
+查看当前状态
 
 **示例**:
 ```
-checkBadges
+status
 ```
 
-**返回**:
-- 徽章数量
-- 使用方法说明
+---
 
-#### `help`
-显示帮助信息
-
-**参数**: 无
-
-**示例**:
-```
-help
-```
-
-## 配置
-
-### 配置文件
-
-```json
-{
-  "skills": {
-    "powpow-integration": {
-      "powpow": {
-        "powpowBaseUrl": "https://global.powpow.online",
-        "defaultLocation": {
-          "lat": 39.9042,
-          "lng": 116.4074,
-          "name": "Beijing"
-        }
-      }
-    }
-  }
-}
-```
-
-### 配置项说明
-
-| 配置项 | 类型 | 必填 | 默认值 | 说明 |
-|--------|------|------|--------|------|
-| `powpowBaseUrl` | string | 否 | https://global.powpow.online | PowPow API 基础 URL |
-| `defaultLocation.lat` | number | 否 | 39.9042 | 默认纬度 |
-| `defaultLocation.lng` | number | 否 | 116.4074 | 默认经度 |
-| `defaultLocation.name` | string | 否 | Beijing | 默认位置名称 |
-
-## 依赖
-
-```json
-{
-  "@openclaw/core": ">=1.0.0"
-}
-```
-
-## 使用示例
-
-### 完整流程示例
+## 完整使用流程
 
 ```
-# 1. 注册账号
-register username=mybot
+# 步骤 1：注册账号
+register username="我的AI助手" email="ai@example.com" password="mypassword123"
 
-# 2. 登录
-login username=mybot
+# 步骤 2：创建数字人
+createDigitalHuman name="小助手" description="一个友好的AI助手，乐于助人，知识渊博"
 
-# 3. 创建数字人
-createDigitalHuman name="AI助手" description="我是一个友好的AI助手"
+# 步骤 3：访问地图查看数字人
+# 打开 https://global.powpow.online/map
 
-# 4. 查看数字人列表
-listDigitalHumans
-
-# 5. 与数字人聊天
-chat dhId=<数字人ID> message="你好！"
-
-# 6. 续期数字人
-renew dhId=<数字人ID>
+# 步骤 4：（可选）发送消息测试
+send message="你好！"
 ```
 
-## 徽章系统
+---
 
-| 操作 | 消耗 | 说明 |
-|------|------|------|
-| 注册 | +3 | 新用户获得 3 枚徽章 |
-| 创建数字人 | -2 | 每次创建消耗 2 枚 |
-| 续期 | -1 | 每次续期消耗 1 枚 |
+## 与 v3.x 的区别
+
+| 特性 | v3.x | v4.0 (简化版) |
+|------|------|---------------|
+| 需要 OpenClaw Gateway | 是 | **否** |
+| 需要 webhook URL | 是 | **否** |
+| 需要内网穿透 | 是 | **否** |
+| 用户门槛 | 高 | **低** |
+| 适合人群 | 开发者 | **所有用户** |
+
+---
+
+## 云端部署
+
+**可以在云端 OpenClaw 中使用**，因为：
+- 使用 HTTP API，不需要 WebSocket
+- 兼容 Serverless 环境（Vercel 等）
+- 无需额外服务器
+
+---
 
 ## 更新日志
 
-### v1.0.1
-- 初始版本
+### v4.0.0 (2026-04-07)
+
+- **重大更新**：简化版，不需要用户提供 OpenClaw Gateway
+- PowPow 后端自动处理对话
+- 降低用户使用门槛
+- 适合所有用户
