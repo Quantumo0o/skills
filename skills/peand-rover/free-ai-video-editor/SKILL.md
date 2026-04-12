@@ -1,6 +1,6 @@
 ---
 name: free-ai-video-editor
-version: "1.0.0"
+version: "1.1.1"
 displayName: "Free AI Video Editor — Edit Videos with AI Online No Download No Watermark"
 description: >
   Edit videos with AI for free — trim, cut, merge, add captions, background music, transitions, color grading, text overlays, slow motion, and export without watermarks. NemoVideo is the free AI video editor that replaces desktop software: describe your edit in plain English and the AI executes it. No download, no installation, no timeline scrubbing, no learning curve. Works for YouTube, TikTok, Reels, Shorts, LinkedIn, ads, presentations, and any video format. Free video editor online, AI video editing tool, edit videos without software, no watermark video editor, free online video maker, AI video tool free, edit video with AI free.
