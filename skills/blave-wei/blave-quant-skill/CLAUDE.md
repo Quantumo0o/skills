@@ -4,11 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-This repo contains one skill covering four capabilities:
+This repo contains one skill covering five capabilities:
 1. **Blave** — Agent calls the Blave REST API directly for crypto market alpha data
 2. **BitMart Futures** — Agent calls the BitMart API for perpetual futures trading
 3. **BitMart Spot** — Agent calls the BitMart API for spot trading
 4. **Bybit** — Agent calls the Bybit API for spot and derivatives/perpetual swap trading
+5. **BingX** — Agent calls the BingX API for spot and perpetual swap trading
+6. **Bitget** — Agent calls the Bitget API for spot and futures trading
+7. **Binance** — Agent calls the Binance API for spot and USDS-M futures trading
 
 No CLI or wrapper involved. All API calls are made directly by the agent.
 
@@ -18,6 +21,9 @@ No CLI or wrapper involved. All API calls are made directly by the agent.
 - `BITMART_API_KEY`, `BITMART_API_SECRET`, `BITMART_API_MEMO` — BitMart API auth
 - `OKX_API_KEY`, `OKX_SECRET_KEY`, `OKX_PASSPHRASE` — OKX API auth
 - `BYBIT_API_KEY`, `BYBIT_API_SECRET` — Bybit API auth
+- `BINGX_API_KEY`, `BINGX_SECRET_KEY` — BingX API auth
+- `BITGET_API_KEY`, `BITGET_SECRET_KEY`, `BITGET_PASSPHRASE` — Bitget API auth
+- `BINANCE_API_KEY`, `BINANCE_SECRET_KEY` — Binance API auth
 
 ## Files
 
@@ -36,11 +42,17 @@ No CLI or wrapper involved. All API calls are made directly by the agent.
 | `references/bitmart-spot-authentication.md` | Spot auth details and examples |
 | `references/bitmart-spot-scenarios.md` | Spot common trading scenarios |
 | `references/bitmart-signature.md` | Python HMAC-SHA256 signature implementation + common mistakes |
+| `references/hyperliquid-api.md` | Hyperliquid API — all 9 endpoints with params, response format, cache times |
+| `references/tradingview-stream.md` | TradingView SSE stream — webhook setup, Python streaming client with reconnect |
+| `references/bingx-api-reference.md` | BingX 59 endpoints, Python signature, spot + perpetual swap |
+| `references/bitget-api-reference.md` | Bitget spot + futures endpoints, Python signature |
+| `references/binance-api-reference.md` | Binance spot + USDS-M futures endpoints, Python signature |
 
 ## Blave API Endpoints
 
 Base URL: `https://api.blave.org`
 
+- `price` — current price + 24h change for a symbol (`symbol` required)
 - `alpha_table` — latest alpha for all symbols; use for multi-coin queries or screening
 - `kline` — OHLCV candlestick data
 - `market_direction/get_alpha` — 市場方向 Market Direction (BTCUSDT)
@@ -90,3 +102,28 @@ Base URL: `https://api.bybit.com` | Backup: `https://api.bytick.com` | Testnet: 
 
 Signature: `HMAC-SHA256(secret, {timestamp}{apiKey}{recvWindow}{queryString|jsonBody})`
 Headers: `X-BAPI-API-KEY`, `X-BAPI-TIMESTAMP`, `X-BAPI-SIGN`, `X-BAPI-RECV-WINDOW: 5000`, `referer: Ue001036`
+
+## BingX Source Header
+
+Always include `X-SOURCE-KEY: BX-AI-SKILL` on **all** BingX API requests (both public and authenticated).
+
+## BingX
+
+Base URL: `https://open-api.bingx.com` | Fallback: `https://open-api.bingx.pro` | Paper: `https://open-api-vst.bingx.com`
+
+Signature: `HMAC-SHA256(secret, sorted_params_canonical_string)` → hex, appended as `&signature=<hex>`
+Headers: `X-BX-APIKEY`, `X-SOURCE-KEY: BX-AI-SKILL`
+
+## Bitget
+
+Base URL: `https://api.bitget.com`
+
+Signature: `Base64(HMAC-SHA256(secret, timestamp + METHOD + path + body))`
+Headers: `ACCESS-KEY`, `ACCESS-SIGN`, `ACCESS-PASSPHRASE`, `ACCESS-TIMESTAMP`
+
+## Binance
+
+Spot Base URL: `https://api.binance.com` | Futures Base URL: `https://fapi.binance.com`
+
+Signature: `HMAC-SHA256(secret, queryString + requestBody)` → hex, `signature` as last param
+Headers: `X-MBX-APIKEY`

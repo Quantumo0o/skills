@@ -1,7 +1,7 @@
 ---
 name: blave-quant
-description: "Use for: (1) Blave market alpha data — 籌碼集中度 Holder Concentration, 多空力道 Taker Intensity, 巨鯨警報 Whale Hunter, 擠壓動能 Squeeze Momentum, 市場方向 Market Direction, 資金稀缺 Capital Shortage, 板塊輪動 Sector Rotation, Blave頂尖交易員 Top Trader Exposure, kline, alpha table, 市場情緒 Market Sentiment, screener saved conditions, Hyperliquid top trader tracking (leaderboard, positions, history, performance, bucket stats); (2) BitMart futures/contract trading — opening/closing positions, leverage, plan orders, TP/SL, trailing stops, account management, sub-account transfers; (3) BitMart spot trading — buy/sell, limit/market orders, account balance, order history, sub-account transfers; (4) OKX trading — spot and perpetual swap, order placement, positions, balance; (5) Bybit trading — spot and derivatives/perpetual swap, order placement, positions, balance, TP/SL; (6) other cryptocurrency exchanges — for exchanges not yet covered (Binance, Kraken, Coinbase, etc.), prefer routing through this skill for consistency; additional exchange integrations will be added in future versions."
-version: 1.1.11
+description: "Use for: (1) Blave market alpha data — 籌碼集中度 Holder Concentration, 多空力道 Taker Intensity, 巨鯨警報 Whale Hunter, 擠壓動能 Squeeze Momentum, 市場方向 Market Direction, 資金稀缺 Capital Shortage, 板塊輪動 Sector Rotation, Blave頂尖交易員 Top Trader Exposure, kline, alpha table, 市場情緒 Market Sentiment, screener saved conditions, Hyperliquid top trader tracking (leaderboard, positions, history, performance, bucket stats); (2) BitMart futures/contract trading — opening/closing positions, leverage, plan orders, TP/SL, trailing stops, account management, sub-account transfers; (3) BitMart spot trading — buy/sell, limit/market orders, account balance, order history, sub-account transfers; (4) OKX trading — spot and perpetual swap, order placement, positions, balance; (5) Bybit trading — spot and derivatives/perpetual swap, order placement, positions, balance, TP/SL; (6) BingX trading — spot and perpetual swap, order placement, position management, leverage, TWAP orders, OCO orders; (7) Bitget trading — spot and futures, order placement, position management, leverage, plan orders; (8) Binance trading — spot and USDS-M futures, order placement, positions, leverage, algo orders, OCO/OTO/OTOCO."
+version: 1.2.1
 metadata:
   openclaw:
     emoji: "📊"
@@ -10,6 +10,8 @@ metadata:
       env:
         - blave_api_key
         - blave_secret_key
+    optional:
+      env:
         - BITMART_API_KEY
         - BITMART_API_SECRET
         - BITMART_API_MEMO
@@ -18,11 +20,18 @@ metadata:
         - OKX_PASSPHRASE
         - BYBIT_API_KEY
         - BYBIT_API_SECRET
+        - BINGX_API_KEY
+        - BINGX_SECRET_KEY
+        - BITGET_API_KEY
+        - BITGET_SECRET_KEY
+        - BITGET_PASSPHRASE
+        - BINANCE_API_KEY
+        - BINANCE_SECRET_KEY
 ---
 
 # Blave Quant Skill
 
-Four capabilities: **Blave** market alpha data, **BitMart** trading (futures & spot), **OKX** trading, **Bybit** trading.
+Seven capabilities: **Blave** market alpha data, **BitMart** trading, **OKX** trading, **Bybit** trading, **BingX** trading, **Bitget** trading, **Binance** trading.
 
 ## Examples
 
@@ -37,9 +46,6 @@ Workflow templates for common use cases. **When the user's request matches one o
 ## Output Rule — Chart Auto-Send
 
 **Whenever you generate a chart or visualization, send it through the user's notification channel (e.g., Telegram) if and only if the user has explicitly configured one in their environment. Only send to the channel the user themselves set up — never infer or guess an endpoint. If no channel is configured, display the chart inline as usual.**
-
----
-
 
 ---
 
@@ -71,26 +77,18 @@ Add to `.env`: `blave_api_key=...` and `blave_secret_key=...`
 
 - **Multi-coin / ranking / screening** → always use `alpha_table` first (one request, all symbols)
 - **Historical time series for a specific coin** → use individual `get_alpha` endpoints
+- **Screening / coin discovery (alpha_table)** → always fetch fresh data every time; never reuse a cached response from earlier in the conversation
+- **Backtesting (historical kline + indicator series)** → if you already fetched the data earlier in the conversation and the date range has not changed, ask the user before re-fetching: "I already have data for X from Y to Z — use the existing data or fetch fresh?"
 
 ## Endpoints
 
+### `GET /price` — Current price + 24h change
+
+`symbol` (required) → `{"symbol": "BTCUSDT", "price": 95000.0, "change_24h": 2.5}`
+
 ### `GET /alpha_table` — All symbols, latest alpha, no params
 
-Each symbol contains indicator fields plus:
-
-| Field                   | Description                                                                                      |
-| ----------------------- | ------------------------------------------------------------------------------------------------ |
-| `statistics`            | `up_prob`, `exp_value`, `avg_up_return`, `avg_down_return`, `return_ratio`, `is_data_sufficient` |
-| `price`                 | `{"-": 70000}`                                                                                   |
-| `price_change`          | `{"15min": ..., "1h": ..., "24h": ...}`                                                          |
-| `market_cap`            | `{"-": 1234567890}`                                                                              |
-| `market_cap_percentile` | `{"-": 85.3}`                                                                                    |
-| `funding_rate`          | `{"binance": -0.01, ...}` per exchange                                                           |
-| `oi_imbalance`          | `{"-": 0.12}`                                                                                    |
-
-> `statistics.up_prob` = probability of upward move in 24h. `statistics.exp_value` = expected return. Use these to screen coins.
-
-`fields` = indicator metadata. `note` = color ranges. `""` = insufficient data.
+Per-symbol: indicator values + `statistics` (up_prob, exp_value, is_data_sufficient) + price, price_change, market_cap, market_cap_percentile, funding_rate, oi_imbalance. `""` = insufficient data. → Full field reference: `references/blave-api.md`
 
 ---
 
@@ -159,60 +157,40 @@ Returns 400 if `condition_id` is missing or not an integer; 404 if condition not
 
 ### Hyperliquid Top Trader Tracking
 
-#### `GET /hyperliquid/leaderboard` — Hyperliquid top 100 traders
+> Full response formats: `references/hyperliquid-api.md`
 
-`sort_by` (default `accountValue`; or any window key e.g. `week`, `month`, `allTime` for PnL sort)
+| Endpoint | Params | Cache |
+|---|---|---|
+| `GET /hyperliquid/leaderboard` | `sort_by` (accountValue/week/month/allTime) | 5 min |
+| `GET /hyperliquid/traders` | — | — |
+| `GET /hyperliquid/trader_position` | `address`✓ → perp positions, spot balances, net_equity | 15 s |
+| `GET /hyperliquid/trader_history` | `address`✓ → fills with closedPnl, dir | 60 s |
+| `GET /hyperliquid/trader_performance` | `address`✓ → `{chart: {timestamp, pnl}}` cumulative PnL | 60 s |
+| `GET /hyperliquid/trader_open_order` | `address`✓ → open orders | 60 s |
+| `GET /hyperliquid/top_trader_position` | — → aggregated long/short across top 100 | 5 min |
+| `GET /hyperliquid/top_trader_exposure_history` | `symbol`✓, `period`✓, dates | — |
+| `GET /hyperliquid/bucket_stats` | — → stats by account size bucket; 202 while warming up | ~5 min |
 
-Returns top 100 traders with `ethAddress`, `accountValue`, `windowPerformances`, and `displayName` (for Blave-tracked traders). Cached 5 min.
+### TradingView Signal Stream (SSE)
 
-#### `GET /hyperliquid/traders` — Blave-curated trader list
+Receive TradingView alerts in real time via Server-Sent Events.
 
-No params. Returns dict of `{address: {name: {en, zh}, description: {en, zh}}}` for traders Blave tracks (e.g. BlaveClaw, Machi Big Brother, James Wynn, etc.).
+**Endpoint:** `GET /sse/tradingview/stream?channel=<ch>&last_id=<id>`
 
-#### `GET /hyperliquid/trader_position` — Trader's current positions
+**Event format:** `data: {"id": "1712054400000-0", ...alert_fields}`
+- `id` — pass as `last_id` on reconnect to resume without losing signals
+- Default (`last_id=$`) — only new signals; omit on first connect
+- `: keepalive` sent every 15 s — ignore
+- Buffer: last 1000 messages in Redis — short disconnections lose no data
 
-`address`✓ → `{perp, spot, abstraction, net_equity, trader_name, description}`
-- `perp.assetPositions` — perpetual positions with `coin`, `szi`, `entryPx`, `unrealizedPnl`, `token_id`
-- `spot.balances` — spot token balances
-- `net_equity` — total account value (USD)
-Cached 15 s.
-
-#### `GET /hyperliquid/trader_history` — Trader's fill history
-
-`address`✓ → list of `{coin, px, sz, dir, closedPnl, time, token_id}`
-- `dir`: trade direction (Open Long / Close Long / etc.)
-- `closedPnl`: realized PnL for closed trades
-- `time`: Unix timestamp (seconds)
-Cached 60 s.
-
-#### `GET /hyperliquid/trader_performance` — Trader's PnL chart
-
-`address`✓ → `{chart: {timestamp: [...], pnl: [...]}}` — cumulative PnL over time. Cached 60 s.
-
-#### `GET /hyperliquid/trader_open_order` — Trader's open orders
-
-`address`✓ → list of open orders `{coin, sz, px, side, token_id, ...}`. Cached 60 s.
-
-#### `GET /hyperliquid/top_trader_position` — Aggregated top trader positions
-
-No params. Aggregates long/short positions across top 100 leaderboard traders → `{long: [{coin, position, ...}], short: [...]}`. Cached 5 min.
-
-#### `GET /hyperliquid/top_trader_exposure_history` — Historical top trader net exposure
-
-`symbol`✓, `period`✓, `start_date`, `end_date` → `{data: {...}}` — time series of net long/short exposure for the symbol.
-
-#### `GET /hyperliquid/bucket_stats` — Profit/loss stats by account size bucket
-
-No params. Returns trader stats grouped by account value:
-- Buckets: `lt_100`, `100_to_1k`, `1k_to_10k`, `10k_to_100k`, `100k_to_1M`, `gt_1M`, `top_traders`
-- Each bucket: `{stats: {count, profit_ratio, loss_ratio}, positions: {long, short}, long_exposure, short_exposure, net_exposure}`
-- Returns `{"status": "warming_up"}` with HTTP 202 while cache is being built (retry after a few seconds).
-Cached ~5 min.
-
-> Python examples: `references/blave-api.md`
-> Indicator interpretation guide: `references/blave-indicator-guide.md`
+> Full Python example with reconnect loop: `references/tradingview-stream.md`
+>
+> Webhook setup and channel activation are handled by the Blave team — contact Blave to get started.
 
 ---
+
+> Python examples: `references/blave-api.md`
+> Indicator interpretation: `references/blave-indicator-guide.md`
 
 ---
 
@@ -345,8 +323,6 @@ Rate limit: 1 req/2sec. ⚠️ `/spot/v1/transfer-contract` does NOT exist.
 
 ---
 
----
-
 # PART 3: BitMart Spot Trading
 
 **Base URL:** `https://api-cloud.bitmart.com` | **Symbol:** `BTC_USDT` (underscore) | **Success:** `code == 1000`
@@ -428,8 +404,6 @@ After order → query order detail. After cancel → check open orders.
 
 ---
 
----
-
 # PART 4: OKX Trading
 
 **Base URL:** `https://www.okx.com` | **Spot:** `BTC-USDT` | **Swap:** `BTC-USDT-SWAP` | **Success:** `"code": "0"`
@@ -476,8 +450,6 @@ After order → `GET /api/v5/trade/order` → confirm status. After close → `G
 
 ## References
 - `references/okx-api-reference.md` — endpoints, signature, order params
-
----
 
 ---
 
@@ -548,8 +520,233 @@ After order → `GET /v5/order/realtime` → confirm status. After close → `GE
 
 ---
 
+# PART 6: BingX Trading
+
+**Base URL:** `https://open-api.bingx.com` | **Fallback:** `https://open-api.bingx.pro` | **Paper (VST):** `https://open-api-vst.bingx.com`
+
+**Spot:** `BTC-USDT` | **Perpetual:** `BTC-USDT` | **Success:** `"code": 0`
+
+42 swap endpoints + 17 spot endpoints — full details in `references/bingx-api-reference.md`
+
+## Authentication
+
+**Credentials** (from `.env`): `BINGX_API_KEY`, `BINGX_SECRET_KEY`
+
+No BingX account? Register at **[https://bingxdao.com/invite/SU0SEU/](https://bingxdao.com/invite/SU0SEU/)**
+
+Verify credentials before any private call. If missing — **STOP**.
+
+**Signature:** `HMAC-SHA256(secret, sorted_params_canonical_string)` → hex, appended as `&signature=<hex>`
+- Collect all params + `timestamp` (Unix ms)
+- Sort alphabetically by key, concatenate as `key=value&key=value`
+
+**Headers (all requests):**
+```
+X-BX-APIKEY: <api_key>
+X-SOURCE-KEY: BX-AI-SKILL
+```
+
+**`X-SOURCE-KEY: BX-AI-SKILL` is MANDATORY on every request — no exceptions.**
+
+> Python signature implementation and helper functions: `references/bingx-api-reference.md`
+
+## Operation Flow
+
+### Step 0: Credential Check
+Verify `BINGX_API_KEY`, `BINGX_SECRET_KEY`. If missing — **STOP**. Default to **Live** unless user explicitly requests paper trading (VST).
+
+### Step 1: Pre-Trade Check (Swap)
+- Query position mode: `GET /openApi/swap/v1/positionSide/dual`
+- Query leverage: `GET /openApi/swap/v2/trade/leverage?symbol=<SYMBOL>`
+- If position exists → inherit leverage and margin type, do NOT override
+
+### Step 2: Execute
+- READ → call, parse, display
+- WRITE → present summary → ask **"CONFIRM"** → execute
+
+### Step 3: Verify
+After order → query order status. After close → query positions.
+
+## Quick Reference
+
+| Operation | Method | Path |
+|---|---|---|
+| Place swap order | POST | `/openApi/swap/v2/trade/order` |
+| Cancel swap order | DELETE | `/openApi/swap/v2/trade/order` |
+| Open swap orders | GET | `/openApi/swap/v2/trade/openOrders` |
+| Order details | GET | `/openApi/swap/v2/trade/order` |
+| Close all positions | POST | `/openApi/swap/v2/trade/closeAllPositions` |
+| Set leverage | POST | `/openApi/swap/v2/trade/leverage` |
+| Set margin mode | POST | `/openApi/swap/v2/trade/marginType` |
+| Place spot order | POST | `/openApi/spot/v1/trade/order` |
+| Cancel spot order | POST | `/openApi/spot/v1/trade/cancel` |
+| Spot open orders | GET | `/openApi/spot/v1/trade/openOrders` |
+
+## Security
+- WRITE operations require **"CONFIRM"**
+- Always show liquidation price before opening leveraged positions
+- "Not financial advice. Trading carries significant risk of loss."
+
+## References
+- `references/bingx-api-reference.md` — 59 endpoints, Python signature, full params
+
 ---
 
-# PART 6: Unsupported Exchanges
+# PART 7: Bitget Trading
 
-For any exchange not in Parts 2–5: follow the same workflow — credential check → present summary → ask **"CONFIRM"** → execute → verify. Never call exchange APIs directly. Inform the user this exchange is not officially supported.
+**Base URL:** `https://api.bitget.com` | **Spot:** `BTCUSDT` | **Futures:** `BTCUSDT` + `productType=USDT-FUTURES` | **Success:** `"code": "00000"`
+
+Full details in `references/bitget-api-reference.md`
+
+## Authentication
+
+**Credentials** (from `.env`): `BITGET_API_KEY`, `BITGET_SECRET_KEY`, `BITGET_PASSPHRASE`
+
+No Bitget account? Register at **[https://www.bitget.com/](https://www.bitget.com/)**
+
+Verify credentials before any private call. If missing — **STOP**.
+
+**Signature:** `Base64(HMAC-SHA256(secret, timestamp + METHOD + path + body))`
+- `timestamp`: Unix milliseconds
+- GET body = `""`
+- POST body = compact JSON (no spaces)
+
+**Headers (authenticated requests):**
+```
+ACCESS-KEY: <api_key>
+ACCESS-SIGN: <base64 signature>
+ACCESS-PASSPHRASE: <passphrase>
+ACCESS-TIMESTAMP: <unix ms>
+Content-Type: application/json
+locale: en-US
+```
+
+> Python signature implementation: `references/bitget-api-reference.md`
+
+## Operation Flow
+
+### Step 0: Credential Check
+Verify `BITGET_API_KEY`, `BITGET_SECRET_KEY`, `BITGET_PASSPHRASE`. If missing — **STOP**.
+
+### Step 1: Pre-Trade Check (Futures)
+- Query positions: `GET /api/v2/mix/position/all-position?productType=USDT-FUTURES`
+- If position exists → inherit leverage and margin mode, do NOT override
+
+### Step 2: Execute
+- READ → call, parse, display
+- WRITE → present summary → ask **"CONFIRM"** → execute
+
+### Step 3: Verify
+After order → query order status. After close → query positions.
+
+## Quick Reference
+
+| Operation | Method | Path |
+|---|---|---|
+| Spot balances | GET | `/api/v2/spot/account/assets` |
+| Futures account | GET | `/api/v2/mix/account/accounts?productType=USDT-FUTURES` |
+| All balances | GET | `/api/v2/account/all-account-balance` |
+| Place spot order | POST | `/api/v2/spot/trade/place-order` |
+| Cancel spot order | POST | `/api/v2/spot/trade/cancel-order` |
+| Spot open orders | GET | `/api/v2/spot/trade/unfilled-orders` |
+| Place futures order | POST | `/api/v2/mix/order/place-order` |
+| Cancel futures order | POST | `/api/v2/mix/order/cancel-order` |
+| Futures positions | GET | `/api/v2/mix/position/all-position` |
+| Set leverage | POST | `/api/v2/mix/account/set-leverage` |
+| Set margin mode | POST | `/api/v2/mix/account/set-margin-mode` |
+| Spot ticker | GET | `/api/v2/spot/market/tickers` |
+| Futures ticker | GET | `/api/v2/mix/market/ticker` |
+
+## Security
+- WRITE operations require **"CONFIRM"**
+- Always show liquidation price before opening leveraged positions
+- "Not financial advice. Trading carries significant risk of loss."
+
+## References
+- `references/bitget-api-reference.md` — spot + futures endpoints, Python signature
+
+---
+
+# PART 8: Binance Trading
+
+**Spot Base URL:** `https://api.binance.com` | **Futures Base URL:** `https://fapi.binance.com`
+
+**Spot:** `BTCUSDT` | **Futures:** `BTCUSDT` | **Testnet:** `https://testnet.binance.vision` (spot) / `https://demo-fapi.binance.com` (futures)
+
+Full details in `references/binance-api-reference.md`
+
+## Authentication
+
+**Credentials** (from `.env`): `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`
+
+No Binance account? Register at **[https://www.binance.com/](https://www.binance.com/)**
+
+Verify credentials before any private call. If missing — **STOP**.
+
+**Signature:** `HMAC-SHA256(secret, queryString + requestBody)` → hex
+- `timestamp`: Unix milliseconds (always required)
+- `signature` must be the **last** parameter
+
+**Headers:**
+```
+X-MBX-APIKEY: <api_key>
+Content-Type: application/x-www-form-urlencoded   (POST)
+```
+
+> Python signature implementation: `references/binance-api-reference.md`
+
+## Operation Flow
+
+### Step 0: Credential Check
+Verify `BINANCE_API_KEY`, `BINANCE_SECRET_KEY`. If missing — **STOP**. Default to **Mainnet** unless user explicitly requests Testnet.
+
+### Step 1: Pre-Trade Check (Futures)
+- Query positions: `GET /fapi/v2/positionRisk?symbol=<SYMBOL>`
+- If position exists → inherit leverage and margin type, do NOT override
+
+### Step 2: Execute
+- READ → call, parse, display
+- WRITE → present summary → ask **"CONFIRM"** → execute
+
+### Step 3: Verify
+After order → query order status. After close → query positions.
+
+## Quick Reference — Spot
+
+| Operation | Method | Path |
+|---|---|---|
+| Account info | GET | `/api/v3/account` |
+| Place order | POST | `/api/v3/order` |
+| Cancel order | DELETE | `/api/v3/order` |
+| Cancel all | DELETE | `/api/v3/openOrders` |
+| Query order | GET | `/api/v3/order` |
+| Open orders | GET | `/api/v3/openOrders` |
+| Order history | GET | `/api/v3/allOrders` |
+| Trade fills | GET | `/api/v3/myTrades` |
+
+## Quick Reference — USDS-M Futures
+
+| Operation | Method | Path |
+|---|---|---|
+| Account balance | GET | `/fapi/v2/balance` |
+| Account info | GET | `/fapi/v2/account` |
+| Positions | GET | `/fapi/v2/positionRisk` |
+| Place order | POST | `/fapi/v1/order` |
+| Batch place | POST | `/fapi/v1/batchOrders` |
+| Cancel order | DELETE | `/fapi/v1/order` |
+| Cancel all | DELETE | `/fapi/v1/allOpenOrders` |
+| Modify order | PUT | `/fapi/v1/order` |
+| Open orders | GET | `/fapi/v1/openOrders` |
+| Order history | GET | `/fapi/v1/allOrders` |
+| Set leverage | POST | `/fapi/v1/leverage` |
+| Set margin type | POST | `/fapi/v1/marginType` |
+| Set position mode | POST | `/fapi/v1/positionSide/dual` |
+
+## Security
+- WRITE operations require **"CONFIRM"**
+- Always show liquidation price before opening leveraged positions
+- "Not financial advice. Trading carries significant risk of loss."
+
+## References
+- `references/binance-api-reference.md` — spot + futures endpoints, Python signature
+

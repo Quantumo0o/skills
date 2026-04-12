@@ -1,12 +1,15 @@
 # Blave Quant Skill
 
-A skill that gives your agent five capabilities:
+A skill that gives your agent eight capabilities:
 
 1. **Blave** — Fetch crypto market alpha data (holder concentration, whale hunter, taker intensity, and more)
 2. **BitMart Futures** — Trade perpetual futures contracts on BitMart
 3. **BitMart Spot** — Buy and sell spot assets on BitMart
 4. **OKX** — Spot and perpetual swap trading on OKX
 5. **Bybit** — Spot and derivatives/perpetual swap trading on Bybit
+6. **BingX** — Spot and perpetual swap trading on BingX
+7. **Bitget** — Spot and futures trading on Bitget
+8. **Binance** — Spot and USDS-M futures trading on Binance
 
 Official website: [https://blave.org](https://blave.org) | For more details, visit the [Blave Academy](https://blave.notion.site/Blave-Academy-c13a8a9ca8824319baa685a769686ac8)
 
@@ -17,7 +20,7 @@ This skill is **documentation only** — it contains no executable code, scripts
 - All files are plain Markdown (`.md`)
 - No `package.json`, no scripts, no dependencies
 - All API calls are made directly by your agent — this skill only provides the instructions
-- Your API keys stay in your local `.env` file. This skill contains no executable code and does not transmit keys itself — however, following the instructions will cause your agent to send keys to Blave, BitMart, OKX, and Bybit APIs when making calls. We recommend using API keys with minimum required permissions and enabling IP whitelisting where possible.
+- Your API keys stay in your local `.env` file. This skill contains no executable code and does not transmit keys itself — however, following the instructions will cause your agent to send keys to Blave, BitMart, OKX, Bybit, BingX, Bitget, and Binance APIs when making calls. We recommend using API keys with minimum required permissions and enabling IP whitelisting where possible.
 - API request signing (HMAC-SHA256) is performed by your agent in code — the reference docs include `openssl`/`curl` shell examples for illustration only. No local shell tools are required by this skill.
 
 You can inspect the full source at: [https://github.com/Blave-TW/blave-quant-skill](https://github.com/Blave-TW/blave-quant-skill)
@@ -140,6 +143,56 @@ BYBIT_API_SECRET=YOUR_API_SECRET
 
 ---
 
+### BingX API
+
+#### 1. Create Your BingX API Key
+
+1. Register at **[https://bingxdao.com/invite/SU0SEU/](https://bingxdao.com/invite/SU0SEU/)** (if you don't have an account)
+2. Go to **Account → API Management**:
+   👉 [https://bingx.com/en/account/api](https://bingx.com/en/account/api)
+3. Click **Create API Key**
+4. Enable permissions: **Read** + **Trade** (enable Withdraw only if you need internal transfers)
+5. Save your credentials:
+   - **API Key**
+   - **Secret Key** (shown only once — save it immediately)
+
+#### 2. Add BingX Credentials
+
+Add the following to your `.env` file:
+
+```
+BINGX_API_KEY=YOUR_API_KEY
+BINGX_SECRET_KEY=YOUR_SECRET_KEY
+```
+
+---
+
+### Bitget API
+
+#### 1. Create Your Bitget API Key
+
+1. Register at **[https://www.bitget.com/](https://www.bitget.com/)** (if you don't have an account)
+2. Go to **Account → API Management**
+3. Click **Create API Key**
+4. Set a **Passphrase** (required for signing requests)
+5. Enable permissions: **Read** + **Trade** (do NOT enable Withdraw)
+6. Save your credentials:
+   - **API Key**
+   - **Secret Key** (shown only once — save it immediately)
+   - **Passphrase** (the one you just set)
+
+#### 2. Add Bitget Credentials
+
+Add the following to your `.env` file:
+
+```
+BITGET_API_KEY=YOUR_API_KEY
+BITGET_SECRET_KEY=YOUR_SECRET_KEY
+BITGET_PASSPHRASE=YOUR_PASSPHRASE
+```
+
+---
+
 ## Usage Examples
 
 ### Blave Market Data
@@ -205,6 +258,77 @@ BYBIT_API_SECRET=YOUR_API_SECRET
 - "用 OKX 開 BTC 永續合約 10 倍槓桿多單"
 - "查看我的 OKX 帳戶餘額"
 - "幫我的 OKX BTC 永續倉位設定止盈 100000、止損 90000"
+
+---
+
+### BingX
+
+- "Buy 50 USDT worth of BTC on BingX spot"
+- "Open a long position on BTC-USDT with 10x leverage on BingX"
+- "Check my BingX account balance (fund, spot, and swap)"
+- "Place a TWAP order to buy 0.1 BTC over 30 minutes on BingX"
+
+---
+
+- "用 BingX 現貨買 50 USDT 的 BTC"
+- "用 BingX 開 BTC-USDT 永續合約 10 倍槓桿多單"
+- "查看我的 BingX 帳戶餘額（資金、現貨、合約）"
+- "用 BingX 的 TWAP 分批買入 0.1 BTC，30 分鐘內完成"
+
+---
+
+### Bitget
+
+- "Buy 100 USDT worth of BTC on Bitget spot"
+- "Open a long BTCUSDT futures position with 10x leverage on Bitget"
+- "Check my Bitget account balance"
+- "Show my Bitget futures positions"
+
+---
+
+- "用 Bitget 現貨買 100 USDT 的 BTC"
+- "用 Bitget 開 BTCUSDT 合約 10 倍槓桿多單"
+- "查看我的 Bitget 帳戶餘額"
+- "查看我的 Bitget 合約倉位"
+
+---
+
+### Binance
+
+- "Buy 100 USDT worth of BTC on Binance spot"
+- "Open a long BTCUSDT futures position with 10x leverage on Binance"
+- "Check my Binance account balance"
+- "Set take profit and stop loss for my Binance BTC futures position"
+
+---
+
+- "用 Binance 現貨買 100 USDT 的 BTC"
+- "用 Binance 開 BTCUSDT 合約 10 倍槓桿多單"
+- "查看我的 Binance 帳戶餘額"
+- "幫我的 Binance BTC 合約倉位設定止盈止損"
+
+---
+
+### Binance API Setup
+
+#### 1. Create Your Binance API Key
+
+1. Register at **[https://www.binance.com/](https://www.binance.com/)** (if you don't have an account)
+2. Go to **Account → API Management**
+3. Click **Create API**
+4. Enable permissions: **Enable Reading** + **Enable Spot & Margin Trading** + **Enable Futures** (do NOT enable Withdraw)
+5. Save your credentials:
+   - **API Key**
+   - **Secret Key** (shown only once — save it immediately)
+
+#### 2. Add Binance Credentials
+
+Add the following to your `.env` file:
+
+```
+BINANCE_API_KEY=YOUR_API_KEY
+BINANCE_SECRET_KEY=YOUR_SECRET_KEY
+```
 
 ---
 
