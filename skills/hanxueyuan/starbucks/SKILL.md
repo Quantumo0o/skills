@@ -1,56 +1,127 @@
 ---
 name: starbucks
-description: "Information assistant for Starbucks. Search products, news, financials, and official resources for Starbucks."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","starbucks","enterprise-info"] } }
+description: 星巴克品牌介绍和购物指南
+version: 1.0.0
+tags: [brand, coffee, restaurant, starbucks]
 ---
 
-# Starbucks — Information Assistant
+# 星巴克 (Starbucks)
 
-Query products, news, stock prices, financial reports, and official resources for **Starbucks**.
+全球最大咖啡连锁品牌。
 
-## About
+## 品牌简介
 
-- **Company**: Starbucks
-- **Industry**: Coffee chain
-- **Official Website**: https://www.starbucks.com
+- **成立时间**: 1971 年
+- **总部**: 美国西雅图
+- **创始人**: 杰瑞·鲍德温等
+- **行业**: 咖啡连锁
+- **官网**: https://www.starbucks.com
+- **门店数**: 全球超过 35,000 家
 
-## What This Skill Does
+## 核心产品
 
-When activated, this skill helps you:
+### 咖啡饮品
+- **经典咖啡**
+  - 美式咖啡 (Caffè Americano)
+  - 拿铁 (Caffè Latte)
+  - 卡布奇诺 (Cappuccino)
+  - 摩卡 (Caffè Mocha)
+  - 馥芮白 (Flat White)
 
-1. **Product Search** — Find and compare Starbucks products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
+- **特色饮品**
+  - 星冰乐 (Frappuccino)
+  - 冷萃咖啡 (Cold Brew)
+  - 气致冷萃 (Nitro Cold Brew)
+  - 季节限定饮品
 
-## Usage Examples
+### 非咖啡饮品
+- 茶瓦纳系列 (Teavana)
+- 热巧克力
+- 果汁
+- 牛奶
 
-- "What are the latest Starbucks products?"
-- "Show me Starbucks stock price"
-- "Compare Starbucks with competitors"
-- "Find Starbucks official support page"
-- "What's new at Starbucks?"
+### 食品
+- 糕点（可颂、蛋糕）
+- 三明治
+- 沙拉
+- 零食
 
-## How It Works
+### 咖啡豆
+- 现磨咖啡豆
+- 胶囊咖啡
+- 挂耳咖啡
 
-This skill uses web search to fetch real-time information about Starbucks from:
-- Official website: https://www.starbucks.com
-- Financial data providers
-- News aggregators
-- Product databases
+## 品牌特色
 
-## Instructions for Agent
+### 第三空间
+- 家庭和工作之外的舒适社交空间
+- 免费 WiFi
+- 舒适座椅
+- 音乐氛围
 
-When this skill is triggered:
-1. Identify the user's specific query about Starbucks
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.starbucks.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
+### 定制化
+- 多种杯型（中杯/大杯/超大杯）
+- 牛奶选择（全脂/脱脂/燕麦奶/豆奶）
+- 糖浆添加（香草/焦糖/榛果）
+- 浓缩份数调整
 
-## Author
+### 社会责任
+- 道德采购咖啡豆
+- 环保举措
+- 社区参与
+- 员工福利
 
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+## 星享俱乐部
+
+### 会员等级
+- **玉星会员** - 注册即享
+- **金星会员** - 累积 4 颗星升级
+
+### 会员权益
+- 星星累积（消费 1 元=1 星）
+- 免费饮品券
+- 生日礼包
+- 专属优惠
+- 优先尝鲜
+
+### 星星兑换
+- 50 星：中杯饮品
+- 100 星：大杯饮品 + 食品
+- 150 星：超大杯饮品 + 食品
+- 200 星：咖啡豆/周边
+
+## 季节限定
+
+### 春季
+- 樱花系列
+- 抹茶系列
+
+### 夏季
+- 冰摇系列
+- 水果星冰乐
+
+### 秋季
+- 南瓜拿铁 (Pumpkin Spice Latte)
+- 太妃榛果系列
+
+### 冬季
+- 太妃榛果拿铁
+- 节日限定杯
+
+## 常见问题
+
+### Q1: 星享俱乐部如何升级？
+A: 累积 4 颗星星即可升级金星会员。
+
+### Q2: 星星如何获取？
+A: 消费 1 元=1 星，使用星礼卡支付双倍星星。
+
+### Q3: 可以自带杯子吗？
+A: 可以，自带杯子可减免 4 元。
+
+### Q4: 饮品可以调整甜度吗？
+A: 可以，可选择标准/半糖/少糖/无糖。
+
+---
+
+**技能用途**: 提供星巴克品牌介绍、产品信息、会员权益、季节限定、门店查询等服务。
