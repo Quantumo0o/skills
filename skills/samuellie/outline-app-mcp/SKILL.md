@@ -1,8 +1,8 @@
 ---
 name: outline-app-mcp
-description: Model Context Protocol (MCP) bridge for Outline (getoutline.com). Enables AI agents to search, read, create, and manage documents, collections, and comments in an Outline workspace via SSE transport.
+description: Model Context Protocol (MCP) bridge for Outline (getoutline.com). Enables AI agents to search, read, create, and manage documents, collections, and comments in an Outline workspace via SSE transport. Includes local filesystem access for bulk file/media uploads to Outline.
 metadata:
-  version: "1.3.2"
+  version: "1.3.4"
   platform: Outline
   author: Tinker
   transport: Streamable HTTP (SSE)
@@ -26,6 +26,14 @@ metadata:
 # Outline MCP Skill
 
 This skill provides a high-fidelity bridge between OpenClaw and an Outline workspace. It utilizes the **Model Context Protocol (MCP) v1.0.0** to dynamically expose Outline's internal documentation tools to AI agents.
+
+## ⚠️ Security & Permissions Warning
+
+**Host Filesystem Access:**
+The `upload` (in `mcp_bridge.mjs`) and `bulk-sync` (in `bulk_sync.mjs`) tools require access to the local host filesystem. These scripts use `fs.readFileSync` to read files from **arbitrary absolute paths** provided by the agent and upload them to the configured Outline workspace.
+- **Risk:** If an agent is compromised or misconfigured, it could potentially exfiltrate sensitive local files by providing their absolute paths to these tools.
+- **Scope:** Access is limited to the permissions of the user running the OpenClaw process.
+- **Recommendation:** Only enable this skill in trusted environments and monitor agent logs for unexpected file access patterns.
 
 ## 📋 Prerequisites
 

@@ -1,13 +1,18 @@
 {
   "owner": "samuellie",
   "slug": "outline-app-mcp",
-  "displayName": "Outline MCP Bridge",
+  "displayName": "Outline MCP",
   "latest": {
-    "version": "1.3.2",
-    "publishedAt": 1775015999623,
-    "commit": "https://github.com/openclaw/skills/commit/867d15356d09a8f0072c2b02c6cb8c8df7992582"
+    "version": "1.3.4",
+    "publishedAt": 1775534828508,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.2",
+      "publishedAt": 1775015999623,
+      "commit": "https://github.com/openclaw/skills/commit/867d15356d09a8f0072c2b02c6cb8c8df7992582"
+    },
     {
       "version": "1.3.0",
       "publishedAt": 1774473312034,
