@@ -1,13 +1,18 @@
 {
   "owner": "sealawyer2026",
   "slug": "zhang-constitution",
-  "displayName": "九章-宪法专家",
+  "displayName": "Zhang Constitution",
   "latest": {
-    "version": "1.5.0",
-    "publishedAt": 1775098605008,
-    "commit": "https://github.com/openclaw/skills/commit/8bc41f0cca0d2d6698f82e98531d036d2739415f"
+    "version": "1.0.0",
+    "publishedAt": 1775484111135,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.0",
+      "publishedAt": 1775098605008,
+      "commit": "https://github.com/openclaw/skills/commit/8bc41f0cca0d2d6698f82e98531d036d2739415f"
+    },
     {
       "version": "1.4.0",
       "publishedAt": 1774502289964,
