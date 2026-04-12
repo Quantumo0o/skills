@@ -3,9 +3,15 @@
   "slug": "tigerbrokers",
   "displayName": "Tigerbrokers",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774157141128,
-    "commit": "https://github.com/openclaw/skills/commit/965a4886d893a9c2a9eb373222f2a22748780d7c"
+    "version": "1.0.1",
+    "publishedAt": 1775571607325,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774157141128,
+      "commit": "https://github.com/openclaw/skills/commit/965a4886d893a9c2a9eb373222f2a22748780d7c"
+    }
+  ]
 }
