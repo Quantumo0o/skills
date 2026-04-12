@@ -30,7 +30,7 @@ SEARCH_QUERIES = [
 ]
 
 
-from extract_profile import load_api_config, call_llm_api
+from extract_profile import call_llm_api
 
 
 def prosearch(keyword: str, count: int = 10) -> dict:

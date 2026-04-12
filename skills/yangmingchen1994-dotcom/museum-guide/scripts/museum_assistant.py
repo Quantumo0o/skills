@@ -179,6 +179,8 @@ def main() -> None:
                         help="运行 Phase 2（需配合 --profile-json）")
     parser.add_argument("--profile-json", dest="profile_json",
                         help="Phase 2 所需 profile JSON（Phase 1 返回的完整 JSON）")
+    parser.add_argument("--profile-file", dest="profile_file",
+                        help="Phase 2 所需 profile JSON 文件路径（替代 --profile-json）")
     parser.add_argument("--user-confirmation", dest="user_confirmation", default="",
                         help="用户的补充信息（Phase 2 使用）")
 
@@ -186,7 +188,7 @@ def main() -> None:
     args = parser.parse_args()
 
     # ── Phase 1 ───────────────────────────────
-    if not args.phase2 and not getattr(args, "profile_json", None):
+    if not args.phase2 and not getattr(args, "profile_json", None) and not getattr(args, "profile_file", None):
         user_input = " ".join(args.user_input).strip()
         if not user_input:
             print(json.dumps({"error": "请提供用户输入文本"}, ensure_ascii=False))
@@ -201,18 +203,35 @@ def main() -> None:
         return
 
     # ── Phase 2 ────────────────────────────────────────────
-    if args.phase2 or getattr(args, "profile_json", None):
-        if not getattr(args, "profile_json", None):
+    if args.phase2 or getattr(args, "profile_json", None) or getattr(args, "profile_file", None):
+        # 优先从文件读取profile
+        if getattr(args, "profile_file", None):
+            try:
+                with open(args.profile_file, 'r', encoding='utf-8') as f:
+                    profile = json.load(f)
+            except Exception as e:
+                print(json.dumps({"error": f"从文件读取 profile 失败：{e}", "phase": 2}, ensure_ascii=False))
+                sys.exit(1)
+        elif getattr(args, "profile_json", None):
+            try:
+                # 处理可能的引号问题，去除首尾的单引号或双引号
+                profile_json = args.profile_json
+                if (profile_json.startswith('\'') and profile_json.endswith('\'')) or \
+                   (profile_json.startswith('"') and profile_json.endswith('"')):
+                    profile_json = profile_json[1:-1]
+                # 处理转义字符问题
+                profile_json = profile_json.replace('\\n', '\n').replace('\\t', '\t')
+                profile = json.loads(profile_json)
+            except json.JSONDecodeError as e:
+                print(json.dumps({"error": f"profile JSON 解析失败：{e}", "phase": 2}, ensure_ascii=False))
+                sys.exit(1)
+        else:
             print(json.dumps({
-                "error": "Phase 2 需要 --profile-json 参数，请先运行 Phase 1 获取 profile。",
+                "error": "Phase 2 需要 --profile-json 或 --profile-file 参数，请先运行 Phase 1 获取 profile。",
                 "phase": 2,
             }, ensure_ascii=False))
             sys.exit(1)
-        try:
-            profile = json.loads(args.profile_json)
-        except json.JSONDecodeError as e:
-            print(json.dumps({"error": f"profile JSON 解析失败：{e}", "phase": 2}, ensure_ascii=False))
-            sys.exit(1)
+        
         # 获取用户补充信息
         user_confirmation = getattr(args, "user_confirmation", "")
         result = run_phase2(profile, user_confirmation)

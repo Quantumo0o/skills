@@ -8,7 +8,8 @@ import random
 import sys
 from typing import List, Dict, Any
 from collections import defaultdict
-from extract_profile import load_api_config, call_llm_api
+
+from extract_profile import call_llm_api
 
 
 def normalize_profile(profile: Dict[str, Any]) -> Dict[str, Any]:
@@ -122,41 +123,94 @@ def select_and_sort(artifacts: List[Dict[str, Any]], profile: Dict[str, Any]) ->
     # 按得分降序排序
     scored_artifacts.sort(key=lambda x: -x[1])
     
-    # 根据参观时长选择数量
+    # 根据参观时长确定目标数量
     duration = profile["duration"]
     if duration == "2-3小时":
-        count = min(15, len(scored_artifacts))
+        target_n = 15
     elif duration == "4-5小时":
-        count = min(25, len(scored_artifacts))
+        target_n = 25
     else:
-        count = min(15, len(scored_artifacts))
-    
-    selected = []
-    for artifact, score in scored_artifacts:
-        if len(selected) >= count:
-            break
-        selected.append(artifact)
+        target_n = 15
 
-    # 优先按照 visit_order 排序（如果有），然后按照展馆排序（如果有），最后按照时期顺序排序
+    # 分数阈值
+    score_threshold = 4.5
+    
+    # 高于阈值的文物
+    high_score_items = [(a, s) for a, s in scored_artifacts if s >= score_threshold]
+    high_score_items.sort(key=lambda x: -x[1])
+    len_high_score = len(high_score_items)
+    
+    output_items = []
+    used_names = set()
+    
+    if len_high_score >= target_n:
+        # 得分去重降序，取倒数第二小的分数
+        unique_scores = sorted(set(s for _, s in high_score_items), reverse=True)
+        if len(unique_scores) >= 2:
+            second_lowest_score = unique_scores[-2]
+        else:
+            second_lowest_score = unique_scores[0]
+        
+        above_second = [(a, s) for a, s in high_score_items if s > second_lowest_score]
+        num_above = len(above_second)
+        
+        equals_second = [(a, s) for a, s in scored_artifacts if s == second_lowest_score]
+        num_needed = target_n - num_above
+        
+        if num_needed > 0:
+            sample_size = min(num_needed, len(equals_second))
+            sampled = random.sample(equals_second, sample_size) if equals_second else []
+            output_items = above_second + sampled
+        else:
+            output_items = above_second
+    else:
+        output_items = high_score_items
+    
+    # 去重（按文物名称）
+    output_list = []
+    for artifact, score in output_items:
+        name = artifact.get("name", "")
+        if name not in used_names:
+            output_list.append(artifact)
+            used_names.add(name)
+    
+    current_n = len(output_list)
+    
+    # 如果不够 target_n，继续补充更低分数的文物
+    if current_n < target_n:
+        all_scores = sorted(set(s for _, s in scored_artifacts), reverse=True)
+        for score in all_scores:
+            if score <= score_threshold or len_high_score < target_n:
+                candidates = [(a, s) for a, s in scored_artifacts if s == score and a.get("name", "") not in used_names]
+                num_left = target_n - current_n
+                if candidates:
+                    sample_size = min(num_left, len(candidates))
+                    sampled = random.sample(candidates, sample_size)
+                    for artifact, _ in sampled:
+                        name = artifact.get("name", "")
+                        if name not in used_names:
+                            output_list.append(artifact)
+                            used_names.add(name)
+                            current_n += 1
+                if current_n >= target_n:
+                    break
+    
+    # 按 visit_order > hall > period 排序
     period_order = ["远古时期","夏商西周","春秋战国","秦汉","三国两晋南北朝","隋唐五代","辽宋夏金元","明清"]
     
     def sort_key(artifact):
-        # 优先按 visit_order 排序
         if "visit_order" in artifact:
             return (0, artifact["visit_order"])
-        # 然后按展馆排序
         hall = artifact.get("hall", "")
         if hall and hall not in ("待确认", "unknown", ""):
             return (1, hall, period_order.index(artifact.get("period", "")) if artifact.get("period", "") in period_order else 99)
-        # 最后按时期排序
         period = artifact.get("period", "")
         period_index = period_order.index(period) if period in period_order else 99
         return (2, period_index)
     
-    # 排序最终选择的文物
-    final_order = sorted(selected, key=sort_key)
+    output_list = sorted(output_list, key=sort_key)
 
-    return final_order
+    return output_list
 
 
 def summarize_reasons_with_llm(artifacts: List[Dict[str, Any]], profile: Dict[str, Any]) -> List[Dict[str, Any]]:

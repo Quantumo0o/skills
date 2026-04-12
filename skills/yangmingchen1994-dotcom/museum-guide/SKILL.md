@@ -164,10 +164,21 @@ python3 scripts/museum_assistant.py "帮我规划国博的参观路线"
 
 ### Phase 2：用户确认后，生成路线
 
-用户确认后，将 Phase 1 返回的 `profile` JSON 作为参数传入 Phase 2：
+用户确认后，有两种方式运行 Phase 2：
+
+**方式 1：使用 --profile-json 参数**（适用于 Mac/Linux 系统）
 
 ```bash
 python3 scripts/museum_assistant.py --phase2 --profile-json '<profile JSON>'
+```
+
+**方式 2：使用 --profile-file 参数**（适用于所有系统，特别是 Windows 系统）
+
+1. 将 Phase 1 返回的 `profile` JSON 保存到文件中，例如 `profile.json`
+2. 运行命令：
+
+```bash
+python3 scripts/museum_assistant.py --phase2 --profile-file profile.json
 ```
 
 ### ❌ 禁止行为

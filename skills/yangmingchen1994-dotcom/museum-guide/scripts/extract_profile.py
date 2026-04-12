@@ -12,27 +12,31 @@ from typing import Dict, Optional, List
 
 def load_api_config() -> dict:
     """从配置文件加载大模型配置"""
+    from pathlib import Path
+    import json
 
     config_path = Path(__file__).parent / "config.json"
     if config_path.exists():
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
 
+        api_key = config.get("API_KEY", "")
         api_base = config.get("API_BASE", "")
-        if api_base and not api_base.endswith("/chat/completions"):
-            api_base = f"{api_base.rstrip('/')}/chat/completions"
+        model_name = config.get("MODEL_NAME", "")
+        
+        if api_key and api_base and model_name:
+            if not api_base.endswith("/chat/completions"):
+                api_base = f"{api_base.rstrip('/')}/chat/completions"
 
-        return {
-            "api_key": config.get("API_KEY", ""),
-            "api_base": api_base,
-            "model": config.get("MODEL_NAME", ""),
-            "provider": "config",
-            "api_type": "openai-completions"
-        }
-
-    raise ValueError("未配置 API Key，请在 scripts/config.json 中配置")
-
-API_CONFIG = load_api_config()
+            return {
+                "api_key": api_key,
+                "api_base": api_base,
+                "model": model_name,
+                "provider": "config",
+                "api_type": "openai-completions"
+            }
+    
+    return None
 
 # 完整的可选列表
 DOMAINS_LIST = ["农耕", "狩猎", "饮食", "建筑", "人物", "武器", "文房四宝", "牌章证件", "货币", "书法", "绘画", "雕像", "服装", "饰品", "仪器", "佛教", "乐器", "纹饰", "花瓶", "礼制", "古生物", "新石器", "旧石器", "陈设品", "科技", "其他"]
@@ -129,13 +133,17 @@ def is_specialty_museum(museum_name: str) -> bool:
 
 def call_llm_api(prompt: str) -> Dict:
     """调用大模型API获取提取结果"""
+    config = load_api_config()
+    if not config:
+        return {"error": "未配置 API Key，请在 scripts/config.json 中配置"}
+    
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {API_CONFIG['api_key']}"
+        "Authorization": f"Bearer {config['api_key']}"
     }
 
     data = {
-        "model": API_CONFIG['model'],
+        "model": config['model'],
         "messages": [
             {"role": "user", "content": prompt}
         ],
@@ -145,7 +153,7 @@ def call_llm_api(prompt: str) -> Dict:
     }
 
     try:
-        response = requests.post(API_CONFIG['api_base'], headers=headers, json=data, timeout=120)
+        response = requests.post(config['api_base'], headers=headers, json=data, timeout=120)
         response.raise_for_status()
         result = response.json()
 
