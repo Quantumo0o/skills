@@ -1,16 +1,20 @@
 ---
 name: auto-subtitle-generator
-version: "1.1.1"
+version: 1.1.4
 displayName: "Auto Subtitle Generator - AI Captions Translation and SRT Export"
 description: >
-  Subtitle generator with auto transcribe — drop any video and get accurate subtitles with
-  word-level timing in seconds. Translates into 50+ languages for multilingual captions,
-  burns hardcoded text directly onto footage, or exports clean SRT and VTT files. Runs
-  speech to text video transcription in chat: timing sync, font and position styling, then
-  burn or export. Generates closed captions, auto captions for TikTok, YouTube subtitles,
-  and Reels accessibility captions — no timeline editing, just describe what you need.
-  Supports mp4, mov, avi, webm, mkv.
-metadata: {"openclaw": {"emoji": "💬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+  Drop a video into the chat and this skill handles the rest — transcribing speech, syncing
+  word-level timestamps, and delivering ready-to-use subtitle files in seconds. From there,
+  you can translate captions into any of 50+ languages, style the text with custom fonts and
+  positioning, burn subtitles directly into the video, or export SRT and VTT files for use
+  elsewhere. Works across common formats including mp4, mov, avi, webm, and mkv. Whether
+  you're producing YouTube videos, TikTok clips, Reels, or any content that needs closed
+  captions or accessibility text, just describe what you want and the skill takes care of
+  the timeline work for you.
+metadata: {"openclaw": {"emoji": "💬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
+apiDomain: https://mega-api-prod.nemovideo.ai
 ---
 
 ## 0. First Contact
@@ -24,7 +28,7 @@ When the user opens this skill or sends their first message, **greet them immedi
 - "add subtitles in Spanish"
 - "generate captions automatically"
 
-**IMPORTANT**: Do NOT wait silently. Always greet the user proactively on first contact.
+**IMPORTANT**: Always greet the user proactively on first contact. Let them know you're setting up while connecting. Always greet the user proactively on first contact.
 
 ### Auto-Setup
 
@@ -74,7 +78,7 @@ Token setup — if `NEMO_TOKEN` is not set:
 CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
 if [ -z "$CLIENT_ID" ]; then
   CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
+  mkdir -p ~/.config/nemovideo & echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
 fi
 curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
 ```
@@ -94,7 +98,7 @@ Every request is interpreted through the subtitle workflow:
 | "fix subtitle at 0:23" / "timing is off" | → §3.1 SSE | Edits specific segment |
 | "change subtitle font" / "make text bigger" | → §3.1 SSE | Caption style adjustment |
 | "download video" / "export with subtitles" | → §3.5 Render | Video export with burned captions |
-| "upload" / user sends a file | → §3.2 Upload | Then ask: "Generate subtitles for this?" |
+| "upload" / user sends a file | → §3.2 Upload | Then ask: "Generate subtitles for this" |
 | "credits" / "how many left" | → §3.3 Credits | Balance check |
 
 **On upload**: Always suggest subtitle generation after receiving a video file.
@@ -117,7 +121,7 @@ curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
   -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
   -d '{"task_name":"subtitle_generation","language":"<lang>"}'
 ```
-Save `session_id` and `task_id`. Browser link: `$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+Save `session_id` and `task_id`. Browser link: `$WEB/workspace/claim?task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
 
 ### 3.1 Send Message (SSE)
 ```bash
