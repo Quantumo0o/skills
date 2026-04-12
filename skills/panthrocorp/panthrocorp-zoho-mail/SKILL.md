@@ -1,7 +1,7 @@
 ---
 name: Zoho Mail
 description: Full read/write Zoho Mail access for OpenClaw agents
-version: 0.1.0
+version: 0.3.0
 author: panthrocorp
 license: MIT-0
 metadata:
@@ -21,6 +21,19 @@ metadata:
 # Zoho Mail Skill
 
 Full read/write access to a Zoho Mail account (EU data centre).
+
+## Installation
+
+Download the latest release binary for linux/arm64 and install to `~/.openclaw/bin/`:
+
+```bash
+TAG=$(curl -fsSL "https://api.github.com/repos/PanthroCorp-Limited/openclaw-skills/releases" \
+  | grep -o '"tag_name":"zoho-mail/v[^"]*"' | head -1 | cut -d'"' -f4)
+VERSION=${TAG#zoho-mail/v}
+curl -fsSL "https://github.com/PanthroCorp-Limited/openclaw-skills/releases/download/${TAG}/zoho-mail_${VERSION}_linux_arm64.tar.gz" \
+  | tar -xz -C ~/.openclaw/bin/ zoho-mail
+chmod +x ~/.openclaw/bin/zoho-mail
+```
 
 ## Important
 
