@@ -27,6 +27,39 @@ from car_cli.models.car import Car, CarDetail
 _log = get_logger("che168.parser")
 
 
+# ── Series extraction ──────────────────────────────────────────
+
+
+def extract_series_list(html: str, brand_slug: str) -> list[dict[str, str]]:
+    """Extract available series from a brand-filtered listing page.
+
+    Returns list of {"series_slug": "baoma3xi", "series_name": "宝马3系"}.
+    Series links live in the filter bar as:
+        <a href="/{city}/{brand}/{series}/#pvareaid=...">宝马3系</a>
+    """
+    result: list[dict[str, str]] = []
+    seen: set[str] = set()
+
+    # Match links under the brand path; href may contain #fragment anchors
+    pattern = re.compile(
+        rf'href="/[^/]+/{re.escape(brand_slug)}/([^/#"]+)/?[^"]*"[^>]*>([^<]+)</a>',
+        re.IGNORECASE,
+    )
+    for m in pattern.finditer(html):
+        slug = m.group(1).strip()
+        name = _clean(m.group(2))
+        if not slug or not name or slug in seen:
+            continue
+        # Skip non-series links (pagination, price filters, etc.)
+        if re.match(r'^a\d+_', slug) or slug in ("list",):
+            continue
+        seen.add(slug)
+        result.append({"series_slug": slug, "series_name": name})
+
+    _log.debug("extracted %d series for brand_slug=%s", len(result), brand_slug)
+    return result
+
+
 # ── List page parsing ──────────────────────────────────────────
 
 

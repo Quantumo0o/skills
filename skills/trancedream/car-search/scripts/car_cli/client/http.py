@@ -166,6 +166,68 @@ class HttpClient:
         _log.debug("GET failed after %s attempts: %s", MAX_RETRIES, last_exc)
         raise last_exc  # type: ignore[misc]
 
+    async def post(self, url: str, **kwargs) -> httpx.Response:
+        """POST with jitter delay, burst detection, and exponential backoff retry."""
+        if not url.startswith("http"):
+            url = self._base_url.rstrip("/") + "/" + url.lstrip("/")
+
+        _log.debug(
+            "POST %s content_type=%s",
+            url,
+            kwargs.get("headers", {}).get("Content-Type", "auto"),
+        )
+
+        await self._jitter_delay()
+
+        last_exc = None
+        t0 = time.perf_counter()
+        for attempt in range(MAX_RETRIES):
+            try:
+                resp = await self._client.post(url, **kwargs)
+                elapsed = time.perf_counter() - t0
+                if resp.status_code == 429 or resp.status_code >= 500:
+                    wait = min(BACKOFF_BASE * (2**attempt), BACKOFF_CAP)
+                    _log.debug(
+                        "response status=%s attempt=%s/%s wait=%.1fs elapsed=%.2fs",
+                        resp.status_code,
+                        attempt + 1,
+                        MAX_RETRIES,
+                        wait,
+                        elapsed,
+                    )
+                    if resp.status_code == 429:
+                        HttpClient._base_delay_multiplier = min(
+                            HttpClient._base_delay_multiplier * 2, 8.0
+                        )
+                    await asyncio.sleep(wait)
+                    last_exc = httpx.HTTPStatusError(
+                        f"HTTP {resp.status_code}",
+                        request=resp.request,
+                        response=resp,
+                    )
+                    continue
+                resp.raise_for_status()
+                _log.debug(
+                    "response status=%s bytes=%s elapsed=%.2fs",
+                    resp.status_code,
+                    len(resp.content),
+                    elapsed,
+                )
+                if _log.isEnabledFor(logging.DEBUG) and resp.text:
+                    preview = resp.text[:400].replace("\n", " ")
+                    _log.debug("body preview: %s%s", preview, "…" if len(resp.text) > 400 else "")
+                return resp
+            except httpx.HTTPStatusError:
+                raise
+            except httpx.HTTPError as e:
+                _log.debug("HTTPError attempt=%s: %s", attempt + 1, e)
+                last_exc = e
+                wait = min(BACKOFF_BASE * (2**attempt), BACKOFF_CAP)
+                await asyncio.sleep(wait)
+
+        _log.debug("POST failed after %s attempts: %s", MAX_RETRIES, last_exc)
+        raise last_exc  # type: ignore[misc]
+
     async def close(self):
         await self._client.aclose()
 

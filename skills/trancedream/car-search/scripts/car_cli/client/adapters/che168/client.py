@@ -18,7 +18,7 @@ from car_cli.client.base import BaseClient
 from car_cli.client.http import HttpClient
 from car_cli.client.adapters.che168.brands import get_brand_slug
 from car_cli.client.adapters.che168.cities import get_city_slug
-from car_cli.client.adapters.che168.parser import parse_list, parse_detail
+from car_cli.client.adapters.che168.parser import parse_list, parse_detail, extract_series_list
 from car_cli.logging_config import get_logger
 from car_cli.models.car import Car, CarDetail
 from car_cli.models.filter import SearchFilter
@@ -104,7 +104,70 @@ class Che168Client(BaseClient):
 
     platform_name = "che168"
 
-    def _build_list_url(self, filters: SearchFilter) -> str:
+    async def list_series(self, brand: str) -> list[dict[str, str]]:
+        """Fetch series list for a brand from che168 brand listing page."""
+        brand_slug = get_brand_slug(brand)
+        if not brand_slug:
+            return []
+
+        city_slug = "china"
+        url = f"https://www.che168.com/{city_slug}/{brand_slug}/"
+        referer = "https://www.che168.com/"
+
+        _log.debug("fetching series for brand=%s slug=%s", brand, brand_slug)
+        html = await self._fetch_with_cookie_challenge(url, referer)
+
+        series_list = extract_series_list(html, brand_slug)
+        # Normalize to standard {"series_id", "series_name"} format
+        return [
+            {"series_id": s["series_slug"], "series_name": s["series_name"]}
+            for s in series_list
+        ]
+
+    async def _resolve_series_slug(
+        self, brand: str, series: str
+    ) -> str | None:
+        """Match a series name to its che168 URL slug via list_series."""
+        brand_slug = get_brand_slug(brand)
+        if not brand_slug:
+            return None
+
+        url = f"https://www.che168.com/china/{brand_slug}/"
+        referer = "https://www.che168.com/"
+
+        _log.debug("resolving series slug for brand=%s series=%s", brand, series)
+        html = await self._fetch_with_cookie_challenge(url, referer)
+        series_list = extract_series_list(html, brand_slug)
+
+        if not series_list:
+            _log.debug("no series data found for brand=%s", brand)
+            return None
+
+        _log.debug(
+            "available series: %s",
+            [s["series_name"] for s in series_list[:20]],
+        )
+
+        for s in series_list:
+            if s["series_name"] == series:
+                _log.debug("series exact match: %s -> %s", series, s["series_slug"])
+                return s["series_slug"]
+
+        for s in series_list:
+            sname = s["series_name"]
+            if series in sname or sname in series:
+                _log.debug(
+                    "series fuzzy match: %s -> %s (%s)",
+                    series, s["series_slug"], sname,
+                )
+                return s["series_slug"]
+
+        _log.debug("no series match for %r", series)
+        return None
+
+    def _build_list_url(
+        self, filters: SearchFilter, series_slug: str = ""
+    ) -> str:
         city_slug = get_city_slug(filters.city)
 
         # Base path
@@ -116,6 +179,11 @@ class Che168Client(BaseClient):
             if brand_slug:
                 parts.append(brand_slug)
                 _log.debug("brand %r -> slug %s", filters.brand, brand_slug)
+
+                # Series slug appended after brand
+                if series_slug:
+                    parts.append(series_slug)
+                    _log.debug("series slug=%s", series_slug)
 
         # Build URL base
         base = f"https://www.che168.com/{'/'.join(parts)}/"
@@ -188,7 +256,23 @@ class Che168Client(BaseClient):
             return resp2.text
 
     async def search(self, filters: SearchFilter) -> list[Car]:
-        url = self._build_list_url(filters)
+        # Resolve series name to slug if both brand and series are specified
+        series_slug = ""
+        if filters.series and filters.brand:
+            series_slug = await self._resolve_series_slug(
+                filters.brand, filters.series
+            ) or ""
+            if series_slug:
+                _log.debug(
+                    "series %r resolved to slug %s", filters.series, series_slug
+                )
+            else:
+                _log.debug(
+                    "series %r not resolved, searching without series filter",
+                    filters.series,
+                )
+
+        url = self._build_list_url(filters, series_slug)
         referer = "https://www.che168.com/"
         _log.debug("search url=%s", url)
 
