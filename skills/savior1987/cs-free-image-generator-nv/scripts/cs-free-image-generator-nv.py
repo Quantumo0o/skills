@@ -13,6 +13,13 @@ from datetime import datetime
 
 import requests
 
+# 尝试加载 dotenv（标准方式读取 .env 文件）
+try:
+    import dotenv
+    dotenv.load_dotenv(os.path.expanduser("~/.openclaw/.env"), override=True)
+except ImportError:
+    pass
+
 
 def main():
     parser = argparse.ArgumentParser(

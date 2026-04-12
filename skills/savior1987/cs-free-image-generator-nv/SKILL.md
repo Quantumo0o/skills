@@ -41,6 +41,6 @@ python3 scripts/cs-free-image-generator-nv.py \
 
 ## 注意事项
 
-- 需要环境变量 `NVIDIA_API_KEY` 已配置（可从build.nvidia.com免费申请）
+- **环境变量**：使用 `dotenv` 自动从 `~/.openclaw/.env` 加载 `NVIDIA_API_KEY`（`override=True`），强制从 `.env` 读取最新值，避免旧进程缓存干扰。
 - 宽高限制：1-4096，超出范围会报错
 - 响应体自动保存，方便追溯调用结果
