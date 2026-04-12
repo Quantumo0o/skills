@@ -64,6 +64,19 @@ const { name, email } = user;
 camelCase（变量/函数）, PascalCase（类/接口）, UPPER_SNAKE_CASE（常量）
 ```
 
+## 自动化工具
+
+### 命令行分析工具
+
+```bash
+python scripts/code_simplifier.py <file.py> --analyze        # 分析复杂度
+python scripts/code_simplifier.py <file.py> --suggest       # 生成重构建议
+python scripts/code_simplifier.py <file.py> --simplify      # 自动简化代码
+python scripts/code_simplifier.py <file.py> --output=out.py # 指定输出文件
+```
+
+输出格式支持 `text`（默认）和 `json`。
+
 ## 质量检查清单
 
 ### 函数级别
@@ -83,6 +96,16 @@ camelCase（变量/函数）, PascalCase（类/接口）, UPPER_SNAKE_CASE（常
 - [ ] 类型注解/标注完整
 - [ ] 可读性良好
 - [ ] 易于维护
+
+## 前端编码规范（网页项目必须遵守）
+
+1. **HTML 安全**：所有动态内容用 `textContent` 赋值，禁止 `innerHTML`；必须用 `escapeHTML()` 转义 `< > & ' "`
+2. **移动端兼容**：按钮 `touch-action: manipulation`，点击目标 ≥44px
+3. **CSS 布局**：用 Flexbox/Grid，不用 float
+4. **响应式**：相对单位（rem/em/%），viewport meta tag
+5. **性能**：LCP < 2.5s、INP < 200ms、CLS < 0.1
+
+> 修复阶段加载 `web-fixing` 技能诊断；编码阶段遵守以上 5 条即可预防大部分问题。
 
 ## 参考文档
 

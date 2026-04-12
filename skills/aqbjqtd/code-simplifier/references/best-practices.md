@@ -392,11 +392,5 @@ result = retry_with_backoff(api_call, max_retries=3)
 
 ## 参考资源
 
-- [快速开始](quickstart.md) - 基础原则
 - [重构模式详解](refactoring_patterns.md) - 重构模式
-- [工作流示例](workflow_examples.md) - 实际案例
-
----
-
-**文档版本**: 1.0.0
-**最后更新**: 2024-01-20
+- [故障排除](troubleshooting.md) - 代码异味诊断与复杂度分析
