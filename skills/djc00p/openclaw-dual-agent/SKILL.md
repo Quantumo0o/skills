@@ -1,7 +1,7 @@
 ---
 name: openclaw-dual-agent
-description: "Run two OpenClaw agents simultaneously — a paid Anthropic agent and a free OpenRouter agent, each with its own Telegram bot. Trigger phrases: multi-agent setup, add a second agent, free agent openclaw, run two agents, openrouter openclaw, parallel agents, cost optimization agent."
-metadata: {"clawdbot": {"emoji": "🤖", "requires": {"bins": ["jq"]}, "env": ["ANTHROPIC_API_KEY", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN"], "os": ["darwin", "linux", "win32"]}, "homepage": "https://clawhub.com/djc00p/openclaw-dual-agent"}
+description: "Run two OpenClaw agents simultaneously — a paid Anthropic agent and a free agent using either OpenRouter or local Ollama models. Trigger phrases: multi-agent setup, add a second agent, free agent openclaw, run two agents, openrouter openclaw, ollama agent, local model openclaw, parallel agents, cost optimization agent."
+metadata: {"clawdbot": {"emoji": "🤖", "requires": {"bins": ["jq"]}, "env": ["ANTHROPIC_API_KEY"], "os": ["darwin", "linux", "win32"]}, "homepage": "https://clawhub.com/djc00p/openclaw-dual-agent"}
 ---
 
 # Multi-Agent OpenClaw Setup
@@ -17,10 +17,10 @@ Run a paid Anthropic agent and free OpenRouter agent side by side with separate 
 
 2. **Authenticate agents:**
    ```bash
-   openclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
-   # For free agent: create auth-profiles.json in its agentDir with OpenRouter key
+   # Run interactively — avoids exposing keys in shell history
+   openclaw onboard
    ```
-   > ⚠️ Passing keys on the CLI can expose them in shell history. Run `history -d $(history 1)` after or use `openclaw onboard` interactively. Credential files (`auth-profiles.json`, `openclaw.json`) should be `chmod 600`.
+   > ⚠️ Never pass API keys directly on the CLI (e.g. `--anthropic-api-key ...`) — it exposes them in shell history. Always use `openclaw onboard` interactively. Credential files (`auth-profiles.json`, `openclaw.json`) should be `chmod 600`.
 
 3. **Configure** `openclaw.json` with two agents, separate bindings, and Telegram accounts.
 
@@ -57,6 +57,93 @@ Edit `openclaw.json` agent's `model.primary` and `fallbacks` with valid provider
 cat ~/.openclaw/openclaw.json | \
   jq '.channels.telegram.accounts |= map_values(.botToken = "[REDACTED]")'
 ```
+
+## Option B: Local Ollama Agent (Free + Private)
+
+Instead of OpenRouter, run your second agent on a local Ollama model — completely free, fully private, and offline-capable.
+
+### Install & Configure Ollama
+
+**macOS:**
+```bash
+# Install via Homebrew
+brew install ollama
+
+# Or download from https://ollama.ai
+```
+
+**Start Ollama:**
+```bash
+# In a dedicated terminal, keep it running
+ollama serve
+```
+
+**Pull a model** (choose one based on your needs):
+```bash
+# Google Gemma 4 26B — good balance of capability and speed (17GB)
+ollama pull gemma4:26b
+
+# Meta Llama 3.3 70B — very capable, excellent reasoning (43GB)
+ollama pull llama3.3:70b
+
+# Qwen 2.5 32B — strong coding and multilingual (20GB)
+ollama pull qwen2.5:32b
+
+# Mistral 7B — fast and lightweight, good for quick responses (4GB)
+ollama pull mistral:7b
+```
+
+### Configure OpenClaw with Ollama Agent
+
+Add the agent entry to `openclaw.json` (e.g., `id: "ayo"`):
+
+```json
+{
+  "id": "ayo",
+  "name": "Ayo",
+  "workspace": "/Users/YOUR_USERNAME/.openclaw/workspace-ayo",
+  "agentDir": "/Users/YOUR_USERNAME/.openclaw/agents/ayo/agent",
+  "model": {
+    "primary": "ollama/gemma4:26b",
+    "fallbacks": [
+      "openrouter/free"
+    ]
+  },
+  "heartbeat": {
+    "every": "1h",
+    "model": "openrouter/free"
+  }
+}
+```
+
+**Key points:**
+
+- **Model format:** Always use `ollama/modelname:tag` (e.g., `ollama/gemma4:26b`, `ollama/llama3.3:70b`)
+- **No API key needed:** Ollama runs entirely locally. No `auth-profiles.json` required.
+- **Ollama must be running:** Start `ollama serve` in a terminal before the gateway starts
+- **Pull first:** Run `ollama pull modelname:tag` before configuring (the model must exist locally)
+- **Heartbeat fallback:** The example uses `openrouter/free` as a fallback since Ollama models may be slower for heartbeats. You can also use the same Ollama model (`ollama/gemma4:26b`) if you prefer fully local operation
+- **Add Telegram binding:** Include a separate binding with a unique `accountId` (e.g., `"tg_ollama"`) to route messages to Ayo
+
+**After config change:**
+```bash
+# Verify no errors
+openclaw doctor
+
+# Restart the gateway
+openclaw gateway restart
+```
+
+### Common Gotchas
+
+| ❌ Wrong | ✅ Correct | Issue |
+|---------|----------|-------|
+| `gemma4:26b:local` | `ollama/gemma4:26b` | Invalid format; always use `provider/model:tag` |
+| `gemma4:26b` | `ollama/gemma4:26b` | Without prefix, OpenClaw won't route to Ollama |
+| `ollama/kimi-k2.5:cloud` | `openrouter/kimi-k2.5:cloud` | Cloud models don't belong in Ollama fallbacks |
+| Model not pulled | `ollama pull gemma4:26b` | Gateway fails silently if model doesn't exist locally |
+
+If you see "Invalid input" errors in `openclaw doctor`, check the `model.primary` format — it must start with `ollama/`.
 
 ## References
 
