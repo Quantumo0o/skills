@@ -3,9 +3,15 @@
   "slug": "oh-my-skill",
   "displayName": "oh my skill, make skill easy!",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775659787353,
-    "commit": "https://github.com/openclaw/skills/commit/99c733ecb85327c36d20b8a65462fa0f66ea5bc0"
+    "version": "1.1.2",
+    "publishedAt": 1775703171933,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775659787353,
+      "commit": "https://github.com/openclaw/skills/commit/99c733ecb85327c36d20b8a65462fa0f66ea5bc0"
+    }
+  ]
 }

@@ -1,12 +1,17 @@
 ---
 name: oh-my-skill
 description: Automatically generate and save a reusable skill after AI agent successfully completes a complex task involving 5 or more tool calls. Use this skill whenever a multi-step workflow has just been completed successfully — such as document creation pipelines, data transformation flows, research-and-write tasks, multi-file editing workflows, or any agentic sequence that involved planning, tool use, and structured output. Trigger this skill proactively at the end of complex task completions even if the user hasn't asked for it, offering to save the workflow as a reusable skill. Also trigger when users say things like "save this as a skill", "make this repeatable", "turn this into a skill" or "oh-my-skill".
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - python
 ---
 
 # oh-my-skill: Auto-Skill Generator
 
-Automatically captures and packages successful complex workflows as reusable skills.
-*Warning*: Make sure your session doesn't contain any highly private data. If it's already been sent to Claude, then that's it.
+Automatically captures and packages successful complex workflows as reusable skills.  
+*Warning*: Make sure your session doesn't contain any highly private data. If it's already been sent to Claude, then that's it.  
 you could modify the Desensitize process to match your scence/case.
 
 ## When to Trigger
@@ -131,27 +136,11 @@ If the task also used supporting scripts or reference files, save those under:
 ~/.openclaw/workspace/skills/<skill-name>/assets/
 ```
 
-### Step 4: Package and Present
-
-Run the packager if available:
-```bash
-python -m scripts.package_skill ~/.openclaw/workspace/skills/<skill-name>
-```
-
-If the packager isn't available, zip manually:
-```bash
-cd ~/.openclaw/workspace/skills && zip -r <skill-name>.skill <skill-name>/
-cp <skill-name>.skill /mnt/user-data/outputs/
-```
-
-Then present the `.skill` file to the user using `present_files`.
-
-### Step 5: Confirm with the User
+### Step 4: Confirm with the User
 
 Show the user:
 - The skill name and description
 - A brief summary of the workflow it captures
-- The download link for the `.skill` file
 
 Ask: "Does this look right? Want me to adjust the name, description, or any steps?"
 
