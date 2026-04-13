@@ -3,11 +3,16 @@
   "slug": "nox-influencer-marketing",
   "displayName": "Nox Influencer - Creator Discovery & Influencer Marketing",
   "latest": {
-    "version": "0.1.3",
-    "publishedAt": 1775103445885,
-    "commit": "https://github.com/openclaw/skills/commit/249f38ebb396c999b8f10723124dae8f017e8857"
+    "version": "0.1.4",
+    "publishedAt": 1775738648619,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.3",
+      "publishedAt": 1775103445885,
+      "commit": "https://github.com/openclaw/skills/commit/249f38ebb396c999b8f10723124dae8f017e8857"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1774968125229,
