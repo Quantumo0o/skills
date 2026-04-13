@@ -3,9 +3,15 @@
   "slug": "openscan-blockchain-exploration",
   "displayName": "openscan-blockchain-exploration",
   "latest": {
-    "version": "0.0.1-alpha",
-    "publishedAt": 1775664892499,
-    "commit": "https://github.com/openclaw/skills/commit/c85e80b6e6167e87d030e6b972bb46f96e3d70c8"
+    "version": "0.0.2",
+    "publishedAt": 1776001742961,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.0.1-alpha",
+      "publishedAt": 1775664892499,
+      "commit": "https://github.com/openclaw/skills/commit/c85e80b6e6167e87d030e6b972bb46f96e3d70c8"
+    }
+  ]
 }
