@@ -40,6 +40,7 @@
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -94,11 +95,13 @@
 > `data` 字段结构见通用文件信息结构（附录 A）
 
 
-> **风险等级：medium**
-> - **前置检查**：search_files 查重，避免创建同名文件
-> - **后置验证**：get_file_info 确认文件已创建
-> - **提示**：文件名必须带后缀，否则创建失败
-> - **提示**：PDF 不支持 create_file，需使用 upload_file
+#### 操作约束
+
+- **前置检查**：search_files 查重，避免创建同名文件
+- **后置验证**：get_file_info 确认文件已创建
+- **提示**：文件名必须带后缀，否则创建失败
+- **提示**：PDF 不支持 create_file，需使用 upload_file
+- **幂等**：否 — 重试前 search_files 检查是否已创建
 ---
 
 ### 2. scrape_url
@@ -123,6 +126,7 @@
 }
 ```
 
+
 #### 参数说明
 
 - `url` (string, 必填): 要剪藏的网页URL地址，支持http和https协议
@@ -144,6 +148,7 @@
 | `parent_id` | number | 父目录ID |
 | `group_id` | number | 组ID |
 
+- **幂等**：否 — 重试前查 scrape_progress 确认上次状态
 > 返回 job_id 后需立即调用 scrape_progress 轮询
 > 每隔2秒轮询一次，status=1 时完成
 ---
@@ -164,6 +169,7 @@
   "job_id": "task_1234567890"
 }
 ```
+
 
 #### 参数说明
 
@@ -252,6 +258,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -294,11 +301,13 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 > `data` 字段结构见通用文件信息结构（附录 A）
 
 
-> **风险等级：medium**
-> - **前置检查**（更新已有文件时）：先 read_file_content 读取现有内容，确认覆盖范围
-> - **后置验证**：read_file_content 确认写入结果
-> - **提示**：更新模式支持 docx/pdf；新建模式支持 doc/docx/xls/xlsx/ppt/pptx/pdf
-> - **提示**：Markdown 源内容务必传 content_format=markdown
+#### 操作约束
+
+- **前置检查**（更新已有文件时）：先 read_file_content 读取现有内容，确认覆盖范围
+- **后置验证**：read_file_content 确认写入结果
+- **提示**：更新模式支持 docx/pdf；新建模式支持 doc/docx/xls/xlsx/ppt/pptx/pdf
+- **提示**：Markdown 源内容务必传 content_format=markdown
+- **幂等**：是 — 可重试，以最后一次为准
 ---
 
 ## 二、读文档
@@ -323,6 +332,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "order_by": "mtime"
 }
 ```
+
 
 #### 参数说明
 
@@ -408,6 +418,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -467,6 +478,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -492,10 +504,13 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 | `data.task_id` | string | 批量任务 ID |
 
 
-> **风险等级：medium**
-> - **用户确认**（批量操作（多个 file_ids））：批量移动需向用户确认文件列表和目标位置
-> - **前置检查**：确认目标文件夹存在（get_file_info）
-> - **提示**：移动为异步任务，返回 `task_id`
+#### 操作约束
+
+- **用户确认**（批量操作（多个 file_ids））：批量移动需向用户确认文件列表和目标位置
+- **前置检查**：确认目标文件夹存在（get_file_info）
+- **后置验证**：get_file_info 确认 parent_id 为目标文件夹
+- **提示**：移动为异步任务，返回 `task_id`
+- **幂等**：是
 ---
 
 ### 8. rename_file
@@ -517,6 +532,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -526,6 +542,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 #### 返回值说明
 
 返回通用文件信息结构，详见附录 A。
+- **幂等**：是
 ---
 
 ### 9. share_file
@@ -552,6 +569,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   }
 }
 ```
+
 
 #### 参数说明
 
@@ -615,9 +633,11 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 | `data.created_by` | object | 创建者信息 |
 
 
-> **风险等级：medium**
-> - **禁止**：未经用户明确要求，禁止调用此工具
-> - **后置验证**：确认返回的分享链接有效
+#### 操作约束
+
+- **禁止**：未经用户明确要求，禁止调用此工具
+- **后置验证**：确认返回的分享链接有效
+- **幂等**：是
 ---
 
 ### 10. set_share_permission
@@ -644,6 +664,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `link_id` (string, 必填): 分享链接 ID（由 `share_file` 返回的 `data.id`）
@@ -666,8 +687,9 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 ```
 
 
-> **风险等级：medium**
-> - **禁止**：未经用户明确要求，禁止修改分享权限
+#### 操作约束
+
+- **禁止**：未经用户明确要求，禁止修改分享权限
 ---
 
 ### 11. cancel_share
@@ -689,6 +711,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -706,11 +729,13 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 ```
 
 
-> **风险等级：high**
-> - **用户确认**（mode=delete）：永久删除分享链接，不可恢复，必须向用户确认
-> - **禁止**（mode=delete）：禁止自动重试，失败后报告用户
-> - **提示**：建议优先使用 mode=pause（可恢复）
-> - **后置验证**：get_share_info 确认分享状态已变更
+#### 操作约束
+
+- **用户确认**（mode=delete）：永久删除分享链接，不可恢复，必须向用户确认
+- **禁止**（mode=delete）：禁止自动重试，失败后报告用户
+- **提示**：建议优先使用 mode=pause（可恢复）
+- **后置验证**：get_share_info 确认分享状态已变更
+- **幂等**：否 — pause 可重试；delete 禁止重试
 ---
 
 ### 12. get_share_info
@@ -728,6 +753,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "link_id": "string"
 }
 ```
+
 
 #### 参数说明
 
@@ -802,6 +828,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "with_drive": true
 }
 ```
+
 
 #### 参数说明
 
@@ -930,6 +957,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `page_size` (integer, 必填): 分页大小，公网限制最大为 500
@@ -998,6 +1026,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `allotee_type` (string, 必填): 归属者类型。可选值：`user` / `group` / `app`
@@ -1057,6 +1086,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "label_id": "1"
 }
 ```
+
 
 #### 参数说明
 
@@ -1126,6 +1156,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `label_id` (string, 必填): 标签 ID。公网系统标签固定 ID：`1`（星标）/ `2`（待办）/ `3`（未确认协作）/ `4`（同步文件夹）/ `5`（常用）/ `6`（快速访问）；自定义标签 ID 由 `list_labels` 或 `create_label` 返回
@@ -1192,6 +1223,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `label_id` (string, 必填): 标签 ID
@@ -1233,6 +1265,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   ]
 }
 ```
+
 
 #### 参数说明
 
@@ -1276,6 +1309,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   ]
 }
 ```
+
 
 #### 参数说明
 
@@ -1324,6 +1358,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `labels` (array[object], 必填): 要更新的标签列表
@@ -1359,6 +1394,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "page_size": 20
 }
 ```
+
 
 #### 参数说明
 
@@ -1427,6 +1463,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `objects` (array[object], 必填): 待收藏对象列表
@@ -1467,6 +1504,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `objects` (array[object], 必填): 待移除收藏的对象列表
@@ -1500,6 +1538,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "page_size": 20
 }
 ```
+
 
 #### 参数说明
 
@@ -1560,6 +1599,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 源文件所在驱动盘 ID
@@ -1612,6 +1652,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `drive_id` (string, 必填): 驱动盘 ID
@@ -1655,6 +1696,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "page_size": 20
 }
 ```
+
 
 #### 参数说明
 
@@ -1711,6 +1753,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `file_id` (string, 必填): 回收站中的文件 ID（由 `list_deleted_files` 返回）
@@ -1735,10 +1778,14 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 文档内容抽取。支持将文档内容抽取为 markdown、纯文本或 KDC 结构化格式。**仅支持异步模式（mode=async）**：首次调用传入 `drive_id`、`file_id` 等，返回 `task_id`；通过 `task_id` 轮询直至 `task_status` 为 `success` 后获取内容。
 
+> ⚠️ **不支持 .csv 格式**，遇到 CSV 文件请勿调用本工具，建议用户转为 .xlsx 后用 `sheet.*` 读取。
+
 > ⚠️ **以下类型不以 `read_file_content` 作为结构化读写主路径**：
 >
 > - **Excel（.xlsx）与智能表格（.ksheet）**：使用 **`sheet.*`**。**获取内容**：`sheet.get_sheets_info` → `sheet.get_range_data`（矩形区域）。完整工具列表与参数见 `sheet_references.md`。
 > - **多维表格（.dbt）**：使用 **`dbsheet.*`**。**获取结构**：`dbsheet.get_schema`；**获取内容**：`dbsheet.list_records`、`dbsheet.get_record`；完整工具列表与参数见 `dbsheet_reference.md`。
+
+> ⚠️ **智能文档（.otl）**：`read_file_content` 对 otl 存在内容遗漏风险（部分组件类型可能丢失），日常读取应优先使用 `otl.block_query`。仅在需要导出 Markdown 格式时使用本工具，并**务必**按照 reference/otl_references.md 的参数要求调用。
 
 
 #### 调用示例
@@ -1758,6 +1805,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "task_id": "string"
 }
 ```
+
 
 #### 参数说明
 
@@ -1800,6 +1848,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 | `data.version` | string | 版本号 |
 
 > 首次调用返回 `task_id`，需轮询 `task_status` 直至 `success`
+> 不支持 .csv 格式，禁止对 CSV 文件调用本工具
 ---
 
 ### 31. search_files
@@ -1826,6 +1875,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
   "with_total": true
 }
 ```
+
 
 #### 参数说明
 
@@ -1949,6 +1999,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 }
 ```
 
+
 #### 参数说明
 
 - `file_id` (string, 必填): 文件 ID
@@ -2062,3 +2113,4 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 | 30  | `read_file_content` | 用文档 | 文档内容抽取为 Markdown/纯文本 | `drive_id`, `file_id` |
 | 31  | `search_files` | 用文档 | 文件（夹）搜索 | `type`, `page_size` |
 | 32  | `get_file_link` | 用文档 | 获取文件的云文档在线访问链接 | `file_id` |
+

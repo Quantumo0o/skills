@@ -32,7 +32,10 @@
 
 **适用于**：已存在、可编辑的 WPP 演示（`file_id` 对应在线演示文档）。
 
+
 #### 调用示例
+
+在第 1 页后插入空白页：
 
 ```json
 {
@@ -42,6 +45,7 @@
   "layout_Id": 134217788
 }
 ```
+
 
 #### 参数说明
 
@@ -67,6 +71,7 @@
     ]
   }
 }
+
 ```
 
 | 字段 | 类型 | 说明 |
@@ -81,8 +86,6 @@
 
 ## 二、主题（字体与配色）
 
-> 字体、配色仅支持产品开放的预设枚举；规则见本文 **附录 · 字体与配色约束**。
-
 ### 2. wpp.set_font_presentation
 
 #### 功能说明
@@ -91,7 +94,10 @@
 
 **适用于**：WPP 演示全文换字体。
 
+
 #### 调用示例
+
+全文换为简约中等线体：
 
 ```json
 {
@@ -99,6 +105,7 @@
   "font_theme": "简约中等线体"
 }
 ```
+
 
 #### 参数说明
 
@@ -121,6 +128,7 @@
     ]
   }
 }
+
 ```
 
 ---
@@ -133,7 +141,10 @@
 
 **适用于**：单页换字体。
 
+
 #### 调用示例
+
+第 2 页换为简约中等线体：
 
 ```json
 {
@@ -143,15 +154,31 @@
 }
 ```
 
+
 #### 参数说明
 
 - `file_id` (string, 必填): 演示文稿 file_id
 - `slide_idx` (integer, 必填): 目标幻灯片序号，从 0 开始
-- `font_theme` (string, 可选): 预设字体主题名；规则同 `wpp.set_font_presentation`
+- `font_theme` (string, 可选): 预设字体主题名；不传或不在列表内 → **经典黑体**
 
 #### 返回值说明
 
-同 **2. wpp.set_font_presentation**（`cmdName` 可能为 `modifySlideProps`）。
+```json
+{
+  "result": "ok",
+  "detail": {
+    "res": [
+      {
+        "cmdName": "modifySlideProps",
+        "code": 0,
+        "errName": "S_OK",
+        "msg": "execute result"
+      }
+    ]
+  }
+}
+
+```
 
 ---
 
@@ -163,7 +190,10 @@
 
 **适用于**：WPP 全文换配色。
 
+
 #### 调用示例
+
+全文换为琥珀黄配色：
 
 ```json
 {
@@ -172,6 +202,7 @@
 }
 ```
 
+
 #### 参数说明
 
 - `file_id` (string, 必填): 演示文稿 file_id
@@ -179,7 +210,22 @@
 
 #### 返回值说明
 
-同 **2. wpp.set_font_presentation**（`cmdName` 可能为 `modifyPresentation`）。
+```json
+{
+  "result": "ok",
+  "detail": {
+    "res": [
+      {
+        "cmdName": "modifyPresentation",
+        "code": 0,
+        "errName": "S_OK",
+        "msg": "execute result"
+      }
+    ]
+  }
+}
+
+```
 
 ---
 
@@ -189,27 +235,81 @@
 
 将**指定页**应用主题配色方案。
 
+
 #### 调用示例
+
+单页换为嫩芽绿配色：
 
 ```json
 {
   "file_id": "string",
   "slide_idx": 1,
-  "color_theme": "嫩芽绿"
+  "color_theme": "嫩芽绿",
+  "theme_color_mode": 1,
+  "color_scheme_id": "19d485c844c"
 }
 ```
+
 
 #### 参数说明
 
 - `file_id` (string, 必填): 演示文稿 file_id
 - `slide_idx` (integer, 必填): 目标幻灯片序号，从 0 开始
-- `color_theme` (string, 可选): 预设配色主题名；规则同 `wpp.set_color_presentation`
+- `color_theme` (string, 可选): 预设配色主题名；不传或未命中 → **默认配色**
+- `theme_color_mode` (integer, 必填): 主题颜色模式，值必须与 `color_theme` 对应。`0` 恢复默认配色；`1` 浅色系配色（落日红、蜜橘橙、琥珀黄、嫩芽绿、湖水青、晴空蓝、丁香紫）；`3` 深色系配色（朱砂赤、南瓜橙、深麦黄、深松绿、深墨青、深海蓝、葡萄紫、胭脂红）。具体映射见附录「配色主题详表」
+- `color_scheme_id` (string, 必填): 配色方案标识，格式参考 `19d485c844c`，为随机生成的唯一 ID，不与特定 `color_theme` 一一对应
 
 #### 返回值说明
 
-同 **2. wpp.set_font_presentation**（`cmdName` 可能为 `modifySlideProps`）。
+```json
+{
+  "result": "ok",
+  "detail": {
+    "res": [
+      {
+        "cmdName": "modifySlideProps",
+        "code": 0,
+        "errName": "S_OK",
+        "msg": "execute result"
+      }
+    ]
+  }
+}
+
+```
 
 ---
+
+
+### 字体与配色约束
+
+| 项 | 规则 |
+|----|------|
+| 字体主题 | 支持 **16** 种方案名：`现代雅黑体`、`简约等线体`、`经典宋体`、`清秀姚体`、`经典黑体`、`现代黑体`、`简约灵秀黑体`、`科技云技术体`、`经典楷体`、`典雅气质体`、`简约中等线体`、`古朴小隶体`、`传统书宋二体`、`圆润体`、`可爱傲娇体`、`飘逸青云体`。`font_theme` 未传或非法 → **经典黑体** |
+| 配色主题 | 支持 **16** 种方案名，每种配色对应 `theme_color_mode` 值如下表 |
+
+#### 配色主题详表
+
+| `color_theme` | `theme_color_mode` | 说明 |
+|---------------|-------------------|------|
+| 默认配色 | 0 | 恢复默认配色 |
+| 落日红 | 1 | 浅色暖色系 |
+| 蜜橘橙 | 1 | 浅色暖色系 |
+| 琥珀黄 | 1 | 浅色暖色系 |
+| 嫩芽绿 | 1 | 浅色冷色系 |
+| 湖水青 | 1 | 浅色冷色系 |
+| 晴空蓝 | 1 | 浅色冷色系 |
+| 丁香紫 | 1 | 浅色冷色系 |
+| 朱砂赤 | 3 | 深色暖色系 |
+| 南瓜橙 | 3 | 深色暖色系 |
+| 深麦黄 | 3 | 深色暖色系 |
+| 深松绿 | 3 | 深色冷色系 |
+| 深墨青 | 3 | 深色冷色系 |
+| 深海蓝 | 3 | 深色冷色系 |
+| 葡萄紫 | 3 | 深色冷色系 |
+| 胭脂红 | 3 | 深色暖色系 |
+
+`color_theme` 未传或非法 → **默认配色**（`theme_color_mode: 0`）
 
 ## 三、下载与导出
 
@@ -220,6 +320,7 @@
 将幻灯片导出为 **PNG** 或 **JPEG** 图片（同步接口，直接返回下载地址或 key）。
 
 **适用于**：缩略图、逐页图片导出。
+
 
 #### 调用示例
 
@@ -240,6 +341,7 @@
   "store_type": ""
 }
 ```
+
 
 #### 参数说明
 
@@ -266,6 +368,7 @@
   "without_attachment": false,
   "size": 0
 }
+
 ```
 
 | 字段 | 类型 | 说明 |
@@ -288,7 +391,12 @@
 
 **适用于**：需要可打印、可分享的 PDF 文件。
 
-#### 调用示例（步骤一：创建导出任务）
+**步骤二**：传入 `task_id` 查询导出进度，`status` 为 `running` 时需等待后重试，`finished` 时返回下载链接。
+
+
+#### 调用示例
+
+步骤一：创建导出任务：
 
 ```json
 {
@@ -306,10 +414,22 @@
 }
 ```
 
-#### 参数说明（创建任务）
+步骤二：查询导出进度：
+
+```json
+{
+  "task_id": "string",
+  "task_type": "normal_export"
+}
+```
+
+
+#### 参数说明
 
 - `file_id` (string, 必填): 演示文稿 file_id
 - `format` (string, 必填): 固定 `pdf`
+- `task_id` (string, 可选): 步骤一返回的任务 ID（步骤二查询进度时必填）
+- `task_type` (string, 可选): 任务类型，固定 `normal_export`（步骤二查询时传入）
 - `multipage` (integer, 可选): 是否多页合一类导出；`1` 表示是
 - `opt_frame` (boolean, 可选): 是否优化帧
 - `from_page` (integer, 可选): 起始页，从 0 开始
@@ -320,7 +440,10 @@
 - `export_open_password` (string, 可选): 导出 PDF 打开密码
 - `export_modify_password` (string, 可选): 导出 PDF 修改密码
 
-#### 返回值说明（步骤一）
+#### 返回值说明
+
+```json
+步骤一返回：
 
 ```json
 {
@@ -329,24 +452,7 @@
 }
 ```
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `task_id` | string | 异步任务 ID，后续查询必填 |
-| `task_type` | string | 固定为 `normal_export`（导出 PDF 场景） |
-
-#### 步骤二：传入 `task_id` 查询导出进度
-
-```json
-{
-  "task_id": "string",
-  "task_type": "normal_export"
-}
-```
-
-- `task_id` (string): 步骤一返回的任务 ID
-- `task_type` (string, 可选): `normal_export`
-
-#### 返回值说明（查询 · 进行中）
+步骤二返回（进行中）：
 
 ```json
 {
@@ -355,7 +461,7 @@
 }
 ```
 
-#### 返回值说明（查询 · 已完成）
+步骤二返回（已完成）：
 
 ```json
 {
@@ -370,23 +476,45 @@
 }
 ```
 
+```
+
 | 字段 | 类型 | 说明 |
 |------|------|------|
+| `task_id` | string | 异步任务 ID，后续查询必填 |
+| `task_type` | string | 固定为 `normal_export`（导出 PDF 场景） |
 | `status` | string | `running` / `finished` |
 | `data.url` | string | PDF 下载地址（`finished` 时，有时效） |
 
 ---
 
+
+## 工具速查表
+
+| # | 工具名 | 分类 | 功能 | 必填参数 |
+|---|--------|------|------|----------|
+| 1 | `wpp.insert_slide` | 演示文稿与页面 | 在已有演示中插入空白页 | `file_id`, `slide_idx` |
+| 2 | `wpp.set_font_presentation` | 主题（字体与配色） | 全文更换字体 | `file_id` |
+| 3 | `wpp.set_font_slide` | 主题（字体与配色） | 单页更换字体 | `file_id`, `slide_idx` |
+| 4 | `wpp.set_color_presentation` | 主题（字体与配色） | 全文更换配色 | `file_id` |
+| 5 | `wpp.set_color_slide` | 主题（字体与配色） | 单页更换配色 | `file_id`, `slide_idx`, `theme_color_mode`, `color_scheme_id` |
+| 6 | `wpp.export_image` | 下载与导出 | 导出为图片 | `link_id`, `format` |
+| 7 | `wpp.export_pdf` | 下载与导出 | 异步导出 PDF | `file_id`, `format` |
+
+## 常用工作流
+
+### 演示文稿导出 PDF
+
+```
+步骤 1: wpp.export_pdf(file_id="xxx", format="pdf")
+        → 返回 task_id, task_type
+
+步骤 2: wpp.export_pdf(task_id="xxx", task_type="normal_export")
+        → 轮询（每 2-5 秒），status 判定：
+          "finished" → data.url 即 PDF 下载地址（有时效）
+          "running"  → 继续轮询
+```
+
 ## 附录
-
-### 字体与配色约束
-
-| 项 | 规则 |
-|----|------|
-| 字体主题 | 支持 **16** 种方案名：`现代雅黑体`、`简约等线体`、`经典宋体`、`清秀姚体`、`经典黑体`、`现代黑体`、`简约灵秀黑体`、`科技云技术体`、`经典楷体`、`典雅气质体`、`简约中等线体`、`古朴小隶体`、`传统书宋二体`、`圆润体`、`可爱傲娇体`、`飘逸青云体`。`font_theme` 未传或非法 → **经典黑体** |
-| 配色主题 | 支持 **16** 种方案名：`默认配色`、`落日红`、`蜜橘橙`、`琥珀黄`、`嫩芽绿`、`湖水青`、`晴空蓝`、`丁香紫`、`朱砂赤`、`南瓜橙`、`深麦黄`、`深松绿`、`深墨青`、`深海蓝`、`葡萄紫`、`胭脂红`。`color_theme` 未传或非法 → **默认配色** |
-| 导出图片默认语义 | 可与产品约定对齐：逐页、`dpi=96`、`format=png`、`water_mark=true` 等 |
-| 导出 PDF 默认语义 | 可与产品约定对齐：全稿、`multipage` 等 |
 
 ### 错误响应
 
@@ -399,18 +527,3 @@
 ### 与通用 MCP 包装
 
 若网关将下列工具统一包装为外层 `code` / `msg` / `data`，**业务载荷**仍以本文「返回值说明」中的 JSON 为准，嵌套在 `data` 内；详见 `api_references.md` 中与各 `wpp.*` 工具的对接说明。
-
----
-
-## 工具速查表
-
-| # | 工具名 | 分类 | 功能 | 必填参数 |
-|---|--------|------|------|----------|
-| 1 | `wpp.insert_slide` | 演示文稿与页面 | 在已有演示中插入空白页 | `file_id`, `slide_idx` |
-| 2 | `wpp.set_font_presentation` | 主题 | 全文更换字体 | `file_id` |
-| 3 | `wpp.set_font_slide` | 主题 | 单页更换字体 | `file_id`, `slide_idx` |
-| 4 | `wpp.set_color_presentation` | 主题 | 全文更换配色 | `file_id` |
-| 5 | `wpp.set_color_slide` | 主题 | 单页更换配色 | `file_id`, `slide_idx` |
-| 6 | `wpp.export_image` | 下载与导出 | 导出为图片 | `file_id`, `format` |
-| 7 | `wpp.export_pdf` | 下载与导出 | 异步导出 PDF | `file_id`（创建时） |
-

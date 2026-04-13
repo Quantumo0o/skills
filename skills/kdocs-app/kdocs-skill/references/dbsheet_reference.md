@@ -167,6 +167,10 @@
 | `detail.sheet.views` | array | 视图列表 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **后置验证**：get_schema 确认数据表已创建
 ---
 
 ### 3. dbsheet.update_sheet
@@ -220,6 +224,10 @@
 | `detail.sheet.name` | string | 数据表名称 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 确认目标数据表存在
 ---
 
 ### 4. dbsheet.delete_sheet
@@ -262,6 +270,12 @@
 | `detail.sheet.id` | integer | 已删除的数据表 ID |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 核对拟删数据表的名称和内容
+- **用户确认**：删除数据表不可恢复，必须向用户确认数据表名称和 ID
+- **禁止**：未经用户在对话中明确同意，禁止调用
 ---
 
 ## 二、视图管理
@@ -316,6 +330,10 @@
 | `detail.view.type` | string | 视图类型 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **后置验证**：get_schema 确认视图已创建
 ---
 
 ### 6. dbsheet.update_view
@@ -388,6 +406,10 @@
 | `detail.view.type` | string | 视图类型 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 确认目标视图存在
 ---
 
 ### 7. dbsheet.delete_view
@@ -432,6 +454,12 @@
 | `detail.view.id` | string | 已删除的视图 ID |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 核对拟删视图的名称和类型
+- **用户确认**：删除视图不可恢复，必须向用户确认视图名称和 ID
+- **禁止**：未经用户在对话中明确同意，禁止调用
 ---
 
 ## 三、字段管理
@@ -524,6 +552,10 @@
 | `detail.fields[].items` | array | 选项列表（选项类型字段） |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **后置验证**：get_schema 确认字段已创建
 ---
 
 ### 9. dbsheet.update_fields
@@ -603,6 +635,10 @@
 | `detail.fields` | array | 更新后的字段列表 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 确认目标字段存在及当前属性
 ---
 
 ### 10. dbsheet.delete_fields
@@ -657,6 +693,12 @@
 | `detail.fields` | array | 删除结果列表，每项包含 `id` 和 `deleted` |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_schema 核对拟删字段的名称和类型
+- **用户确认**：删除字段不可恢复，字段数据将永久丢失，必须向用户确认字段列表
+- **禁止**：未经用户在对话中明确同意，禁止调用
 ---
 
 ## 四、记录操作
@@ -728,6 +770,10 @@
 | `detail.records[].fields` | object | 各字段的值 |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **后置验证**：list_records 确认记录已创建
 ---
 
 ### 12. dbsheet.update_records
@@ -795,6 +841,11 @@
 | `detail.records` | array | 更新后的记录列表，每项包含 `id` 和 `fields` |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：get_record 或 list_records 确认目标记录存在及当前值
+- **后置验证**：get_record 确认更新结果
 ---
 
 ### 13. dbsheet.list_records
@@ -1019,6 +1070,12 @@
 | `detail.records` | array | 删除结果列表，每项包含 `id` 和 `deleted` |
 | `result` | string | ok 表示成功 |
 
+
+#### 操作约束
+
+- **前置检查**：list_records 或 get_record 核对拟删记录内容
+- **用户确认**：批量删除记录不可恢复，必须向用户确认记录列表和数量
+- **禁止**：未经用户在对话中明确同意，禁止调用
 ---
 
 
