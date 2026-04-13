@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-migrate",
+  "displayName": "Alibabacloud Migrate",
+  "latest": {
+    "version": "0.0.1-beta.1",
+    "publishedAt": 1775721414423,
+    "commit": null
+  },
+  "history": []
+}
