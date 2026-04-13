@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "dolthub",
+  "displayName": "Dolthub",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775714808038,
+    "commit": null
+  },
+  "history": []
+}
