@@ -1,60 +1,40 @@
 ---
 name: cooking-class-video
 version: 1.0.0
-displayName: Cooking Class Video Maker
-description: |
-  A great cooking class smells like garlic hitting a hot pan and sounds like someone saying "I can't believe I made that." None of that survives a text description. Cooking Class Video turns your knife skills workshop, pasta-making evening, or professional pastry course into a short video where the food looks real, the instructor looks approachable, and the signup link actually gets clicked.
+displayName: Cooking Class Video — Enrollment and Marketing Videos for Cooking Schools, Culinary Classes, and Food Education Programs
+description: >
+  The sound of garlic hitting a hot pan, the moment a knife makes clean contact with a cutting board, the face of someone tasting something they made from scratch for the first time and realizing it is genuinely good — none of this communicates through a class schedule or a photo of a commercial kitchen. Cooking Class Video captures the sensory experience that makes someone decide this is the cooking class they want to take before they have ever set foot in the kitchen.
 
-  Create a cooking school enrollment video, knife skills class promo, baking and pastry course ad, date night cooking class marketing video, kids cooking camp highlight, professional culinary program overview, or private chef lesson explainer — for recreational cooks or aspiring professionals.
+  Cooking Class Video creates enrollment and marketing content for cooking schools, culinary arts programs, recreational cooking class studios, private chef instruction businesses, corporate team cooking events, kids and teen culinary camps, specialty cuisine classes, baking and pastry programs, wine and food pairing events, and online cooking course providers. The content speaks to every audience in the food education market: the beginner home cook who wants to finally stop ordering takeout, the enthusiast who wants to learn a specific cuisine in depth, the couple looking for a meaningful date night experience, the corporate team that needs an event that actually creates connection, the aspiring professional considering culinary school, and the parent who wants their teenager to learn a life skill they will actually use.
 
-  **Use Cases**
-  - Valentine's Day and date night cooking class promotion
-  - Kids summer cooking camp enrollment video
-  - Professional culinary certificate program recruitment
-  - Corporate team-building cooking event marketing
+  Class atmosphere and kitchen culture videos that show the space, the instructor's teaching style, the interaction between students, and the energy in the room when a dish comes together — because a cooking class is as much a social experience as an educational one, and the room feeling is what differentiates one school from another. Cuisine-specific showcase videos for Italian, French, Japanese, Thai, Mexican, Indian, Moroccan, and every other culinary tradition on the schedule — because the person who wants to learn to make fresh pasta is a different person from the one who wants to learn knife skills for home cooking, and both need to see their class before they will sign up. Instructor biography and culinary philosophy videos that put the chef on camera to share their training background, their cooking philosophy, and the specific thing they love teaching — the human reason a student would choose to learn from this person rather than watching YouTube. Corporate and private event videos that show companies and private groups what a team cooking event actually looks and feels like, because the person making the booking decision has never experienced one and needs visual proof that it will be worth the per-head budget. Kids and teen culinary program videos that communicate to parents the combination of learning and fun that makes a week of cooking camp worth the schedule logistics.
 
-  **How It Works**
-  Tell the AI your class format, cuisine style, skill level, and what students walk away able to cook. The AI writes a sensory, appetite-driven script and produces a video that makes people hungry to sign up.
+  Content optimized for cooking school websites, Google Business Profile, Instagram, TikTok, gift card campaign emails, and the local lifestyle and food community groups where class recommendations circulate among enthusiasts.
 
-  **Example**
-  ```bash
-  curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
-    -H "Authorization: Bearer $NEMO_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d '{
-      "skill": "cooking-class-video",
-      "inputs": {
-        "class_name": "The Artisan Kitchen",
-        "style": "Italian, French, and Asian fusion",
-        "format": "hands-on evening classes, max 12 students",
-        "outcome": "students cook and eat a 3-course meal every session"
-      }
-    }'
-  ```
+  Cooking class video, culinary school promo video, cooking school marketing, private chef class video, team cooking event video, baking class video, cuisine class enrollment video, cooking instructor introduction, kids cooking class video, corporate cooking event video, cooking school tour video, recreational cooking class video, culinary arts program video, cooking camp video.
 metadata:
   openclaw.emoji: "👨‍🍳"
   openclaw.requires: ["NEMO_TOKEN"]
   openclaw.primaryEnv: NEMO_TOKEN
-  configPaths: ["~/.config/nemovideo/"]
 ---
 
 # Cooking Class Video
 
-The sizzle of garlic hitting a hot pan, hands shaping fresh pasta, strangers laughing over food they made together. This skill creates promo videos for cooking schools and culinary studios.
+Capture the sensory experience that makes someone book a class before they have ever seen your kitchen.
 
-What It Does
+## Use Cases
+1. **Class Atmosphere and Kitchen Culture Video** — Show the space, the instructor's teaching style, and the room energy when a dish comes together — the experience that no text description can communicate.
+2. **Cuisine-Specific Showcase Video** — Individual videos for Italian, Japanese, French, and every cuisine on your schedule — matching content for every type of learner who is searching.
+3. **Instructor Biography and Philosophy Video** — Put the chef on camera to share training background and teaching philosophy — the human reason a student would choose this class over watching YouTube.
+4. **Corporate and Team Event Video** — Show companies what a team cooking event looks and feels like, because the person booking has never experienced one.
+5. **Kids and Teen Culinary Program Video** — Communicate the combination of learning and fun to parents who are evaluating summer programs and after-school activities.
 
-- Class overview and experience video for online booking pages
-- Chef instructor introduction and credential showcase
-- Gift experience promo for date nights and team building
-- Multi-week course enrollment video for serious culinary students
+## How to Use
 
-How to Use
+Describe your school, the cuisines and formats you offer, your instructors, and the student experience you create. Include your primary audience — beginners, enthusiasts, corporate groups, kids, or culinary professionals.
 
-Describe the class type, format, group size, and what students leave with.
+Example prompt: "Create an enrollment video for The Kitchen Studio, offering Italian and Japanese cooking classes in small groups of 8. Recreational focus, beginner-friendly. Head instructor trained in Florence. Also offer team building cooking events for corporate groups. Classes run Tuesday evenings and Saturday mornings."
 
-Example: Create a promo video for Saturday pasta-making class at Forno Kitchen Studio. Groups of 8, 3 hours hands-on, everyone eats what they make, wine included.
+## Setup
 
-Tips
-
-Use sensory language in the first 5 seconds. Feature the moment students take their first bite of something they made.
+Store your NemoVideo token at ~/.config/nemovideo/token.txt or set the NEMO_TOKEN environment variable.
