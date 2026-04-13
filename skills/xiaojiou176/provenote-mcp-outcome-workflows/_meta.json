@@ -3,9 +3,15 @@
   "slug": "provenote-mcp-outcome-workflows",
   "displayName": "Provenote MCP Outcome Workflows",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775682407857,
-    "commit": "https://github.com/openclaw/skills/commit/5cdacdf702f15665e8f3f4c771495334577bf189"
+    "version": "1.1.1",
+    "publishedAt": 1775701158112,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775682407857,
+      "commit": "https://github.com/openclaw/skills/commit/5cdacdf702f15665e8f3f4c771495334577bf189"
+    }
+  ]
 }
