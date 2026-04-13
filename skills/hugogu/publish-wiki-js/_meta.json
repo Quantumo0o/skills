@@ -3,9 +3,15 @@
   "slug": "publish-wiki-js",
   "displayName": "Publish Wiki Pages",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1775100550597,
-    "commit": "https://github.com/openclaw/skills/commit/94a8e075acc0e8b1cf647895d51d19b76dd38904"
+    "version": "1.2.0",
+    "publishedAt": 1775912537954,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1775100550597,
+      "commit": "https://github.com/openclaw/skills/commit/94a8e075acc0e8b1cf647895d51d19b76dd38904"
+    }
+  ]
 }
