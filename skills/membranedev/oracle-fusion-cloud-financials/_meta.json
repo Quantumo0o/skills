@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "oracle-fusion-cloud-financials",
+  "displayName": "Oracle Fusion Cloud Financials",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775477093146,
+    "commit": null
+  },
+  "history": []
+}
