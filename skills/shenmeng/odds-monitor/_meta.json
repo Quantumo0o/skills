@@ -1,0 +1,11 @@
+{
+  "owner": "shenmeng",
+  "slug": "odds-monitor",
+  "displayName": "Odds Movement Monitor 盘口监控",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775706492024,
+    "commit": null
+  },
+  "history": []
+}
