@@ -3,9 +3,15 @@
   "slug": "eastmoney-roadshow-digest",
   "displayName": "EastMoney Roadshow Digest (Transcript + Summary)｜东方财富路演纪要生成",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775541401883,
-    "commit": "https://github.com/openclaw/skills/commit/db973321e19d1be9fde778715abce38794be1664"
+    "version": "v0.1.2-rc1",
+    "publishedAt": 1775740419576,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775541401883,
+      "commit": "https://github.com/openclaw/skills/commit/db973321e19d1be9fde778715abce38794be1664"
+    }
+  ]
 }

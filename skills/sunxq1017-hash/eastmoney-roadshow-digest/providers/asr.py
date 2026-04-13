@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import shutil
-import signal
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
@@ -33,8 +32,6 @@ def extract_audio(media_url: str, out_dir: Path) -> Path:
         "1",
         "-ar",
         "16000",
-        "-t",
-        "300",
         str(audio_path),
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -88,9 +85,9 @@ def _transcribe_chunk(model: Any, chunk_path: Path) -> List[Dict[str, Any]]:
 
 def transcribe_audio(
     audio_path: Path,
-    model_size: str = "tiny",
-    segment_seconds: int = 30,
-    total_timeout_seconds: int = 150,
+    model_size: str = "small",
+    segment_seconds: int = 45,
+    total_timeout_seconds: int = 7200,
 ) -> Dict[str, Any]:
     try:
         from faster_whisper import WhisperModel
@@ -119,7 +116,7 @@ def transcribe_audio(
         try:
             with ThreadPoolExecutor(max_workers=1) as pool:
                 fut = pool.submit(_transcribe_chunk, model, chunk)
-                chunk_segments = fut.result(timeout=max(5, min(remaining, 45)))
+                chunk_segments = fut.result(timeout=max(10, min(remaining, 90)))
         except FuturesTimeoutError:
             timeout_hit = True
             status = "ASR_partial"
