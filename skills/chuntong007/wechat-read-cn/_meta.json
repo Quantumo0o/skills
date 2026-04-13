@@ -1,11 +1,17 @@
 {
   "owner": "chuntong007",
   "slug": "wechat-read-cn",
-  "displayName": "WeChat Read（中文版）",
+  "displayName": "Wechat Read Cn",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775487820277,
-    "commit": "https://github.com/openclaw/skills/commit/8a9113cb4a68e9dc5e070d89d9c3b1c2b9de0871"
+    "version": "2.0.1",
+    "publishedAt": 1775746089597,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775487820277,
+      "commit": "https://github.com/openclaw/skills/commit/8a9113cb4a68e9dc5e070d89d9c3b1c2b9de0871"
+    }
+  ]
 }
