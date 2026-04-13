@@ -1,11 +1,17 @@
 {
   "owner": "tenequm",
   "slug": "python-dev",
-  "displayName": "python-dev",
+  "displayName": "Python Development Setup",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1775233935020,
-    "commit": "https://github.com/openclaw/skills/commit/832ec5629b8c6ab94eeb46720b664eeebbe746e3"
+    "version": "0.1.2",
+    "publishedAt": 1775755254866,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1775233935020,
+      "commit": "https://github.com/openclaw/skills/commit/832ec5629b8c6ab94eeb46720b664eeebbe746e3"
+    }
+  ]
 }
