@@ -171,7 +171,24 @@ function buildComponentInstructions(template) {
 
   if (!rules) return '';
 
-  return `\n\n【排版规范】\n该用户选择的模板定义了以下自定义排版组件，请在输出 Markdown 时使用 ::: 容器语法调用它们：\n${rules}\n\n用法示例：\n\`\`\`\n::: intro-box\n这里是导读内容\n:::\n\`\`\`\n系统会自动将 ::: className 转换为对应的 HTML 结构并应用模板样式。除了这些自定义容器，其余内容请使用标准 Markdown 语法。`;
+  return `\n\n【排版规范】\n该用户选择的模板定义了以下自定义排版组件，请优先输出能够命中 CSS 的 HTML 结构，避免只写普通 Markdown 导致样式无法匹配：\n${rules}\n\n强制要求：\n1. 当某一段内容需要使用模板的自定义样式时，优先使用 HTML 结构并带上对应 class，例如 <section class="intro-box">...</section> 或 <div class="tip-card">...</div>。\n2. 如果你更适合用 ::: 容器语法，也可以使用 ::: className 包裹内容，系统会自动转换为对应 HTML。\n3. 不要把需要套用自定义样式的内容只写成普通 blockquote、普通列表或普通段落，否则 CSS 可能不会命中。\n4. 文章可以混合使用标准 Markdown 和少量 HTML；凡是依赖模板 className 的内容，一律优先用 HTML 结构明确表达。\n\nHTML 示例：\n\`\`\`html\n<section class="intro-box">\n  <p>这里是导读内容</p>\n</section>\n\n<div class="tip-card">\n  <p>这里是提示信息</p>\n</div>\n\`\`\`\n\n容器语法示例：\n\`\`\`\n::: intro-box\n这里是导读内容\n:::\n\`\`\`\n系统会自动将 ::: className 转换为对应的 HTML 结构并应用模板样式。除了这些自定义容器，其余内容请使用标准 Markdown 语法。`;
+}
+
+function buildHtmlStructureInstructions(template) {
+  const templateName = template && template.name ? template.name : '当前模板';
+  const componentCount = template && Array.isArray(template.components) ? template.components.length : 0;
+
+  let instructions = `【生成约束】请优先生成能够让 CSS 真正命中的内容结构，而不是只输出基础 Markdown。当前目标模板是「${templateName}」。`;
+  instructions += '\n- 凡是依赖模板自定义样式的内容，优先输出带 class 的 HTML 结构，例如 <section class="xxx">...</section>、<div class="xxx">...</div>。';
+  instructions += '\n- 如果上游支持 ::: className 容器语法，也可以使用 ::: 容器，但不要把这类内容退化成普通引用块、普通列表或普通段落。';
+  instructions += '\n- 普通正文、普通标题、普通列表可以继续使用 Markdown；只有组件化内容必须显式包裹 HTML/class 或 ::: 容器。';
+  instructions += '\n- 核心原则：模板组件优先输出 HTML，确保最终渲染后的 DOM 结构能命中模板 CSS。';
+
+  if (componentCount > 0) {
+    instructions += `\n- 该模板当前检测到 ${componentCount} 个组件声明，生成内容时应优先为这些组件产出显式 HTML 结构。`;
+  }
+
+  return instructions;
 }
 
 function findAccount(accounts, accountValue) {
@@ -652,6 +669,14 @@ async function generateAndPublishWorkflow(context, config) {
     };
   }
 
+  // 如果模板有组件但内容缺少 ::: 容器语法，在确认消息中提示
+  const hasContainers = /^:::\s*[\w-]/m.test(content);
+  const templateComponents = selectedTemplate.components || [];
+  let componentTip = '';
+  if (templateComponents.length > 0 && !hasContainers) {
+    componentTip = '\n\n> 💡 该模板包含自定义排版组件，系统会自动为引用块匹配合适的组件样式。如需完全发挥模板效果，建议在写文章时指定模板名称，AI 会自动使用组件排版。';
+  }
+
   if (workflowSessionId) {
     saveWorkflowSession(workflowSessionId, {
       content,
@@ -714,8 +739,8 @@ async function generateAndPublishWorkflow(context, config) {
 
     // 即使只有一个公众号，也展示让用户确认
     const promptText = accounts.length === 1
-      ? `已选择模板：**${selectedTemplate.name}**\n\n你只有一个已授权的公众号，请确认发布到 **${accounts[0].appName}**：`
-      : `已选择模板：**${selectedTemplate.name}**\n\n请选择要发布的公众号：`;
+      ? `已选择模板：**${selectedTemplate.name}**${componentTip}\n\n你只有一个已授权的公众号，请确认发布到 **${accounts[0].appName}**：`
+      : `已选择模板：**${selectedTemplate.name}**${componentTip}\n\n请选择要发布的公众号：`;
 
     return {
       type: 'interactive',
@@ -973,6 +998,7 @@ async function handleIntent(context, config) {
   // 返回生成内容的指令
   // 尝试从模板列表中获取组件指引（如果用户消息中隐含了模板选择）
   let componentInstructions = '';
+  let htmlStructureInstructions = buildHtmlStructureInstructions(null);
   if (templateHint) {
     try {
       const api = createApiClient(config);
@@ -981,6 +1007,7 @@ async function handleIntent(context, config) {
         const matchedTpl = findTemplate(templatesRes.data.data.list, templateHint);
         if (matchedTpl) {
           componentInstructions = buildComponentInstructions(matchedTpl);
+          htmlStructureInstructions = buildHtmlStructureInstructions(matchedTpl);
         }
       }
     } catch (e) { /* 非关键路径，忽略错误 */ }
@@ -992,6 +1019,7 @@ async function handleIntent(context, config) {
     params: {
       topic,
       templateHint,
+      htmlStructureInstructions,
       componentInstructions,
       author,
       account,
@@ -1000,7 +1028,7 @@ async function handleIntent(context, config) {
       coverImage,
       nextStep: 'publish'
     },
-    content: `好的，我来为你写一篇关于「${topic}」的文章${coverImage ? '，并生成匹配的封面图' : ''}，并发布到公众号。`
+    content: `好的，我来为你写一篇关于「${topic}」的文章${coverImage ? '，并生成匹配的封面图' : ''}，并发布到公众号。\n\n【生成要求 - 内容结构优先级】\n${htmlStructureInstructions}${componentInstructions ? `\n\n${componentInstructions}` : ''}`
   };
 }
 
