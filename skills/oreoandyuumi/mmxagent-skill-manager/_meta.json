@@ -3,9 +3,15 @@
   "slug": "mmxagent-skill-manager",
   "displayName": "mmxagent-skill-manager",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775120167490,
-    "commit": "https://github.com/openclaw/skills/commit/bbce0876eb5366841f8eeb9f2f5416c7f2218e74"
+    "version": "1.0.1",
+    "publishedAt": 1775631656956,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775120167490,
+      "commit": "https://github.com/openclaw/skills/commit/bbce0876eb5366841f8eeb9f2f5416c7f2218e74"
+    }
+  ]
 }
