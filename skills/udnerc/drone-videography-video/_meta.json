@@ -3,9 +3,15 @@
   "slug": "drone-videography-video",
   "displayName": "Drone Videography Video",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775091947625,
-    "commit": "https://github.com/openclaw/skills/commit/d1f4c18778663b85420765d5fd24064a9c6372cd"
+    "version": "1.0.1",
+    "publishedAt": 1775602006264,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775091947625,
+      "commit": "https://github.com/openclaw/skills/commit/d1f4c18778663b85420765d5fd24064a9c6372cd"
+    }
+  ]
 }
