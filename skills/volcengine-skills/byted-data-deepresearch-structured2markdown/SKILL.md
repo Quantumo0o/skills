@@ -1,11 +1,25 @@
 ---
 name: byted-data-deepresearch-structured2markdown
 description: |
-  专门用于将 Excel (.xlsx, .xls) 和 CSV (.csv) 文件转换为高度格式化的 Markdown 文档。
+  专门用于将 Excel (.xlsx, .xls) 和 CSV (.csv) 文件上传至DataAgent API并转换为高度格式化的 Markdown 文档。
   该工具具有内置的结构解析逻辑，能够自动识别表头、合并单元格并优化长文本换行。
   当用户需要将表格数据转化为文档报告或在 Markdown 环境中展示数据时，**必须优先调用此工具**，以确保格式的准确性和视觉上的专业性，避免普通代码分析产生的格式错乱。
 license: Apache-2.0
 timeout: 1800
+auth:
+  type: env
+  keys:
+    - VOLCENGINE_ACCESS_KEY
+    - VOLCENGINE_SECRET_KEY
+# 显式声明需求，安装程序会识别这些 key
+requirements:
+  environment_variables:
+    - name: VOLCENGINE_ACCESS_KEY
+      description: "火山引擎访问密钥 Access Key"
+      required: true
+    - name: VOLCENGINE_SECRET_KEY
+      description: "火山引擎安全密钥 Secret Key"
+      required: true
 ---
 
 # 数据深度分析（Data DeepResearch）
@@ -111,17 +125,16 @@ $VENV_PY \
 #### 参数说明
 
 ```text
-usage: data2md.py [-h] [--ak AK] [--sk SK] [--debug] --files FILES --output OUTPUT
+usage: data2md.py --ak AK --sk SK --files FILES --output OUTPUT [--debug]
 
 Aida OpenAPI Client (volcengine-sdk)
 
 options:
-  -h, --help       show this help message and exit
-  --ak AK          Volcengine AccessKey（优先级高于环境变量和 .env 文件）
-  --sk SK          Volcengine SecretKey（优先级高于环境变量和 .env 文件）
-  --debug          输出完整错误信息（也可用 OPENCLAW_DEBUG=1）
-  --files FILES    用户待处理的excel/csv文件路径，绝对路径, 多个文件用逗号分隔
-  --output OUTPUT  输出md文件路径，绝对路径
+  --ak AK          [必选] Volcengine AccessKey（优先级高于环境变量和 .env 文件）
+  --sk SK          [必选] Volcengine SecretKey（优先级高于环境变量和 .env 文件）
+  --files FILES    [必选] 用户待处理的excel/csv文件路径，绝对路径, 多个文件用逗号分隔
+  --output OUTPUT  [必选] 输出md文件路径，绝对路径
+  --debug          [可选] 输出完整错误信息（也可用 OPENCLAW_DEBUG=1）
 ```
 
 #### 运行时长说明
