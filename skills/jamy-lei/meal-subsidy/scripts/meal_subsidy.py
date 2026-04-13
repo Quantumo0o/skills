@@ -100,6 +100,13 @@ def take(d, name):
         p = SHOT_DIR / name; d.get_screenshot_as_file(str(p)); log(f"shot: {p.name}"); return str(p)
     except: return None
 
+def take_elem(d, elem, name):
+    """截取单个元素"""
+    try:
+        p = SHOT_DIR / name
+        elem.screenshot(str(p)); log(f"shot elem: {p.name}"); return str(p)
+    except: return None
+
 def click_text(d, text):
     for xp in [f"//button[contains(text(),'{text}')]", f"//a[contains(text(),'{text}')]",
                f"//span[contains(text(),'{text}')]", f"//*[contains(text(),'{text}')]"]:
@@ -140,7 +147,6 @@ def go_month(d, yr, mo):
 def read_record(d, yr, mo, day):
     go_month(d, yr, mo); time.sleep(2)
     d.switch_to.default_content()
-    take(d, f"att_{yr}{int(mo):02d}{int(day):02d}.png")
     cells = d.find_elements(By.CSS_SELECTOR, "[class*='Cell_']")
     log(f"  cells={len(cells)} find={mo}/{day}")
     for cell in cells:
@@ -152,6 +158,7 @@ def read_record(d, yr, mo, day):
             if cd != day: continue
             times = re.findall(r'\d{1,2}:\d{2}', txt)
             off = times[-1] if times else None
+            take_elem(d, cell, f"att_{yr}{int(mo):02d}{int(day):02d}.png")
             if off:
                 log(f"  {yr}-{int(mo):02d}-{int(day):02d} off={off}")
                 return f"{yr}-{int(mo):02d}-{int(day):02d}", off
