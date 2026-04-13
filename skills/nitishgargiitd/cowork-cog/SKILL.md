@@ -9,20 +9,50 @@ metadata:
     os: [darwin, linux]
 dependencies: [cellcog]
 ---
-
 # Cowork Cog — CellCog on Your Machine
 
-Co-work turns the machine OpenClaw is running on into CellCog's workspace. CellCog Desktop acts as a bridge: CellCog's cloud agents coordinate with the desktop app to run commands, read files, and write code directly on the user's machine.
+Co-work turns any machine into CellCog's workspace. CellCog Desktop acts as a bridge: CellCog's cloud agents coordinate with the desktop app to run commands, read files, and write code directly on the user's machine.
 
 All commands are **auto-approved** for SDK/agent users — fully autonomous, no manual approval needed.
 
 ## Prerequisites
 
-This skill requires the `cellcog` mothership skill for SDK setup and API calls.
+This skill requires the `cellcog` skill for SDK setup and API calls.
 
 ```bash
 clawhub install cellcog
 ```
+
+## How to Use
+
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
+
+**OpenClaw (fire-and-forget):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
+    task_label="my-task",
+    chat_mode="agent core",
+    enable_cowork=True,
+    cowork_working_directory="/path/to/project",
+)
+```
+
+**Cursor / Claude Code / Other agents (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent core",
+    enable_cowork=True,
+    cowork_working_directory="/path/to/project",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -45,7 +75,7 @@ Think of it as a Claude Code or Cursor alternative, backed by CellCog's multi-ag
 ```python
 from cellcog import CellCogClient
 
-client = CellCogClient()
+client = CellCogClient(agent_provider="openclaw")
 
 # 1. Check if desktop app is connected
 status = client.get_desktop_status()
@@ -59,13 +89,24 @@ if not status["connected"]:
     # cellcog-desktop --start
 
 # 3. Create a co-work chat
+
+# OpenClaw agents (fire-and-forget):
+result = client.create_chat(
+    prompt="Refactor the auth module to use JWT tokens",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    chat_mode="agent core",
+    enable_cowork=True,
+    cowork_working_directory="/Users/me/project",
+    task_label="refactor-auth",
+)
+
+# All other agents (blocks until done):
 result = client.create_chat(
     prompt="Refactor the auth module to use JWT tokens",
     chat_mode="agent core",
     enable_cowork=True,
     cowork_working_directory="/Users/me/project",
-    notify_session_key="agent:main:main",
-    task_label="refactor-auth"
+    task_label="refactor-auth",
 )
 ```
 
@@ -106,16 +147,17 @@ Use `"agent core"` mode for coding tasks — lightweight context focused on code
 
 ```python
 result = client.create_chat(
-    prompt="...",
-    chat_mode="agent core",       # Optimized for coding
+    prompt="Your coding task",
+    chat_mode="agent core",
     enable_cowork=True,
-    cowork_working_directory="/path/to/project",
-    notify_session_key="agent:main:main",
-    task_label="coding-task"
+    cowork_working_directory="/Users/me/project",
+    task_label="my-task",
 )
 ```
 
 `"agent"` mode also works with co-work but loads all multimedia tools upfront. Use `"agent core"` for faster, more focused coding sessions.
+
+See https://cellcog.ai for complete SDK API reference — delivery modes, `send_message()`, timeouts, and more.
 
 ---
 
@@ -130,8 +172,7 @@ cellcog-desktop --stop && cellcog-desktop --start
 
 Then send `continue` to the chat:
 ```python
-client.send_message(chat_id="abc123", message="continue",
-    notify_session_key="agent:main:main", task_label="resume")
+client.send_message(chat_id="abc123", message="continue")
 ```
 
 ---
@@ -160,3 +201,4 @@ For the best coding experience, also install `code-cog`:
 ```bash
 clawhub install code-cog
 ```
+
