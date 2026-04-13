@@ -3,9 +3,15 @@
   "slug": "ecommerce-image-suite",
   "displayName": "ecommerce-image-suite",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775622407012,
-    "commit": "https://github.com/openclaw/skills/commit/9752c15567b89d2edd6d5aec3e34b3338bcdc4fc"
+    "version": "1.0.6",
+    "publishedAt": 1776063210915,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775622407012,
+      "commit": "https://github.com/openclaw/skills/commit/9752c15567b89d2edd6d5aec3e34b3338bcdc4fc"
+    }
+  ]
 }

@@ -5,7 +5,7 @@ description: >
   支持国内平台（淘宝、京东、拼多多、抖音）与国际跨境平台（Amazon、独立站）的尺寸规范。
   触发示例：「帮我生成这件T恤的电商套图」「做一套淘宝主图」「生成亚马逊listing图片」。
   不应在用户仅上传图片但未明确提出图片生成需求时触发。
-metadata: {"openclaw":{"emoji":"🛍️","requires":{"env":["ANTHROPIC_API_KEY","QWEN_API_KEY"]},"primaryEnv":"QWEN_API_KEY"}}
+metadata: {"openclaw":{"emoji":"🛍️","requires":{"env":["DASHSCOPE_API_KEY"]},"primaryEnv":"DASHSCOPE_API_KEY","optionalEnv":["OPENAI_API_KEY","OPENAI_BASE_URL","OPENAI_MODEL","GEMINI_API_KEY","GEMINI_BASE_URL","GEMINI_MODEL","STABILITY_API_KEY","STABILITY_BASE_URL","STABILITY_MODEL","DASHSCOPE_BASE_URL","DASHSCOPE_MODEL","ARK_API_KEY","ARK_BASE_URL","ARK_MODEL"]}}
 ---
 
 # 电商套图生成助手
@@ -125,57 +125,76 @@ metadata: {"openclaw":{"emoji":"🛍️","requires":{"env":["ANTHROPIC_API_KEY",
 > 📄 各供应商 API 接入详情见 `references/providers.md`
 
 ### 支持的图像生成供应商（5个）
-| 供应商 | 模型 | 国内可用 | 特点 |
-|--------|------|---------|------|
-| OpenAI | DALL·E 3 | 需代理 | 高质量写实，细节清晰 |
-| Google | Gemini Imagen 3 | 需代理 | 色彩真实，商业感强 |
-| Stability AI | Stable Image Core | 需代理 | 精准控制构图 |
-| 阿里云 | 千问 | ✅直连 | 中文场景优化，异步任务 |
-| 字节跳动 | 豆包 Seedream | ✅直连 | 中文理解好，风格多样 |
+| 供应商 | 默认模型 | 模型环境变量 | 国内可用 | 特点 |
+|--------|---------|------------|---------|------|
+| OpenAI | `dall-e-3` | `OPENAI_MODEL` | 需代理 | 高质量写实，细节清晰 |
+| Google | `gemini-3.1-flash-image-preview` | `GEMINI_MODEL` | 需代理 | 原生图像生成，2K 输出 |
+| Stability AI | `core` | `STABILITY_MODEL` | 需代理 | 精准控制构图 |
+| 阿里云 | `qwen-image-2.0-pro` | `DASHSCOPE_MODEL` | ✅直连 | 同步接口，中文优化 |
+| 字节跳动 | `doubao-seedream-5-0-260128` | `ARK_MODEL` | ✅直连 | 中文理解好，风格多样 |
 
-### 供应商检测与选择逻辑
-1. 用户在配置面板填入各供应商 API Key（浏览器本地存储）
-2. 系统检测哪些供应商已配置（Key 非空）
-3. 若只有1个供应商配置 → 自动选择
-4. 若有多个 → 展示供应商选择界面让用户选择
-5. 若无任何配置 → 提示用户先配置，展示 Prompt 预览模式
+> 模型名可通过 `--model` 参数、环境变量或默认值配置，优先级：`--model` > 环境变量 > 默认值。
 
-## 第六步：Canvas 文案叠加
+### 供应商检测
 
-> 📄 各图类型叠加坐标规范见 `references/providers.md`（Canvas规范部分）
+```bash
+python3 scripts/check_providers.py
+```
 
-### 核心逻辑
-```javascript
-async function applyTextOverlay(base64, typeId, sellingPoints, lang) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      
-      const texts = OVERLAY_CONFIGS[typeId]?.(sellingPoints, lang) || [];
-      texts.forEach(t => {
-        const fontSize = Math.round(t.fontSize * canvas.width);
-        ctx.font = `${t.weight || "600"} ${fontSize}px "Helvetica Neue", Arial, sans-serif`;
-        ctx.textAlign = t.align || "left";
-        if (t.shadow) {
-          ctx.shadowColor = "rgba(0,0,0,0.5)";
-          ctx.shadowBlur = 8;
-        }
-        ctx.fillStyle = t.color || "#fff";
-        ctx.fillText(t.text, t.x * canvas.width, t.y * canvas.height);
-        ctx.shadowColor = "transparent";
-        ctx.shadowBlur = 0;
-      });
-      
-      resolve(canvas.toDataURL("image/jpeg", 0.92).split(",")[1]);
-    };
-    img.src = `data:image/jpeg;base64,${base64}`;
-  });
-}
+输出 JSON 包含 `configured` 数组，显示哪些供应商已配置 API Key。
+
+### 执行生图脚本
+
+```bash
+python3 scripts/generate.py \
+  --product '{"product_description_for_prompt": "...", "selling_points": [...]}' \
+  --provider tongyi \
+  --types white_bg,key_features,selling_pt,material,lifestyle,model,multi_scene \
+  --output-dir ./output/raw/
+```
+
+### generate.py 完整参数
+
+| 参数 | 说明 | 默认值 |
+|------|------|--------|
+| `--product` | **必填**，商品 JSON 字符串 | — |
+| `--provider` | **必填**，供应商：`openai` / `gemini` / `stability` / `tongyi` / `doubao` | — |
+| `--api-key` | API Key，也可通过环境变量传入 | 环境变量 |
+| `--base-url` | 自定义代理地址，也可通过 `*_BASE_URL` 环境变量传入 | 官方地址 |
+| `--model` | 模型名称，也可通过 `*_MODEL` 环境变量传入 | 见供应商表 |
+| `--types` | 逗号分隔的套图类型 | 全部 7 种 |
+| `--output-dir` | 输出目录 | `./output/raw/` |
+
+### 代理 API 使用示例
+
+各供应商均支持通过 `--base-url` 或环境变量指定代理地址：
+
+```bash
+# Gemini 通过代理（代理使用 Bearer token 鉴权）
+GEMINI_API_KEY="sk-proxy-key" \
+GEMINI_BASE_URL="https://my-proxy.com/v1beta/models/gemini-3.1-flash-image-preview:generateContent" \
+  python3 scripts/generate.py --provider gemini --product '...'
+
+# 通义通过代理
+DASHSCOPE_API_KEY="sk-..." \
+DASHSCOPE_BASE_URL="https://my-proxy.com/api/v1/services/aigc/multimodal-generation/generation" \
+  python3 scripts/generate.py --provider tongyi --product '...'
+
+# 切换模型版本
+DASHSCOPE_MODEL="qwen-image-2.0" \
+  python3 scripts/generate.py --provider tongyi --product '...'
+```
+
+## 第六步：文案叠加
+
+使用 Pillow 将文案叠加到生成图片上：
+
+```bash
+python3 scripts/overlay.py \
+  --input-dir ./output/raw/ \
+  --product '{"selling_points": [...], "product_name_zh": "..."}' \
+  --lang zh \
+  --output-dir ./output/final/
 ```
 
 ### 叠加规范（各图类型）
@@ -186,30 +205,33 @@ async function applyTextOverlay(base64, typeId, sellingPoints, lang) {
 - **场景展示图**：左上主标题 + 左下两条副标题，白色文字+阴影
 - **多场景拼图**：顶部居中主标题 + 底部两侧场景标注，白色文字+阴影
 
+> 📄 各图类型叠加坐标规范见 `references/providers.md`（Canvas规范部分）
+
 ---
 
-## 交互式 Artifact 实现
+## CLI 执行流程（Agent 调用）
 
-当用户上传商品图片请求生成套图时，**优先创建交互式 React Artifact**，实现以下 UI 流程：
+Agent 或 CLI 环境下的完整流程：
 
-### UI 流程（5步）
+```bash
+# Step 1: 检测供应商配置
+python3 scripts/check_providers.py
+
+# Step 2: Agent 分析商品图片（Claude Vision），输出 product JSON
+
+# Step 3: 执行生图
+python3 scripts/generate.py \
+  --product '{"product_description_for_prompt": "white T-shirt...", "selling_points": [...]}'  \
+  --provider tongyi \
+  --output-dir ./output/raw/
+
+# Step 4: 文案叠加
+python3 scripts/overlay.py \
+  --input-dir ./output/raw/ \
+  --product '{"product_description_for_prompt": "white T-shirt...", "selling_points": [...]}' \
+  --lang zh \
+  --output-dir ./output/final/
 ```
-① API配置 → ② 图片上传+AI分析 → ③ 供应商选择（检测已配置的） 
-→ ④ 套图类型+语言选择 → ⑤ 生成（含Canvas叠加）→ 预览+下载
-```
-
-### Artifact 核心功能模块
-1. **ProviderConfig**：5个供应商API Key配置，检测已配置项，浏览器本地存储
-2. **ProviderDetect**：自动检测已配置供应商，多个时弹出选择，单个时自动选中
-3. **ImageUploader**：拖拽上传，支持 jpg/png/webp
-4. **AIAnalysis**：Claude Vision分析商品图片，输出结构化卖点JSON
-5. **SellingPointEditor**：卖点卡片编辑，中英文切换
-6. **ImageTypeSelector**：7种类型多选+平台/语言配置
-7. **GenerationPipeline**：逐张调用供应商API，实时进度显示
-8. **CanvasOverlay**：Canvas API文案叠加，各图类型独立文字位置规范
-9. **DownloadPanel**：逐张预览+批量下载
-
-> 📄 完整 Artifact 代码见 `scripts/suite_artifact.jsx`
 
 ---
 
@@ -231,7 +253,10 @@ async function applyTextOverlay(base64, typeId, sellingPoints, lang) {
 | `references/platforms.md` | 各平台尺寸规范、主图要求、文案风格指南 |
 | `references/image-types.md` | 7种套图的详细视觉规格与 Prompt 模板 |
 | `references/analysis-prompts.md` | AI商品分析与卖点提取的系统 Prompt |
-| `scripts/suite_artifact.jsx` | 交互式套图生成 React Artifact |
+| `references/providers.md` | 供应商 API 接入详情与文案叠加规范 |
+| `scripts/check_providers.py` | 检测已配置供应商（读取环境变量） |
+| `scripts/generate.py` | 调用图像生成 API（5个供应商，支持 `--model` / `--base-url` / `--api-key`） |
+| `scripts/overlay.py` | Pillow 文案叠加（动态卖点 + 多语言） |
 
 ---
 
@@ -241,48 +266,51 @@ async function applyTextOverlay(base64, typeId, sellingPoints, lang) {
 
 | 变量 | 用途 | 是否必需 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Claude Vision 分析商品图片、提取卖点 JSON | ✅ 必需 |
-| `QWEN_API_KEY` | 千问 qwen-image-2.0-pro 图像生成（国内直连） | ✅ 至少一个图像供应商 |
-| `DOUBAO_API_KEY` | 豆包 Seedream 图像生成（国内直连） | 可选 |
+| `DASHSCOPE_API_KEY` | 千问图像生成（国内直连） | ✅ 推荐 |
+| `ARK_API_KEY` | 豆包 Seedream 图像生成（火山方舟，国内直连） | 可选 |
 | `OPENAI_API_KEY` | DALL·E 3 图像生成（需代理） | 可选 |
-| `GEMINI_API_KEY` | Imagen 3 图像生成（需代理） | 可选 |
+| `GEMINI_API_KEY` | Gemini 原生图像生成（需代理） | 可选 |
 | `STABILITY_API_KEY` | Stable Image Core（需代理） | 可选 |
+| `*_BASE_URL` | 各供应商自定义代理地址（`OPENAI_BASE_URL` / `GEMINI_BASE_URL` 等） | 可选 |
+| `*_MODEL` | 各供应商自定义模型名（`DASHSCOPE_MODEL` / `ARK_MODEL` / `GEMINI_MODEL` 等） | 可选 |
 
-> **安全声明**：所有 API Key 仅存于浏览器 `localStorage`，由客户端直接调用各供应商官方 Endpoint，不经过任何第三方服务器中转。建议使用权限最小化的 Key，并定期轮换。
+> **安全声明**：API Key 仅存于本地环境变量，直接调用各供应商官方 Endpoint，不经过任何第三方服务器中转。建议使用权限最小化的 Key，并定期轮换。
 
 ### 方式一：环境变量
 
 ```bash
-# 必需
-export ANTHROPIC_API_KEY="sk-ant-..."
-export QWEN_API_KEY="sk-..."            # 阿里云 DashScope（国内直连）
-
-# 可选图像供应商（配置一个以上即可）
-export DOUBAO_API_KEY="..."             # 字节跳动火山引擎（国内直连）
+# 至少配置一个图像供应商
+export DASHSCOPE_API_KEY="sk-..."       # 阿里云 DashScope（国内直连，推荐）
+export ARK_API_KEY="..."                # 字节跳动火山方舟（国内直连）
 export OPENAI_API_KEY="sk-..."         # 需代理
 export GEMINI_API_KEY="AIzaSy..."      # 需代理
 export STABILITY_API_KEY="sk-..."      # 需代理
+
+# 可选：自定义代理地址
+export OPENAI_BASE_URL="https://my-proxy.com/v1"
+export GEMINI_BASE_URL="https://my-proxy.com/gemini"
+export DASHSCOPE_BASE_URL="https://my-proxy.com/dashscope"
+
+# 可选：自定义模型名（不配置则使用默认值）
+export DASHSCOPE_MODEL="qwen-image-2.0"       # 默认 qwen-image-2.0-pro
+export ARK_MODEL="doubao-seedream-5-0-260128" # 默认 doubao-seedream-5-0-260128
+export GEMINI_MODEL="gemini-3.1-flash-image-preview"  # 默认同此
 ```
 
 加入 `~/.zshrc` 或 `~/.bashrc` 后永久生效。
 
 ### 方式二：OpenClaw 配置文件
 
-在 `$OPENCLAW_CONFIG_PATH`（默认 `~/.openclaw/openclaw.json`）中配置 `apiKey`，对应 `primaryEnv`（即 `QWEN_API_KEY`）：
+在 `$OPENCLAW_CONFIG_PATH`（默认 `~/.openclaw/openclaw.json`）中配置 `apiKey`，对应 `primaryEnv`（即 `DASHSCOPE_API_KEY`）：
 
 ```json5
 {
   skills: {
-    "ecommerce-image-suite": {
-      apiKey: "QWEN_API_KEY_HERE",
-    },
+    entries: {
+      "ecommerce-image-suite": {
+        apiKey: "DASHSCOPE_API_KEY_HERE",
+      },
+    }
   },
 }
 ```
-
-`ANTHROPIC_API_KEY` 及其他可选图像供应商 Key 通过环境变量（方式一）补充。
-
-### 方式三：Artifact UI 内配置
-
-在生成器界面点击 **⚙️ API设置**，逐个填入各供应商 Key。  
-Key 存于浏览器 `localStorage`，刷新页面后仍有效。
