@@ -1,0 +1,11 @@
+{
+  "owner": "ardentillumina",
+  "slug": "speech-denoise",
+  "displayName": "Speech De-Noise, Vocal Enhancement",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775726232873,
+    "commit": null
+  },
+  "history": []
+}
