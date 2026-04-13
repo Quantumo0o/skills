@@ -1,224 +1,173 @@
 ---
 name: figma-agent
-description: Unified Figma skill for OpenClaw. Reads design context directly via Figma's Remote MCP and routes write/edit/create operations through ACP coding sessions (Claude Code, Codex, or other supported agents). Best for screen inspection, design-context analysis, targeted edits, screenshot retrieval, and lightweight review loops.
-version: 0.1.0
-requires:
-  env:
-    - FIGMA_MCP_TOKEN
-  anyBins:
-    - node
-primaryEnv: FIGMA_MCP_TOKEN
-homepage: https://github.com/rasimme/figma-agent
+description: Figma MCP integration for OpenClaw. Use when the user wants to read Figma designs, inspect design tokens/variables, work with Code Connect, or create/edit Figma designs. Requires one-time bootstrap setup.
+metadata:
+  openclaw:
+    requires:
+      anyBins: ["node", "node18", "node20", "node22"]
+    homepage: https://github.com/rasimme/figma-agent
 ---
 
 # Figma Agent
 
-A **unified Figma skill** with a **hybrid architecture**:
-- **Read / Inspect** operations use the direct Figma MCP path.
-- **Write / Edit / Create** operations go through an **ACP coding session** (Claude Code, Codex, or another ACP-supported agent with Figma MCP connected).
-- To the user, this feels like **one skill**, not two separate systems.
+Figma Remote MCP integration for OpenClaw. Reads designs via `figma__*` tools; creates and edits via CC sessions using `mcp__figma__*` tools.
 
-## Prerequisites
+## Route First
 
-1. **Figma account** (Full Seat required for write access)
-2. **One-time Figma MCP connection** via a supported client:
-   - Claude Code: `claude plugin install figma` or connect via MCP settings
-   - Codex, Cursor, VS Code, Windsurf: add Figma in MCP settings
-3. **Token bootstrap:** `node scripts/bootstrap-token.mjs` — automatically extracts the token and writes it to OpenClaw config
-4. **Gateway restart:** `openclaw gateway restart`
+**Read/Inspect** → call `figma__*` tools directly. No CC session needed.  
+**Write/Create/Edit** → requires CC session via `mcp__figma__*` tools.
 
-This external-client requirement is temporary. Once Figma opens Dynamic Client Registration for custom clients, direct auth will replace this step.
+Seeing or understanding a design? → Direct. Do not start a session.  
+Changing or creating something? → Start a CC session. Follow the matching playbook below.
 
-## When to use this skill
+**Execution model:**
+1. **Route & Brief** — choose the workflow, identify the real risks, and write a lean execution brief
+2. **Execute** — perform the direct read or CC-based write flow
+3. **Done Gate** — do not report success until the applicable structural and visual validation checks pass
 
-Use this skill when the user wants to:
-- inspect a Figma screen, frame, or file
-- retrieve screenshots or design context
-- understand variables, structure, metadata, or design-system elements
-- request targeted edits to an existing screen
-- create a new screen or variant in Figma
-- run a simple review loop: inspect → edit → inspect again
+## Workflow Routing
 
-Do **not** use this skill for:
-- generic design discussions without Figma context
-- heavy multi-step autonomous workflow orchestration
-- non-Figma browser automation
+**First:** Determine the user's intent, then follow the matching path.
 
-## Product behavior
+This is an abridged routing summary. For the full matrix and decision logic, see [references/workflow-selection.md](references/workflow-selection.md).
 
-The skill behaves like **one product** with internal routing.
+→ Full routing matrix: [references/workflow-selection.md](references/workflow-selection.md)
 
-### Transparency rule
-- **Read operations:** stay quiet about internal routing unless it matters.
-- **Write / edit / create operations:** explicitly tell the user when switching to the heavier ACP execution path.
+| Intent | Path | Route |
+|--------|------|-------|
+| Build a production screen | [Native Screen Generation](references/playbooks/native-screen-generation.md) | CC |
+| Create next step / state variant from an existing screen | [Native Screen Generation](references/playbooks/native-screen-generation.md) | CC |
+| Prototype from HTML/URL | [HTML-to-Figma Prototyping](references/playbooks/html-to-figma-prototyping.md) | CC |
+| Read-only inspection | `get_design_context` / `get_screenshot` | Direct |
+| Review + Edit a screen | [Screen Review Loop](references/playbooks/screen-review-loop.md) | CC |
+| Apply design tokens | [Color Tokenization](references/playbooks/color-tokenization.md) | CC |
+| Import + clean up Stitch export | [Stitch Import Cleanup](references/playbooks/stitch-import-cleanup.md) | CC |
+| Discover variables/styles | [Variable Discovery](references/playbooks/variable-discovery.md) | Direct |
+| Audit design system | [Design System Cleanup](references/playbooks/design-system-cleanup.md) | CC |
+| Inspect finished design | [Design Audit Review](references/playbooks/design-audit-review.md) | Direct |
 
-Examples:
-- Read: "The screen uses a 12-column grid with 16px gutters…"
-- Write: "I'll push this change through an ACP coding session now and bring back the result."
+---
 
-## Capability groups
+## Image Delivery (MANDATORY after every write)
 
-### 1. Inspect / Read (direct path)
+Screenshots must reach the user as Telegram photo attachments — not as inline base64 text.
 
-Typical requests:
-- "Analyze this screen"
-- "Get me the screenshot"
-- "What are the key components here?"
-- "Which variables / tokens are used?"
+**Workflow:**
 
-Available tools (via `scripts/figma-mcp.mjs`):
-- `get_design_context` — full design context for a node
-- `get_screenshot` — PNG screenshot of a node
-- `get_metadata` — structural metadata and node tree
-- `get_variable_defs` — design token / variable definitions
-- `search_design_system` — search across design system
-- `get_figjam` — FigJam board content
-- `get_code_connect_map` — Code Connect mappings
-- `get_code_connect_suggestions` — Code Connect suggestions
-- `get_context_for_code_connect` — context for Code Connect setup
-- `whoami` — verify auth and account info
+1. **Save to file** — use `--out <path>` flag so the PNG is written directly:
 
-### 2. Write / Edit / Create (ACP path)
+   ```bash
+   node scripts/figma-mcp-cli.mjs get_screenshot \
+     fileKey=<fileKey> nodeId=<nodeId> scale=2 \
+     --out ~/workspace-dev-botti/screenshots/<name>.png
+   ```
 
-Typical requests:
-- "Change this layout"
-- "Create a new variant"
-- "Add a new screen"
-- "Rewrite this in Figma"
+2. **Deliver to user** — put `MEDIA:<path>` on its own line in your reply:
 
-For these, use an **ACP coding agent** (e.g. Claude Code or Codex). The ACP session has access to:
-- `use_figma` — general-purpose Plugin API execution
-- `create_new_file` — create blank Figma file
-- `generate_figma_design` — code-to-canvas generation
-- `generate_diagram` — Mermaid to FigJam
-- `add_code_connect_map` — add Code Connect mappings
-- `send_code_connect_mappings` — publish Code Connect
-- `create_design_system_rules` — define design system rules
+   ```
+   Hier ist der aktuelle Stand:
+   MEDIA:screenshots/validate.png
+   ```
 
-## Routing rules
+   OpenClaw extracts every `MEDIA:` line and sends the file as a native Telegram photo.
+   The path is workspace-relative (`screenshots/...`) or absolute.
 
-### Namespace note
-- `figma__*` = OpenClaw-side direct tools (if/when native MCP materializes)
-- `mcp__figma__*` = Figma MCP tools inside ACP coding sessions
-- `scripts/figma-mcp.mjs` = zero-dependency wrapper for direct calls
 
-The user does not need to know about this distinction.
+**Two different tools — don't mix them up:**
 
-### Default heuristic
+| Tool | Purpose | Used for Image Delivery? |
+|------|---------|--------------------------|
+| `image` tool | Send to Vision model for analysis | ❌ No — analysis only |
+| `MEDIA:<path>` in reply text | Send as Telegram attachment | ✅ Yes — actual delivery |
 
-**Route to direct read when the request is about:**
-seeing, understanding, comparing, extracting, summarizing, inspecting, reviewing existing design state.
+**Why `--out`?**
+Without it, the Figma API returns base64-encoded JSON → renders as inline text in Telegram, not a photo. The `--out` flag decodes and writes a real PNG file that `MEDIA:` sends as an attachment.
 
-**Route to ACP when the request is about:**
-changing, editing, creating, generating, restructuring, writing to canvas, producing new design state.
+**Screenshot directory:** `~/workspace-dev-botti/screenshots/` (create if missing)
 
-### Mixed requests
-1. Inspect first (direct path)
-2. Summarize relevant context
-3. Switch to ACP for the mutation
-4. Return the result
+**Validation pattern (every write operation):**
 
-### Write path flow
-1. Determine that mutation is required
-2. Gather relevant Figma context directly first
-3. Hand mutation task to the ACP coding agent
-4. Let CC execute the Figma change
-5. Return result to the conversation
-
-## Review loop
-
-A simple review loop is in scope:
-1. Inspect current state
-2. Perform targeted change
-3. Show / summarize result
-4. Accept one more correction or refinement
-
-Avoid over-complicated automation. Prefer clear step-by-step execution.
-
-## Write safety: checkpoint before every write
-
-Before any write operation (`use_figma`, `create_new_file`, `generate_figma_design`),
-always save a version-history checkpoint first:
-
-```js
-// Use writeWithCheckpoint() instead of call('use_figma', ...)
-await client.writeWithCheckpoint(fileKey, 'Short label', 'Description', code);
-```
-
-This saves a named entry in Figma's Version History (File → Version History)
-so the user can always restore the state before the edit.
-
-**Rule:** reads never need a checkpoint. Writes always do.
-
-## Failure handling
-
-### Auth failure
-If a direct Figma read fails due to invalid or expired auth:
-- Stop the attempt
-- Tell the user clearly that Figma auth needs renewal
-- Point to: `node scripts/bootstrap-token.mjs --refresh`
-- Do not silently reroute as if it were a different problem
-
-### Rate limits
-If reads are rate-limited, say so clearly. Do not pretend direct reads are always cheap or always available.
-
-## Token management
-
-### Bootstrap
 ```bash
-node scripts/bootstrap-token.mjs          # scan + write
-node scripts/bootstrap-token.mjs --dry-run # preview only
-node scripts/bootstrap-token.mjs --refresh # refresh expired token
+# After use_figma call — save screenshot → MEDIA: in reply
+node scripts/figma-mcp-cli.mjs get_screenshot fileKey=<key> nodeId=<id> scale=2 \
+  --out ~/workspace-dev-botti/screenshots/validate.png
+# Reply with:
+# MEDIA:screenshots/validate.png
 ```
 
-Supported token sources (in priority order):
-1. Claude Code (`~/.claude/.credentials.json`)
-2. Codex (`~/.codex/auth.json`)
-3. Windsurf (`~/.codeium/windsurf/mcp_config.json`)
+**Stitch comparison:**
+Stitch delivers via `MEDIA:<screenshotUrl>` (HTTP URL). Figma delivers via `MEDIA:<local-path>` (file). Mechanism identical — only the source differs.
 
-### Token location
-The token is written to `openclaw.json` under `mcp.servers.figma.headers.Authorization`.
+---
 
-## What works via Remote MCP (official)
+## Hard Rules (Top 6)
 
-All capabilities below are confirmed via [Figma's official documentation](https://help.figma.com/hc/en-us/articles/32132100833559).
+These are non-negotiable. Full rule set: [references/core-rules.md](references/core-rules.md)
 
-### Read / Inspect ✅
-- `get_design_context` — design structure, layout, component info
-- `get_screenshot` — PNG screenshot of any frame or node
-- `get_metadata` — full layer tree with node IDs, positions, dimensions
-- `get_variable_defs` — local variables/tokens (requires valid nodeId)
-- `search_design_system` — community and linked library components/styles
-- `get_code_connect_map` / `get_code_connect_suggestions` — Code Connect mappings
-- `get_figjam` — FigJam diagram content
-- `whoami` — current user identity
+1. **Validate after every write** — `get_screenshot` or `get_metadata` after each `use_figma` call. Never assume success.
+2. **Read → Understand → Fix → Retry** — never blindly retry failed code, never rebuild as first response.
+3. **Explicit over implicit** — name exact variables, components, layout modes. Leave nothing to inference.
+4. **Design-system-first** — check local variables, styles, Code Connect, then libraries before creating anything raw.
+5. **Component-instance-first** — if a suitable existing design-system component exists, instantiate it instead of recreating it with local frames.
+6. **Section-by-section** — one logical section per `use_figma` call, validate between sections.
 
-### Write / Create ✅ (Full Seat required)
-- `use_figma` — executes JavaScript via Figma Plugin API: create/modify frames, components, variables, auto layout, fills, strokes, text
-- `create_new_file` — creates a blank Figma file in Drafts
-- `generate_figma_design` — captures live HTML/CSS from a browser URL and imports it as editable Figma layers (HTML-to-canvas)
-- `generate_diagram` — converts Mermaid diagrams to FigJam
-- `add_code_connect_map` / `send_code_connect_mappings` — Code Connect
-- `create_design_system_rules` — design system agent instructions
+---
 
-## Known limitations (official, as of April 2026)
+## Known Gotchas
 
-Source: [Figma Write to Canvas docs](https://developers.figma.com/docs/figma-mcp-server/write-to-canvas/)
+Before writing any `use_figma` code, know these failure modes:
 
-- **20 KB output limit** per `use_figma` call — large write operations must be split into multiple calls
-- **No image/asset import** — cannot embed raster images or external assets via MCP
-- **No custom font loading** — only fonts already installed in the Figma file/org are available
-- **Beta quality** — write to canvas is actively being improved; some edge cases may fail silently
-- **Dev Seat = read-only** — `use_figma` (write) requires a Full Seat
-- **`saveVersionHistoryAsync` not available** in Remote MCP sandbox — manual version history via Figma UI only
-- **`figma.variables.getVariableById()` not available** in Remote MCP sandbox — use variable IDs retrieved via `get_variable_defs` and bind via `setBoundVariableForPaint`
-- **SVG/vector assets** cannot be created programmatically via Plugin API in this context — clone existing vector nodes from the file instead
-- **`generate_figma_design` (HTML capture)** requires the Figma capture script to run in the browser; external `<script src>` tags are not executed in headless browsers — use inline script embedding as a workaround
-- **Write to canvas** is only available with select approved MCP clients (Claude Code, Cursor, VS Code, Codex, Copilot CLI, etc.) — not with arbitrary custom clients
+→ Full reference: [references/plugin-api-gotchas.md](references/plugin-api-gotchas.md)
 
-## Constraints
+- **Paint binding:** `setBoundVariableForPaint` returns a new paint — reassign the fills/strokes array ([#paint-binding](references/plugin-api-gotchas.md#paint-binding))
+- **Opacity reset:** Paint binding resets opacity to 1.0 — save and restore explicitly ([#opacity](references/plugin-api-gotchas.md#opacity))
+- **Page context:** Always set page explicitly — `figma.currentPage` may reset between calls ([#page-context](references/plugin-api-gotchas.md#page-context))
+- **FILL sizing:** appendChild to auto-layout parent before setting `layoutSizingHorizontal: "FILL"` ([#append-before-fill](references/plugin-api-gotchas.md#append-before-fill))
+- **Async:** Always `await` async operations — `loadFontAsync`, `importComponentByKeyAsync`, etc. ([#promises](references/plugin-api-gotchas.md#promises))
 
-- Do not assume custom-client OAuth/DCR for Figma Remote MCP is stable.
-- Do not over-promise fully native OpenClaw-only write support.
-- Keep the architecture future-compatible with a more native path later.
-- Prefer usefulness over purity.
+---
+
+## Prompting Guidance
+
+→ Full patterns: [references/prompting-patterns.md](references/prompting-patterns.md)
+
+Key patterns: variable-first code structure, section-by-section execution, explicit design-system usage, validation loops, error recovery framing.
+
+---
+
+## Install / Setup
+
+If dependencies are missing, install them from the skill repo root:
+
+```bash
+npm install
+```
+
+Then run one-time bootstrap:
+
+## Setup (One-Time Bootstrap)
+
+```bash
+node ~/.openclaw/skills/figma-agent/scripts/auth.mjs
+```
+
+Reads CC OAuth token from `~/.claude/.credentials.json`, writes it into `~/.openclaw/openclaw.json`. Then restart the OpenClaw gateway.
+
+**Token check:** `node ~/.openclaw/skills/figma-agent/scripts/auth.mjs --check`
+
+**On 401 errors:** Open CC → use any Figma tool (auto-refreshes token) → re-run bootstrap script.
+
+---
+
+## URL Parsing
+
+```
+figma.com/design/:fileKey/:name?node-id=:nodeId
+```
+Convert `-` to `:` in nodeId (e.g. `123-456` → `123:456`). For FigJam: `figma.com/board/:fileKey/:name` → use `get_figjam`.
+
+---
+
+## Tool & Rate-Limit Reference
+
+→ [references/figma-api.md](references/figma-api.md)
