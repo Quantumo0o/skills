@@ -3,11 +3,16 @@
   "slug": "gate-info-tokenonchain",
   "displayName": "gate-info-tokenonchain",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775184722307,
-    "commit": "https://github.com/openclaw/skills/commit/442cf4d77939cb5064c9377462bf4cfd42b8ed2b"
+    "version": "1.0.2",
+    "publishedAt": 1775558095238,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775184722307,
+      "commit": "https://github.com/openclaw/skills/commit/442cf4d77939cb5064c9377462bf4cfd42b8ed2b"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775050221893,
