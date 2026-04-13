@@ -7,9 +7,18 @@
     "start": "node server.js"
   },
   "keywords": ["openclaw", "mbusa", "skill", "agent", "tool", "api"],
-  "author": "Kaushik Datta",
+  "author": "Kaushik Datta <kaudata@yahoo.com>",
+  "homepage": "https://github.com/yourusername/mbusa-dealer-skill#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/mbusa-dealer-skill.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.21.2"
   }
 }
