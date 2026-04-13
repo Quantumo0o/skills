@@ -10,31 +10,49 @@ metadata:
     homepage: https://x402.ntriq.co.kr
 ---
 
-# Compliance Intel
+# Compliance Intel MCP
 
-Regulatory compliance analysis. Checks GDPR, SOX, HIPAA, PCI-DSS requirements and flags violations.
+Regulatory compliance gap analysis for GDPR, SOX, HIPAA, and PCI-DSS. Submit policies, contracts, or code descriptions and receive framework-specific requirement checks with violation flags and remediation guidance.
 
-## Usage
+## Parameters
 
-### x402 Payment (AI agents)
-```bash
-curl -X POST https://x402.ntriq.co.kr/compliance-check \
-  -H "Content-Type: application/json" \
-  -d '{"image_url": "https://example.com/doc.png"}'
-# Returns 402 → auto-pay USDC → get result
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `text` | string | ✅ | Policy text, contract clause, or system description |
+| `frameworks` | array | ✅ | Compliance frameworks: `gdpr`, `sox`, `hipaa`, `pci_dss` |
+| `industry` | string | ❌ | Sector context: `healthcare`, `finance`, `retail` |
+| `jurisdiction` | string | ❌ | `us`, `eu`, `uk` (default: `us`) |
+
+## Example Response
+
+```json
+{
+  "frameworks_checked": ["gdpr", "hipaa"],
+  "violations": [
+    {
+      "framework": "GDPR",
+      "article": "Art. 13",
+      "severity": "high",
+      "finding": "No data retention period disclosed to data subjects",
+      "remediation": "Add explicit retention schedule to privacy notice"
+    }
+  ],
+  "passed": ["HIPAA Minimum Necessary Rule", "HIPAA Encryption at Rest"],
+  "compliance_score": 74
+}
 ```
 
-### Service Catalog
+## Use Cases
+
+- Privacy policy automated audit before launch
+- Third-party vendor contract compliance review
+- DevOps security control gap analysis
+
+## Access
+
 ```bash
+# Service catalog
 curl https://x402.ntriq.co.kr/services
 ```
 
-## Features
-- 100% local AI inference (zero external API calls)
-- x402 micropayments (USDC on Base)
-- Sub-10 second processing
-- JSON structured output
-
-## Powered by
-- [ntriq Data Intelligence](https://x402.ntriq.co.kr)
-- Qwen2.5-VL (vision) + Qwen2.5 (text) local inference
+Available on [Apify Store](https://apify.com/ntriqpro/compliance-intel-mcp) · [x402 micropayments](https://x402.ntriq.co.kr)
