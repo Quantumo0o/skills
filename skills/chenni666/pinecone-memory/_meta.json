@@ -3,9 +3,15 @@
   "slug": "pinecone-memory",
   "displayName": "pinecone-memory",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775659244447,
-    "commit": "https://github.com/openclaw/skills/commit/3753701611923c38ab5becbcbee92207db7400e0"
+    "version": "1.0.1",
+    "publishedAt": 1775720885980,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775659244447,
+      "commit": "https://github.com/openclaw/skills/commit/3753701611923c38ab5becbcbee92207db7400e0"
+    }
+  ]
 }
