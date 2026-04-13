@@ -575,7 +575,7 @@ def interactive_flow():
     print()
     
     # ===== 步骤5: 确认并发布 =====
-    print("【步骤5】确认发布")
+    print("【步骤5】选择发布模式")
     print("-"*40)
     
     print("待发布章节列表:")
@@ -583,10 +583,21 @@ def interactive_flow():
         print(f"  {i}. {ch['title']} ({len(ch['content'])} 字)")
     
     print()
-    confirm_publish = input("确认发布以上章节？(Y/n): ").strip().lower()
+    print("请选择发布模式:")
+    print("  1. 直接发布 (publish) - 确认内容无误，直接发布")
+    print("  2. 存入草稿箱 (draft) - 内容待完善，先保存草稿")
+    print()
+    
+    mode_input = input("请输入模式编号 (1/2，默认1): ").strip()
+    mode = "draft" if mode_input == "2" else "publish"
+    mode_desc = "存入草稿箱" if mode == "draft" else "直接发布"
+    
+    print(f"\n[OK] 已选择: {mode_desc}")
+    
+    confirm_publish = input(f"确认{mode_desc}以上章节？(Y/n): ").strip().lower()
     
     if confirm_publish == 'n':
-        print("用户取消发布，退出程序")
+        print("用户取消操作，退出程序")
         return
     
     # 询问发布间隔
@@ -596,7 +607,7 @@ def interactive_flow():
     
     print()
     print("="*60)
-    print("开始发布...")
+    print(f"开始{mode_desc}...")
     print("="*60 + "\n")
     
     # 执行批量发布
@@ -605,18 +616,18 @@ def interactive_flow():
         for ch in chapters
     ]
     
-    results = publish_batch(work_name, chapter_objs, interval)
+    results = publish_batch(work_name, chapter_objs, interval, mode=mode)
     
     # 显示发布结果
     print()
     print("="*60)
-    print("发布完成")
+    print(f"{mode_desc}完成")
     print("="*60)
     
     success_count = sum(1 for r in results if r.get("success"))
     fail_count = len(results) - success_count
     
-    print(f"\n发布统计:")
+    print(f"\n{mode_desc}统计:")
     print(f"  [OK] 成功: {success_count} 章")
     print(f"  ✗ 失败: {fail_count} 章")
     

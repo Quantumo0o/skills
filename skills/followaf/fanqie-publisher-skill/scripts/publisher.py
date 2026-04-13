@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-番茄小说自动发布 - 章节发布模块（修复版 v2）
+番茄小说自动发布 - 章节发布模块（修复版 v3）
+
+支持两种发布模式：
+- publish: 直接发布章节（默认）
+- draft: 存入草稿箱
 
 完整发布流程：
 1. 进入创建章节页面
 2. 填写章节号
 3. 填写标题
 4. 填写正文内容（使用剪贴板粘贴）
-5. 点击"下一步"
-6. 处理错别字检测弹窗 - 点击"提交"
-7. 处理内容风险检测弹窗 - 点击"确定"
-8. 处理发布设置弹窗 - 选择"否"（不使用AI）- 点击"确认发布"
-9. 等待成功提示
+5. 根据模式选择：
+   - publish模式: 点击"下一步" → 处理弹窗 → 确认发布
+   - draft模式: 点击右上角"存入草稿箱" → 确认保存
 """
 
 import time
@@ -48,12 +50,25 @@ class FanqiePublisher:
         self.browser = get_browser()
         self.works_manager = FanqieWorks()
     
-    def publish_chapter(self, work_title: str, chapter: Chapter) -> dict:
-        """发布单个章节"""
+    def publish_chapter(self, work_title: str, chapter: Chapter, mode: str = "publish") -> dict:
+        """
+        发布单个章节
+        
+        Args:
+            work_title: 作品标题
+            chapter: 章节信息
+            mode: 发布模式，可选值：
+                - "publish": 直接发布章节（默认）
+                - "draft": 存入草稿箱
+        
+        Returns:
+            dict: 发布结果 {"success": bool, "message": str}
+        """
         result = {
             "success": False,
             "message": "",
-            "chapter_title": chapter.title
+            "chapter_title": chapter.title,
+            "mode": mode
         }
         
         # 检查登录状态
@@ -62,8 +77,14 @@ class FanqiePublisher:
             result["message"] = "请先登录"
             return result
         
+        # 验证模式参数
+        if mode not in ["publish", "draft"]:
+            result["message"] = f"无效的发布模式: {mode}，请使用 'publish' 或 'draft'"
+            return result
+        
         try:
-            print(f"[发布] 准备发布章节: {chapter.title}")
+            mode_desc = "存入草稿箱" if mode == "draft" else "直接发布"
+            print(f"[发布] 准备发布章节: {chapter.title} ({mode_desc})")
             
             # 获取作品
             work = self.works_manager.get_work_by_title(work_title)
@@ -88,18 +109,28 @@ class FanqiePublisher:
                 result["message"] = "填写章节内容失败"
                 return result
             
-            # 点击下一步
-            if not self._click_next():
-                result["message"] = "点击下一步失败"
-                return result
+            # 根据模式选择不同的后续流程
+            if mode == "draft":
+                # 存入草稿箱
+                if not self._save_to_draft():
+                    result["message"] = "存入草稿箱失败"
+                    return result
+                result["success"] = True
+                result["message"] = f"章节 '{chapter.title}' 已存入草稿箱"
+            else:
+                # 直接发布
+                # 点击下一步
+                if not self._click_next():
+                    result["message"] = "点击下一步失败"
+                    return result
+                
+                # 处理确认流程
+                if not self._handle_confirm_flow():
+                    result["message"] = "确认发布失败"
+                    return result
+                result["success"] = True
+                result["message"] = f"章节 '{chapter.title}' 发布成功，等待审核"
             
-            # 处理确认流程
-            if not self._handle_confirm_flow():
-                result["message"] = "确认发布失败"
-                return result
-            
-            result["success"] = True
-            result["message"] = f"章节 '{chapter.title}' 发布成功，等待审核"
             print(f"[发布] [OK] {result['message']}")
             
         except Exception as e:
@@ -350,13 +381,120 @@ class FanqiePublisher:
             self.browser.page.screenshot(path="confirm_error.png")
             return False
     
-    def publish_batch(self, work_title: str, chapters: List[Chapter], interval: int = 5) -> List[dict]:
-        """批量发布"""
+    def _save_to_draft(self) -> bool:
+        """
+        存入草稿箱
+        
+        点击右上角的"存入草稿箱"按钮，保存章节到草稿箱而不发布。
+        
+        Returns:
+            bool: 是否成功存入草稿箱
+        """
+        print("[草稿] 存入草稿箱...")
+        
+        try:
+            # 等待页面稳定
+            time.sleep(2)
+            
+            # 查找存入草稿箱按钮（通常在右上角）
+            # 可能的选择器：
+            # 1. 包含"草稿箱"文字的按钮
+            # 2. 包含"存入草稿"文字的按钮
+            # 3. 特定的class名称
+            
+            draft_btn_selectors = [
+                "button:has-text('存入草稿箱')",
+                "button:has-text('草稿箱')",
+                "button:has-text('存草稿')",
+                "[class*='draft']",
+                ".draft-btn",
+                "a:has-text('存入草稿箱')",
+                "a:has-text('草稿箱')",
+            ]
+            
+            draft_btn = None
+            for selector in draft_btn_selectors:
+                try:
+                    btn = self.browser.page.query_selector(selector)
+                    if btn and btn.is_visible():
+                        draft_btn = btn
+                        print(f"[草稿] 找到草稿按钮: {selector}")
+                        break
+                except:
+                    continue
+            
+            if not draft_btn:
+                # 尝试通过XPath查找
+                try:
+                    draft_btn = self.browser.page.locator("//button[contains(text(), '草稿')]").first
+                    if draft_btn and draft_btn.is_visible():
+                        print("[草稿] 通过XPath找到草稿按钮")
+                except:
+                    pass
+            
+            if draft_btn:
+                draft_btn.click()
+                print("[草稿] [OK] 点击存入草稿箱")
+                time.sleep(3)
+                
+                # 处理可能的确认弹窗
+                time.sleep(2)
+                confirm_btn = self.browser.page.query_selector("button:has-text('确定'), button:has-text('确认'), button:has-text('保存')")
+                if confirm_btn and confirm_btn.is_visible():
+                    confirm_btn.click()
+                    print("[草稿] [OK] 确认保存")
+                    time.sleep(2)
+                
+                # 检查是否成功（跳转到章节管理或显示成功提示）
+                time.sleep(2)
+                current_url = self.browser.page.url
+                
+                if "chapter-manage" in current_url or "book-manage" in current_url:
+                    print("[草稿] [OK] 已跳转到管理页面")
+                    return True
+                
+                # 检查页面是否有成功提示
+                page_content = self.browser.page.content()
+                success_keywords = ["已保存", "存入成功", "草稿", "保存成功"]
+                for keyword in success_keywords:
+                    if keyword in page_content:
+                        print(f"[草稿] [OK] 检测到成功提示: {keyword}")
+                        return True
+                
+                # 截图当前状态
+                self.browser.page.screenshot(path="draft_final.png")
+                return True
+            else:
+                print("[草稿] ✗ 未找到存入草稿箱按钮")
+                self.browser.page.screenshot(path="draft_no_button.png")
+                return False
+                
+        except Exception as e:
+            print(f"[草稿] 存入草稿箱失败: {e}")
+            self.browser.page.screenshot(path="draft_error.png")
+            return False
+    
+    def publish_batch(self, work_title: str, chapters: List[Chapter], interval: int = 5, mode: str = "publish") -> List[dict]:
+        """
+        批量发布章节
+        
+        Args:
+            work_title: 作品名称
+            chapters: 章节列表
+            interval: 发布间隔（秒）
+            mode: 发布模式，"publish" 直接发布，"draft" 存入草稿箱
+        
+        Returns:
+            发布结果列表
+        """
         results = []
+        
+        mode_desc = "存入草稿箱" if mode == "draft" else "直接发布"
+        print(f"[批量] 开始批量{mode_desc}，共 {len(chapters)} 章")
         
         for i, chapter in enumerate(chapters):
             print(f"\n[批量] 进度: {i+1}/{len(chapters)}")
-            result = self.publish_chapter(work_title, chapter)
+            result = self.publish_chapter(work_title, chapter, mode=mode)
             results.append(result)
             
             if i < len(chapters) - 1:
@@ -367,31 +505,54 @@ class FanqiePublisher:
 
 
 # 便捷函数
-def publish_chapter(work_title: str, title: str, content: str) -> dict:
-    """发布单个章节"""
+def publish_chapter(work_title: str, title: str, content: str, mode: str = "publish") -> dict:
+    """
+    发布单个章节
+    
+    Args:
+        work_title: 作品名称
+        title: 章节标题
+        content: 章节内容
+        mode: 发布模式，"publish" 直接发布，"draft" 存入草稿箱
+    
+    Returns:
+        发布结果
+    """
     publisher = FanqiePublisher()
     chapter = Chapter(title=title, content=content)
-    return publisher.publish_chapter(work_title, chapter)
+    return publisher.publish_chapter(work_title, chapter, mode=mode)
 
 
-def publish_batch(work_title: str, chapters: List[dict], interval: int = 5) -> List[dict]:
-    """批量发布章节
+def publish_batch(work_title: str, chapters: List[dict], interval: int = 5, mode: str = "publish") -> List[dict]:
+    """
+    批量发布章节
     
     Args:
         work_title: 作品名称
         chapters: 章节列表，每个元素为 {"title": "标题", "content": "内容"}
         interval: 发布间隔（秒）
+        mode: 发布模式，"publish" 直接发布，"draft" 存入草稿箱
     
     Returns:
         发布结果列表
     """
     publisher = FanqiePublisher()
     chapter_list = [Chapter(title=c["title"], content=c["content"]) for c in chapters]
-    return publisher.publish_batch(work_title, chapter_list, interval)
+    return publisher.publish_batch(work_title, chapter_list, interval, mode=mode)
 
 
-def publish_from_file(work_title: str, file_path: str) -> dict:
-    """从文件发布章节"""
+def publish_from_file(work_title: str, file_path: str, mode: str = "publish") -> dict:
+    """
+    从文件发布章节
+    
+    Args:
+        work_title: 作品名称
+        file_path: 章节文件路径
+        mode: 发布模式，"publish" 直接发布，"draft" 存入草稿箱
+    
+    Returns:
+        发布结果
+    """
     from main import extract_content
     
     content = Path(file_path).read_text(encoding='utf-8')
@@ -405,4 +566,4 @@ def publish_from_file(work_title: str, file_path: str) -> dict:
         title=chapter_data["title"],
         content=chapter_data["content"]
     )
-    return publisher.publish_chapter(work_title, chapter)
+    return publisher.publish_chapter(work_title, chapter, mode=mode)
