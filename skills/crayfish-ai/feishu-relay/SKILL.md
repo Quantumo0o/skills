@@ -1,71 +1,76 @@
 ---
 name: feishu-relay
-description: Unified Feishu notification system with automatic discovery, message queue, and reliable delivery. Use when user needs to send notifications via Feishu (Lark) with automatic system registration.
+description: Send Feishu (Lark) notifications via OpenClaw. Core only: send messages, queue, retry. No system modifications by default.
 ---
 
-# Feishu Relay
+# Feishu Notifier - Core
 
-Unified Feishu notification system with automatic discovery, message queue, and reliable delivery.
+**Version: 3.0 (Safe Mode)**
 
-## Features
+A minimal, safe Feishu notification bridge for OpenClaw.
 
-- **Unified Notification Entry** - All systems use the same `notify` command
-- **Automatic System Discovery** - New systems auto-register upon deployment
-- **SQLite Message Queue** - Reliable message storage and delivery
-- **Automatic Retry** - 3 retry attempts on failure
-- **systemd Service Integration** - Background resident service
-- **Smart Type Recognition** - Auto-detect website/service/skill/task
-- **Framework Detection** - Auto-detect Next.js/Django/Flask/Node/Go/Rust
+## What This Does
+
+✅ **Core (always available)**:
+- Send messages to Feishu via Open API
+- JSON structured output
+- Config via environment or skill config
+- Retry on network failure
+
+❌ **Not included by default**:
+- No crontab installation
+- No systemd service setup
+- No global `/usr/local/bin/notify` link
+- No auto-discovery of other skills
+- No environment injection
 
 ## Quick Start
 
 ```bash
-# Install
-sudo ./install-v2.sh
+# Configure (environment variables)
+export FEISHU_APP_ID="cli_xxx"
+export FEISHU_APP_SECRET="xxx"
+export FEISHU_RECEIVE_ID="ou_xxx"
 
 # Send notification
-notify "Title" "Content"
-
-# List registered systems
-feishu-relay-register list
+./run.sh -t "Title" -m "Message body"
 ```
-
-## Auto Discovery
-
-New systems deployed to these directories will be auto-discovered:
-
-| Path | Type |
-|------|------|
-| `/opt/*` | service |
-| `/var/www/*` | website |
-| `/data/*` | data |
-| `/home/*` | user |
 
 ## Configuration
 
-Edit `/opt/feishu-notifier/config/feishu.env`:
+| Config | Env Variable | Required | Default |
+|--------|-------------|----------|---------|
+| appId | FEISHU_APP_ID | Yes | - |
+| appSecret | FEISHU_APP_SECRET | Yes | - |
+| receiveId | FEISHU_RECEIVE_ID | Yes | - |
+| receiveIdType | FEISHU_RECEIVE_ID_TYPE | No | open_id |
 
-```
-FEISHU_APP_ID=cli_xxx
-FEISHU_APP_SECRET=xxx
-FEISHU_USER_ID=ou_xxx
-FEISHU_RECEIVE_ID_TYPE=open_id
-```
-
-## Commands
+## Usage
 
 ```bash
-notify "Title" "Content"                  # Send instant notification
-feishu-relay-register list                # List all systems
-feishu-relay-register status              # Show status
-feishu-relay-register scan                # Trigger manual scan
+# Basic
+./run.sh -t "Title" -m "Message"
+
+# JSON output
+./run.sh -t "Title" -m "Message" --json
+
+# Test
+./run.sh --test
 ```
 
-## Documentation
+## Output Format
 
-- [Auto Discovery](docs/auto-discovery.md)
-- [Architecture](ARCHITECTURE.md)
+```json
+{
+  "success": true,
+  "message_id": "om_xxx",
+  "create_time": "1234567890"
+}
+```
 
-## License
+## Safety
 
-MIT
+- No secrets in logs
+- No system modifications
+- No root required for basic use
+- Config file: `chmod 600 config.json`
