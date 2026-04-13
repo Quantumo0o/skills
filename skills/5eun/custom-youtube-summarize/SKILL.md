@@ -7,7 +7,9 @@ description: Extract transcript from a YouTube video using Python and summarize 
 Extracts subtitles from YouTube videos and generates summaries. Use when users provide YouTube URLs with requests like "summarize this video" or "explain this content".
 
 ## Setup
-Create script at `{baseDir}/transcript_extract.py` with provided code
+1. Create script at `{baseDir}/transcript_extract.py` with provided code
+2. All libraries are already installed in the skills folder.
+3. Therefore, no additional action is required to run Python files.
 
 ## Usage
 When receiving a YouTube URL:
@@ -24,6 +26,13 @@ supported_languages: ["ko", "en"]
 ## Example
 **Input:**  
 `https://youtu.be/dQw4w9WgXcQ` (with "summarize this" context)
+`https://youtu.be/M-S2ctyAeaY?si=PEYq7Uy8HA8bpUUv` 이 영상 요약해줘
+다음 영상 요약 `https://youtu.be/M-S2cty`
+Summarize `https://youtube.com/watch?v=ch4EsgfHOJc`
+요약 `https://youtube.com/watch?v=ch4EsgfHOJc`
+`https://youtube.com/watch?v=chgasgwHOJc` 이거 내용 뭐야?
+`https://youtube.com/watch?v=qsnuQI62sda` Tell me the content of this video
+Tell me the content of this video `https://youtube.com/watch?v=qsnuQI62sda`
 
 **Output:**  
 ```markdown

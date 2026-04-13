@@ -1,5 +1,10 @@
 import sys
-sys.path.append("./libs")
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LIB_PATH = os.path.join(BASE_DIR, "libs")
+
+sys.path.append(LIB_PATH)
 
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
 from urllib.parse import urlparse, parse_qs
