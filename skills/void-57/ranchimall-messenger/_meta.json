@@ -1,13 +1,18 @@
 {
   "owner": "void-57",
   "slug": "ranchimall-messenger",
-  "displayName": "RanchiMall Messenger",
+  "displayName": "Ranchimall Messenger",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775315503355,
-    "commit": "https://github.com/openclaw/skills/commit/4c3bd502343f33868ade3c66bbb2c131c75cbd59"
+    "version": "1.0.6",
+    "publishedAt": 1775730058707,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775315503355,
+      "commit": "https://github.com/openclaw/skills/commit/4c3bd502343f33868ade3c66bbb2c131c75cbd59"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1775234007794,
