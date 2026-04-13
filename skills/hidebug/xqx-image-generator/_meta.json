@@ -1,11 +1,17 @@
 {
   "owner": "hidebug",
   "slug": "xqx-image-generator",
-  "displayName": "Use Ark (火山引擎豆包) to generate images(豆包生成图片) from text via OpenAI-compatible API",
+  "displayName": "Use Ark (火山引擎豆包) for text-to-image (文生图) via an OpenAI-compatible API. Suitable for short captions and long, structured creative or poster-style briefs in agent workflows.",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775670454048,
-    "commit": "https://github.com/openclaw/skills/commit/19869811e687bb1f0eea68aae69c09ee90090819"
+    "version": "1.0.7",
+    "publishedAt": 1775846021375,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775670454048,
+      "commit": "https://github.com/openclaw/skills/commit/19869811e687bb1f0eea68aae69c09ee90090819"
+    }
+  ]
 }
