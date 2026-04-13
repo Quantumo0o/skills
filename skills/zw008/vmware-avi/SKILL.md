@@ -2,7 +2,7 @@
 name: vmware-avi
 description: >
   Use this skill whenever the user mentions load balancing, ingress, virtual services, pool members, AVI, NSX ALB, AKO, or application delivery.
-  Also trigger when the user mentions ingress troubleshooting (even ingress-nginx) since AKO may be involved.
+  Also trigger when the user mentions AKO ingress troubleshooting in a Tanzu/vSphere environment.
   Do NOT trigger when the user explicitly asks to set up or configure nginx/HAProxy/Traefik from scratch — those are not AVI tasks.
   Directly handles: virtual service listing and enable/disable, pool member management (drain/enable traffic), SSL certificate expiry checks,
   analytics and error logs, service engine health, AKO pod troubleshooting, AKO Helm config management, Ingress annotation validation,
@@ -16,13 +16,16 @@ installer:
 argument-hint: "[vs-name, ako command, or describe your task]"
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"env":["VMWARE_AVI_CONFIG"],"bins":["vmware-avi"],"config":["~/.vmware-avi/config.yaml","~/.vmware-avi/.env"]},"primaryEnv":"VMWARE_AVI_CONFIG","homepage":"https://github.com/zw008/VMware-AVI","emoji":"🔀","os":["macos","linux"]}}
+metadata: {"openclaw":{"requires":{"env":["VMWARE_AVI_CONFIG"],"bins":["vmware-avi"],"config":["~/.vmware-avi/config.yaml","~/.vmware-avi/.env"]},"optional":{"env":["VMWARE_<CONTROLLER>_PASSWORD","KUBECONFIG"],"bins":["vmware-policy","kubectl"]},"primaryEnv":"VMWARE_AVI_CONFIG","homepage":"https://github.com/zw008/VMware-AVI","emoji":"🔀","os":["macos","linux"]}}
 compatibility: >
-  Requires vmware-policy (auto-installed). All operations audited to ~/.vmware/audit.db.
-  AKO operations require kubectl and a valid kubeconfig. AVI Controller operations require avisdk.
+  vmware-policy auto-installed as Python dependency (provides @vmware_tool decorator and audit logging). All write operations audited to ~/.vmware/audit.db.
+  AVI Controller operations require avisdk and a per-controller password env var in ~/.vmware-avi/.env following the pattern <CONTROLLER_NAME_UPPER>_PASSWORD (e.g., controller "prod-avi" → PROD_AVI_PASSWORD).
+  AKO operations require kubectl and a valid kubeconfig (default ~/.kube/config or KUBECONFIG env var). Kubeconfig is read-only — this skill does not modify kubeconfig files.
 ---
 
 # VMware AVI
+
+> **Disclaimer**: This is a community-maintained open-source project and is **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware", "NSX", and "AVI" are trademarks of Broadcom. Source code is publicly auditable at [github.com/zw008/VMware-AVI](https://github.com/zw008/VMware-AVI) under the MIT license.
 
 AVI (NSX Advanced Load Balancer) application delivery and AKO Kubernetes operations — 29 MCP tools.
 
@@ -127,20 +130,27 @@ Expired certificates cause outages. Run periodic checks across all controllers:
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 | AKO troubleshooting | **CLI** | Interactive log tailing, Helm diff output |
 
-## MCP Tools (29)
+## MCP Tools (29 — 15 read, 14 write)
 
-| Category | Tools |
-|----------|-------|
-| Virtual Service (3) | `vs_list`, `vs_status`, `vs_toggle` |
-| Pool Member (3) | `pool_members`, `pool_member_enable`, `pool_member_disable` |
-| SSL Certificate (2) | `ssl_list`, `ssl_expiry_check` |
-| Analytics (2) | `vs_analytics`, `vs_error_logs` |
-| Service Engine (2) | `se_list`, `se_health` |
-| AKO Pod (4) | `ako_status`, `ako_logs`, `ako_restart`, `ako_version` |
-| AKO Config (3) | `ako_config_show`, `ako_config_diff`, `ako_config_upgrade` |
-| Ingress Diagnostics (4) | `ako_ingress_check`, `ako_ingress_map`, `ako_ingress_diagnose`, `ako_ingress_fix_suggest` |
-| Sync Diagnostics (3) | `ako_sync_status`, `ako_sync_diff`, `ako_sync_force` |
-| Multi-cluster (3) | `ako_clusters`, `ako_cluster_overview`, `ako_amko_status` |
+| Category | Tools | R/W |
+|----------|-------|:---:|
+| Virtual Service (3) | `vs_list`, `vs_status` | Read |
+| | `vs_toggle` | Write |
+| Pool Member (3) | `pool_members` | Read |
+| | `pool_member_enable`, `pool_member_disable` | Write |
+| SSL Certificate (2) | `ssl_list`, `ssl_expiry_check` | Read |
+| Analytics (2) | `vs_analytics`, `vs_error_logs` | Read |
+| Service Engine (2) | `se_list`, `se_health` | Read |
+| AKO Pod (4) | `ako_status`, `ako_logs`, `ako_version` | Read |
+| | `ako_restart` | Write |
+| AKO Config (3) | `ako_config_show`, `ako_config_diff` | Read |
+| | `ako_config_upgrade` | Write |
+| Ingress Diagnostics (4) | `ako_ingress_check`, `ako_ingress_map`, `ako_ingress_diagnose`, `ako_ingress_fix_suggest` | Read |
+| Sync Diagnostics (3) | `ako_sync_status`, `ako_sync_diff` | Read |
+| | `ako_sync_force` | Write |
+| Multi-cluster (3) | `ako_clusters`, `ako_cluster_overview`, `ako_amko_status` | Read |
+
+**Read/write split**: 15 tools are read-only, 14 modify state. Write tools require double confirmation and are audit-logged.
 
 ## CLI Quick Reference
 
