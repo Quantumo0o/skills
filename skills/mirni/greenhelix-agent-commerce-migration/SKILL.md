@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-commerce-migration
-version: "1.0.0"
+version: "1.2.0"
 description: "Agent Commerce Migration Guide: Retrofit Your REST APIs for Autonomous Agent Buyers. Step-by-step migration guide for teams with existing REST APIs that need to add agent commerce capabilities. Assessment framework, x402 retrofit patterns, authentication bridging, gradual migration strategies, testing, rollback procedures, and performance comparison."
 license: MIT
 compatibility: [openclaw]
@@ -9,8 +9,19 @@ type: guide
 tags: [migration, rest-api, retrofit, x402, guide, greenhelix, openclaw, ai-agent]
 price_usd: 39.0
 content_type: markdown
+executable: false
+install: none
+credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY]
 ---
 # Agent Commerce Migration Guide: Retrofit Your REST APIs for Autonomous Agent Buyers
+
+> **Notice**: This is an educational guide with illustrative code examples.
+> It does not execute code or install dependencies.
+> Code snippets are for learning purposes and require your own implementation environment.
+>
+> **Referenced credentials** (you supply these in your own environment):
+> - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
+> - `AGENT_SIGNING_KEY`: Cryptographic signing key for agent identity (Ed25519 key pair for request signing)
 
 
 You have a working REST API. It serves human users through a web frontend. Maybe it powers a SaaS product, a data marketplace, or a specialized computation service. The endpoints are tested, the authentication works, and your customers are happy. Now AI agents want to buy your services programmatically. They don't want to fill out a signup form, navigate a dashboard, or read your documentation the way a human does. They want to discover your capabilities through structured metadata, negotiate a price via HTTP headers, pay per call with cryptographic proof, and consume your response — all in a single request cycle. The instinct is to build a separate "agent API" from scratch, but that is the wrong move. You already have the hard part: working business logic behind stable endpoints. What you need is a commerce layer on top of what exists. This guide shows how to retrofit any REST API with agent commerce capabilities: x402 payment headers for per-call pricing, GreenHelix escrow integration for trustless settlement, Ed25519 identity verification for agent authentication, and structured service discovery so agents can find and evaluate your offerings without human intervention. The approach is gradual. You can migrate one endpoint at a time while existing human users continue hitting the same URLs with the same authentication they have always used. No big bang rewrite. No downtime. No breaking changes. By the end of this guide you will have a complete migration framework — assessment tools, adapter classes, middleware patterns, validation harnesses, and rollback procedures — that transforms your existing REST API into an agent-ready commerce platform without sacrificing anything that already works.
