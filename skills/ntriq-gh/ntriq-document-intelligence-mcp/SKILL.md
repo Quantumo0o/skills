@@ -51,8 +51,11 @@ Vendor: Acme Supplies Ltd.",
 ## Access
 
 ```bash
+# x402 endpoint — pay $0.05 USDC per call (Base mainnet)
+POST https://x402.ntriq.co.kr/document-intel
+
 # Service catalog
 curl https://x402.ntriq.co.kr/services
 ```
 
-Available on [Apify Store](https://apify.com/ntriqpro/document-intelligence-mcp) · [x402 micropayments](https://x402.ntriq.co.kr)
+[x402 micropayments](https://x402.ntriq.co.kr) — USDC on Base, gasless EIP-3009
