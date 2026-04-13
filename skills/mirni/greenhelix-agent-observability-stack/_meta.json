@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-agent-observability-stack",
+  "displayName": "Agent Observability Stack: Distributed Tracing, Metrics, and Alerting for Multi-Agent Systems",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776065281419,
+    "commit": null
+  },
+  "history": []
+}
