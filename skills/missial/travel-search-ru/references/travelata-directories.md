@@ -2,55 +2,104 @@
 
 Load this file only when you need to look up IDs for countries, resorts, meals, or hotel categories.
 
-Note: hotel names and categories are returned directly in search results — no need to resolve them separately.
+All directory endpoints return `{"success": true, "result": [...]}`.
+
+Note: hotel names, ratings, and categories are returned inside search responses (via `sections[]=hotels`) — no need to resolve them separately.
 
 ## Countries
 
 ```bash
 python scripts/api_call.py --method GET \
-  --url "https://api.botclaw.ru/travelata/directory/countries"
+  --url "https://api.botclaw.ru/travelata-partners/directory/countries" \
+  --params '{"disabled":"0"}'
 ```
 
-Common values: `92` Turkey, `34` Egypt, `87` Thailand, `69` UAE
+Each item: `{"id": 92, "name": "Турция", "disabled": false}`. Use `id` as `country` (integer, not array) in search.
+
+Common country IDs:
+- Турция: 92
+- Египет: 40
+- ОАЭ: 47
+- Таиланд: 88
+
+## Popular destination countries
+
+```bash
+python scripts/api_call.py --method GET \
+  --url "https://api.botclaw.ru/travelata-partners/directory/destinationCountries"
+```
+
+Returns currently popular destinations sorted by `position`.
 
 ## Resorts
 
 ```bash
 python scripts/api_call.py --method GET \
-  --url "https://api.botclaw.ru/travelata/directory/resorts"
+  --url "https://api.botclaw.ru/travelata-partners/directory/resorts" \
+  --params '{"country[]":["92"],"disabled":"0","limit":"1000"}'
 ```
 
-Filter locally by the `countryId` field. Use returned IDs as `resorts[]` in search.
+Each item: `{"id": 2162, "name": "Белек", "country": 92, "isPopular": true, "disabled": false}`. Use `id` as `resorts[]` in search.
 
 Common Turkey resort IDs:
+- Белек: 2162
+- Кемер: 3839
+- Сиде: 3828
+- Аланья: 2159
 
-- `2161` Antalya, `3839` Kemer, `3835` Kemer: Beldibi, `2159` Alanya
-- `2162` Belek, `3828` Side, `2178` Marmaris, `2163` Bodrum, `2190` Fethiye, `2185` Istanbul
+## Hotels (search by name)
+
+```bash
+python scripts/api_call.py --method GET \
+  --url "https://api.botclaw.ru/travelata-partners/directory/destinations" \
+  --params '{"term":"Maxx Royal Belek"}'
+```
+
+Returns countries, resorts, and hotels matching the search term. Each result has `type` (`country`/`resort`/`hotel`), `id`, `name`. Use the hotel `id` as `hotels[]` in search.
+
+For full hotel details:
+
+```bash
+python scripts/api_call.py --method GET \
+  --url "https://api.botclaw.ru/travelata-partners/directory/hotels" \
+  --params '{"id[]":["47624"]}'
+```
 
 ## Departure Cities
 
-| id | City |
-|----|------|
-| 1 | Saint Petersburg |
-| 2 | Moscow |
-| 3 | Yekaterinburg |
-| 4 | Novosibirsk |
-| 5 | Kazan |
+```bash
+python scripts/api_call.py --method GET \
+  --url "https://api.botclaw.ru/travelata-partners/directory/departureCities" \
+  --params '{"disabled":"0"}'
+```
+
+Each item: `{"id": 2, "name": "Москва", "disabled": false}`. Use `id` as `departureCity` (integer) in search. Common: Москва=2, Санкт-Петербург=1.
+
+A static snapshot is also available in [assets/departure-cities.json](../assets/departure-cities.json).
 
 ## Hotel Categories
 
 ```bash
 python scripts/api_call.py --method GET \
-  --url "https://api.botclaw.ru/travelata/directory/hotelCategories"
+  --url "https://api.botclaw.ru/travelata-partners/directory/hotelCategories"
 ```
 
-Common values: `7` 5*, `8` 5*(HV-1), `4` 4*, `9` 4*(HV-2), `3` 3*, `2` 2*, `1` 1*, `5` Apartments, `6` Villa, `22` Boutique hotel
+Each item: `{"id": 7, "name": "5*"}`. Use `id` as `hotelCategories[]` in search.
 
 ## Meals
 
 ```bash
 python scripts/api_call.py --method GET \
-  --url "https://api.botclaw.ru/travelata/directory/meals"
+  --url "https://api.botclaw.ru/travelata-partners/directory/meals"
 ```
 
-Common values: `8` UAI, `1` AI, `11` AI without alcohol, `3` FB, `5` HB, `2` BB, `7` RO
+Each item: `{"id": 1, "code": "AI", "name": "Всё включено"}`. Use `id` as `meals[]` in search.
+
+## Operators
+
+```bash
+python scripts/api_call.py --method GET \
+  --url "https://api.botclaw.ru/travelata-partners/directory/operators"
+```
+
+Each item: `{"id": ..., "name": "..."}`. Use `id` as `operators[]` in search.

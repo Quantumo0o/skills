@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -10,39 +11,100 @@ import urllib.request
 import ssl
 
 
+ALLOWED_HOSTS = {
+    "api.botclaw.ru",
+    "autocomplete.travelpayouts.com",
+    "www.travelpayouts.com",
+    "pics.avs.io",
+    "yasen.aviasales.ru",
+}
+
+BLOCKED_HEADERS = {
+    "host", "authorization", "cookie", "x-forwarded-for",
+    "x-real-ip", "proxy-authorization",
+}
+
+
+def _validate_url(url):
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("https", "http"):
+        raise ValueError(f"Blocked URL scheme: {parsed.scheme}. Only HTTP(S) allowed.")
+    if parsed.hostname not in ALLOWED_HOSTS:
+        raise ValueError(
+            f"Blocked host: {parsed.hostname}. "
+            f"Allowed: {', '.join(sorted(ALLOWED_HOSTS))}"
+        )
+
+
+def _filter_headers(headers):
+    if not headers:
+        return headers
+    blocked = [k for k in headers if k.lower() in BLOCKED_HEADERS]
+    if blocked:
+        raise ValueError(f"Blocked headers: {', '.join(blocked)}")
+    return headers
+
+
+_SENSITIVE_PATTERNS = re.compile(
+    r"(token|key|secret|password|credential|auth)[=:]\s*\S+",
+    re.IGNORECASE,
+)
+
+_HTTP_ERROR_MESSAGES = {
+    400: "Bad request",
+    401: "Authentication error",
+    403: "Access denied",
+    404: "Not found",
+    405: "Method not allowed",
+    429: "Rate limit exceeded",
+    500: "Internal server error",
+    502: "Bad gateway",
+    503: "Service unavailable",
+    504: "Gateway timeout",
+}
+
+
+def _sanitize_error(text):
+    text = _SENSITIVE_PATTERNS.sub(r"\1=***", text)
+    text = re.sub(r"/(?:home|opt|usr|var|etc|tmp)/\S+", "<path>", text)
+    return text
+
+
 def make_request(method, url, params=None, body=None, headers=None):
-    ctx = ssl.create_default_context()
-
-    if method == "GET" and params:
-        query = urllib.parse.urlencode(params, doseq=True)
-        sep = "&" if "?" in url else "?"
-        url = f"{url}{sep}{query}"
-
-    data = None
-    if method == "POST" and body:
-        data = json.dumps(body).encode("utf-8")
-
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("User-Agent", "TravelSearchSkill/1.0")
-    req.add_header("Accept", "application/json")
-    if data:
-        req.add_header("Content-Type", "application/json")
-    if headers:
-        for k, v in headers.items():
-            req.add_header(k, v)
-
     try:
+        _validate_url(url)
+        _filter_headers(headers)
+        ctx = ssl.create_default_context()
+
+        if method == "GET" and params:
+            query = urllib.parse.urlencode(params, doseq=True)
+            sep = "&" if "?" in url else "?"
+            url = f"{url}{sep}{query}"
+
+        data = None
+        if method == "POST" and body:
+            data = json.dumps(body).encode("utf-8")
+
+        req = urllib.request.Request(url, data=data, method=method)
+        req.add_header("User-Agent", "TravelSearchSkill/1.0")
+        req.add_header("Accept", "application/json")
+        if data:
+            req.add_header("Content-Type", "application/json")
+        if headers:
+            for k, v in headers.items():
+                req.add_header(k, v)
+
         resp = urllib.request.urlopen(req, context=ctx, timeout=30)
         result = json.loads(resp.read().decode("utf-8"))
         json.dump(result, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
     except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8", errors="replace")[:500]
+        error_body = _sanitize_error(e.read().decode("utf-8", errors="replace")[:500])
         json.dump({"error": True, "status": e.code, "message": error_body}, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         sys.exit(1)
     except Exception as e:
-        json.dump({"error": True, "message": str(e)}, sys.stdout, ensure_ascii=False, indent=2)
+        json.dump({"error": True, "message": _sanitize_error(str(e))}, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         sys.exit(1)
 
