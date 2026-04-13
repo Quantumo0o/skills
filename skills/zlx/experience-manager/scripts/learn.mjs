@@ -68,7 +68,7 @@ function checkNewerVersion(index, name, version, agentName) {
   return null;
 }
 
-const HUB_API_BASE = 'https://www.expericehub.com';
+const HUB_API_BASE = 'https://www.expericehub.com:18080';
 
 function request(url) {
   return new Promise((resolve, reject) => {

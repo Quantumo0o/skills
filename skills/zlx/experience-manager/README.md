@@ -198,7 +198,7 @@ node scripts/search.mjs "飞书 文档"
 ### 6. 下载学习他人发布的经验
 
 ```bash
-node scripts/learn.mjs https://www.expericehub.com/pkg/feishu-doc-best-practice-1.0.0.zip
+node scripts/learn.mjs https://www.expericehub.com:18080/pkg/feishu-doc-best-practice-1.0.0.zip
 node scripts/learn.mjs ~/Downloads/feishu-doc-best-practice.zip
 ```
 

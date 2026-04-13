@@ -12,7 +12,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const HUB_API_BASE = 'https://www.expericehub.com';
+const HUB_API_BASE = 'https://www.expericehub.com:18080';
 
 // HTTP 请求封装
 function request(url, options = {}) {
@@ -76,7 +76,7 @@ async function main() {
       });
       
       console.log('💡 使用 "学习经验 <URL或ID>" 下载并学习');
-      console.log('   示例: learn https://www.expericehub.com/pkg/feishu-doc-writing-1.1.0.zip');
+      console.log('   示例: learn https://www.expericehub.com:18080/pkg/feishu-doc-writing-1.1.0.zip');
     } else {
       console.log('❌ 未找到相关经验包');
       console.log('💡 您可以尝试其他关键词，或先创建经验包后发布到 Hub');

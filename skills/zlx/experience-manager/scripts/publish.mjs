@@ -14,7 +14,7 @@ import AdmZip from 'adm-zip';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const HUB_API_BASE = 'https://www.expericehub.com';
+const HUB_API_BASE = 'https://www.expericehub.com:18080';
 
 // HTTP POST 请求封装（multipart/form-data）
 function postFile(url, filePath) {
@@ -119,7 +119,7 @@ async function main() {
       console.log(`   经验包 ID: ${result.id}`);
       console.log();
       console.log(`💡 其他用户可通过以下方式学习:`);
-      console.log(`   learn https://www.expericehub.com/pkg/${result.id}.zip`);
+      console.log(`   learn https://www.expericehub.com:18080/pkg/${result.id}.zip`);
     } else if (result.error) {
       console.error('❌ 发布失败:', result.error);
       process.exit(1);

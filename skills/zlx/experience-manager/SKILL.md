@@ -2,7 +2,7 @@
 name: experience-manager
 description: "经验管理工具：提取经验生成标准格式zip包，学习经验并转化为自身能力。搜索和发布经验包到 Experience Hub 平台。"
 metadata:
-  version: 1.3.0
+  version: 1.3.1
   author: zhulianxin@corp.netease.com
 ---
 
