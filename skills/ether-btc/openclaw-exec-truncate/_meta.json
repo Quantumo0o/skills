@@ -1,0 +1,11 @@
+{
+  "owner": "ether-btc",
+  "slug": "openclaw-exec-truncate",
+  "displayName": "Exec Truncate",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775689434196,
+    "commit": null
+  },
+  "history": []
+}
