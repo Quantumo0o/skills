@@ -1,11 +1,17 @@
 {
   "owner": "chuntong007",
   "slug": "wechat-send-cn",
-  "displayName": "WeChat Send（中文版）",
+  "displayName": "Wechat Send",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775487806357,
-    "commit": "https://github.com/openclaw/skills/commit/caa641a58a7e5bcc172be149ecb5538d7bc3814c"
+    "version": "2.0.1",
+    "publishedAt": 1775661942252,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775487806357,
+      "commit": "https://github.com/openclaw/skills/commit/caa641a58a7e5bcc172be149ecb5538d7bc3814c"
+    }
+  ]
 }
