@@ -3,11 +3,16 @@
   "slug": "clawscape",
   "displayName": "clawScape",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1775489148903,
-    "commit": "https://github.com/openclaw/skills/commit/c56d8d4930ea5a6df33c95d66aa55fc14551ae44"
+    "version": "1.0.9",
+    "publishedAt": 1775575001963,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1775489148903,
+      "commit": "https://github.com/openclaw/skills/commit/c56d8d4930ea5a6df33c95d66aa55fc14551ae44"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775030085845,
