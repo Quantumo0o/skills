@@ -3,9 +3,15 @@
   "slug": "compound-eng-php-laravel",
   "displayName": "php-laravel",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775440578186,
-    "commit": "https://github.com/openclaw/skills/commit/be9233191ca4e4fdb6c944ae842acff5d4a48d57"
+    "version": "2.55.1",
+    "publishedAt": 1776004218945,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775440578186,
+      "commit": "https://github.com/openclaw/skills/commit/be9233191ca4e4fdb6c944ae842acff5d4a48d57"
+    }
+  ]
 }

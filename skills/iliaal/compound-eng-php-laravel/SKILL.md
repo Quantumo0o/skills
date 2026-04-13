@@ -37,13 +37,18 @@ Use these when applicable -- do not add explanatory comments in generated code (
 
 ## Laravel Architecture
 
-- **Fat models, thin controllers** -- controllers only: validate, call service/action, return response
+- **Thin controllers** -- controllers only: validate, call service/action, return response. Domain behavior (scopes, accessors, relationships) lives in models; cross-cutting orchestration lives in service classes.
 - **Service classes** for business logic with readonly DI: `__construct(private readonly PaymentService $payments)`
 - **Action classes** (single-purpose invokable) for operations that cross service boundaries
 - **Form Requests** for all validation -- never validate inline in controllers. Add `toDto()` method to convert validated data to typed service parameters.
 - Conditional validation: `Rule::requiredIf()`, `sometimes`, `exclude_if` for complex form logic
 - **Events + Listeners** for side effects (notifications, logging, cache invalidation). Do not put side effects in services.
 - Feature folder organization over type-based when project exceeds ~20 models
+
+## Production Resilience
+
+- **Fail-fast config validation**: validate critical config values in a service provider's `boot()` method. Missing API keys, invalid DSNs, or misconfigured queues should crash the app on startup, not on the first request that hits the code path.
+- **Health endpoints**: expose `/health` (shallow, returns 200 if the process responds) and `/ready` (deep, checks database, Redis, and critical service connectivity). Use Laravel's built-in health checks (`Illuminate\Health`) or a simple route that queries each dependency.
 
 ## Routing
 
@@ -59,6 +64,9 @@ Use these when applicable -- do not add explanatory comments in generated code (
 - Foreign keys: `$table->foreignId('user_id')->constrained()->cascadeOnDelete()`
 - Always add index on foreign keys and frequently filtered columns
 - Down method: include rollback logic or `Schema::dropIfExists()` for new tables
+- Separate schema and data migrations -- data backfills in their own migration file, not mixed with DDL
+- Renames/removals use expand-contract: add new column → backfill → switch reads → drop old (see `postgresql` skill for the full pattern)
+- Never edit a migration that has run in a shared environment -- write a new one
 
 ## Eloquent
 
@@ -90,6 +98,7 @@ Use these when applicable -- do not add explanatory comments in generated code (
 - **Addition over modification**: add new fields/endpoints rather than changing or removing existing ones. Removing a field from an API Resource breaks callers silently. Deprecate first (`@deprecated` in OpenAPI/docblock), remove in a later version.
 - **Consistent error envelope**: all exceptions should produce the same `{ "success": false, "error": { "code": "...", "message": "..." } }` structure. Use `Handler::render()` or a custom exception handler to normalize `ValidationException`, `ModelNotFoundException`, `AuthorizationException`, and application errors into one format. Callers build error handling once.
 - **Boundary validation via Form Requests**: validate at the HTTP boundary, not inside services. Form Requests with `toDto()` ensure services receive typed, pre-validated data. Internal code trusts that input was validated at entry -- no redundant checks scattered through repositories or models.
+- **Third-party responses are untrusted data**: validate shape and content of external API responses before using them in logic, rendering, or decision-making. A compromised or misbehaving service can return unexpected types, malicious content, or missing fields. Wrap in a DTO or validate through a dedicated response class before use.
 
 ## Queues & Jobs
 
@@ -114,7 +123,7 @@ Use these when applicable -- do not add explanatory comments in generated code (
 - `Gate::forUser($user)->allows('update', $post)` for authorization assertions
 - `assertDatabaseHas` / `assertDatabaseMissing` to verify persistence
 - Coverage target: 80%+ with `pcov` or `XDEBUG_MODE=coverage` in CI
-General testing discipline (anti-patterns, rationalization resistance): see [writing-tests](../writing-tests/SKILL.md) skill.
+For generic test discipline (anti-patterns, mock rules, rationalization resistance), see the `writing-tests` skill — this skill covers Laravel-specific patterns that sit on top of that foundation.
 See [testing patterns and examples](./references/testing.md) for PHPUnit essentials, data providers, and running tests.
 See [feature testing](./references/feature-testing.md) for auth, validation, API, console, and DB assertions.
 See [mocking and faking](./references/mocking-and-faking.md) for facade fakes and action mocking.
