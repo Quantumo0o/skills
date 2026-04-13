@@ -1,6 +1,9 @@
-# MARRS Configuration - Updated for dedicated collection
-RAG_URL = "http://localhost:8200"
-DEFAULT_COLLECTION = "marrs"  # Dedicated collection for Weaver/MARRS project
+# Generic configuration for marrs memory helper
+# Edit these values to match your own RAG system
 
-print("MARRS config loaded - using dedicated 'marrs' collection")
+RAG_URL = "http://localhost:8200"
+DEFAULT_COLLECTION = "memory"
+
+print("marrs configuration loaded.")
 print("RAG backend:", RAG_URL)
+print("Default collection:", DEFAULT_COLLECTION)

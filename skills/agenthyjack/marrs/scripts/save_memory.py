@@ -8,19 +8,18 @@ from datetime import datetime
 from config import RAG_URL, DEFAULT_COLLECTION
 
 def save_memory(content, collection=None, source="agent"):
-    """Save content to Helga2 (or any RAG system)."""
+    """Save content to your configured RAG system."""
     if collection is None:
-        collection = "marrs"  # Default to dedicated MARRS collection as requested
+        collection = DEFAULT_COLLECTION
     
-    print(f"[{datetime.now()}] Saving to MARRS collection: {collection} (source: {source})")
+    print(f"[{datetime.now()}] Saving to collection: {collection} (source: {source})")
     
     payload = {
         "collection": collection,
         "text": str(content),
         "metadata": {
             "source": source,
-            "timestamp": datetime.now().isoformat(),
-            "project": "weaver-marrs"
+            "timestamp": datetime.now().isoformat()
         }
     }
     
@@ -43,5 +42,5 @@ def quick_save(text, agent_name="unknown"):
 
 
 if __name__ == "__main__":
-    print("MARRS save_memory helper loaded.")
-    print("Default collection is now 'marrs' for Weaver/MARRS project work.")
+    print("save_memory helper loaded.")
+    print("Edit config.py with your own RAG details before use.")
