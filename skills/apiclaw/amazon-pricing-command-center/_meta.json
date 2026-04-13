@@ -1,0 +1,11 @@
+{
+  "owner": "apiclaw",
+  "slug": "amazon-pricing-command-center",
+  "displayName": "Amazon Pricing Command Center",
+  "latest": {
+    "version": "1.1.1",
+    "publishedAt": 1776083846133,
+    "commit": null
+  },
+  "history": []
+}
