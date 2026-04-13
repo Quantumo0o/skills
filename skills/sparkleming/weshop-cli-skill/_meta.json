@@ -1,11 +1,17 @@
 {
   "owner": "sparkleming",
   "slug": "weshop-cli-skill",
-  "displayName": "Professional AI Fashion Photo & Image Generator — CLI-powered",
+  "displayName": "Professional AI Fashion Photo, Image & Video Generator – CLI-powered",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775209482944,
-    "commit": "https://github.com/openclaw/skills/commit/912b6eaad38988d9aa783ba48a9000b7f6be03c1"
+    "version": "1.0.3",
+    "publishedAt": 1775717595774,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775209482944,
+      "commit": "https://github.com/openclaw/skills/commit/912b6eaad38988d9aa783ba48a9000b7f6be03c1"
+    }
+  ]
 }
