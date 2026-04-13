@@ -12,6 +12,25 @@ const os = require('os');
 const https = require('https');
 const { URL } = require('url');
 
+// 检测文本是否为乱码（包含大量替换字符或无效 Unicode）
+function isMojibake(text) {
+    // 检查是否有大量 � (U+FFFD) 替换字符
+    const replacementCount = (text.match(/\uFFFD/g) || []).length;
+    if (replacementCount > 5) return true;
+    
+    // 检查是否包含常见的乱码特征（方框+问号组合）
+    if (/\ufffd|\u25a1|\u2753/.test(text)) return true;
+    
+    return false;
+}
+
+// 验证文本是否包含有效的中文（排除乱码）
+function hasValidChinese(text) {
+    // 中文字符范围
+    const chineseRegex = /[\u4e00-\u9fff]/;
+    return chineseRegex.test(text);
+}
+
 const SKILL_DIR = path.join(__dirname, '..');
 const FEISHU_BASE = 'https://open.feishu.cn/open-apis';
 
@@ -284,6 +303,14 @@ async function main() {
     if (!text) {
         console.log('消息内容为空，无需发送');
         process.exit(0);
+    }
+    
+    // 检测乱码
+    if (isMojibake(text)) {
+        console.error('⚠️ 检测到文本可能存在乱码！请勿使用 echo 或 CMD 写入含中文的文本文件。');
+        console.error('推荐使用 write 工具或 PowerShell 的 Out-File -Encoding utf8 写入文件。');
+        console.error('乱码内容预览:', text.substring(0, 100));
+        process.exit(1);
     }
     
     // 检查是否包含图片路径标记
