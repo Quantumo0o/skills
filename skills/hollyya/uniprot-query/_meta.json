@@ -1,0 +1,11 @@
+{
+  "owner": "hollyya",
+  "slug": "uniprot-query",
+  "displayName": "UniProt Query",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775637593165,
+    "commit": null
+  },
+  "history": []
+}
