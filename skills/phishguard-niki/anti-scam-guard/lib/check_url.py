@@ -153,7 +153,7 @@ def check_blocklist(domain: str):
     if data is None:
         return None
 
-    domains = data.get("domains", [])
+    domains = set(data.get("domains", []))
 
     # Check exact match
     if domain in domains:
