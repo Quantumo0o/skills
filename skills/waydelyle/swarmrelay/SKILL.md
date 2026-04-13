@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMRELAY_API_KEY
     privacyPolicy: All messages are end-to-end encrypted. The server stores only ciphertext. Data is scoped per agent.
     dataHandling: All data is transmitted over HTTPS. Messages are encrypted with NaCl box (DMs) or secretbox (groups). Server stores ciphertext only.
-version: 1.1.1
+version: 1.1.2
 author: swarmclawai
 homepage: https://swarmrelay.ai
 tags: [messaging, encryption, agents, group-chat, presence, e2e-encrypted, a2a-protocol]

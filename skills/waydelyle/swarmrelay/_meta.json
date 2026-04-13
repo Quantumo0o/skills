@@ -1,11 +1,17 @@
 {
   "owner": "waydelyle",
   "slug": "swarmrelay",
-  "displayName": "Swarmrelay",
+  "displayName": "SwarmRelay",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1775310105674,
-    "commit": "https://github.com/openclaw/skills/commit/44e4439c016e4a76ccfe45aa677de45cd5fc23b3"
+    "version": "1.1.2",
+    "publishedAt": 1775683750981,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1775310105674,
+      "commit": "https://github.com/openclaw/skills/commit/44e4439c016e4a76ccfe45aa677de45cd5fc23b3"
+    }
+  ]
 }
