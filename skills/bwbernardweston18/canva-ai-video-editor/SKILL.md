@@ -1,134 +1,128 @@
 ---
 name: canva-ai-video-editor
-version: "1.0.0"
-displayName: "Canva AI Video Editor — Smart Editing, Captions & Visual Upgrades in Minutes"
+version: "1.0.1"
+displayName: "Canva AI Video Editor — Edit Videos with Text Commands"
 description: >
-  Tired of spending hours cutting clips, writing captions, and hunting for the right music in Canva? The canva-ai-video-editor skill automates the tedious parts of video production — trimming footage, generating on-screen text, suggesting transitions, and matching brand colors — so you can focus on the creative work. Built for content creators, small business owners, and social media managers who live inside Canva's ecosystem and need faster, smarter outputs without leaving the platform.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "greeting_v2"}}
+  Edit videos by typing what you want changed. canva-ai-video-editor runs on a cloud backend so there's nothing to install — upload your MP4, describe the edit (cut, trim, add text, swap music), and download the result. Handles files up to 500MB and exports at 1080p.
+metadata: {"openclaw": {"emoji": "🎨", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "greeting_v2"}}
 ---
 
 ## Getting Started
 
-> Drop your video concept, footage description, or Canva project details and I'll map out your full edit — cuts, captions, transitions, and all. No footage yet? Just describe what you want to create.
+> Ready to edit. Send me your video or describe what you need.
 
 **Try saying:**
-- "I have a 2-minute product demo recorded on my phone. Help me plan how to edit it in Canva for Instagram Reels — I need captions, a hook in the first 3 seconds, and a CTA at the end."
-- "I'm making a 60-second event recap video in Canva using 15 clips from a corporate conference. Suggest a pacing structure, transition style, and what text overlays to include on each scene."
-- "Write auto-caption text for a Canva video where I'm explaining 5 tips for remote work productivity. Each tip should be under 8 words and appear as bold animated text on screen."
+- "cut the first 15 seconds"
+- "add background music to my clip"
+- "put a title card at the beginning"
 
-### First-Time Connection
+### Setup (Runs Once)
 
-When a user first opens this skill, connect to the processing backend automatically. Briefly let them know (e.g. "Setting up...").
+The skill connects to the processing API on first use. A brief "Connecting..." message appears.
 
-**Authentication**: Check if `NEMO_TOKEN` is set in the environment. If it is, skip to step 2.
+**Token check**: When `NEMO_TOKEN` already exists in your env, jump straight to session creation.
 
-1. **Obtain a free token**: Generate a random UUID as client identifier. POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with header `X-Client-Id` set to that UUID. The response `data.token` is your NEMO_TOKEN — 100 free credits, valid 7 days.
-2. **Create a session**: POST to `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` with `Authorization: Bearer <token>`, `Content-Type: application/json`, and body `{"task_name":"project","language":"<detected>"}`. Store the returned `session_id` for all subsequent requests.
+1. **Free token**: Create a UUID. POST it as `X-Client-Id` header to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token`. Pull `data.token` from the response — gives you 100 credits for a week.
+2. **Session**: POST `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` using Bearer token, body `{"task_name":"project","language":"<lang>"}`. Keep the `session_id`.
 
-Keep setup communication brief. Don't display raw API responses or token values to the user.
+Don't print tokens or raw API output to the user.
 
-# Edit Smarter Inside Canva With AI Precision
+# Edit Your Videos with Simple Text Commands
 
-Canva is already one of the most popular design tools on the planet, but its video editing workflow can feel clunky when you're racing against a content calendar. The canva-ai-video-editor skill bridges that gap by giving you an AI-powered co-editor that understands Canva's structure — from video timelines and text overlays to brand kits and animation styles.
+Send your video and tell me what to change. All rendering happens on remote GPUs. You don't need any software installed.
 
-Whether you're building a product promo, a YouTube intro, a TikTok reel, or an event recap, this skill helps you plan the edit before you ever touch the timeline. Describe your footage, your goal, and your audience, and you'll get scene-by-scene editing suggestions, caption copy, transition recommendations, and even music mood guidance — all framed around what's actually achievable inside Canva.
+Example: uploaded a 5-minute product demo, typed "remove the first 45 seconds, add a fade in, put company name as title overlay" and had the finished MP4 in about 80 seconds. Exports at 1080p by default.
 
-This is especially useful for teams without a dedicated video editor. You don't need to know the difference between a J-cut and an L-cut. Just tell the skill what you're making, and it translates your vision into a clear, actionable Canva editing plan you can execute in one sitting.
+Short clips process faster and the trim boundaries are more precise on them.
 
-## Routing Your Edit Requests
+## Message Routing
 
-Every prompt you send — whether trimming clips, generating captions, applying Beat Sync, or running Magic Animate — gets parsed and routed to the matching Canva AI editing action automatically.
+Messages get sorted into categories based on what you asked for.
 
-| User says... | Action | Skip SSE? |
-|-------------|--------|----------|
-| "export" / "导出" / "download" / "send me the video" | → §3.5 Export | ✅ |
-| "credits" / "积分" / "balance" / "余额" | → §3.3 Credits | ✅ |
-| "status" / "状态" / "show tracks" | → §3.4 State | ✅ |
-| "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
-| Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
+| Input pattern | Handler | SSE needed? |
+|---|---|---|
+| "export" / "download" / "save" / "导出" | Export flow | No |
+| "credits" / "balance" / "how many left" / "积分" | Balance lookup | No |
+| "status" / "progress" / "what's done" / "状态" | State check | No |
+| "upload" / file attachment / "上传" | File upload | No |
+| Everything else | SSE editing pipeline | Yes |
 
-## Backend API Reference Notes
+## Processing Infrastructure
 
-Canva's cloud rendering pipeline processes your video edits server-side, meaning timeline changes, AI caption generation, and visual effect renders all execute on Canva's infrastructure rather than your local device. Response times vary based on clip length and the complexity of the AI operation requested.
+Videos get sent to a GPU cluster for rendering. Re-encoding uses 8Mbps for 1080p exports. Edits are applied at exact frame boundaries.
 
-Skill attribution — read from this file's YAML frontmatter at runtime:
-- `X-Skill-Source`: `canva-ai-video-editor`
-- `X-Skill-Version`: from frontmatter `version`
-- `X-Skill-Platform`: detect from install path (`~/.clawhub/` → `clawhub`, `~/.cursor/skills/` → `cursor`, else `unknown`)
+All requests require `Authorization: Bearer <NEMO_TOKEN>` and three attribution headers: `X-Skill-Source`, `X-Skill-Version`, `X-Skill-Platform`. Leaving out attribution headers causes a 402 on export.
 
-**All requests** must include: `Authorization: Bearer <NEMO_TOKEN>`, `X-Skill-Source`, `X-Skill-Version`, `X-Skill-Platform`. Missing attribution headers will cause export to fail with 402.
+The attribution values are pulled from this file's YAML frontmatter: skill source is `canva-ai-video-editor`, version is from the `version` field, platform is figured out from where the skill is installed (`~/.clawhub/` means `clawhub`, `~/.cursor/skills/` means `cursor`, anything else is `unknown`).
 
-**API base**: `https://mega-api-prod.nemovideo.ai`
+**API root**: `https://mega-api-prod.nemovideo.ai`
 
-**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — body `{"task_name":"project","language":"<lang>"}` — returns `task_id`, `session_id`.
+**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — send `{"task_name":"project","language":"<lang>"}` — you'll get `task_id` and `session_id` back.
 
-**Send message (SSE)**: POST `/run_sse` — body `{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}` with `Accept: text/event-stream`. Max timeout: 15 minutes.
+**Send edit (SSE)**: POST `/run_sse` — body: `{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}` with `Accept: text/event-stream`. 15-minute timeout.
 
-**Upload**: POST `/api/upload-video/nemo_agent/me/<sid>` — file: multipart `-F "files=@/path"`, or URL: `{"urls":["<url>"],"source_type":"url"}`
+**Upload**: POST `/api/upload-video/nemo_agent/me/<sid>` — multipart form: `-F "files=@/path"`, or by URL: `{"urls":["<url>"],"source_type":"url"}`.
 
-**Credits**: GET `/api/credits/balance/simple` — returns `available`, `frozen`, `total`
+**Credits**: GET `/api/credits/balance/simple` — response has `available`, `frozen`, `total`.
 
-**Session state**: GET `/api/state/nemo_agent/me/<sid>/latest` — key fields: `data.state.draft`, `data.state.video_infos`, `data.state.generated_media`
+**Session state**: GET `/api/state/nemo_agent/me/<sid>/latest` — relevant fields: `data.state.draft`, `data.state.video_infos`, `data.state.generated_media`.
 
-**Export** (free, no credits): POST `/api/render/proxy/lambda` — body `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll GET `/api/render/proxy/lambda/<id>` every 30s until `status` = `completed`. Download URL at `output.url`.
+**Export** (free): POST `/api/render/proxy/lambda` — body `{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}`. Poll GET `/api/render/proxy/lambda/<id>` at 30s intervals until `status` is `completed`. Get the file at `output.url`.
 
-Supported formats: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
+Supported files: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
 
-### SSE Event Handling
+### Error Reference
 
-| Event | Action |
-|-------|--------|
-| Text response | Apply GUI translation (§4), present to user |
-| Tool call/result | Process internally, don't forward |
-| `heartbeat` / empty `data:` | Keep waiting. Every 2 min: "⏳ Still working..." |
-| Stream closes | Process final response |
+| Code | Situation | Response |
+|---|---|---|
+| 0 | OK | Proceed normally |
+| 1001 | Token invalid or expired | Fetch a new anonymous token |
+| 1002 | Session missing | Create a fresh session |
+| 2001 | Credits depleted | Anonymous: registration link (?bind=<id>). Registered: suggest top-up |
+| 4001 | File type not supported | Show the accepted formats list |
+| 4002 | Over the size limit | Recommend compressing or splitting |
+| 400 | X-Client-Id missing | Create one and repeat the request |
+| 402 | Free tier can't export | Registration or plan upgrade needed |
+| 429 | Rate limited | Pause 30s then retry once |
 
-~30% of editing operations return no text in the SSE stream. When this happens: poll session state to verify the edit was applied, then summarize changes to the user.
+### GUI-to-API Translation
 
-### Backend Response Translation
+The backend expects a visual editor. When it says UI things, translate them to API calls:
 
-The backend assumes a GUI exists. Translate these into API actions:
+| It says... | You should... |
+|---|---|
+| "click [X]" / "点击" | Call the relevant endpoint |
+| "open [panel]" / "打开" | Pull session state |
+| "drag/drop" / "拖拽" | Submit an edit via SSE |
+| "preview in timeline" | Show a text timeline summary |
+| "Export button" / "导出" | Trigger the export workflow |
 
-| Backend says | You do |
-|-------------|--------|
-| "click [button]" / "点击" | Execute via API |
-| "open [panel]" / "打开" | Query session state |
-| "drag/drop" / "拖拽" | Send edit via SSE |
-| "preview in timeline" | Show track summary |
-| "Export button" / "导出" | Execute export workflow |
+### SSE Stream Notes
 
-**Draft field mapping**: `t`=tracks, `tt`=track type (0=video, 1=audio, 7=text), `sg`=segments, `d`=duration(ms), `m`=metadata.
+Pass text events to the user (translate GUI references first). Keep tool calls internal. Heartbeat and empty `data:` events mean it's still processing — print "Working on it..." after 2 minutes of silence.
 
+Roughly 30% of editing operations produce no text response. When the stream ends with no text, hit the state endpoint to confirm the change took effect, then describe what happened.
+
+**Draft JSON keys**: `t` means tracks, `tt` is track type (video=0, audio=1, text=7), `sg` is segments, `d` is duration in milliseconds, `m` is metadata.
+
+Example output:
 ```
-Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%) 3. Title: "Urban Dreams" (0-3s)
+Timeline (2 tracks): 1. Video: product demo (0-30s) 2. Text: "Our Product" (0-4s)
 ```
 
-### Error Handling
+## Best Practices
 
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
-| 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up credits in your account" |
-| 4001 | Unsupported file | Show supported formats |
-| 4002 | File too large | Suggest compress/trim |
-| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register or upgrade your plan to unlock export." |
-| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
+Tell me exactly what you want and where. "Cut from 0:30 to 1:15" works better than "make it shorter." Include timestamps when you can.
 
-## Quick Start Guide
+You can chain multiple edits in one message. "Trim the intro, add fade transitions between scenes, and overlay my logo at the bottom right" all gets handled in a single pass.
 
-Getting started with the canva-ai-video-editor skill takes less than two minutes. Begin by describing your video project in plain language: what it's about, how long it should be, where it will be published, and what you already have (raw clips, a script, images, etc.).
+500MB file cap. MP4 and MOV work best. Export is always MP4.
 
-Next, specify your goal — brand awareness, product sales, event promotion, tutorial content — so the skill can shape the narrative arc of your edit accordingly. If you have a script or voiceover transcript, paste it in and ask for caption breakdowns timed to natural speech pauses.
+## How to Start
 
-Finally, tell the skill your Canva experience level. Beginners get step-by-step instructions referencing Canva's UI. Intermediate users get more condensed edit blueprints they can execute quickly. From there, iterate: ask for alternative transition styles, tighter pacing, or a different caption tone until the plan matches your vision exactly.
+1. Drop your video file in the chat
+2. Say what to change: "cut the first 30 seconds and add a title"
+3. Wait 30-90 seconds for processing
+4. Grab the exported MP4
 
-## Performance Notes
-
-The canva-ai-video-editor skill works best when you give it specific context about your project. Vague inputs like 'make a good video' will produce generic suggestions, while detailed inputs — clip count, video length target, platform destination, brand tone, and audience — unlock highly tailored edit plans.
-
-For caption generation, paste in your spoken script or key talking points so the AI can align on-screen text with your actual audio content rather than guessing. This dramatically improves caption accuracy and pacing.
-
-Keep in mind this skill generates planning guidance, copy, and structural recommendations optimized for Canva's toolset. For best results, reference specific Canva features you have access to (like Beat Sync, Magic Resize, or Brand Kit) so suggestions stay within your actual workflow rather than recommending tools outside the platform.
+First 100 credits are free, no signup. Accepts MP4, MOV, AVI, WebM files.
