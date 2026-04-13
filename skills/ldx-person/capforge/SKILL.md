@@ -1,13 +1,18 @@
 ---
 name: capforge
 description: Austin Liu | Read-only by default: scan GitHub repos to extract reusable capability docs (capability.md), classify domains, validate format, and sync repos safely. No LLM analysis required.
-version: 1.3.2
+version: 1.3.3
 metadata:
   openclaw:
     requires:
       bins:
         - git
         - node
+        - capforge
+    # 明确声明本 skill 会在本机创建/写入的状态目录（用于安全扫描与用户知情）
+    config:
+      stateDirs:
+        - "~/.capforge"
     install:
       # 通过固定依赖安装 capforge CLI（避免 npx 远程拉取执行）
       - kind: node
@@ -29,6 +34,10 @@ metadata:
 - 不会自动执行代码改造/重构
 - 不会执行隐藏命令、`curl | sh`、或 `npx @latest` 这类不可审计的远程执行
 - License 合规仅做提醒与门禁，不提供法律意见
+
+### 运行前确认（降低误操作风险）
+
+在运行任何命令前，你必须先把将要执行的命令逐条展示给用户，并获得用户明确确认后再执行（尤其是 git clone / git pull 等会写入磁盘的操作）。
 
 如果用户明确要求执行改造/重构，请在执行前二次确认，并遵循 CapForge 的 license 门禁策略。
 
