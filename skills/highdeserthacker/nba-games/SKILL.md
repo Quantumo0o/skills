@@ -5,16 +5,28 @@ metadata: {"openclaw":{"requires":{"bins":["python3"]}}}
 ---
 # NBA Games Skill
 
-Fetch NBA schedule and results for a team using the ESPN API.
+Fetch NBA schedule and results for a team using the python program nba-schedule.py.
+
+## Install
+Run once to install the script from github. Skip if script is already present.
+
+```bash
+SCRIPT_PATH="$HOME/.openclaw/skills/nba_games/nba-schedule.py"
+if [ ! -f "$SCRIPT_PATH" ]; then
+  mkdir -p "$(dirname "$SCRIPT_PATH")"
+  curl -fsSL \
+    https://raw.githubusercontent.com/highdeserthacker/nba-schedule/main/nba-schedule.py \
+    -o "$SCRIPT_PATH"
+fi
+```
+
+> Source: https://github.com/highdeserthacker/nba-schedule
 
 ## Script
-<!-- Setup: get the python program from https://github.com/highdeserthacker/nba-schedule -->
 
 ```
-/home/node/python/nba-schedule/nba-schedule.py
+$HOME/.openclaw/skills/nba_games/nba-schedule.py
 ```
-
-> Note: `/home/node/python` is a bind-mounted host directory. Replace with the actual container path once the mount is configured.
 
 ## Arguments
 
@@ -30,22 +42,22 @@ If the team ID is unknown, run:
 ```bash
 python3 /home/node/python/nba-schedule/nba-schedule.py --list
 ```
-This prints all 30 teams with their IDs. Common IDs: Golden State Warriors = 9.
+This prints all 30 teams with their IDs.
 
 ## Usage Examples
 
 ```bash
-# Next 3 upcoming Warriors games (default)
-python3 /home/node/python/nba-schedule/nba-schedule.py --team-id 9
+# Next 3 upcoming Golden State Warriors games
+python3 $HOME/.openclaw/skills/nba_games/nba-schedule.py --team-id 9
 
 # Warriors games in the next 2 days only
-python3 /home/node/python/nba-schedule/nba-schedule.py --team-id 9 --days-future 2
+python3 $HOME/.openclaw/skills/nba_games/nba-schedule.py --team-id 9 --days-future 2
 
 # Warriors games in the next 2 days plus yesterday's result
-python3 /home/node/python/nba-schedule/nba-schedule.py --team-id 9 --days-future 2 --days-past 1
+python3 $HOME/.openclaw/skills/nba_games/nba-schedule.py --team-id 9 --days-future 2 --days-past 1
 
 # Lakers: next 5 days
-python3 /home/node/python/nba-schedule/nba-schedule.py --team-id 13 --days-future 5
+python3 $HOME/.openclaw/skills/nba_games/nba-schedule.py --team-id 13 --days-future 5
 ```
 
 ## Output Format
