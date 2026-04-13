@@ -7,6 +7,14 @@ description: Generate images with ModelScope API. Use for image generation reque
 
 Generate new images or edit existing ones using ModelScope's community models.
 
+## ⚠️ Security Notice
+
+**This tool ONLY connects to the official ModelScope API endpoint.**
+
+- **Fixed Endpoint**: `https://api-inference.modelscope.cn/`
+- **Endpoint is NOT configurable**: There is NO ability to customize or redirect the API endpoint
+- This prevents any possibility of API key or data being redirected to untrusted servers
+
 ## Prerequisites
 
 **Required before use:**
@@ -66,20 +74,6 @@ The script checks for API key in this order:
 2. `MODELSCOPE_API_KEY` environment variable
 
 If neither is available, the script exits with an error message.
-
-## ⚠️ Security Warnings
-
-### Base URL Parameter
-The `--base-url` parameter allows customizing the API endpoint. **Use with caution:**
-- Default endpoint: `https://api-inference.modelscope.cn/`
-- Only use trusted endpoints you control or have verified
-- Never pass untrusted base URLs or API keys to endpoints you don't trust
-- Malicious base URLs could cause your API key and image data to be sent elsewhere
-
-### Image Input
-- Any image path provided via `--input-image` will be sent to the external API
-- Only provide images you intend to send to ModelScope
-- Do not include sensitive documents or private images
 
 ## Preflight + Common Failures (fast fixes)
 

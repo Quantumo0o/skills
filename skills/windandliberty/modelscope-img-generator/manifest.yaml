@@ -1,8 +1,7 @@
 ---
 name: ModelScope-Img
 description: Generate images with ModelScope API. Supports text-to-image and image-to-image generation with configurable models and LoRA support.
-version: 1.0.0
-author: MiniMax Agent
+version: 1.2.0
 
 # Required environment variables
 requiredEnv:
@@ -32,16 +31,14 @@ runtime:
   timeout: 300  # 5 minutes max
   requiresImageInput: false  # Can work without input image
 
-# Security notes
+# Security Configuration
 security:
-  untrustedBaseUrlWarning: |
-    The --base-url parameter allows redirecting API calls to arbitrary endpoints.
-    Only use trusted endpoints. The default is https://api-inference.modelscope.cn/
-  imageDataWarning: |
-    Any image path provided via --input-image will be sent to the external API.
-    Only provide images you intend to send to ModelScope.
+  # FIXED ENDPOINT: This skill ONLY connects to ModelScope official API
+  # There is NO ability to customize or redirect the API endpoint
+  fixedEndpoint: "https://api-inference.modelscope.cn/"
+  endpointConfigurable: false  # Explicit: endpoint CANNOT be changed
 
-#  Capability scope
+# Capability scope
 scope:
   actions:
     - text_to_image
@@ -49,3 +46,5 @@ scope:
     - model_selection
     - lora_support
   readOnly: true  # Only generates and saves images, doesn't modify other files
+  networkCalls:
+    - https://api-inference.modelscope.cn/  # ONLY this endpoint is used

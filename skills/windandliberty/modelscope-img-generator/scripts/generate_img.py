@@ -7,12 +7,14 @@
 # ]
 # ///
 """
-Generate images using ModelScope API.
+ModelScope Image Generation Tool
 
-Usage:
-    uv run generate_img.py --prompt "your image description" --filename "output.jpg"
-    uv run generate_img.py --prompt "cartoon style" --input-image input.jpg --filename output.jpg
-    uv run generate_img.py --prompt "your prompt" --filename output.jpg --model "MusePublic/wukong-1.8B"
+⚠️ SECURITY NOTICE:
+This tool ONLY connects to the official ModelScope API endpoint.
+There is NO ability to customize or redirect the API endpoint.
+The endpoint is hardcoded and immutable.
+
+Official Endpoint: https://api-inference.modelscope.cn/
 """
 
 import argparse
@@ -28,10 +30,14 @@ from pathlib import Path
 import requests
 from PIL import Image
 
-# Default configuration
-DEFAULT_MODEL = "Tongyi-MAI/Z-Image-Turbo"
-DEFAULT_BASE_URL = "https://api-inference.modelscope.cn/"
-MAX_POLL_ATTEMPTS = 60  # Maximum 5 minutes (60 * 5 seconds)
+# ==============================================================================
+# SECURITY: Endpoint is hardcoded and cannot be changed
+# This prevents any possibility of API key or data being redirected
+# ==============================================================================
+_API_ENDPOINT = "https://api-inference.modelscope.cn/"
+
+# Timeout settings
+_MAX_POLL_ATTEMPTS = 60  # Maximum 5 minutes (60 * 5 seconds)
 
 
 def get_api_key(provided_key: str | None) -> str | None:
@@ -60,14 +66,14 @@ def image_to_data_url(image_path: str) -> str:
 
 def parse_lora_config(lora_str: str | None) -> dict | str | None:
     """Parse LoRA configuration string.
-    
+
     Formats:
         - Single LoRA: "repo-id"
         - Multiple LoRAs: "repo1:0.6,repo2:0.4"
     """
     if not lora_str:
         return None
-    
+
     # Check if it's multiple LoRAs (contains comma)
     if ',' in lora_str:
         loras = {}
@@ -86,21 +92,21 @@ def parse_lora_config(lora_str: str | None) -> dict | str | None:
 
 
 def poll_task_result(
-    base_url: str,
     api_key: str,
     task_id: str,
-    max_attempts: int = MAX_POLL_ATTEMPTS
+    max_attempts: int = _MAX_POLL_ATTEMPTS
 ) -> str | None:
     """Poll for task completion and return output image URL."""
     common_headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    
+
     for attempt in range(max_attempts):
         try:
+            # SECURITY: Using hardcoded endpoint only
             result = requests.get(
-                f"{base_url}v1/tasks/{task_id}",
+                f"{_API_ENDPOINT}v1/tasks/{task_id}",
                 headers={**common_headers, "X-ModelScope-Task-Type": "image_generation"},
                 timeout=30
             )
@@ -116,20 +122,23 @@ def poll_task_result(
 
             # Wait before next poll
             time.sleep(5)
-            
+
         except requests.exceptions.RequestException as e:
             print(f"Warning: Request error during polling (attempt {attempt + 1}): {e}", file=sys.stderr)
             time.sleep(5)
-    
+
     print(f"Error: Task timeout after {max_attempts * 5} seconds.", file=sys.stderr)
     return None
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate images using ModelScope API",
+        description="Generate images using ModelScope API (fixed endpoint)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
+⚠️ SECURITY: This tool ONLY connects to https://api-inference.modelscope.cn/
+No custom endpoint configuration is available.
+
 Examples:
   # Text to image
   uv run generate_img.py --prompt "a cute cartoon lobster" --filename output.jpg
@@ -160,13 +169,8 @@ Examples:
     )
     parser.add_argument(
         "--model", "-m",
-        default=DEFAULT_MODEL,
-        help=f"ModelScope model ID (default: {DEFAULT_MODEL})"
-    )
-    parser.add_argument(
-        "--base-url", "-b",
-        default=DEFAULT_BASE_URL,
-        help=f"API base URL (default: {DEFAULT_BASE_URL})"
+        default="Tongyi-MAI/Z-Image-Turbo",
+        help="ModelScope model ID (default: Tongyi-MAI/Z-Image-Turbo)"
     )
     parser.add_argument(
         "--lora", "-l",
@@ -179,8 +183,8 @@ Examples:
     parser.add_argument(
         "--timeout", "-t",
         type=int,
-        default=MAX_POLL_ATTEMPTS,
-        help=f"Maximum polling attempts (default: {MAX_POLL_ATTEMPTS}, each attempt is 5 seconds)"
+        default=_MAX_POLL_ATTEMPTS,
+        help=f"Maximum polling attempts (default: {_MAX_POLL_ATTEMPTS}, each attempt is 5 seconds)"
     )
 
     args = parser.parse_args()
@@ -230,14 +234,16 @@ Examples:
 
     # Submit generation task
     print(f"Generating image with model '{args.model}'...")
+    print(f"Endpoint: {_API_ENDPOINT} (fixed, non-configurable)")
     if args.input_image:
         print(f"Mode: Image-to-Image")
     else:
         print(f"Mode: Text-to-Image")
 
     try:
+        # SECURITY: Using hardcoded endpoint only - no base-url override possible
         response = requests.post(
-            f"{args.base_url}v1/images/generations",
+            f"{_API_ENDPOINT}v1/images/generations",
             headers={**common_headers, "X-ModelScope-Async-Mode": "true"},
             data=json.dumps(payload, ensure_ascii=False).encode('utf-8'),
             timeout=30
@@ -258,7 +264,7 @@ Examples:
 
     # Poll for result
     print("Waiting for task completion...", end="", flush=True)
-    output_image_url = poll_task_result(args.base_url, api_key, task_id, args.timeout)
+    output_image_url = poll_task_result(api_key, task_id, args.timeout)
 
     if not output_image_url:
         print()  # New line after dots
@@ -269,15 +275,15 @@ Examples:
         print("\nDownloading result image...")
         image_response = requests.get(output_image_url, timeout=60)
         image_response.raise_for_status()
-        
+
         image = Image.open(BytesIO(image_response.content))
-        
+
         # Save image
         image.save(str(output_path))
-        
+
         full_path = output_path.resolve()
         print(f"Image saved: {full_path}")
-        
+
     except requests.exceptions.RequestException as e:
         print(f"Error: Failed to download image: {e}", file=sys.stderr)
         sys.exit(1)

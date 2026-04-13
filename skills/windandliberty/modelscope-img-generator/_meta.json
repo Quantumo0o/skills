@@ -3,9 +3,15 @@
   "slug": "modelscope-img-generator",
   "displayName": "modelscope_img_generator",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775201273989,
-    "commit": "https://github.com/openclaw/skills/commit/625dcbff5104f5253a6212b4c6921b5d01923997"
+    "version": "1.2.0",
+    "publishedAt": 1775551652782,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775201273989,
+      "commit": "https://github.com/openclaw/skills/commit/625dcbff5104f5253a6212b4c6921b5d01923997"
+    }
+  ]
 }
