@@ -22,8 +22,7 @@ OpenProvider REST API v1beta.
 
 **Always obtain a token before making any API call.**
 
-1. Load credentials: `OPENPROVIDER_USERNAME` / `OPENPROVIDER_PASSWORD` (env vars) or
-   DB table `system_settings` (key: `integration_credentials_openprovider`)
+1. Load credentials: `OPENPROVIDER_USERNAME` / `OPENPROVIDER_PASSWORD` (env vars), with legacy fallback from `OPENPROVIDER_USER` / `OPENPROVIDER_PASS`, or DB table `system_settings` (key: `integration_credentials_openprovider`)
 2. Get token: `POST https://api.openprovider.eu/v1beta/auth/login`
 3. Use token as `Authorization: Bearer {token}` header
 4. Token valid for 48h (Atlas caches for 24h)
@@ -31,9 +30,11 @@ OpenProvider REST API v1beta.
 
 ```bash
 # Get token
+OP_USER="${OPENPROVIDER_USERNAME:-${OPENPROVIDER_USER:-}}"
+OP_PASS="${OPENPROVIDER_PASSWORD:-${OPENPROVIDER_PASS:-}}"
 TOKEN=$(curl -s -X POST https://api.openprovider.eu/v1beta/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "'"$OPENPROVIDER_USERNAME"'", "password": "'"$OPENPROVIDER_PASSWORD"'"}' \
+  -d '{"username": "'"$OP_USER"'", "password": "'"$OP_PASS"'"}' \
   | jq -r '.data.token')
 ```
 
@@ -163,10 +164,30 @@ Before any DNS write:
 
 1. Identify the zone apex, e.g. `example.com`
 2. Convert requested host to zone-relative label:
-   - `example.com` → apex/root (`@` or provider-specific root handling)
+   - `example.com` → apex/root (`""` empty string for OpenProvider zone writes, not the full domain, and not `@` unless explicitly verified)
    - `phone.example.com` → `phone`
    - `_dmarc.example.com` → `_dmarc`
 3. Read back the zone records after the write and confirm the final record name is correct
+
+### Apex / Root Record Rule (CRITICAL)
+
+For OpenProvider `PUT /dns/zones/{domain}` writes, the zone apex must be sent as an empty string name:
+
+```json
+{
+  "name": "",
+  "type": "TXT",
+  "value": "google-site-verification=...",
+  "ttl": 600
+}
+```
+
+Do not send the full domain name as `name` for apex writes inside the zone payload.
+If you send `example.com` as `name` while writing inside zone `example.com`, OpenProvider may create:
+- intended: `example.com`
+- accidental result: `example.com.example.com`
+
+Also do not assume `@` works for OpenProvider. It may be rejected as an invalid record name.
 
 ### Safe DNS Change Pattern
 
@@ -250,6 +271,44 @@ Incorrect payload:
 
 That incorrect payload can create `phone.example.com.example.com`.
 
+Apex TXT example for `example.com`:
+
+Correct:
+
+```json
+{
+  "records": {
+    "add": [
+      {
+        "name": "",
+        "type": "TXT",
+        "value": "google-site-verification=...",
+        "ttl": 600
+      }
+    ]
+  }
+}
+```
+
+Incorrect:
+
+```json
+{
+  "records": {
+    "add": [
+      {
+        "name": "example.com",
+        "type": "TXT",
+        "value": "google-site-verification=...",
+        "ttl": 600
+      }
+    ]
+  }
+}
+```
+
+That incorrect payload can create `example.com.example.com`.
+
 ## Workflow: Domain Transfer
 
 1. **Get auth code** from current registrar (EPP/transfer code)
@@ -268,6 +327,7 @@ All API responses follow this structure:
 - `code: != 0` = error (details in `desc`)
 - HTTP 401 = token expired → re-authenticate
 - HTTP 429 = rate limit → wait and retry
+- If env lookup fails, check whether the instance still uses legacy names `OPENPROVIDER_USER` / `OPENPROVIDER_PASS`
 
 Common errors:
 
