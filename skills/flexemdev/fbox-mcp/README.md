@@ -1,7 +1,7 @@
 # FBox MCP Server 技能
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.3-green.svg)](https://github.com/FlexemDev/fbox-skills)
+[![Version](https://img.shields.io/badge/version-0.1.4-green.svg)](https://github.com/flexem/fbox-skills)
 
 通过 Model Context Protocol (MCP) 为 Claude Code 和 OpenClaw 提供 FBox 工业物联网设备管理能力。
 
@@ -30,12 +30,12 @@ export FBOXMCP_API_KEY=sk-xxxxxx
 claude mcp add --transport http fboxmcp https://fboxmcp.fbox360.com --header "Authorization: Bearer ${FBOXMCP_API_KEY}"
 
 # 安装插件
-claude plugin marketplace add https://github.com/FlexemDev/fbox-skills
+claude plugin marketplace add https://github.com/flexem/fbox-skills
 claude plugin install fboxmcp
 ```
 
 ### 使用示例
-
+ 
 在 Claude Code 或 OpenClaw 对话中直接描述需求：
 
 ```
@@ -81,4 +81,4 @@ MIT License
 
 - 官网: [https://fbox360.com](https://fbox360.com)
 - 作者: flexem
-- 问题反馈: [GitHub Issues](https://github.com/FlexemDev/fbox-skills/issues)
+- 问题反馈: [GitHub Issues](https://github.com/flexem/fbox-skills/issues)

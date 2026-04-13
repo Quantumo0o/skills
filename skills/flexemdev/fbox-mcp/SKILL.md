@@ -8,7 +8,7 @@ compatibility: >
   Requires network access to FBox MCP Server (Streamable HTTP).
   Requires FBOXMCP_API_KEY environment variable.
 metadata:
-  version: "0.1.3"
+  version: "0.1.4"
   author: flexem
   homepage: https://fbox360.com
   openclaw:
