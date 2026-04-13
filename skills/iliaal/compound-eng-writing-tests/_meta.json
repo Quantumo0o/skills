@@ -3,9 +3,15 @@
   "slug": "compound-eng-writing-tests",
   "displayName": "writing-tests",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775526985378,
-    "commit": "https://github.com/openclaw/skills/commit/b43930023bf1e8d06313b5f6d195dcbc57c6ea53"
+    "version": "2.55.1",
+    "publishedAt": 1776004282163,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775526985378,
+      "commit": "https://github.com/openclaw/skills/commit/b43930023bf1e8d06313b5f6d195dcbc57c6ea53"
+    }
+  ]
 }
