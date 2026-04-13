@@ -3,9 +3,15 @@
   "slug": "quality-verification",
   "displayName": "Quality Verification",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1775620042900,
-    "commit": "https://github.com/openclaw/skills/commit/3b530229553b9b5e828a36574b38f0979a2c6418"
+    "version": "2.4.0",
+    "publishedAt": 1775634582176,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1775620042900,
+      "commit": "https://github.com/openclaw/skills/commit/3b530229553b9b5e828a36574b38f0979a2c6418"
+    }
+  ]
 }
