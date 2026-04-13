@@ -3,9 +3,15 @@
   "slug": "clawdactual-engram",
   "displayName": "Engram — Knowledge Graphs for AI Agents",
   "latest": {
-    "version": "0.1.8",
-    "publishedAt": 1775074433591,
-    "commit": "https://github.com/openclaw/skills/commit/67ec7ea6e933cae6d6a1358143debb517bb2dd89"
+    "version": "0.1.9",
+    "publishedAt": 1775624613359,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.8",
+      "publishedAt": 1775074433591,
+      "commit": "https://github.com/openclaw/skills/commit/67ec7ea6e933cae6d6a1358143debb517bb2dd89"
+    }
+  ]
 }
