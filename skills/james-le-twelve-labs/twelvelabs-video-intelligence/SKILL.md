@@ -17,7 +17,7 @@ metadata:
         label: Install TwelveLabs Python SDK (pip)
     links:
       homepage: https://twelvelabs.io
-      repository: https://github.com/twelvelabs-io/twelve-labs-mcp-server
+      repository: https://github.com/twelvelabs-io/twelvelabs-python
       documentation: https://docs.twelvelabs.io/reference
 ---
 
@@ -323,20 +323,9 @@ https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_
 - **Index names must be unique** — use timestamps or UUIDs to avoid conflicts.
 - **`client.summarize()` and `client.gist()` are deprecated** — use `client.analyze(prompt="...")` instead.
 
-## Full MCP integration (optional)
-
-For all 19 tools (including Google Drive batch indexing), install the TwelveLabs MCP server:
-
-```bash
-npx -y twelvelabs-mcp
-```
-
-See [github.com/twelvelabs-io/twelve-labs-mcp-server](https://github.com/twelvelabs-io/twelve-labs-mcp-server) for setup.
-
 ## Resources
 
 - [TwelveLabs Documentation](https://docs.twelvelabs.io)
 - [API Reference](https://docs.twelvelabs.io/reference)
 - [Python SDK](https://github.com/twelvelabs-io/twelvelabs-python) v1.2.1 (latest)
 - [Get API Key](https://api.twelvelabs.io)
-- [MCP Server](https://github.com/twelvelabs-io/twelve-labs-mcp-server)
