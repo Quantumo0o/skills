@@ -1,0 +1,11 @@
+{
+  "owner": "liupeidawn",
+  "slug": "prod-deploy",
+  "displayName": "Prod Deploy",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775702979104,
+    "commit": null
+  },
+  "history": []
+}
