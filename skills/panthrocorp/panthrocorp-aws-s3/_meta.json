@@ -1,0 +1,11 @@
+{
+  "owner": "panthrocorp",
+  "slug": "panthrocorp-aws-s3",
+  "displayName": "Aws S3",
+  "latest": {
+    "version": "0.2.1",
+    "publishedAt": 1775680925481,
+    "commit": null
+  },
+  "history": []
+}
