@@ -1,6 +1,10 @@
 {
-  "api_origin": "https://d2128144f966ce17-yishield.cn01.apps.yishield.com",
-  "api_version_path": "/api/v1",
-  "preview_play_path": "/api/v1/play",
-  "trade_api_base": ""
+  "api_origin": "https://www.data0086.com",
+  "search_path": "/ms-base/home/getList",
+  "detail_path": "/#/multimodal",
+  "trade_api_base": "",
+  "trusted_media_origins": [
+    "https://www.data0086.com",
+    "https://wenzhou.data0086.com:9443"
+  ]
 }
