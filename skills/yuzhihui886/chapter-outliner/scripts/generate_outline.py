@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, BarColumn
+from llm_helper import analyze_chapter_content, generate_beat_description
 
 
 console = Console()
@@ -58,28 +59,19 @@ class ChapterOutliner:
             console.print(f"ℹ 角色目录不存在: [dim]{chars_dir}[/dim]")
     
     def _parse_outline(self, path: Path) -> dict[str, Any]:
-        """解析 outline.md 文件
-        
-        期待格式:
-        # 小说标题
-        
-        ## 章节
-        ### 第1章
-        - 章节概述
-        
-        ### 第2章
-        - 章节概述
-        """
+        """解析 outline.md 文件"""
         content = path.read_text(encoding="utf-8")
         
-        chapters = re.findall(r"### 第(\d+)章\s*\n(.*?)(?=### 第\d+章|$)", content, re.DOTALL)
+        chapters = re.findall(
+            r"### 第(\d+)章\s*\n(.*?)(?=### 第\d+章|$)", content, re.DOTALL
+        )
         
         return {
             "chapters": [
                 {"number": int(ch_num), "summary": summary.strip()}
                 for ch_num, summary in chapters
             ],
-            "raw": content
+            "raw": content,
         }
     
     def _load_characters(self, chars_dir: Path) -> None:
@@ -91,26 +83,20 @@ class ChapterOutliner:
                     char_data["file"] = char_file.name
                     self.characters.append(char_data)
             except Exception as e:
-                console.print(f"⚠ 角色文件加载失败 {char_file.name}: [yellow]{e}[/yellow]")
+                console.print(
+                    f"⚠ 角色文件加载失败 {char_file.name}: [yellow]{e}[/yellow]"
+                )
         
         if self.characters:
             console.print(f"✓ 已加载 [cyan]{len(self.characters)}[/cyan] 个角色")
     
     def generate_chapter_outline(
-        self,
-        chapter_num: int,
-        word_count: int = 3000
+        self, chapter_num: int, word_count: int = 3000
     ) -> dict[str, Any]:
-        """生成指定章节的15节拍大纲
-        
-        Args:
-            chapter_num: 章节编号
-            word_count: 目标字数
-            
-        Returns:
-            包含15节拍的大纲字典
-        """
-        console.print(f"\n[bold blue]正在生成第 [cyan]{chapter_num}[/cyan] 章大纲...[/bold blue]")
+        """生成指定章节的15节拍大纲"""
+        console.print(
+            f"\n[bold blue]正在生成第 [cyan]{chapter_num}[/cyan] 章大纲...[/bold blue]"
+        )
         
         chapter_info = None
         if self.outline and "chapters" in self.outline:
@@ -122,10 +108,12 @@ class ChapterOutliner:
         if not chapter_info:
             chapter_info = {
                 "number": chapter_num,
-                "summary": f"第 {chapter_num} 章 - 待填充"
+                "summary": f"第 {chapter_num} 章 - 待填充",
             }
         
         beats = self._create_beat_template(chapter_num, word_count, chapter_info)
+        
+        beats = self._analyze_and_enhance_beats(chapter_num, beats, chapter_info)
         
         return {
             "chapter_num": chapter_num,
@@ -133,23 +121,13 @@ class ChapterOutliner:
             "base_summary": chapter_info.get("summary", ""),
             "beats": beats,
             "style_notes": self.style or {},
-            "characters": self.characters
+            "characters": self.characters,
         }
     
     def _create_beat_template(
-        self,
-        chapter_num: int,
-        word_count: int,
-        chapter_info: dict[str, Any]
+        self, chapter_num: int, word_count: int, chapter_info: dict[str, Any]
     ) -> list[dict[str, Any]]:
-        """创建15节拍模板
-        
-        15节拍系统:
-        1-3: 铺垫阶段
-        4-7: 转折阶段
-        8-11: 高潮阶段
-        12-15: 结局阶段
-        """
+        """创建15节拍模板"""
         beats = []
         
         total_beat_count = 15
@@ -159,13 +137,59 @@ class ChapterOutliner:
             beats.append(beat)
         
         return beats
-    
+
+    def _analyze_and_enhance_beats(
+        self,
+        chapter_num: int,
+        beats: list[dict[str, Any]],
+        chapter_info: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """使用 LLM 分析章节内容，动态增强节拍信息"""
+        
+        console.print("[bold blue]正在分析章节内容...[/bold blue]")
+        
+        chapter_summary = chapter_info.get("summary", "")
+        total_chapters = (
+            len(self.outline.get("chapters", []))
+            if self.outline and "chapters" in self.outline
+            else 0
+        )
+        
+        chapter_analysis = analyze_chapter_content(
+            chapter_summary=chapter_summary,
+            chapter_num=chapter_num,
+            total_chapters=total_chapters,
+        )
+        
+        three_act = chapter_analysis.get("three_act_structure", "未知")
+        
+        for beat in beats:
+            beat_num = beat["beat_number"]
+            beat_name = beat["beat_name"]
+            phase = beat["phase"]
+            
+            beat_enhancement = generate_beat_description(
+                beat_num=beat_num,
+                beat_name=beat_name,
+                phase=phase,
+                chapter_analysis=chapter_analysis,
+                chapter_summary=chapter_summary,
+            )
+            
+            beat["description"] = beat_enhancement["description"]
+            beat["purpose"] = beat_enhancement["purpose"]
+            beat["three_act"] = three_act
+            beat["chapter_analysis"] = chapter_analysis
+        
+        return beats
+
+
     def _create_single_beat(
         self,
         beat_num: int,
         chapter_num: int,
         word_count: int,
-        chapter_info: dict[str, Any]
+        chapter_info: dict[str, Any],
     ) -> dict[str, Any]:
         """创建单个节拍"""
         
@@ -185,7 +209,9 @@ class ChapterOutliner:
             "key_elements": [],
             "characters_involved": [],
             "plot_threads": [],
-            "notes": ""
+            "notes": "",
+            "three_act": "",
+            "chapter_analysis": {},
         }
     
     def _get_beat_info(self, beat_num: int, chapter_num: int) -> dict[str, str]:
@@ -195,49 +221,47 @@ class ChapterOutliner:
             "铺垫": ["钩子", "设定", "context"],
             "转折": ["/inciting", "发展", "turning"],
             "高潮": ["对抗", "发展", "高潮", "转折"],
-            "结局": ["解决", "收尾", "余韵"]
+            "结局": ["解决", "收尾", "余韵"],
         }
         
         if beat_num <= 3:
             phase = "铺垫"
-            name = phases["铺垫"][beat_num - 1] if beat_num - 1 < len(phases["铺垫"]) else f"铺垫-{beat_num}"
+            name = (
+                phases["铺垫"][beat_num - 1]
+                if beat_num - 1 < len(phases["铺垫"])
+                else f"铺垫-{beat_num}"
+            )
             purpose = "建立场景和基础信息"
         elif beat_num <= 7:
             phase = "转折"
             idx = beat_num - 4
-            name = phases["转折"][idx] if idx < len(phases["转折"]) else f"转折-{beat_num}"
+            name = (
+                phases["转折"][idx] if idx < len(phases["转折"]) else f"转折-{beat_num}"
+            )
             purpose = "引入冲突和变化"
         elif beat_num <= 11:
             phase = "高潮"
             idx = beat_num - 8
-            name = phases["高潮"][idx] if idx < len(phases["高潮"]) else f"高潮-{beat_num}"
+            name = (
+                phases["高潮"][idx] if idx < len(phases["高潮"]) else f"高潮-{beat_num}"
+            )
             purpose = "升级冲突和紧张"
         else:
             phase = "结局"
             idx = beat_num - 12
-            name = phases["结局"][idx] if idx < len(phases["结局"]) else f"结局-{beat_num}"
+            name = (
+                phases["结局"][idx] if idx < len(phases["结局"]) else f"结局-{beat_num}"
+            )
             purpose = "解决和收尾"
         
-        return {
-            "name": name,
-            "phase": phase,
-            "purpose": purpose
-        }
+        return {"name": name, "phase": phase, "purpose": purpose}
     
     def _allocate_words_for_beat(
-        self,
-        beat_num: int,
-        total_words: int,
-        phase: str
+        self, beat_num: int, total_words: int, phase: str
     ) -> int:
         """为节拍分配字数"""
         
-        phase_weights = {
-            "铺垫": 0.15,
-            "转折": 0.20,
-            "高潮": 0.45,
-            "结局": 0.20
-        }
+        phase_weights = {"铺垫": 0.15, "转折": 0.20, "高潮": 0.45, "结局": 0.20}
         
         phase_weight = phase_weights.get(phase, 0.20)
         base_words = int(total_words * phase_weight)
@@ -246,14 +270,14 @@ class ChapterOutliner:
             "铺垫": [0.3, 0.35, 0.35],
             "转折": [0.25, 0.25, 0.25, 0.25],
             "高潮": [0.20, 0.20, 0.20, 0.20, 0.20],
-            "结局": [0.30, 0.35, 0.35]
+            "结局": [0.30, 0.35, 0.35],
         }
         
         beat_idx_map = {
             "铺垫": beat_num - 1,
             "转折": beat_num - 4,
             "高潮": beat_num - 8,
-            "结局": beat_num - 12
+            "结局": beat_num - 12,
         }
         
         beat_idx = beat_idx_map.get(phase, 0)
@@ -284,43 +308,48 @@ class ChapterOutliner:
         lines.append("")
         
         for beat in outline_data["beats"]:
-            lines.append(f"### {beat['beat_number']}. {beat['beat_name']} ({beat['phase']})")
+            lines.append(
+                f"### {beat['beat_number']}. {beat['beat_name']} ({beat['phase']})"
+            )
             lines.append("")
             lines.append(f"**目标字数**: {beat['target_words']} 字")
             lines.append(f"**目的**: {beat['purpose']}")
             lines.append("")
+            if beat.get("three_act"):
+                lines.append(f"**三幕结构**: {beat['three_act']}")
+                lines.append("")
             lines.append(f"{beat['description']}")
             lines.append("")
             
-            if beat['key_elements']:
+            if beat["key_elements"]:
                 lines.append("**关键元素**:")
-                for elem in beat['key_elements']:
+                for elem in beat["key_elements"]:
                     lines.append(f"- {elem}")
                 lines.append("")
             
-            if beat['characters_involved']:
+            if beat["characters_involved"]:
                 lines.append("**涉及角色**:")
-                for char in beat['characters_involved']:
+                for char in beat["characters_involved"]:
                     lines.append(f"- {char}")
                 lines.append("")
             
-            if beat['plot_threads']:
+            if beat["plot_threads"]:
                 lines.append("**情节线索**:")
-                for thread in beat['plot_threads']:
+                for thread in beat["plot_threads"]:
                     lines.append(f"- {thread}")
                 lines.append("")
             
-            if beat['notes']:
+            if beat["notes"]:
                 lines.append("**备注**: ")
-                lines.append(beat['notes'])
+                lines.append(beat["notes"])
                 lines.append("")
         
         if outline_data.get("characters"):
             lines.append("## 角色参考")
             lines.append("")
-            for char in outline_data['characters']:
-                name = char.get('name', '未知角色')
-                description = char.get('description', '')[:100]
+            for char in outline_data["characters"]:
+                name = char.get("name", "未知角色")
+                description = char.get("description", "")[:100]
                 lines.append(f"### {name}")
                 lines.append(f"{description}...")
                 lines.append("")
@@ -330,13 +359,15 @@ class ChapterOutliner:
     def display_outline(self, outline_data: dict[str, Any]) -> None:
         """使用 Rich 美化显示大纲"""
         
-        console.print(Panel(
-            f"[bold cyan]第 {outline_data['chapter_num']} 章[/bold cyan]\n"
-            f"字数目标: [bold]{outline_data['word_count']}[/bold] 字\n"
-            f"节拍数量: [bold]15[/bold] 个",
-            title="章节大纲生成完成",
-            border_style="green"
-        ))
+        console.print(
+            Panel(
+                f"[bold cyan]第 {outline_data['chapter_num']} 章[/bold cyan]\n"
+                f"字数目标: [bold]{outline_data['word_count']}[/bold] 字\n"
+                f"节拍数量: [bold]15[/bold] 个",
+                title="章节大纲生成完成",
+                border_style="green",
+            )
+        )
         
         table = Table(title="15节拍概览")
         table.add_column("节拍", style="cyan")
@@ -349,18 +380,26 @@ class ChapterOutliner:
                 str(beat["beat_number"]),
                 beat["beat_name"],
                 beat["phase"],
-                str(beat["target_words"])
+                str(beat["target_words"]),
             )
+        
+        if outline_data["beats"] and outline_data["beats"][0].get("three_act"):
+            three_act = outline_data["beats"][0]["three_act"]
+            console.print(f"\n[bold blue]三幕结构: [cyan]{three_act}[/cyan][/bold blue]")
         
         console.print(table)
         
         if outline_data.get("characters"):
-            console.print(f"\n[bold blue]角色参考 ([cyan]{len(outline_data['characters'])}[/cyan] 位):[/bold blue]")
+            console.print(
+                f"\n[bold blue]角色参考 ([cyan]{len(outline_data['characters'])}[/cyan] 位):[/bold blue]"
+            )
             for char in outline_data["characters"][:5]:
                 name = char.get("name", "未知")
                 console.print(f"  • [cyan]{name}[/cyan]")
             if len(outline_data["characters"]) > 5:
-                console.print(f"  ... 还有 [cyan]{len(outline_data['characters']) - 5}[/cyan] 个角色")
+                console.print(
+                    f"  ... 还有 [cyan]{len(outline_data['characters']) - 5}[/cyan] 个角色"
+                )
 
 
 def create_arg_parser() -> argparse.ArgumentParser:
@@ -373,35 +412,25 @@ def create_arg_parser() -> argparse.ArgumentParser:
 示例:
   python generate_outline.py --book-dir ./my-novel --chapter 1 --word-count 5000
   python generate_outline.py -d ./project -c 5 -w 3000 -o output.md
-        """
+        """,
     )
     
     parser.add_argument(
-        "--book-dir", "-d",
-        type=str,
-        required=True,
-        help="小说项目目录路径"
+        "--book-dir", "-d", type=str, required=True, help="小说项目目录路径"
+    )
+    
+    parser.add_argument("--chapter", "-c", type=int, required=True, help="章节编号")
+    
+    parser.add_argument(
+        "--word-count", "-w", type=int, default=3000, help="目标字数 (默认: 3000)"
     )
     
     parser.add_argument(
-        "--chapter", "-c",
-        type=int,
-        required=True,
-        help="章节编号"
-    )
-    
-    parser.add_argument(
-        "--word-count", "-w",
-        type=int,
-        default=3000,
-        help="目标字数 (默认: 3000)"
-    )
-    
-    parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=str,
         default=None,
-        help="输出文件路径 (缺省则只显示不保存)"
+        help="输出文件路径 (缺省则只显示不保存)",
     )
     
     return parser
@@ -416,11 +445,15 @@ def main() -> None:
     book_dir = Path(args.book_dir)
     
     if not book_dir.exists():
-        console.print(f"[bold red]错误: 项目目录不存在[/bold red]: [yellow]{book_dir}[/yellow]")
+        console.print(
+            f"[bold red]错误: 项目目录不存在[/bold red]: [yellow]{book_dir}[/yellow]"
+        )
         return
     
     if not book_dir.is_dir():
-        console.print(f"[bold red]错误: 路径不是目录[/bold red]: [yellow]{book_dir}[/yellow]")
+        console.print(
+            f"[bold red]错误: 路径不是目录[/bold red]: [yellow]{book_dir}[/yellow]"
+        )
         return
     
     try:
@@ -428,14 +461,13 @@ def main() -> None:
             SpinnerColumn(),
             BarColumn(),
             "[progress.description]{task.description}",
-            transient=True
+            transient=True,
         ) as progress:
             progress.add_task("初始化出纲器...", total=None)
             outliner = ChapterOutliner(book_dir)
         
         outline_data = outliner.generate_chapter_outline(
-            chapter_num=args.chapter,
-            word_count=args.word_count
+            chapter_num=args.chapter, word_count=args.word_count
         )
         
         outliner.display_outline(outline_data)
@@ -445,14 +477,18 @@ def main() -> None:
         if args.output:
             output_path = Path(args.output)
             output_path.write_text(markdown_output, encoding="utf-8")
-            console.print(f"\n[bold green]大纲已保存至:[/bold green] [cyan]{output_path}[/cyan]")
+            console.print(
+                f"\n[bold green]大纲已保存至:[/bold green] [cyan]{output_path}[/cyan]"
+            )
         else:
             console.print("\n" + "=" * 60)
             console.print("[bold]Markdown 输出:[/bold]")
             console.print("-" * 60)
             console.print(markdown_output)
             console.print("-" * 60)
-            console.print("\n[bold yellow]提示: 使用 --output 参数保存到文件[/bold yellow]")
+            console.print(
+                "\n[bold yellow]提示: 使用 --output 参数保存到文件[/bold yellow]"
+            )
     
     except KeyboardInterrupt:
         console.print("\n[bold yellow]操作已取消[/bold yellow]")

@@ -3,9 +3,15 @@
   "slug": "chapter-outliner",
   "displayName": "Chapter Outliner",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775315955206,
-    "commit": "https://github.com/openclaw/skills/commit/2bfc14f3eceb3ee604b39fa6ecfa12928d9ff415"
+    "version": "1.0.2",
+    "publishedAt": 1776095443590,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775315955206,
+      "commit": "https://github.com/openclaw/skills/commit/2bfc14f3eceb3ee604b39fa6ecfa12928d9ff415"
+    }
+  ]
 }
