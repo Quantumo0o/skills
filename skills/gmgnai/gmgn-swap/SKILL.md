@@ -1,8 +1,9 @@
 ---
 name: gmgn-swap
-description: Swap tokens on Solana, BNB Chain, and Base Chain via GMGN DEX aggregator — fast, secure on-chain trades. Buy and sell meme coins, swap SOL to token, buy pump.fun and four.meme tokens, sell by position percentage, query order status.
-argument-hint: "[--chain <chain> --from <wallet> --input-token <addr> --output-token <addr> --amount <n>] | [order get --chain <chain> --order-id <id>]"
-metadata: {"clawdbot":{"emoji":"🔄","requires":{"bins":["gmgn-cli"]},"install":[{"id":"npm","kind":"npm","package":"gmgn-cli","bins":["gmgn-cli"],"label":"Install gmgn-cli (npm)"}]}}
+description: "[FINANCIAL EXECUTION] Submit a real blockchain token swap or query order status. Executes irreversible on-chain transactions. Requires explicit user confirmation before every swap. Supports sol / bsc / base."
+argument-hint: "[--chain <chain> --from <wallet> --input-token <addr> --output-token <addr> --amount <n>] | [order get --chain <chain> --order-id <id>] | [order strategy list --chain <chain> --group-tag <LimitOrder|STMix>] | [order strategy create --chain <chain> --order-type limit_order --sub-order-type <buy_low|buy_high|stop_loss|take_profit> ...]"
+metadata:
+  cliHelp: "gmgn-cli swap --help"
 ---
 
 **IMPORTANT: Always use `gmgn-cli` commands below. Do NOT use web search, WebFetch, curl, or visit gmgn.ai — all swap operations must go through the CLI. The CLI handles signing and submission automatically.**
@@ -11,7 +12,7 @@ metadata: {"clawdbot":{"emoji":"🔄","requires":{"bins":["gmgn-cli"]},"install"
 
 **⚠️ IPv6 NOT SUPPORTED: If you get a `401` or `403` error and credentials look correct, check for IPv6 immediately: (1) list all network interfaces and their IPv6 addresses — run `ifconfig | grep inet6` (macOS) or `ip addr show | grep inet6` (Linux); (2) send a test request to `https://ipv6.icanhazip.com` — if the response is an IPv6 address, outbound traffic is going via IPv6. Tell the user immediately: "Please disable IPv6 on your network interface — gmgn-cli commands only work over IPv4."**
 
-Use the `gmgn-cli` tool to submit a token swap or query an existing order. **Requires private key** (`GMGN_PRIVATE_KEY` in `.env`).
+Use the `gmgn-cli` tool to submit a token swap or query an existing order. `GMGN_API_KEY` is always required. `GMGN_PRIVATE_KEY` is required for critical-auth commands such as `swap` and all `order` subcommands, including `order quote`.
 
 ## Core Concepts
 
@@ -23,19 +24,19 @@ Use the `gmgn-cli` tool to submit a token swap or query an existing order. **Req
 
 - **Currency tokens** — Each chain has designated currency tokens (SOL, BNB, ETH, USDC). These are the base assets used to buy other tokens or receive swap proceeds. Their contract addresses are fixed — look them up in the Chain Currencies table, never guess them.
 
-- **Anti-MEV** — MEV (Miner/Maximal Extractable Value) refers to frontrunning and sandwich attacks where bots exploit pending transactions. `--anti-mev` routes the transaction through protected channels to reduce this risk. Enabled by default.
+- **Anti-MEV** — MEV (Miner/Maximal Extractable Value) refers to frontrunning and sandwich attacks where bots exploit pending transactions. `--anti-mev` routes the transaction through protected channels to reduce this risk. **Recommended: always enable.** Default: on.
 
-- **Critical auth** — `swap` requires both `GMGN_API_KEY` and `GMGN_PRIVATE_KEY`. The private key never leaves the machine — the CLI uses it only for local signing and sends only the resulting signature. Normal commands (like `order quote`) use API Key alone.
+- **Critical auth** — `swap` and all `order` subcommands require both `GMGN_API_KEY` and `GMGN_PRIVATE_KEY`. The private key never leaves the machine — the CLI uses it only for local signing and sends only the resulting signature.
 
 - **`order_id` / `status`** — After submitting a swap, the response includes an `order_id`. Use `order get --order-id` to poll for final status. Possible values: `pending` → `processed` → `confirmed` (success) or `failed` / `expired`. Do not report success until status is `confirmed`.
 
-- **`filled_input_amount` / `filled_output_amount`** — Actual amounts consumed/received, in smallest unit. Convert to human-readable using token decimals before displaying to the user.
+- **`report.input_amount` / `report.output_amount`** — Actual amounts consumed/received, in smallest unit. Only present when `state = 30` and `status = "successful"`. Convert to human-readable using `report.input_token_decimals` / `report.output_token_decimals` before displaying to the user.
 
 ## Financial Risk Notice
 
 **This skill executes REAL, IRREVERSIBLE blockchain transactions.**
 
-- Every `swap` command submits an on-chain transaction that moves real funds.
+- Every `swap` and `order strategy create` command submits an on-chain transaction that moves real funds.
 - Transactions cannot be undone once confirmed on-chain.
 - The AI agent must **never auto-execute a swap** — explicit user confirmation is required every time, without exception.
 - Only use this skill with funds you are willing to trade. Start with small amounts when testing.
@@ -45,8 +46,11 @@ Use the `gmgn-cli` tool to submit a token swap or query an existing order. **Req
 | Sub-command | Description |
 |-------------|-------------|
 | `swap` | Submit a token swap |
-| `order quote` | Get a swap quote (no transaction submitted) |
+| `order quote` | Get a swap quote (no transaction submitted; requires critical auth) |
 | `order get` | Query order status |
+| `order strategy create` | Create a limit/strategy order (requires private key) |
+| `order strategy list` | List strategy orders (requires private key) |
+| `order strategy cancel` | Cancel a strategy order (requires private key) |
 
 ## Supported Chains
 
@@ -66,9 +70,28 @@ Currency tokens are the base/native assets of each chain. They are used to buy o
 
 ## Prerequisites
 
-Both `GMGN_API_KEY` and `GMGN_PRIVATE_KEY` must be configured in `~/.config/gmgn/.env`. The private key must correspond to the wallet bound to the API Key.
+`GMGN_API_KEY` must be configured in `~/.config/gmgn/.env`. `GMGN_PRIVATE_KEY` is additionally required for `swap` and all `order` subcommands. The private key must correspond to the wallet bound to the API Key.
 
 - `gmgn-cli` installed globally — if missing, run: `npm install -g gmgn-cli`
+
+## Rate Limit Handling
+
+All swap-related routes used by this skill go through GMGN's leaky-bucket limiter with `rate=10` and `capacity=10`. Sustained throughput is roughly `10 ÷ weight` requests/second, and the max burst is roughly `floor(10 ÷ weight)` when the bucket is full.
+
+| Command | Route | Weight |
+|---------|-------|--------|
+| `swap` | `POST /v1/trade/swap` | 5 |
+| `order quote` | `GET /v1/trade/quote` | 2 |
+| `order get` | `GET /v1/trade/query_order` | 1 |
+
+When a request returns `429`:
+
+- Read `X-RateLimit-Reset` from the response headers. It is a Unix timestamp in seconds that marks when the limit is expected to reset.
+- If the response body contains `reset_at` (e.g., `{"code":429,"error":"RATE_LIMIT_BANNED","message":"...","reset_at":1775184222}`), extract `reset_at` — it is the Unix timestamp when the ban lifts (typically 5 minutes). Convert to local time and tell the user exactly when they can retry.
+- `swap` is a real transaction: never loop or auto-submit repeated swap attempts after a `429`. Wait until the reset time, then ask for confirmation again before retrying.
+- The CLI may wait and retry once automatically for short cooldowns on read-only commands such as `order quote` and `order get`. If it still fails, stop and tell the user the exact retry time instead of sending more requests.
+- For `RATE_LIMIT_EXCEEDED` or `RATE_LIMIT_BANNED`, repeated requests during the cooldown can extend the ban by 5 seconds each time, up to 5 minutes.
+- `POST /v1/trade/swap` also has an error-count limiter. Repeatedly triggering the same business error, especially `40003701` (insufficient token balance), can return `ERROR_RATE_LIMIT_BLOCKED`. When this happens, do not retry until the reset time and fix the underlying request first.
 
 **First-time setup** (if credentials are not configured):
 
@@ -142,7 +165,7 @@ gmgn-cli swap \
 
 ## `order quote` Usage
 
-Get an estimated output amount before submitting a swap. Uses normal auth — no private key required.
+Get an estimated output amount before submitting a swap. All supported quote chains use critical auth and require `GMGN_PRIVATE_KEY`.
 
 ```bash
 gmgn-cli order quote \
@@ -184,33 +207,113 @@ gmgn-cli order get --chain sol --order-id <order_id>
 | `--slippage <n>` | No | Slippage tolerance, e.g. `0.01` = 1%. **Mutually exclusive with `--auto-slippage`** — use one or the other. |
 | `--auto-slippage` | No | Enable automatic slippage. **Mutually exclusive with `--slippage`.** |
 | `--min-output <n>` | No | Minimum output amount |
-| `--anti-mev` | No | Enable anti-MEV protection (default true) |
+| `--anti-mev` | No | Enable anti-MEV protection — **recommended**; protects against frontrunning and sandwich attacks. Default: on |
 | `--priority-fee <sol>` | No | Priority fee in SOL (≥ 0.00001, SOL only) |
 | `--tip-fee <n>` | No | Tip fee (SOL ≥ 0.00001 / BSC ≥ 0.000001 BNB) |
 | `--max-auto-fee <n>` | No | Max automatic fee cap |
 | `--gas-price <gwei>` | No | Gas price in gwei (BSC ≥ 0.05 / BASE/ETH ≥ 0.01) |
 | `--max-fee-per-gas <n>` | No | EIP-1559 max fee per gas (Base only) |
 | `--max-priority-fee-per-gas <n>` | No | EIP-1559 max priority fee per gas (Base only) |
+| `--condition-orders <json>` | No | JSON array of condition sub-orders (take-profit / stop-loss) to attach after a successful swap. **Max 10 sub-orders.** Strategy creation is best-effort: if the swap succeeds but strategy creation fails, the swap result is still returned. See ConditionOrder fields below. |
+| `--sell-ratio-type <type>` | No | Sell ratio basis for `--condition-orders`: `buy_amount` (default) — when triggered, sells a fixed token amount stored at strategy creation time; `hold_amount` — when triggered, sells a fixed percentage of the position held at trigger time |
 
-## `swap` Response Fields
+### ConditionOrder Fields (for `--condition-orders`)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `order_id` | string | Order ID for follow-up queries |
-| `hash` | string | Transaction hash |
-| `status` | string | Order status: `pending` / `processed` / `confirmed` / `failed` / `expired` |
-| `error_code` | string | Error code on failure |
-| `error_status` | string | Error description on failure |
-| `input_token` | string | Input token contract address |
-| `output_token` | string | Output token contract address |
-| `filled_input_amount` | string | Actual input consumed (smallest unit); empty if not filled |
-| `filled_output_amount` | string | Actual output received (smallest unit); empty if not filled |
+Each element in the `--condition-orders` JSON array supports:
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `order_type` | Yes | string | Sub-order type: `profit_stop` (fixed take-profit), `loss_stop` (fixed stop-loss), `profit_stop_trace` (trailing take-profit), `loss_stop_trace` (trailing stop-loss) |
+| `side` | Yes | string | Always `"sell"` |
+| `price_scale` | Conditional | string | Gain/drop % from entry. Required for `profit_stop` / `loss_stop` / `profit_stop_trace`; optional for `loss_stop_trace`. For `profit_stop` / `profit_stop_trace`: gain % (e.g. `"100"` = +100% / 2× entry). For `loss_stop` / `loss_stop_trace`: drop % (e.g. `"65"` = drops 65%, triggers at 35% of entry). |
+| `sell_ratio` | Yes | string | Percentage of position to sell when triggered, e.g. `"100"` = 100% |
+| `drawdown_rate` | Conditional | string | Required for `profit_stop_trace` and `loss_stop_trace`. Trailing callback %: after price peaks, how far it must fall before the order fires. E.g. `"50"` = 50% drawdown from peak. |
+
+**Example — attach take-profit at 2× (+100%) and stop-loss at -60%:**
+
+```json
+[
+  {"order_type": "profit_stop", "side": "sell", "price_scale": "100", "sell_ratio": "100"},
+  {"order_type": "loss_stop",   "side": "sell", "price_scale": "60",  "sell_ratio": "100"}
+]
+```
+
+**Example — buy token A with 0.01 SOL, take-profit 50% at +100%, take-profit remaining 50% at +300%, stop-loss 100% at -65% (trigger at 35% entry price)   (`hold_amount` mode):**
+
+```bash
+gmgn-cli swap \
+  --chain sol \
+  --from <wallet_address> \
+  --input-token So11111111111111111111111111111111111111112 \
+  --output-token <token_A_address> \
+  --amount 10000000 \
+  --slippage 0.3 \
+  --anti-mev \
+  --condition-orders '[{"order_type":"profit_stop","side":"sell","price_scale":"100","sell_ratio":"50"},{"order_type":"profit_stop","side":"sell","price_scale":"300","sell_ratio":"100"},{"order_type":"loss_stop","side":"sell","price_scale":"65","sell_ratio":"100"}]' \
+  --sell-ratio-type hold_amount
+```
+
+> `price_scale` for `profit_stop`: gain % from entry (`"100"` = +100% / 2×, `"300"` = +300% / 4×). For `loss_stop`: drop % from entry (`"65"` = drops 65%, triggers at 35% of entry).
+> `hold_amount`: the second take-profit fires on whatever is held at trigger time (the remaining 50%). If you added to your position in between, those additional tokens will be included as well.
+
+**Same strategy using `buy_amount` mode — fixed percentage of the original bought amount at each trigger:**
+
+```bash
+gmgn-cli swap \
+  --chain sol \
+  --from <wallet_address> \
+  --input-token So11111111111111111111111111111111111111112 \
+  --output-token <token_A_address> \
+  --amount 10000000 \
+  --slippage 0.3 \
+  --anti-mev \
+  --condition-orders '[{"order_type":"profit_stop","side":"sell","price_scale":"100","sell_ratio":"50"},{"order_type":"profit_stop","side":"sell","price_scale":"300","sell_ratio":"50"},{"order_type":"loss_stop","side":"sell","price_scale":"65","sell_ratio":"100"}]' \
+  --sell-ratio-type buy_amount
+```
+
+> `buy_amount`: each take-profit sells 50% of the **original** bought amount. Stop-loss sells 100% of the original bought amount.
+
+## `swap` / `order get` Response Fields
+
+| Field               | Type   | Description |
+| ------------------- | ------ | ---- |
+| `order_id`          | string | Order ID for follow-up queries |
+| `hash`              | string | Transaction hash |
+| `status`            | string | Order status: `pending` / `processed` / `confirmed` / `failed` / `expired` |
+| `error_code`        | string | Error code on failure |
+| `error_status`      | string | Error description on failure |
+| `strategy_order_id` | string | Strategy order ID; only present when `--condition-orders` was passed and strategy creation succeeded (best-effort) |
+| `report`            | object | Execution report; only present when `state = 30` and `status = "successful"`. See Report Fields below. |
+
+### Report Fields (present only when `status = "successful"`)
+
+| Field                   | Type    | Description |
+| ----------------------- | ------- | ---- |
+| `input_token`           | string  | Input token contract address |
+| `input_token_decimals`  | integer | Input token decimal places |
+| `swap_mode`             | string  | Swap mode: `ExactIn` / `ExactOut` |
+| `input_amount`          | string  | Actual input consumed (smallest unit) |
+| `output_token`          | string  | Output token contract address |
+| `output_token_decimals` | integer | Output token decimal places |
+| `output_amount`         | string  | Actual output received (smallest unit) |
+| `quote_token`           | string  | Quote token contract address |
+| `quote_decimals`        | integer | Quote token decimal places |
+| `quote_amount`          | string  | Quote amount (smallest unit) |
+| `base_token`            | string  | Base token contract address |
+| `base_decimals`         | integer | Base token decimal places |
+| `base_amount`           | string  | Base token amount (smallest unit) |
+| `price`                 | string  | Execution price (quote/base token) |
+| `price_usd`             | string  | Execution price in USD |
+| `height`                | integer | Block height of execution |
+| `order_height`          | integer | Block height when order was placed |
+| `gas_native`            | string  | Gas fee in native token |
+| `gas_usd`               | string  | Gas fee in USD |
 
 ## Output Format
 
 ### Pre-swap Confirmation
 
-Before displaying the confirmation, run `order quote` to get the estimated output (uses normal auth — no private key required):
+Before displaying the confirmation, run `order quote` to get the estimated output (requires critical auth and `GMGN_PRIVATE_KEY` on every supported quote chain):
 
 ```bash
 gmgn-cli order quote \
@@ -252,19 +355,127 @@ After a confirmed swap, display:
 ```
 ✅ Swap Confirmed
 
-Spent:    {filled_input_amount in human units} {input symbol}
-Received: {filled_output_amount in human units} {output symbol}
+Spent:    {report.input_amount in human units} {input symbol}
+Received: {report.output_amount in human units} {output symbol}
 Tx:       {explorer link for hash}
 Order ID: {order_id}
 ```
 
-Convert `filled_input_amount` and `filled_output_amount` from smallest unit using token decimals before displaying.
+Convert `report.input_amount` and `report.output_amount` from smallest unit using `report.input_token_decimals` and `report.output_token_decimals` before displaying.
+
+## `order strategy create` Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--chain` | Yes | `sol` / `bsc` / `base` |
+| `--from` | Yes | Wallet address (must match API Key binding) |
+| `--base-token` | Yes | Base token contract address |
+| `--quote-token` | Yes | Quote token contract address |
+| `--order-type` | Yes | Order type: `limit_order` |
+| `--sub-order-type` | Yes | Sub-order type: `buy_low` / `buy_high` / `stop_loss` / `take_profit` |
+| `--check-price` | Yes | Trigger check price |
+| `--amount-in` | No* | Input amount (smallest unit). Mutually exclusive with `--amount-in-percent` |
+| `--amount-in-percent` | No* | Input as percentage (e.g. `50` = 50%). Mutually exclusive with `--amount-in` |
+| `--limit-price-mode` | No | `exact` / `slippage` (default: `slippage`) |
+| `--expire-in` | No | Order expiry in seconds |
+| `--sell-ratio-type` | No | `buy_amount` (default) — when triggered, sells a fixed token amount stored at strategy creation time; `hold_amount` — when triggered, sells a fixed percentage of the position held at trigger time |
+| `--slippage` | No | Slippage tolerance, e.g. `0.01` = 1%. Mutually exclusive with `--auto-slippage` |
+| `--auto-slippage` | No | Enable automatic slippage |
+| `--priority-fee` | No | Priority fee in SOL (SOL only) |
+| `--tip-fee` | No | Tip fee |
+| `--gas-price` | No | Gas price in gwei (BSC ≥ 0.05 gwei / BASE/ETH ≥ 0.01 gwei) |
+| `--anti-mev` | No | Enable anti-MEV protection |
+
+
+### `order strategy create` Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `order_id` | string | Created strategy order ID |
+| `is_update` | bool | `true` if an existing order was updated, `false` if newly created |
+
+## `order strategy list` Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--chain` | Yes | `sol` / `bsc` / `base` |
+| `--type` | No | `open` (default) / `history` |
+| `--from` | No | Filter by wallet address |
+| `--group-tag` | Yes | Filter by order group: `LimitOrder` (limit orders only) / `STMix` (mixed strategy orders: take-profit, stop-loss, trailing take-profit, trailing stop-loss) |
+| `--base-token` | No | Filter by token address |
+| `--page-token` | No | Pagination cursor from previous response |
+| `--limit` | No | Results per page (default 10 for history) |
+
+### `order strategy list` Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `next_page_token` | string | Cursor for next page; empty when no more data |
+| `total` | int | Total count (only returned when `--type open`) |
+| `list` | array | Strategy order list |
+
+## `order strategy cancel` Parameters
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `--chain` | Yes | `sol` / `bsc` / `base` |
+| `--from` | Yes | Wallet address (must match API Key binding) |
+| `--order-id` | Yes | Order ID to cancel |
+| `--order-type` | No | Order type: `limit_order` (limit order) / `smart_trade` (mixed strategy order: take-profit, stop-loss, trailing take-profit, trailing stop-loss) |
+| `--close-sell-model` | No | Sell model when closing the order |
+
+## `order strategy` Usage Examples
+
+```bash
+# Create a take-profit order: sell when price rises to target
+gmgn-cli order strategy create \
+  --chain sol \
+  --from <wallet_address> \
+  --base-token <token_address> \
+  --quote-token <sol_address> \
+  --order-type limit_order \
+  --sub-order-type take_profit \
+  --check-price 0.002 \
+  --amount-in 1000000 \
+  --slippage 0.01
+
+# Create a stop-loss order: sell when price drops to target
+gmgn-cli order strategy create \
+  --chain sol \
+  --from <wallet_address> \
+  --base-token <token_address> \
+  --quote-token <sol_address> \
+  --order-type limit_order \
+  --sub-order-type stop_loss \
+  --check-price 0.0005 \
+  --amount-in-percent 100 \
+  --slippage 0.01
+
+# List open condition orders (profit_stop / loss_stop / trace types) — use STMix
+gmgn-cli order strategy list --chain sol --group-tag STMix
+
+# List open limit orders (buy_low / buy_high / stop_loss / take_profit) — use LimitOrder
+gmgn-cli order strategy list --chain sol --group-tag LimitOrder
+
+# List condition order history with pagination
+gmgn-cli order strategy list --chain sol --group-tag STMix --type history --limit 20
+
+# Filter by token
+gmgn-cli order strategy list --chain sol --group-tag STMix --base-token <token_address>
+
+# Cancel a strategy order
+gmgn-cli order strategy cancel \
+  --chain sol \
+  --from <wallet_address> \
+  --order-id <order_id>
+```
 
 ## Notes
 
 - Swap uses **critical auth** (API Key + signature) — CLI handles signing automatically, no manual processing needed
 - After submitting a swap, use `order get` to poll for confirmation
 - `--amount` is in the **smallest unit** (e.g., lamports for SOL)
+- `order strategy create`, `order strategy list`, and `order strategy cancel` use critical auth (require `GMGN_PRIVATE_KEY`)
 - Use `--raw` to get single-line JSON for further processing
 
 ## Input Validation
@@ -298,9 +509,9 @@ Check the two critical fields:
 
 **User override**: The user may explicitly skip this check by saying "I already checked" or "skip security check". In that case, document that the check was skipped in the confirmation summary. This is the only valid override — do NOT skip the check silently.
 
-For a quick pre-swap due diligence checklist (info + security + pool + smart money, 4 steps), see [`docs/workflow-token-due-diligence.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-token-due-diligence.md)
+For a quick pre-swap due diligence checklist (info + security + pool + smart money, 4 steps), see [`docs/workflow-token-due-diligence.md`](../../docs/workflow-token-due-diligence.md)
 
-For full token research before swapping, see [`docs/workflow-token-research.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-token-research.md)
+For full token research before swapping, see [`docs/workflow-token-research.md`](../../docs/workflow-token-research.md)
 
 ## Execution Guidelines
 
@@ -312,7 +523,7 @@ For full token research before swapping, see [`docs/workflow-token-research.md`]
 - **Percentage sell restriction** — `--percent` is ONLY valid when `input_token` is NOT a currency. Do NOT use `--percent` when `input_token` is SOL/BNB/ETH (native) or USDC. This includes: "sell 50% of my SOL", "use 30% of my BNB to buy X", "spend 50% of my USDC on X" — all unsupported. Explain the restriction to the user and ask for an explicit absolute amount instead.
 - **Chain-wallet compatibility** — SOL addresses are incompatible with EVM chains (bsc/base). Warn the user and abort if the address format does not match the chain.
 - **Credential sensitivity** — `GMGN_API_KEY` and `GMGN_PRIVATE_KEY` can directly execute trades on the linked wallet. Never log, display, or expose these values.
-- **Order polling** — After a swap, if `status` is not yet `confirmed` / `failed` / `expired`, poll with `order get` up to 3 times at 5-second intervals before reporting a timeout. Once confirmed, display the trade result using `filled_input_amount` and `filled_output_amount` (convert from smallest unit using token decimals), e.g. "Spent 0.1 SOL → received 98.5 USDC" or "Sold 1000 TOKEN → received 0.08 SOL".
+- **Order polling** — After a swap, if `status` is not yet `confirmed` / `failed` / `expired`, poll with `order get` up to 3 times at 5-second intervals before reporting a timeout. Once confirmed, display the trade result using `report.input_amount` and `report.output_amount` (convert from smallest unit using `report.input_token_decimals` / `report.output_token_decimals`), e.g. "Spent 0.1 SOL → received 98.5 USDC" or "Sold 1000 TOKEN → received 0.08 SOL".
 - **Block explorer links** — After a successful swap, display a clickable explorer link for the returned `hash`:
 
   | Chain | Explorer |
