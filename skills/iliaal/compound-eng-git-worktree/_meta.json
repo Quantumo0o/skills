@@ -3,9 +3,15 @@
   "slug": "compound-eng-git-worktree",
   "displayName": "git-worktree",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775436863566,
-    "commit": "https://github.com/openclaw/skills/commit/ce5552afe2802612f080b959cc6e4fb73b287a15"
+    "version": "2.55.1",
+    "publishedAt": 1776004184292,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775436863566,
+      "commit": "https://github.com/openclaw/skills/commit/ce5552afe2802612f080b959cc6e4fb73b287a15"
+    }
+  ]
 }
