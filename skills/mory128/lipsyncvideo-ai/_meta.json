@@ -3,9 +3,15 @@
   "slug": "lipsyncvideo-ai",
   "displayName": "Lipsyncvideo Ai",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775631829848,
-    "commit": "https://github.com/openclaw/skills/commit/8198ad123fd2698e9349227ef3b3c51b6a71b141"
+    "version": "1.0.1",
+    "publishedAt": 1775673811520,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775631829848,
+      "commit": "https://github.com/openclaw/skills/commit/8198ad123fd2698e9349227ef3b3c51b6a71b141"
+    }
+  ]
 }
