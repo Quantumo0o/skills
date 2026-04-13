@@ -1,11 +1,17 @@
 {
   "owner": "drumrobot",
   "slug": "wip",
-  "displayName": "WIP Tracker",
+  "displayName": "WIP",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775202910869,
-    "commit": "https://github.com/openclaw/skills/commit/b9dc02394f1706dc028e2ad391a1003a9337bf8a"
+    "version": "0.1.1",
+    "publishedAt": 1776000215571,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775202910869,
+      "commit": "https://github.com/openclaw/skills/commit/b9dc02394f1706dc028e2ad391a1003a9337bf8a"
+    }
+  ]
 }
