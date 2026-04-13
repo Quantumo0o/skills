@@ -1,0 +1,11 @@
+{
+  "owner": "ordo-tech",
+  "slug": "skill-diff-auditor",
+  "displayName": "Diff Auditor",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775641526346,
+    "commit": null
+  },
+  "history": []
+}
