@@ -1,7 +1,7 @@
 {
   "name": "osint-api",
   "version": "0.6.0",
-  "description": "Professional OSINT intelligence reports via API — 129 feeds, enriched analysis, domain recon",
+  "description": "Professional OSINT intelligence reports via API — multiple feeds, enriched analysis, domain recon",
   "author": "ahsan-tariq",
   "license": "MIT",
   "keywords": ["osint", "intelligence", "feeds", "recon", "domain", "api", "reports"],

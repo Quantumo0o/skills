@@ -3,7 +3,7 @@
 [![ClawHub](https://img.shields.io/badge/ClawHub-skill-blue)](https://clawhub.ai/skills/osint-api)
 [![Version](https://img.shields.io/badge/version-0.6.0-green)](https://github.com/ahsan-tariq-ai/osint-api)
 
-Professional OSINT intelligence reports via API. 129 RSS feeds across 15 categories with enriched analysis, domain recon, and automated feed health monitoring.
+Professional OSINT intelligence reports via API. Multiple RSS feeds across 15 categories with enriched analysis, domain recon, and automated feed health monitoring.
 
 ## Install
 

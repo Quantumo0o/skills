@@ -13,7 +13,6 @@ Usage:
     python3 osint_api.py recon --domain DOMAIN
     python3 osint_api.py social --username USERNAME
     python3 osint_api.py breach --email EMAIL
-    python3 osint_api.py signup --email EMAIL
 """
 
 import argparse

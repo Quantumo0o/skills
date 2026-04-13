@@ -2,7 +2,7 @@
 name: osint-api
 description: >
   AI-powered OSINT intelligence reports via API.
-  129 RSS feeds across 15 categories with enriched analysis,
+  Multiple RSS feeds across 15 categories with enriched analysis,
   domain recon, and automated feed health monitoring.
 homepage: https://github.com/ahsan-tariq-ai/osint-api
 metadata:
@@ -24,7 +24,7 @@ metadata:
 
 # OSINT API — Intelligence Reports
 
-AI-powered OSINT intelligence reports via API. 129 RSS feeds across 15 categories with enriched analysis, domain recon, and automated feed health monitoring.
+AI-powered OSINT intelligence reports via API. Multiple RSS feeds across 15 categories with enriched analysis, domain recon, and automated feed health monitoring.
 
 ## External Endpoints
 
@@ -144,25 +144,25 @@ python3 scripts/osint_api.py breach --email user@example.com
 
 ## Categories
 
-The engine collects from 129 RSS feeds across 15 categories:
+The engine collects from multiple RSS feeds across 15 categories:
 
-| Category | Sources | Focus |
-|----------|---------|-------|
-| cybersecurity | 25 feeds | Threats, CVEs, vendor advisories |
-| tech_ai | 30 feeds | AI/ML news, product launches, research |
-| geopolitics | 20 feeds | World news, conflict, diplomacy |
-| finance | 12 feeds | Markets, crypto, economics |
-| healthcare | 10 feeds | Pharma, biotech, medical research |
-| legal_regtech | 5 feeds | Law, compliance, regulatory focus |
-| marketing_adtech | 7 feeds | Marketing industry, ad tech |
-| supply_chain | 5 feeds | Logistics, freight, supply chain |
-| climate_sustainability | 7 feeds | Climate change, ESG, green tech |
-| real_estate_proptech | 5 feeds | Property, PropTech |
-| education_edtech | 5 feeds | Education technology |
-| energy_utilities | 5 feeds | Power, energy, utilities |
-| agriculture_foodtech | 5 feeds | Agriculture, food tech |
-| entertainment_media | 8 feeds | Gaming, streaming, media |
-| labor_workforce | 4 feeds | Labor market, workplace intelligence |
+| Category | Focus |
+|----------|-------|
+| cybersecurity | Threats, CVEs, vendor advisories |
+| tech_ai | AI/ML news, product launches, research |
+| geopolitics | World news, conflict, diplomacy |
+| finance | Markets, crypto, economics |
+| healthcare | Pharma, biotech, medical research |
+| legal_regtech | Law, compliance, regulatory focus |
+| marketing_adtech | Marketing industry, ad tech |
+| supply_chain | Logistics, freight, supply chain |
+| climate_sustainability | Climate change, ESG, green tech |
+| real_estate_proptech | Property, PropTech |
+| education_edtech | Education technology |
+| energy_utilities | Power, energy, utilities |
+| agriculture_foodtech | Agriculture, food tech |
+| entertainment_media | Gaming, streaming, media |
+| labor_workforce | Labor market, workplace intelligence |
 
 ## Helper Script
 
@@ -177,14 +177,11 @@ The engine collects from 129 RSS feeds across 15 categories:
 
 | Tier | Price | Requests/Day | Features |
 |------|-------|-------------|----------|
-| Free | $0 | 10 | Basic recon |
-| Developer | $5/mo | 1,000 | Social + email lookup |
-| Pro | $49/mo | Unlimited | All skills + PDF reports |
-| Enterprise | Custom | Custom | SLA, dedicated instance |
+| Free | $0/mo | 50 | Market Intelligence (15 categories), Domain Recon |
+| Pro | 10 USDC/mo | 1,000 | Everything in Free + Social Lookup (10+ platforms), Breach Check |
+| Enterprise | 50 USDC/mo | 10,000 | Everything in Pro + Dedicated Gateway, Enriched Briefings (LLM) |
 
 ## Notes
 
 - Reports are refreshed daily via cron — API responses are cached
-- Geo-political categories receive hidden signal enrichment from geodetic astrology
-- Output contains NO astrology language — reads as standard intelligence analysis
 - Confidence scores: 0.0-1.0 based on article count, source diversity, signal strength
