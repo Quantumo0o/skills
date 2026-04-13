@@ -1,9 +1,9 @@
 ---
 name: Global Financial Downloader
 slug: global-financial-downloader
-version: 1.0.0
-description: "全球财报智能下载器。自动识别市场（A 股/港股/美股），自动选择爬虫，支持股票代码/公司名称，一键下载全球三大市场财报。"
-metadata: {"clawdbot":{"emoji":"🌍","requires":{"bins":["python3.11"],"pip":["requests","beautifulsoup4","playwright"]},"os":["linux","darwin","win32"]}}
+version: 2.3.0
+description: "全球财报智能下载器 v2.2。自动识别市场（A 股/港股/美股），自动选择爬虫。港股使用东方财富+同花顺 API，无需认证。美股外国公司（ADR）自动使用 20-F/6-K 替代 10-K/10-Q。subprocess 替代 os.system，错误检查+输出捕获。支持 --dry-run 预览、下载后自动验证。"
+metadata: {"clawdbot":{"emoji":"🌍","requires":{"bins":["python3"]},"os":["linux","darwin","win32"]}}
 ---
 
 ## When to Use
@@ -20,11 +20,11 @@ metadata: {"clawdbot":{"emoji":"🌍","requires":{"bins":["python3.11"],"pip":["
 ```bash
 # Use stock code (recommended - supports all companies)
 python3 /root/.openclaw/workspace/skills/global-financial-downloader/downloader.py \
-  600519 --from=2020 --to=2025 --type=年报 --pdf
+  600519 --from=2020 --to=2026 --type=年报 --pdf
 
 # Use company name (predefined companies only)
 python3 /root/.openclaw/workspace/skills/global-financial-downloader/downloader.py \
-  贵州茅台 --from=2020 --to=2025 --pdf
+  贵州茅台 --from=2020 --to=2026 --pdf
 ```
 
 ### Batch Download
@@ -50,7 +50,7 @@ chmod +x download_all.sh
 |-----------|-------------|---------|---------|
 | `stock` | Stock code or company name | Required | `600519`, `贵州茅台`, `AAPL` |
 | `--from` | Start year | 2020 | `--from=2020` |
-| `--to` | End year | 2025 | `--to=2025` |
+| `--to` | End year | 2025 | `--to=2026` |
 | `--type` | Report type | 年报 | `年报`, `中报`, `10-K`, `10-Q` |
 | `--pdf` | Download PDF files | No | `--pdf` |
 | `--no-pdf` | Skip PDF download | No | `--no-pdf` |
@@ -79,7 +79,15 @@ chmod +x download_all.sh
 | 01810 | 小米 | xiaomi |
 | ... | ... | ... |
 
-**Use stock code for ANY HK company!**
+**港股数据源 (v2.0 更新)**:
+
+| 数据源 | API | 说明 |
+|--------|-----|------|
+| 东方财富 | `np-anotice-stock.eastmoney.com` | 完整报告最多，22 份年报 (2005-2025) |
+| 同花顺 | `basic.10jqka.com.cn/basicapi/notice/pub` | 补充东方财富缺失年份 |
+| 披露易 | `www1.hkexnews.hk` | 兜底 |
+
+**港股代码自动转换**: `700/0700/00700/HK0700` 自动适配各平台格式。
 
 ### US Stocks
 
@@ -137,21 +145,21 @@ chmod +x download_all.sh
 
 ```bash
 python3 /root/.openclaw/workspace/skills/global-financial-downloader/downloader.py \
-  600519 --from=2020 --to=2025 --type=年报 --pdf
+  600519 --from=2020 --to=2026 --type=年报 --pdf
 ```
 
 ### Example 2: Download Tencent Reports
 
 ```bash
 python3 /root/.openclaw/workspace/skills/global-financial-downloader/downloader.py \
-  00700 --from=2020 --to=2025 --pdf
+  00700 --from=2020 --to=2026 --pdf
 ```
 
 ### Example 3: Download Apple 10-K
 
 ```bash
 python3 /root/.openclaw/workspace/skills/global-financial-downloader/downloader.py \
-  AAPL --from=2020 --to=2025 --type=10-K --pdf
+  AAPL --from=2020 --to=2026 --type=10-K --pdf
 ```
 
 ### Example 4: Download All Reports (No PDF)
@@ -228,10 +236,35 @@ python3 downloader.py 600XXX --pdf
 
 - **Main Script**: `/root/.openclaw/workspace/skills/global-financial-downloader/downloader.py`
 - **Stock Mapping**: `/root/.openclaw/workspace/skills/global-financial-downloader/stock_mapping.json`
-- **Output**: `/root/.openclaw/workspace/exports/`
+- **HK Downloader**: `/root/.openclaw/workspace/skills/hk-financial-downloader/scripts/hk_downloader.py`
+- **Output**: `/root/.openclaw/workspace/archive/`
+
+## Update Log
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 2.2.0 | 2026-04-12 | **美股 ADR 支持** ⭐⭐ |
+| | | - 美股外国公司自动使用 20-F/6-K（~50 家公司） |
+| | | - 本土公司继续用 10-K/10-Q |
+| | | - 外国公司列表：中概股+加拿大+欧洲+日本+拉美 |
+| | | - SEC 爬虫 v2.0：CIK 缓存扩展 + 自动搜索 |
+| 2.1.0 | 2026-04-12 | **6 项修复** ⭐ |
+| | | - subprocess 替代 os.system（错误检查 + 输出捕获） |
+| | | - 报告类型大小写保护（10-k → 10-K） |
+| | | - market key 大小写修复（HK→hk） |
+| | | - 港股 report type 映射修复（financial → 年报/中报/季报） |
+| | | - --dry-run 预览模式 |
+| | | - 下载后自动验证结果 |
+| 2.0.0 | 2026-04-12 | **港股重构** ⭐⭐⭐ |
+| | | - 替换 `hkex_auto_scraper_v3.py` → `hk_financial_downloader` |
+| | | - 数据源：东方财富 + 同花顺 API（无需认证） |
+| | | - 自动代码格式转换 (700/0700/00700/HK0700) |
+| | | - 完整报告优先于业绩公告 |
+| | | - 移除 playwright 依赖 |
+| 1.0.0 | 2026-04-03 | 初始版本 |
 
 ## Author
 
 Created by 玄武 🐢
-Version: 1.0.0
-Last Updated: 2026-04-03
+Version: 2.2.0
+Last Updated: 2026-04-12
