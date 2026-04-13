@@ -1,0 +1,11 @@
+{
+  "owner": "geodeteam",
+  "slug": "geode-transcribe",
+  "displayName": "Geode On-device Transcribe & Summary",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775533161162,
+    "commit": null
+  },
+  "history": []
+}
