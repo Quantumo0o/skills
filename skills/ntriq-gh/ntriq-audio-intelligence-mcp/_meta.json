@@ -1,11 +1,17 @@
 {
   "owner": "ntriq-gh",
   "slug": "ntriq-audio-intelligence-mcp",
-  "displayName": "Audio Intelligence Mcp",
+  "displayName": "Ntriq Audio Intelligence Mcp",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775594623261,
-    "commit": "https://github.com/openclaw/skills/commit/a8d7e38fa71ca1c51f728889d842d2b5aaf30e51"
+    "version": "1.0.1",
+    "publishedAt": 1775660078043,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775594623261,
+      "commit": "https://github.com/openclaw/skills/commit/a8d7e38fa71ca1c51f728889d842d2b5aaf30e51"
+    }
+  ]
 }
