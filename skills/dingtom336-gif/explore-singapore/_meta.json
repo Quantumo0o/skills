@@ -3,9 +3,15 @@
   "slug": "explore-singapore",
   "displayName": "Explore Singapore",
   "latest": {
-    "version": "3.2.0",
-    "publishedAt": 1775667975118,
-    "commit": "https://github.com/openclaw/skills/commit/7dbf933d2d20876eeb99b660dd0a6974dca62182"
+    "version": "3.2.1",
+    "publishedAt": 1775702026339,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.2.0",
+      "publishedAt": 1775667975118,
+      "commit": "https://github.com/openclaw/skills/commit/7dbf933d2d20876eeb99b660dd0a6974dca62182"
+    }
+  ]
 }
