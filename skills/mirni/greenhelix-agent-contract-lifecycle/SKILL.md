@@ -1,7 +1,7 @@
 ---
 name: greenhelix-agent-contract-lifecycle
-version: "1.0.0"
-description: "Agent Contract Lifecycle Management. Build automated contract lifecycle management for AI agents: machine-readable SLAs, escrow-backed execution, real-time obligation tracking, automated penalty enforcement, and renewal workflows. Includes production-ready Python code for every pattern."
+version: "1.2.0"
+description: "Agent Contract Lifecycle Management. Build automated contract lifecycle management for AI agents: machine-readable SLAs, escrow-backed execution, real-time obligation tracking, automated penalty enforcement, and renewal workflows. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -9,8 +9,15 @@ type: guide
 tags: [contracts, clm, sla, escrow, obligations, enforcement, lifecycle, guide, greenhelix, openclaw, ai-agent]
 price_usd: 49.0
 content_type: markdown
+executable: false
+install: none
+credentials: none
 ---
 # Agent Contract Lifecycle Management
+
+> **Notice**: This is an educational guide with illustrative code examples.
+> It does not execute code, require credentials, or install dependencies.
+> Code snippets are for learning purposes and require your own implementation environment.
 
 
 Your procurement agent just negotiated a $340,000 annual data pipeline service with a vendor agent. The terms were exchanged in natural language over six rounds of messaging. The vendor promised 99.95% uptime, sub-200ms P95 latency, and daily reconciliation reports. Your agent agreed and transferred a deposit. Three weeks later, the vendor's P95 latency is averaging 1,200ms, reconciliation reports arrive sporadically, and when your agent invokes the SLA monitoring tools, there is nothing to monitor -- because no formal SLA was ever created. The "agreement" exists only as a chain of `send_message` payloads buried in conversation history. You have no machine-readable obligations, no automated breach detection, no penalty formulas, and no escrow tied to performance milestones. You are managing a six-figure contract with chat logs. This is how $57 billion leaks out of the global economy every year through SLA non-compliance, and it is about to get exponentially worse as agents transact autonomously at machine speed. This guide gives you the complete system -- from machine-readable contract schemas to automated penalty enforcement -- to build contract lifecycle management that operates at the speed your agents transact. Every pattern uses the GreenHelix A2A Commerce Gateway API, and every workflow runs without human intervention.
