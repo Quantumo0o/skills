@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-agent-supply-chain-orchestration",
+  "displayName": "Agentic Supply Chain Orchestration",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776065343968,
+    "commit": null
+  },
+  "history": []
+}
