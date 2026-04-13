@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-openclaw-ecs-dingtalk",
+  "displayName": "Alibabacloud Openclaw Ecs Dingtalk",
+  "latest": {
+    "version": "0.0.2",
+    "publishedAt": 1775799738536,
+    "commit": null
+  },
+  "history": []
+}
