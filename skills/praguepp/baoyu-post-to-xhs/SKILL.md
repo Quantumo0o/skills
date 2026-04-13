@@ -1,7 +1,7 @@
 ---
 name: baoyu-post-to-xhs
 description: Posts image-text notes to Xiaohongshu (小红书) via Chrome CDP. Supports uploading multiple images, filling title/description, adding topics, and optional auto-submit. Use when user asks to "post to Xiaohongshu", "发小红书", "发布小红书笔记", "publish to XHS", or "share on RedNote".
-version: 1.1.0
+version: 1.2.0
 metadata:
   openclaw:
     homepage: https://github.com/praguepp/baoyu-skills#baoyu-post-to-xhs

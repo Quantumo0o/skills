@@ -422,6 +422,15 @@ export async function postToXhs(options: XhsBrowserOptions): Promise<void> {
       await cdp.send('DOM.setFileInputFiles', { files: absolutePaths, backendNodeId: chooser.backendNodeId }, { sessionId: sid });
       uploadSuccess = true;
       console.log('[xhs-browser] Files set via file chooser.');
+      // Extra: dispatch change/input events to ensure React/Vue picks up the files
+      await sleep(500);
+      await evalPage(cdp, sid, `
+        document.querySelectorAll('input[type="file"]').forEach(inp => {
+          inp.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+          inp.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+        });
+      `);
+      console.log('[xhs-browser] Dispatched change/input events on file inputs.');
     } catch (err) {
       console.log(`[xhs-browser] File chooser method failed: ${err instanceof Error ? err.message : String(err)}`);
       try { await cdp.send('Page.setInterceptFileChooserDialog', { enabled: false }, { sessionId: sid }); } catch {}
@@ -455,42 +464,140 @@ export async function postToXhs(options: XhsBrowserOptions): Promise<void> {
     }
 
     // ══════════════════════════════════════════
-    // STEP 3: Wait for upload + editor form
+    // STEP 3: Verify upload + wait for editor form (with retry)
     // ══════════════════════════════════════════
-    console.log('[xhs-browser] Waiting for images to process and editor to appear...');
-    let formReady = false;
-    for (let i = 0; i < 40; i++) {
-      await sleep(2000);
-      const status = await evalPage(cdp, sid, `
+
+    // Helper: check current upload / form status
+    async function checkUploadStatus(): Promise<{ titleFound: number; editorFound: number; publishBtn: boolean; imgCount: number; allImgCount: number; fileInputFiles: number }> {
+      const status = await evalPage(cdp!, sid, `
         (function() {
           const s = {};
-          // Check for title input (appears after images upload)
           const titleEls = document.querySelectorAll('input[placeholder*="标题"], input[placeholder*="填写标题"], #title, [class*="titleInput"] input, input[maxlength="20"]');
           s.titleFound = titleEls.length;
-          // Check for content editor
           const editors = document.querySelectorAll('[contenteditable="true"], textarea[placeholder*="描述"], textarea[placeholder*="正文"], textarea[placeholder*="添加"], .ql-editor');
           s.editorFound = editors.length;
-          // Check for publish button
           let publishBtn = false;
           document.querySelectorAll('button').forEach(b => { if (b.textContent?.trim()?.includes('发布')) publishBtn = true; });
           s.publishBtn = publishBtn;
-          // Check for uploaded image thumbnails
-          const imgEls = document.querySelectorAll('[class*="coverImg"], [class*="image-item"], [class*="img-container"], [class*="upload-item"], [class*="imgItem"], [class*="imageItem"], [class*="photo-item"]');
+          const imgEls = document.querySelectorAll('[class*="coverImg"], [class*="image-item"], [class*="img-container"], [class*="upload-item"], [class*="imgItem"], [class*="imageItem"], [class*="photo-item"], [class*="uploaded"], [class*="preview-item"], [class*="thumb"]');
           s.imgCount = imgEls.length;
-          // Broader: any img/video thumbnails in edit area
-          const allImgs = document.querySelectorAll('img[src*="blob:"], img[src*="xhscdn"], img[src*="sns-img"]');
+          const allImgs = document.querySelectorAll('img[src*="blob:"], img[src*="xhscdn"], img[src*="sns-img"], img[src*="data:image"]');
           s.allImgCount = allImgs.length;
+          // Check if file input actually has files
+          const fi = document.querySelector('input[type="file"]');
+          s.fileInputFiles = fi && fi.files ? fi.files.length : 0;
           return JSON.stringify(s);
         })()
       `);
-      const st = JSON.parse(status);
-      console.log(`[xhs-browser] Upload status: title=${st.titleFound} editor=${st.editorFound} publish=${st.publishBtn} imgs=${st.imgCount}/${st.allImgCount}`);
-      if (st.titleFound > 0 || st.editorFound > 0 || st.publishBtn) { formReady = true; break; }
+      return JSON.parse(status);
+    }
+
+    // Helper: re-dispatch events on file input to kick React/Vue
+    async function redispatchFileEvents(): Promise<void> {
+      await evalPage(cdp!, sid, `
+        document.querySelectorAll('input[type="file"]').forEach(inp => {
+          ['change', 'input'].forEach(evtName => {
+            inp.dispatchEvent(new Event(evtName, { bubbles: true, cancelable: true }));
+          });
+          // React 16/17+ synthetic event workaround
+          const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+          if (nativeInputValueSetter) {
+            const ev = new Event('change', { bubbles: true });
+            inp.dispatchEvent(ev);
+          }
+        });
+      `);
+    }
+
+    const MAX_UPLOAD_RETRIES = 2;
+    let formReady = false;
+
+    for (let uploadAttempt = 0; uploadAttempt <= MAX_UPLOAD_RETRIES; uploadAttempt++) {
+      if (uploadAttempt > 0) {
+        console.log(`[xhs-browser] Upload retry ${uploadAttempt}/${MAX_UPLOAD_RETRIES}: images not detected, re-triggering upload...`);
+        // Re-dispatch events first (cheapest fix)
+        await redispatchFileEvents();
+        await sleep(3000);
+
+        // Check if redispatch worked
+        const quickCheck = await checkUploadStatus();
+        if (quickCheck.titleFound > 0 || quickCheck.editorFound > 0 || quickCheck.publishBtn || quickCheck.imgCount > 0 || quickCheck.allImgCount > 0) {
+          console.log('[xhs-browser] Redispatch worked! Form appeared.');
+          formReady = true;
+          break;
+        }
+
+        // Full retry: re-click upload button and re-set files
+        console.log('[xhs-browser] Redispatch insufficient, re-clicking upload and re-setting files...');
+        try {
+          await cdp.send('Page.setInterceptFileChooserDialog', { enabled: true }, { sessionId: sid });
+          const chooserRetry = new Promise<{ backendNodeId: number }>((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Retry file chooser timeout')), 15_000);
+            cdp!.on('Page.fileChooserOpened', (params: unknown) => { clearTimeout(timeout); resolve(params as { backendNodeId: number }); });
+          });
+          await evalPage(cdp, sid, `
+            (function() {
+              const inp = document.querySelector('input[type="file"]');
+              if (inp) { inp.value = ''; inp.click(); return 'clicked'; }
+              const btns = document.querySelectorAll('button, [role="button"], span, div, label');
+              for (const b of btns) { if (b.textContent?.trim() === '上传照片' || b.textContent?.trim() === '上传图片') { b.click(); return 'clicked_btn'; } }
+              return 'not_found';
+            })()
+          `, true);
+          const chooser = await chooserRetry;
+          await cdp.send('DOM.setFileInputFiles', { files: absolutePaths, backendNodeId: chooser.backendNodeId }, { sessionId: sid });
+          console.log(`[xhs-browser] Retry: files re-set via file chooser.`);
+        } catch (retryErr) {
+          console.log(`[xhs-browser] Retry file chooser failed: ${retryErr instanceof Error ? retryErr.message : String(retryErr)}`);
+          try { await cdp.send('Page.setInterceptFileChooserDialog', { enabled: false }, { sessionId: sid }); } catch {}
+          // Try DOM fallback
+          try {
+            const { root } = await cdp.send<{ root: { nodeId: number } }>('DOM.getDocument', {}, { sessionId: sid });
+            for (const sel of ['input[type="file"][accept*="image"]', 'input[type="file"]']) {
+              const r = await cdp.send<{ nodeId: number }>('DOM.querySelector', { nodeId: root.nodeId, selector: sel }, { sessionId: sid });
+              if (r.nodeId) {
+                await cdp.send('DOM.setFileInputFiles', { nodeId: r.nodeId, files: absolutePaths }, { sessionId: sid });
+                await redispatchFileEvents();
+                console.log(`[xhs-browser] Retry: files re-set via DOM fallback.`);
+                break;
+              }
+            }
+          } catch {}
+        }
+        await sleep(3000);
+      }
+
+      // Poll for form readiness
+      console.log('[xhs-browser] Waiting for images to process and editor to appear...');
+      const pollLimit = uploadAttempt === 0 ? 30 : 15; // shorter poll on retries
+      for (let i = 0; i < pollLimit; i++) {
+        await sleep(2000);
+        const st = await checkUploadStatus();
+        console.log(`[xhs-browser] Upload status: title=${st.titleFound} editor=${st.editorFound} publish=${st.publishBtn} imgs=${st.imgCount}/${st.allImgCount} files=${st.fileInputFiles}`);
+
+        if (st.titleFound > 0 || st.editorFound > 0 || st.publishBtn) {
+          formReady = true;
+          break;
+        }
+
+        // If file input has no files after 10s, the set failed silently
+        if (i === 5 && st.fileInputFiles === 0 && st.imgCount === 0 && st.allImgCount === 0) {
+          console.log('[xhs-browser] File input appears empty after 10s — will retry upload.');
+          break;
+        }
+
+        // If images are showing but form not ready yet, keep waiting
+        if (st.imgCount > 0 || st.allImgCount > 0) {
+          console.log('[xhs-browser] Images detected, waiting for form to appear...');
+        }
+      }
+
+      if (formReady) break;
     }
 
     if (!formReady) {
-      if (debug) await dumpPageDiag(cdp, sid, 'Form not found after upload');
-      console.warn('[xhs-browser] Editor form not detected. Continuing with best effort...');
+      if (debug) await dumpPageDiag(cdp, sid, 'Form not found after upload retries');
+      console.warn('[xhs-browser] Editor form not detected after retries. Continuing with best effort...');
     }
 
     if (debug) await dumpPageDiag(cdp, sid, 'Before filling form');
