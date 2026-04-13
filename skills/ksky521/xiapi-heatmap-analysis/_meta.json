@@ -1,11 +1,17 @@
 {
   "owner": "ksky521",
   "slug": "xiapi-heatmap-analysis",
-  "displayName": "分析 A 股板块热力图，识别领涨、上升、反转行业。触发词：板块热力图、行业轮动、热门板块、领涨板块、板块分析、热力图。适用场景：分析板块热力图、识别热门行业、判断行业轮动。不适用场景：个股分析、指数分析、债券分析。",
+  "displayName": "虾皮市场宽度热力图",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775560755253,
-    "commit": "https://github.com/openclaw/skills/commit/3cabfc4edf755b87f46178050df476bd89070564"
+    "version": "1.0.2",
+    "publishedAt": 1775985772002,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775560755253,
+      "commit": "https://github.com/openclaw/skills/commit/3cabfc4edf755b87f46178050df476bd89070564"
+    }
+  ]
 }
