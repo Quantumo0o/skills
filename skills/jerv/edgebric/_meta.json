@@ -3,9 +3,15 @@
   "slug": "edgebric",
   "displayName": "Edgebric",
   "latest": {
-    "version": "0.9.1",
-    "publishedAt": 1775466238902,
-    "commit": "https://github.com/openclaw/skills/commit/cb467f4486de2dcbe3da1ec518c323bfe449f341"
+    "version": "0.9.6",
+    "publishedAt": 1775720251740,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.9.1",
+      "publishedAt": 1775466238902,
+      "commit": "https://github.com/openclaw/skills/commit/cb467f4486de2dcbe3da1ec518c323bfe449f341"
+    }
+  ]
 }
