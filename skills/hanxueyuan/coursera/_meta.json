@@ -3,9 +3,15 @@
   "slug": "coursera",
   "displayName": "Coursera",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1775400428896,
-    "commit": "https://github.com/openclaw/skills/commit/69f9351765e63d38663fc05e399797eaa53c8f5d"
+    "version": "1.0.2",
+    "publishedAt": 1775634503738,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1775400428896,
+      "commit": "https://github.com/openclaw/skills/commit/69f9351765e63d38663fc05e399797eaa53c8f5d"
+    }
+  ]
 }
