@@ -6,33 +6,31 @@
 用途：
 - 从 Bibliotalk API 拉取人物 profile，落盘到 `skills/{slug}/profile.md`
 - 生成可唤醒的 `skills/{slug}/SKILL.md`
+- 复制当前 gurutalk 技能目录的 `.env` 与 `scripts/bibliotalk_client.py`
 
 目录结构（最小）：
 - `skills/{slug}/meta.json`
 - `skills/{slug}/SKILL.md`
 - `skills/{slug}/profile.md`
+- `skills/{slug}/.env`
+- `skills/{slug}/scripts/bibliotalk_client.py`
 
-环境变量：
-- `BIBLIOTALK_API_URL` (可选，默认 https://api.bibliotalk.space)
-- `BIBLIOTALK_API_KEY` (必需)
+运行时配置来源：
+- 当前 gurutalk 技能目录下的 `.env`
 """
 
 from __future__ import annotations
 
 import argparse
-import http.client
 import json
-import os
 import shutil
 import sys
-import urllib.error
-import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
-DEFAULT_BIBLIOTALK_API_URL = "https://api.bibliotalk.space"
+from bibliotalk_client import (fetch_figure_detail, fetch_figures_index,
+                               load_runtime_config)
 
 # Agent skills directory mapping
 AGENT_SKILLS_DIRS = {
@@ -44,6 +42,9 @@ AGENT_SKILLS_DIRS = {
 # Default base directory for generated figure skills (resolved from agent type)
 DEFAULT_AGENT = "claude"
 DEFAULT_GURU_BASE_DIR = None  # Reserved for explicit overrides when needed
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SOURCE_ENV_FILE = PROJECT_ROOT / ".env"
+SOURCE_CLIENT_SCRIPT = PROJECT_ROOT / "scripts" / "bibliotalk_client.py"
 
 
 GURU_SKILL_MD_TEMPLATE = """\
@@ -71,14 +72,14 @@ user-invocable: true
 1. 你扮演 **{display_name}**。保持其思维方式、表达风格与个性特质。
 2. 你发给用户的每条消息都必须以 `"{display_name}" Agent:\\n\\n` 开头。
 3. 用户用什么语言，你回复的正文就用什么语言。
-4. 先检索后回答：调用 1-5 次 `POST $BIBLIOTALK_API_URL/v1/query`。
-    - BIBLIOTALK_API_URL 默认为 `https://api.bibliotalk.space`
-    - 请求头必须包含 `x-api-key: $BIBLIOTALK_API_KEY`
-    - 请求参数：`figure` (必须为`{slug}`）、`query`、`limit`（默认 5 条）
-5. 关键判断必须引用 `kind=\"chunk\"` 的结果，并在句末标注 `[n]`。
-6. `kind=\"memory\"` 只用于补充上下文，不得作为可溯源引用。
-7. 若检索结果不足，明确降级："关于这个问题，我目前缺少足够材料支撑。" 不要编造。
-8. 将所有引用条目列于脚注中：
+4. 先检索后回答：调用 1-5 次 `python scripts/bibliotalk_client.py query --figure {slug} --query "{{用户问题}}" --limit 5`。（所有命令以本技能文件夹为工作目录运行）
+5. 如需核对某条引文详情，调用 `python scripts/bibliotalk_client.py quote --quote-id {quote_id}`。
+6. 若当前技能目录下的 `.env` 缺少 `BIBLIOTALK_API_KEY`，提示用户在自己的命令行中运行 `python {SKILL_DIR}/scripts/bibliotalk_client.py configure`（插入本技能目录路径），然后按提示输入 API key。
+7. `bibliotalk_client.py` 会自动读取当前技能目录下的 `.env`，不要拼接任何包含密钥的 shell 命令。
+8. 关键判断必须引用 `kind=\"chunk\"` 的结果，并在句末标注 `[n]`。
+9. `kind=\"memory\"` 只用于补充上下文，不得作为可溯源引用。
+10. 若检索结果不足，明确降级："关于这个问题，我目前缺少足够材料支撑。" 不要编造。
+11. 将所有引用条目列于脚注中：
 ```
 ---
 
@@ -106,139 +107,17 @@ def _write_json(path: Path, data: dict) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _request_json(
-    url: str,
-    *,
-    headers: dict[str, str],
-    method: str = "GET",
-    body: Optional[dict[str, Any]] = None,
-) -> Any:
-    data = None if body is None else json.dumps(body).encode("utf-8")
-    last_error: Exception | None = None
-    for attempt in range(3):
-        req = urllib.request.Request(
-            url,
-            headers={
-                **headers,
-                "User-Agent": "GuruTalk-SkillWriter/1.0 (+https://github.com/gurutalk)",
-            },
-            data=data,
-            method=method,
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                raw = resp.read().decode("utf-8")
-                return json.loads(raw)
-        except http.client.IncompleteRead as e:
-            last_error = e
-            if attempt == 2:
-                break
-            continue
-        except urllib.error.HTTPError as e:
-            err_body = ""
-            try:
-                err_body = e.read().decode("utf-8")
-            except Exception:
-                err_body = ""
-            raise RuntimeError(f"HTTP {e.code} fetching {url}: {err_body or e.reason}") from e
-        except urllib.error.URLError as e:
-            last_error = e
-            if attempt == 2:
-                break
-            continue
-    if last_error is None:
-        raise RuntimeError(f"Unknown error fetching {url}")
-    if isinstance(last_error, urllib.error.URLError):
-        raise RuntimeError(f"Network error fetching {url}: {last_error.reason}") from last_error
-    raise RuntimeError(f"Incomplete response fetching {url}: {last_error}") from last_error
-
-def _read_env_file(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-
-    env_data: dict[str, str] = {}
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        env_data[key.strip()] = value.strip().strip('"').strip("'")
-    return env_data
-
-
-
-def _apply_runtime_env(env_data: dict[str, str]) -> dict[str, str]:
-    for key, value in env_data.items():
-        if value:
-            os.environ[key] = value
-    return env_data
-
-
-def ensure_guru_api_env(base_dir: Path) -> dict[str, str]:
-    env_file = base_dir / ".env"
-    env_data = _read_env_file(env_file)
-
-    api_url = (
-        os.environ.get("BIBLIOTALK_API_URL")
-        or env_data.get("BIBLIOTALK_API_URL")
-        or DEFAULT_BIBLIOTALK_API_URL
-    ).rstrip("/")
-
-    api_token = (
-        os.environ.get("BIBLIOTALK_API_KEY")
-        or env_data.get("BIBLIOTALK_API_KEY")
-        or ""
-    ).strip()
-    if not api_token:
+def _copy_runtime_assets(skill_dir: Path) -> None:
+    if not SOURCE_ENV_FILE.exists():
         raise RuntimeError(
-            "Missing BIBLIOTALK_API_KEY. Sign in at https://bibliotalk.space/login, copy your API key, then save it to your agent environment before retrying."
+            f"Missing GuruTalk runtime env file: {SOURCE_ENV_FILE}. Run `python scripts/bibliotalk_client.py configure` in the current gurutalk skill directory first."
         )
 
-    return _apply_runtime_env(
-        {
-            "BIBLIOTALK_API_URL": api_url,
-            "BIBLIOTALK_API_KEY": api_token,
-        }
-    )
+    scripts_dir = skill_dir / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
 
-
-def _get_api_url() -> str:
-    return os.environ.get("BIBLIOTALK_API_URL", DEFAULT_BIBLIOTALK_API_URL).rstrip("/")
-
-
-def _get_api_token() -> str:
-    token = os.environ.get("BIBLIOTALK_API_KEY", "").strip()
-    if not token:
-        raise RuntimeError("Missing env BIBLIOTALK_API_KEY")
-    return token
-
-
-def fetch_figure_detail(slug: str) -> dict:
-    api_url = _get_api_url()
-    token = _get_api_token()
-    quoted = urllib.parse.quote(slug, safe="")
-    return _request_json(
-        f"{api_url}/v1/figure/{quoted}",
-        headers={
-            "x-api-key": token,
-            "Accept": "application/json",
-        },
-    )
-
-
-def fetch_figures_index() -> list[dict]:
-    api_url = _get_api_url()
-    token = _get_api_token()
-    data = _request_json(
-        f"{api_url}/v1/figures",
-        headers={
-            "x-api-key": token,
-            "Accept": "application/json",
-        },
-    )
-    if isinstance(data, list):
-        return data
-    return []
+    shutil.copy2(SOURCE_ENV_FILE, skill_dir / ".env")
+    shutil.copy2(SOURCE_CLIENT_SCRIPT, scripts_dir / "bibliotalk_client.py")
 
 
 def _extract_adjustments(profile_md: str) -> str:
@@ -290,6 +169,7 @@ def build_guru_meta(
     slug: str,
     detail: dict,
     headline: Optional[str],
+    api_url: str,
     adjustments: Optional[str] = None,
     created_at: Optional[str] = None,
 ) -> dict:
@@ -306,17 +186,15 @@ def build_guru_meta(
         "synced_at": now,
         "source": {
             "type": "bibliotalk",
-            "api_url": _get_api_url(),
+            "api_url": api_url,
         },
     }
 
 
 def build_guru_skill_md(*, slug: str, display_name: str, headline: Optional[str]) -> str:
-    headline_part = f" · {headline}" if headline else ""
     return GURU_SKILL_MD_TEMPLATE.format(
         slug=slug,
         display_name=display_name,
-        headline_part=headline_part,
     )
 
 
@@ -330,14 +208,14 @@ def guru_create(
     if skill_dir.exists() and not force:
         raise RuntimeError(f"Guru directory already exists: {skill_dir} (use --force to overwrite)")
 
-    ensure_guru_api_env(base_dir)
+    runtime = load_runtime_config(skill_dir=PROJECT_ROOT, require_api_key=True)
     skill_dir.mkdir(parents=True, exist_ok=True)
 
-    detail = fetch_figure_detail(slug)
+    detail = fetch_figure_detail(slug, skill_dir=PROJECT_ROOT)
 
     headline: Optional[str] = None
     try:
-        for f in fetch_figures_index():
+        for f in fetch_figures_index(skill_dir=PROJECT_ROOT):
             if isinstance(f, dict) and f.get("slug") == slug:
                 headline = f.get("headline")
                 break
@@ -368,6 +246,7 @@ def guru_create(
         slug=slug,
         detail=detail,
         headline=headline,
+        api_url=runtime.api_url,
         adjustments=str(existing_adjustments) if isinstance(existing_adjustments, str) else None,
         created_at=created_at,
     )
@@ -385,12 +264,13 @@ def guru_create(
         headline=headline,
     )
     (skill_dir / "SKILL.md").write_text(skill_md, encoding="utf-8")
+    _copy_runtime_assets(skill_dir)
 
     return skill_dir
 
 
 def guru_sync(base_dir: Path, *, slug: str) -> str:
-    ensure_guru_api_env(base_dir)
+    runtime = load_runtime_config(skill_dir=PROJECT_ROOT, require_api_key=True)
     skill_dir = base_dir / slug
     if not skill_dir.exists():
         raise RuntimeError(f"Guru directory does not exist: {skill_dir}")
@@ -400,7 +280,7 @@ def guru_sync(base_dir: Path, *, slug: str) -> str:
 
     existing_adjustments: Optional[str] = meta.get("adjustments")
 
-    detail = fetch_figure_detail(slug)
+    detail = fetch_figure_detail(slug, skill_dir=PROJECT_ROOT)
     next_version = str(detail.get("profile_version", ""))
     prev_version = str(meta.get("profile_version", ""))
 
@@ -414,7 +294,7 @@ def guru_sync(base_dir: Path, *, slug: str) -> str:
     # headline best-effort
     headline: Optional[str] = meta.get("headline")
     try:
-        for f in fetch_figures_index():
+        for f in fetch_figures_index(skill_dir=PROJECT_ROOT):
             if isinstance(f, dict) and f.get("slug") == slug:
                 headline = f.get("headline")
                 break
@@ -426,6 +306,7 @@ def guru_sync(base_dir: Path, *, slug: str) -> str:
         slug=slug,
         detail=detail,
         headline=headline,
+        api_url=runtime.api_url,
         adjustments=str(existing_adjustments) if isinstance(existing_adjustments, str) else None,
         created_at=meta.get("created_at"),
     )
@@ -444,6 +325,7 @@ def guru_sync(base_dir: Path, *, slug: str) -> str:
         headline=headline,
     )
     (skill_dir / "SKILL.md").write_text(skill_md, encoding="utf-8")
+    _copy_runtime_assets(skill_dir)
 
     return next_version or prev_version
 
