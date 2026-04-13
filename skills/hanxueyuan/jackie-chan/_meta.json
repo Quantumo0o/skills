@@ -3,9 +3,15 @@
   "slug": "jackie-chan",
   "displayName": "Jackie Chan",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775445482926,
-    "commit": "https://github.com/openclaw/skills/commit/7ba07cbfed6b9fcac15b7b613cd64dd3d0a91f42"
+    "version": "1.0.2",
+    "publishedAt": 1775634577825,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775445482926,
+      "commit": "https://github.com/openclaw/skills/commit/7ba07cbfed6b9fcac15b7b613cd64dd3d0a91f42"
+    }
+  ]
 }
