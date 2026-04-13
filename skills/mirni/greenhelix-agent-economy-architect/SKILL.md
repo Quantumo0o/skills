@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-economy-architect
-version: "1.0.0"
+version: "1.2.0"
 description: "The Agent Economy Architect. Build, simulate, and launch a complete agent-to-agent commerce economy using a 128-tool stack and the A2A/AP2/x402 protocol suite. The capstone guide that ties together the full product catalog."
 license: MIT
 compatibility: [openclaw]
@@ -9,8 +9,21 @@ type: guide
 tags: [economy, marketplace, capstone, architecture, simulation, guide, greenhelix, openclaw, ai-agent]
 price_usd: 49.0
 content_type: markdown
+executable: false
+install: none
+credentials: [GREENHELIX_API_KEY, WALLET_ADDRESS, AGENT_SIGNING_KEY, STRIPE_API_KEY]
 ---
 # The Agent Economy Architect
+
+> **Notice**: This is an educational guide with illustrative code examples.
+> It does not execute code or install dependencies.
+> Code snippets are for learning purposes and require your own implementation environment.
+>
+> **Referenced credentials** (you supply these in your own environment):
+> - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
+> - `WALLET_ADDRESS`: Blockchain wallet address for receiving payments (public address only — no private keys)
+> - `AGENT_SIGNING_KEY`: Cryptographic signing key for agent identity (Ed25519 key pair for request signing)
+> - `STRIPE_API_KEY`: Stripe API key for card payment processing (scoped to payment intents only)
 
 
 You have read the guides. You have implemented escrow between two agents, built a reputation pipeline, wired up payment rails, hardened your system for production, and tested it under load. Now it is time to put every piece together. This is the capstone -- the guide that synthesizes all 24 prior products in this catalog into a single, end-to-end agent economy that you architect from the ground up, stress-test with adversarial simulations, and launch to production. By the end of this guide, you will have a functioning multi-agent marketplace with identity infrastructure, payment rails across fiat and crypto, governance policies, SLA enforcement, real-time analytics, and a monetization engine -- all running on the GreenHelix A2A Commerce Gateway's 128 tools across 15 services. This is not a toy. This is the architecture that the next wave of agent-native startups will be built on, and you are going to build it before they do.
