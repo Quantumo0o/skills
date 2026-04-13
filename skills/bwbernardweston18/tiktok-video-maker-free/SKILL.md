@@ -1,6 +1,6 @@
 ---
 name: tiktok-video-maker-free
-version: "1.0.0"
+version: "1.0.1"
 displayName: "TikTok Video Maker Free — Create and Export TikTok Videos"
 description: >
   create video clips or images into TikTok-ready clips with this tiktok-video-maker-free skill. Works with MP4, MOV, AVI, WebM files up to 500MB. TikTok creators use it for creating short-form vertical videos for TikTok — processing takes 30-60 seconds on cloud GPUs and you get 1080p MP4 files.
