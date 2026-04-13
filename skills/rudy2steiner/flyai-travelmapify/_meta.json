@@ -3,11 +3,16 @@
   "slug": "flyai-travelmapify",
   "displayName": "Flyai Travelmapify",
   "latest": {
-    "version": "2.2.0",
-    "publishedAt": 1775396028922,
-    "commit": "https://github.com/openclaw/skills/commit/7e77833b8b706f88e46179c1dd93a64b29a473b0"
+    "version": "2.2.2",
+    "publishedAt": 1775666837589,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.0",
+      "publishedAt": 1775396028922,
+      "commit": "https://github.com/openclaw/skills/commit/7e77833b8b706f88e46179c1dd93a64b29a473b0"
+    },
     {
       "version": "2.1.5",
       "publishedAt": 1775203139570,

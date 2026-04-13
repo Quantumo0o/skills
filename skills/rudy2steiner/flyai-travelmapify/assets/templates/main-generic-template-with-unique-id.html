@@ -1130,7 +1130,8 @@
                 
                 // Make AJAX call to hotel search backend with dates
                 // Use actual hotel server port that was started during generation
-                const hotelPort = 8780; // This should match the port used by hotel-search-server.py
+                // Hotel search port - will be replaced during generation
+                const hotelPort = HOTEL_SEARCH_PORT_PLACEHOLDER;
                 const url = `http://localhost:${hotelPort}/api/hotel-search?destination=${encodeURIComponent(destination)}&poi=${encodeURIComponent(poiName)}&checkin=${dates.checkin}&checkout=${dates.checkout}`;
                 
                 // Set up timeout to re-enable button after 5 seconds

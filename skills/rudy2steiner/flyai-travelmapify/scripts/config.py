@@ -12,39 +12,18 @@ from pathlib import Path
 def get_workspace_dir():
     """
     Determine the OpenClaw workspace directory dynamically.
-    Tries multiple methods to find the correct workspace.
+    Uses relative path from skill directory.
     """
-    # Method 1: Check if we're running within OpenClaw context
-    # Look for common OpenClaw workspace indicators
-    possible_paths = []
-    
     # Current script directory (should be in skills/flyai-travelmapify/scripts/)
     script_dir = Path(__file__).parent
     skill_dir = script_dir.parent
-    workspace_candidate = skill_dir.parent.parent
+    workspace_dir = skill_dir.parent.parent
     
-    # Check if this looks like a valid OpenClaw workspace
-    if (workspace_candidate / "AGENTS.md").exists() or (workspace_candidate / "SOUL.md").exists():
-        return str(workspace_candidate)
+    # Verify this is a valid OpenClaw workspace
+    if (workspace_dir / "AGENTS.md").exists() or (workspace_dir / "SOUL.md").exists():
+        return str(workspace_dir)
     
-    # Method 2: Check OPENCLAW_WORKSPACE environment variable
-    env_workspace = os.environ.get('OPENCLAW_WORKSPACE')
-    if env_workspace and Path(env_workspace).exists():
-        return env_workspace
-    
-    # Method 3: Check typical OpenClaw workspace locations
-    home = Path.home()
-    typical_workspaces = [
-        home / ".openclaw" / "workspace",
-        home / "openclaw" / "workspace",
-        home / "Documents" / "openclaw" / "workspace"
-    ]
-    
-    for candidate in typical_workspaces:
-        if candidate.exists() and (candidate / "AGENTS.md").exists():
-            return str(candidate)
-    
-    # Method 4: Use current working directory as fallback
+    # Fallback to current working directory
     return os.getcwd()
 
 def find_flyai_executable():
@@ -99,7 +78,7 @@ FLYAI_EXECUTABLE = find_flyai_executable()
 
 # Default ports
 DEFAULT_HTTP_PORT = 9000
-DEFAULT_HOTEL_PORT = 8770
+DEFAULT_HOTEL_PORT = 8780
 DEFAULT_PROXY_URL = "http://localhost:8769/api/search"
 
 if __name__ == "__main__":

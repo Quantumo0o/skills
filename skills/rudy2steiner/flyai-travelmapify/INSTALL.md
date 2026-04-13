@@ -7,7 +7,9 @@ This skill is designed to be portable and work on any system with the required d
 1. **Python 3.7+** - Required for all scripts
 2. **OpenClaw** - The skill should be placed in your OpenClaw workspace
 3. **FlyAI CLI** - Must be installed and accessible in your PATH or via npm
-4. **Amap API Proxy** - A local proxy server running on port 8769 (or configurable)
+4. **amap-maps skill** - Required OpenClaw skill for Amap LBS services
+5. **Amap API** - Built-in default API key included (no user key required)
+6. **AI Vision Capability** - For image input processing, your OpenClaw agent should have access to an image-capable model for POI extraction
 
 ## Installation Steps
 

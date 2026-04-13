@@ -85,6 +85,11 @@ def replace_placeholders(template_content, pois):
     # Replace POI list placeholder
     template_content = template_content.replace('        var poiList = [\n            // POI_LIST_PLACEHOLDER - will be replaced with actual POIs\n        ];', f'        var poiList = [\n{poi_js}\n        ];')
     
+    # Ensure hotel port placeholder exists (for main script to replace later)
+    if 'HOTEL_SEARCH_PORT_PLACEHOLDER' not in template_content:
+        # If no placeholder found, add a comment indicating it should be there
+        print("Warning: HOTEL_SEARCH_PORT_PLACEHOLDER not found in template")
+    
     return template_content
 
 def main():
