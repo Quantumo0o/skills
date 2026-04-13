@@ -1,0 +1,11 @@
+{
+  "owner": "ntbooks",
+  "slug": "credcli",
+  "displayName": "Chainletter CredCLI",
+  "latest": {
+    "version": "0.2.4",
+    "publishedAt": 1775760567902,
+    "commit": null
+  },
+  "history": []
+}
