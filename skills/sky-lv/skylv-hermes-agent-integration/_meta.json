@@ -1,0 +1,11 @@
+{
+  "owner": "sky-lv",
+  "slug": "skylv-hermes-agent-integration",
+  "displayName": "Hermes Agent Integration",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775886207266,
+    "commit": null
+  },
+  "history": []
+}
