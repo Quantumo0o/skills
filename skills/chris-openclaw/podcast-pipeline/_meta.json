@@ -1,0 +1,11 @@
+{
+  "owner": "chris-openclaw",
+  "slug": "podcast-pipeline",
+  "displayName": "Podcast Pipeline",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775936493568,
+    "commit": null
+  },
+  "history": []
+}
