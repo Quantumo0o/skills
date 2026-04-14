@@ -1,0 +1,11 @@
+{
+  "owner": "amd5",
+  "slug": "feishu-repair",
+  "displayName": "Feishu Repair",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1776159886813,
+    "commit": null
+  },
+  "history": []
+}
