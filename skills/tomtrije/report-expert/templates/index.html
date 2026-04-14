@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="site-base" content=".">
+  <title>{{SITE_NAME}} · 报告与研究成果</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/base.css">
+  <style>
+    /* === Header === */
+    .hp-header {
+      position: sticky; top: 0; z-index: 100;
+      height: 52px;
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+    .hp-header__brand { display: flex; align-items: center; gap: 10px; }
+    .hp-header__logo {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: linear-gradient(135deg, var(--c-accent), var(--c-purple));
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hp-header__logo svg { width: 13px; height: 13px; color: #fff; }
+    .hp-header__name { font-size: 15px; font-weight: 700; color: var(--c-text-heading); letter-spacing: -0.01em; }
+    .hp-header__sep { color: var(--c-border); font-size: 14px; }
+    .hp-header__desc { font-size: 12.5px; color: var(--c-text-muted); }
+    .hp-header__total {
+      font-size: 11px; color: var(--c-text-muted);
+      background: var(--c-surface-alt); padding: 3px 10px;
+      border-radius: 10px; font-weight: 500;
+    }
+
+    /* === Layout === */
+    html, body { height: 100%; overflow: hidden; }
+    .hp-layout { display: flex; height: calc(100vh - 52px); }
+
+    /* === Sidebar === */
+    .hp-sidebar {
+      width: 256px; flex-shrink: 0;
+      background: var(--c-surface);
+      border-right: 1px solid var(--c-border);
+      overflow-y: auto; overflow-x: hidden;
+      padding: 12px 0 24px;
+    }
+
+    /* "全部" link */
+    .hp-all {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 16px; margin: 0 8px 2px;
+      border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 600;
+      color: var(--c-text-secondary); cursor: pointer;
+      transition: all var(--transition); user-select: none;
+    }
+    .hp-all:hover { background: var(--c-surface-alt); color: var(--c-text-heading); }
+    .hp-all--active { background: var(--c-accent-light); color: var(--c-accent); }
+    .hp-all svg { width: 16px; height: 16px; flex-shrink: 0; }
+    .hp-all__count {
+      margin-left: auto; font-size: 10px; font-weight: 600;
+      background: var(--c-surface-alt); padding: 1px 7px;
+      border-radius: 8px; color: var(--c-text-muted);
+    }
+    .hp-all--active .hp-all__count { background: rgba(59,130,246,0.15); color: var(--c-accent); }
+
+    .hp-divider { height: 1px; background: var(--c-border-light); margin: 8px 16px; }
+
+    /* Category */
+    .hp-cat {}
+    .hp-cat__head {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 16px; margin: 1px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer; transition: all var(--transition); user-select: none;
+    }
+    .hp-cat__head:hover { background: var(--c-surface-alt); }
+    .hp-cat--active > .hp-cat__head { background: var(--c-accent-light); }
+    .hp-cat__icon {
+      width: 28px; height: 28px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hp-cat__icon svg { width: 14px; height: 14px; }
+    .hp-cat__name { font-size: 13px; font-weight: 600; color: var(--c-text-heading); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hp-cat--active > .hp-cat__head .hp-cat__name { color: var(--c-accent); }
+    .hp-cat__badge {
+      font-size: 10px; font-weight: 600;
+      background: var(--c-surface-alt); padding: 1px 7px;
+      border-radius: 8px; color: var(--c-text-muted); flex-shrink: 0;
+    }
+    .hp-cat--active > .hp-cat__head .hp-cat__badge { background: rgba(59,130,246,0.15); color: var(--c-accent); }
+    .hp-cat__arrow {
+      width: 16px; height: 16px; color: var(--c-text-muted);
+      transition: transform 0.2s ease; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hp-cat__arrow svg { width: 14px; height: 14px; }
+    .hp-cat--open > .hp-cat__head .hp-cat__arrow { transform: rotate(90deg); }
+
+    /* Subcategories */
+    .hp-cat__subs { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+    .hp-cat--open > .hp-cat__subs { max-height: 500px; }
+    .hp-sub {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 16px 5px 52px; margin: 1px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer; transition: all var(--transition);
+      font-size: 12.5px; color: var(--c-text-secondary); user-select: none;
+    }
+    .hp-sub:hover { background: var(--c-surface-alt); color: var(--c-text-heading); }
+    .hp-sub--active { background: var(--c-accent-light); color: var(--c-accent); font-weight: 500; }
+    .hp-sub__dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--c-text-muted); flex-shrink: 0;
+      transition: background var(--transition);
+    }
+    .hp-sub--active .hp-sub__dot { background: var(--c-accent); }
+    .hp-sub__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .hp-sub__count { font-size: 10px; color: var(--c-text-muted); flex-shrink: 0; }
+    .hp-sub--active .hp-sub__count { color: var(--c-accent); }
+
+    /* === Content === */
+    .hp-content {
+      flex: 1; min-width: 0;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .hp-content__inner { flex: 1; padding: 24px 32px 0; }
+    .hp-content__bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; padding-bottom: 12px;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .hp-content__path {
+      font-size: 12px; color: var(--c-text-muted);
+      display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0;
+    }
+    .hp-content__path svg { width: 12px; height: 12px; flex-shrink: 0; color: var(--c-text-muted); }
+    .hp-content__path-cat { font-weight: 600; color: var(--c-text-secondary); }
+    .hp-content__path-sub { font-weight: 600; color: var(--c-text-heading); }
+    .hp-content__count { font-size: 11px; color: var(--c-text-muted); flex-shrink: 0; }
+
+    /* Page cards */
+    .hp-pages { display: flex; flex-direction: column; gap: 8px; }
+    .hp-page {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 18px; background: var(--c-surface);
+      border-radius: var(--radius-md);
+      text-decoration: none; color: inherit;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+    .hp-page:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-1px); }
+    .hp-page__icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .hp-page__icon svg { width: 16px; height: 16px; }
+    .hp-page__body { flex: 1; min-width: 0; }
+    .hp-page__title { font-size: 14px; font-weight: 600; color: var(--c-text-heading); line-height: var(--lh-tight); }
+    .hp-page__desc {
+      font-size: 12px; color: var(--c-text-secondary); margin-top: 2px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .hp-page__meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+    .hp-page__tag {
+      display: inline-block; font-size: 10px; padding: 1px 6px;
+      border-radius: 3px; background: var(--c-surface-alt);
+      color: var(--c-text-muted); font-weight: 500;
+    }
+    .hp-page__date { font-size: 11px; color: var(--c-text-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+
+    /* Empty / Loading */
+    .hp-empty { text-align: center; padding: 64px 20px; color: var(--c-text-muted); font-size: 13px; }
+
+    /* Mobile toggle */
+    .hp-toggle {
+      position: fixed; left: 0; top: 50%; transform: translateY(-50%);
+      z-index: 90; width: 24px; height: 48px;
+      background: var(--c-surface); border: 1px solid var(--c-border);
+      border-left: none; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      box-shadow: var(--shadow-md); cursor: pointer;
+      display: none; align-items: center; justify-content: center;
+      color: var(--c-text-muted); transition: all var(--transition);
+    }
+    .hp-toggle:hover { color: var(--c-accent); box-shadow: var(--shadow-lg); }
+    .hp-toggle svg { width: 14px; height: 14px; }
+    .hp-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 149; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hp-sidebar {
+        position: fixed; left: 0; top: 52px; bottom: 0;
+        z-index: 150; transform: translateX(-100%);
+        box-shadow: var(--shadow-lg);
+      }
+      .hp-sidebar--open { transform: translateX(0); }
+      .hp-toggle { display: flex; }
+      .hp-content__inner { padding: 20px 16px 0; }
+      .hp-page__desc { display: none; }
+      .hp-header { padding: 0 16px; }
+      .hp-header__desc { display: none; }
+    }
+
+    /* === Iframe viewer === */
+    .hp-viewer { display:none; flex-direction:column; flex:1; min-width:0; }
+    .hp-viewer.active { display:flex; }
+    .hp-viewer__bar {
+      display:flex; align-items:center; gap:8px;
+      padding:8px 16px; background:var(--c-surface);
+      border-bottom:1px solid var(--c-border);
+    }
+    .hp-viewer__back {
+      display:flex; align-items:center; gap:4px;
+      background:none; border:1px solid var(--c-border);
+      border-radius:var(--radius-sm); padding:5px 12px;
+      font-size:12px; font-weight:600; color:var(--c-text-secondary);
+      cursor:pointer; transition:all var(--transition);
+    }
+    .hp-viewer__back:hover { background:var(--c-surface-alt); color:var(--c-text-heading); }
+    .hp-viewer__back svg { width:14px; height:14px; }
+    .hp-viewer__title { flex:1; font-size:13px; font-weight:600; color:var(--c-text-heading); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .hp-viewer__actions { display:flex; gap:6px; flex-shrink:0; }
+    .hp-viewer__btn {
+      display:flex; align-items:center; gap:4px;
+      background:none; border:1px solid var(--c-border);
+      border-radius:var(--radius-sm); padding:5px 10px;
+      font-size:11px; font-weight:500; color:var(--c-text-muted);
+      cursor:pointer; transition:all var(--transition);
+    }
+    .hp-viewer__btn:hover { background:var(--c-surface-alt); color:var(--c-text-heading); }
+    .hp-viewer__btn svg { width:13px; height:13px; }
+    .hp-viewer__frame { flex:1; border:none; background:#fff; }
+    .hp-viewer__toast {
+      position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+      background:var(--c-elevated); color:var(--c-text-on-dark);
+      padding:8px 20px; border-radius:20px; font-size:13px; font-weight:500;
+      opacity:0; transition:all .3s ease; pointer-events:none; z-index:999;
+    }
+    .hp-viewer__toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="hp-header">
+    <div class="hp-header__brand">
+      <div class="hp-header__logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="hp-header__name">{{SITE_NAME}}</span>
+      <span class="hp-header__sep">·</span>
+      <span class="hp-header__desc">报告与研究成果</span>
+    </div>
+    <span class="hp-header__total" id="totalBadge">加载中</span>
+  </header>
+
+  <!-- Layout -->
+  <div class="hp-layout">
+    <aside class="hp-sidebar" id="sidebar"><div id="tree"></div></aside>
+    <button class="hp-toggle" id="toggle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+    </button>
+    <div class="hp-overlay" id="overlay"></div>
+    <main class="hp-content">
+      <div class="hp-content__inner">
+        <div class="hp-content__bar" id="bar"></div>
+        <div class="hp-pages" id="list"><div class="hp-empty">加载中...</div></div>
+      </div>
+      <div class="hp-viewer" id="viewer">
+        <div class="hp-viewer__bar">
+          <button class="hp-viewer__back" id="viewerBack">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            返回
+          </button>
+          <span class="hp-viewer__title" id="viewerTitle"></span>
+          <div class="hp-viewer__actions">
+            <button class="hp-viewer__btn" id="viewerCopy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              复制地址
+            </button>
+            <button class="hp-viewer__btn" id="viewerOpen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+              新窗口
+            </button>
+          </div>
+        </div>
+        <iframe class="hp-viewer__frame" id="viewerFrame" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+      </div>
+      <div class="hp-viewer__toast" id="viewerToast"></div>
+      <footer class="page-footer">
+        <div class="page-footer__logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <a href="index.html" class="page-footer__link">{{SITE_NAME}}</a>
+        <div class="page-footer__sep"></div>
+        <span>报告与研究成果</span>
+      </footer>
+    </main>
+  </div>
+
+  <script>
+  (function(){
+    'use strict';
+
+    /* --- Config (defaults, overridden by index.json categories) --- */
+    var DEFAULTS = {
+      order: ['research','analysis','project','summary','comparison','tutorial','other'],
+      names: {research:'深度研究',analysis:'数据分析',project:'项目作品',summary:'内容摘要',comparison:'对比评测',tutorial:'教程指南',other:'其他'},
+      colors: {
+        research:{c:'var(--c-amber)',b:'var(--c-amber-light)'},
+        analysis:{c:'var(--c-green)',b:'var(--c-green-light)'},
+        project:{c:'var(--c-accent)',b:'var(--c-accent-light)'},
+        summary:{c:'var(--c-purple)',b:'var(--c-purple-light)'},
+        comparison:{c:'var(--c-accent)',b:'var(--c-accent-light)'},
+        tutorial:{c:'var(--c-orange)',b:'var(--c-orange-light)'},
+        other:{c:'var(--c-text-muted)',b:'var(--c-surface-alt)'}
+      },
+      icons: {
+        research:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>',
+        analysis:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>',
+        project:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+        project:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>',
+      summary:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>',
+        comparison:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/><path d="m15 9 6-6"/></svg>',
+        tutorial:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+        other:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>'
+      }
+    };
+    var ORDER, NAMES, COLORS, ICONS;
+    var CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+    var GRID = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>';
+    var CHEVRON_RIGHT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+
+    var data, filter = {type:'all'};
+
+    /* --- Helpers --- */
+    function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+    function rel(url){ if(url.startsWith('http')){var u=new URL(url);return u.hostname===location.hostname?u.pathname:url;} return url; }
+    function dateShort(d){ return d.slice(2).replace(/-/g,'.'); }
+
+    /* --- Init --- */
+    async function init(){
+      try {
+        var siteBase = (document.querySelector('meta[name="site-base"]')||{}).content || '.';
+        var r = await fetch('index.json');
+        data = await r.json();
+        /* Build ORDER/NAMES/COLORS/ICONS from index.json categories */
+
+        var cats = data.categories || {};
+        /* Auto-extract categories from pages, merge with index.json config */
+        var catSet = {};
+        (data.pages||[]).forEach(function(p){ if(p.category) catSet[p.category]=1; });
+        /* Append any cats defined in config but unused */
+        Object.keys(cats).forEach(function(k){ catSet[k]=1; });
+        ORDER = Object.keys(catSet);
+        NAMES = {}; COLORS = {}; ICONS = {};
+        ORDER.forEach(function(k){
+          var cat = cats[k] || {};
+          NAMES[k] = cat.name || DEFAULTS.names[k] || k;
+          if(cat.color) COLORS[k] = cat.color;
+          else if(DEFAULTS.colors[k]) COLORS[k] = DEFAULTS.colors[k];
+          else COLORS[k] = {c:'var(--c-text-muted)',b:'var(--c-surface-alt)'};
+          if(cat.svg) ICONS[k] = cat.svg;
+          else if(DEFAULTS.icons[k]) ICONS[k] = DEFAULTS.icons[k];
+          else ICONS[k] = DEFAULTS.icons.other || DEFAULTS.icons.project;
+        });
+        document.getElementById('totalBadge').textContent = data.pages.length + ' 篇';
+        render();
+        restoreFromHash();
+      } catch(e){
+        ORDER = DEFAULTS.order; NAMES = DEFAULTS.names; COLORS = DEFAULTS.colors; ICONS = DEFAULTS.icons;
+        document.getElementById('list').innerHTML = '<div class="hp-empty">加载失败，请刷新页面</div>';
+      }
+    }
+
+    /* --- Render all --- */
+    function render(){
+      renderTree();
+      renderList();
+    }
+
+    /* --- Sidebar tree --- */
+    function renderTree(){
+      var el = document.getElementById('tree');
+      var grouped = {};
+      data.pages.forEach(function(p){
+        if(!grouped[p.category]) grouped[p.category]=[];
+        grouped[p.category].push(p);
+      });
+
+      var h = '';
+
+      // "全部" link
+      h += '<div class="hp-all'+(filter.type==='all'?' hp-all--active':'')+'" data-a="all">';
+      h += GRID+'<span>全部内容</span><span class="hp-all__count">'+data.pages.length+'</span></div>';
+      h += '<div class="hp-divider"></div>';
+
+      // Categories
+      ORDER.forEach(function(key){
+        var pages = grouped[key];
+        if(!pages||!pages.length) return;
+        var col = COLORS[key]||COLORS.other;
+        var ico = ICONS[key]||ICONS.other;
+        var name = NAMES[key]||key;
+
+        // Subcategories
+        var subs = {};
+        pages.forEach(function(p){
+          var s=(p.subcategory||'').trim();
+          if(s){ if(!subs[s]) subs[s]=[]; subs[s].push(p); }
+        });
+        var hasSubs = Object.keys(subs).length > 0;
+        var isCatActive = filter.type==='cat' && filter.key===key;
+        var isSubActive = filter.type==='sub' && filter.key===key;
+        var isOpen = isCatActive || isSubActive;
+
+        h += '<div class="hp-cat'+(isCatActive?' hp-cat--active':'')+(isOpen?' hp-cat--open':'')+'">';
+        h += '<div class="hp-cat__head" data-a="cat" data-k="'+key+'">';
+        h += '<div class="hp-cat__icon" style="background:'+col.b+';color:'+col.c+'">'+ico+'</div>';
+        h += '<span class="hp-cat__name">'+esc(name)+'</span>';
+        h += '<span class="hp-cat__badge">'+pages.length+'</span>';
+        if(hasSubs) h += '<span class="hp-cat__arrow">'+CHEVRON+'</span>';
+        h += '</div>';
+
+        if(hasSubs){
+          h += '<div class="hp-cat__subs">';
+          Object.keys(subs).sort().forEach(function(sn){
+            var active = filter.type==='sub' && filter.key===key && filter.sub===sn;
+            h += '<div class="hp-sub'+(active?' hp-sub--active':'')+'" data-a="sub" data-k="'+key+'" data-s="'+esc(sn)+'">';
+            h += '<span class="hp-sub__dot"></span>';
+            h += '<span class="hp-sub__name">'+esc(sn)+'</span>';
+            h += '<span class="hp-sub__count">'+subs[sn].length+'</span>';
+            h += '</div>';
+          });
+          h += '</div>';
+        }
+        h += '</div>';
+      });
+
+      el.innerHTML = h;
+    }
+
+    /* --- Page list --- */
+    function renderList(){
+      var bar = document.getElementById('bar');
+      var list = document.getElementById('list');
+      var pages = [], path = '';
+
+      if(filter.type==='all'){
+        pages = data.pages.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+        path = '<span class="hp-content__path-cat">全部内容</span>';
+      } else if(filter.type==='cat'){
+        pages = data.pages.filter(function(p){ return p.category===filter.key; }).sort(function(a,b){ return b.date.localeCompare(a.date); });
+        path = '<span class="hp-content__path-cat">'+esc(NAMES[filter.key]||filter.key)+'</span>';
+      } else if(filter.type==='sub'){
+        pages = data.pages.filter(function(p){ return p.category===filter.key && (p.subcategory||'').trim()===filter.sub; }).sort(function(a,b){ return b.date.localeCompare(a.date); });
+        path = '<span class="hp-content__path-cat">'+esc(NAMES[filter.key]||filter.key)+'</span>';
+        path += CHEVRON_RIGHT;
+        path += '<span class="hp-content__path-sub">'+esc(filter.sub)+'</span>';
+      }
+
+      bar.innerHTML = '<div class="hp-content__path">'+path+'</div><span class="hp-content__count">'+pages.length+' 篇</span>';
+
+      if(!pages.length){
+        list.innerHTML = '<div class="hp-empty">暂无内容</div>';
+        return;
+      }
+
+      list.innerHTML = pages.map(function(p){
+        var col = COLORS[p.category]||COLORS.other;
+        var ico = ICONS[p.category]||ICONS.other;
+        var sub = (p.subcategory||'').trim();
+        var _u=p.url||(siteBase+'/'+p.category+'/'+p.filename);var _e=_u.startsWith('http')&&!_u.includes(location.hostname);return '\u003ca class="hp-page" href="'+rel(_u)+'"'+(_e?' data-ext="'+esc(_u)+'"':'')+'\u003e'
+          +'<div class="hp-page__icon" style="background:'+col.b+';color:'+col.c+'">'+ico+'</div>'
+          +'<div class="hp-page__body">'
+          +'<div class="hp-page__title">'+esc(p.title)+'</div>'
+          +(p.desc?'<div class="hp-page__desc">'+esc(p.desc)+'</div>':'')
+          +(sub?'<div class="hp-page__meta"><span class="hp-page__tag">'+esc(sub)+'</span></div>':'')
+          +'</div>'
+          +'<span class="hp-page__date">'+dateShort(p.date)+'</span>'
+          +'</a>';
+      }).join('');
+    }
+
+    /* --- Mobile sidebar --- */
+    function openSB(){
+      document.getElementById('sidebar').classList.add('hp-sidebar--open');
+      document.getElementById('overlay').style.display='block';
+    }
+    function closeSB(){
+      document.getElementById('sidebar').classList.remove('hp-sidebar--open');
+      document.getElementById('overlay').style.display='none';
+    }
+
+    /* --- Events --- */
+    document.getElementById('tree').addEventListener('click', function(e){
+      var t = e.target.closest('[data-a]');
+      if(!t) return;
+      var a = t.dataset.a;
+      if(a==='all') filter={type:'all'};
+      else if(a==='cat') filter={type:'cat',key:t.dataset.k};
+      else if(a==='sub') filter={type:'sub',key:t.dataset.k,sub:t.dataset.s};
+      closeViewer();
+      render();
+      closeSB();
+    });
+
+    document.getElementById('toggle').addEventListener('click', function(){
+      document.getElementById('sidebar').classList.contains('hp-sidebar--open') ? closeSB() : openSB();
+    });
+    document.getElementById('overlay').addEventListener('click', closeSB);
+
+    /* --- Iframe viewer --- */
+    var viewerEl=document.getElementById('viewer');
+    var viewerFrame=document.getElementById('viewerFrame');
+    var viewerTitle=document.getElementById('viewerTitle');
+    var viewerToast=document.getElementById('viewerToast');
+    var currentViewerUrl='';
+
+    function openViewer(url,title){
+      currentViewerUrl=url;
+      viewerTitle.textContent=title;
+      document.title=title+' — {{SITE_NAME}}';
+      viewerFrame.src=url;
+      viewerEl.classList.add('active');
+      document.querySelector('.hp-content__inner').style.display='none';
+      document.querySelector('.page-footer').style.display='none';
+      // Use hash so refresh always loads index.html first, then reopens viewer
+      history.replaceState(null,title,'#v='+encodeURIComponent(url));
+    }
+    function closeViewer(){
+      viewerEl.classList.remove('active');
+      viewerFrame.src='';
+      currentViewerUrl='';
+      document.querySelector('.hp-content__inner').style.display='';
+      document.querySelector('.page-footer').style.display='';
+      history.replaceState(null,'',location.pathname);
+    }
+    function showToast(msg){
+      viewerToast.textContent=msg;
+      viewerToast.classList.add('show');
+      setTimeout(function(){viewerToast.classList.remove('show');},1800);
+    }
+
+    document.getElementById('viewerBack').addEventListener('click',closeViewer);
+    document.getElementById('viewerCopy').addEventListener('click',function(){
+      if(!currentViewerUrl)return;
+      var absUrl=currentViewerUrl.startsWith('http')?currentViewerUrl:new URL(currentViewerUrl,location.href).href;
+      navigator.clipboard.writeText(absUrl).then(function(){showToast('已复制到剪贴板');}).catch(function(){showToast('复制失败');});
+    });
+    document.getElementById('viewerOpen').addEventListener('click',function(){
+      if(!currentViewerUrl)return;
+      var absUrl=currentViewerUrl.startsWith('http')?currentViewerUrl:new URL(currentViewerUrl,location.href).href;
+      window.open(absUrl,'_blank');
+    });
+    window.addEventListener('hashchange',function(){
+      var hash=location.hash;
+      if(hash.startsWith('#v=')){
+        var url=decodeURIComponent(hash.slice(3));
+        if(url&&!currentViewerUrl){
+          // Find title from page list
+          var link=document.querySelector('.hp-page[href="'+url+'"]');
+          var title=link?link.querySelector('.hp-page__title').textContent:url;
+          openViewer(url,title);
+        }
+      } else if(currentViewerUrl){
+        closeViewer();
+      }
+    });
+    function restoreFromHash(){
+      if(!location.hash.startsWith('#v=')) return;
+      var url=decodeURIComponent(location.hash.slice(3));
+      var title=url;
+      // Find title from index.json data
+      if(data&&data.pages){
+        for(var i=0;i<data.pages.length;i++){
+          var p=data.pages[i];
+          var pUrl=p.url||(data.site.baseUrl+'/'+p.category+'/'+p.filename);
+          if(pUrl===url||pUrl.endsWith('/'+url)||url.endsWith(p.filename)){
+            title=p.title; break;
+          }
+        }
+      }
+      openViewer(url,title);
+    }
+
+    window.addEventListener('hashchange',function(){
+      if(location.hash.startsWith('#v=')){
+        var url=decodeURIComponent(location.hash.slice(3));
+        if(!currentViewerUrl) restoreFromHash();
+      } else if(currentViewerUrl){
+        closeViewer();
+      }
+    });
+
+    window.addEventListener('message',function(e){
+      if(e.data&&e.data.type==='claw-navigate-home'){closeViewer();}
+    });
+
+    document.getElementById('list').addEventListener('click',function(e){
+      var a=e.target.closest('.hp-page');
+      if(!a)return;
+      e.preventDefault();
+      var url=a.getAttribute('href')||a.dataset.ext;
+      var title=a.querySelector('.hp-page__title').textContent;
+      openViewer(url,title);
+    });
+
+    /* --- Go --- */
+    init();
+  })();
+  </script>
+</body>
+</html>

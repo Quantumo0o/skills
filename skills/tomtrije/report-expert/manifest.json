@@ -1,0 +1,274 @@
+{
+  "skill": "report-expert",
+  "name": "报告专家",
+  "version": "1.6.0",
+  "channel": "stable",
+  "updated": "2026-04-14",
+  "description": "专业 HTML 报告生成与部署工具。支持 Mermaid 流程图、ECharts/Chart.js 数据可视化、自动目录、滚动进度、图表点击放大（缩放+拖拽）、设计系统 v6.1、部署前强制校验。",
+  "author": "传琪",
+  "repository": "https://report-expert-skill.pages.dev",
+  "env": {
+    "CLOUDFLARE_API_TOKEN": {
+      "desc": "Cloudflare API Token（远程部署 + 技能 CF 发布共用）",
+      "required": false
+    }
+  },
+  "bins": [
+    "python3",
+    "curl",
+    "npx",
+    "wrangler",
+    "openclaw",
+    "clawhub"
+  ],
+  "capabilities": [
+    {
+      "id": "report-page",
+      "name": "报告页面部署",
+      "since": "1.0.0",
+      "desc": "将 HTML 内容套用模板生成完整报告页面"
+    },
+    {
+      "id": "external-page",
+      "name": "外部页面索引",
+      "since": "1.1.0",
+      "desc": "支持将外部页面添加到索引"
+    },
+    {
+      "id": "iframe-viewer",
+      "name": "iframe 内嵌查看",
+      "since": "1.2.0",
+      "desc": "外部页面在首页通过 iframe 内嵌打开"
+    },
+    {
+      "id": "design-system",
+      "name": "设计系统 v6.1",
+      "since": "1.0.0",
+      "desc": "底色层级配色、SVG 图标体系、响应式布局"
+    },
+    {
+      "id": "auto-config",
+      "name": "部署模式自适应",
+      "since": "1.3.1",
+      "desc": "从 TOOLS.md 读取部署配置，支持 local/remote 模式"
+    },
+    {
+      "id": "chart-engine",
+      "name": "多引擎图表系统",
+      "since": "1.5.0",
+      "desc": "Mermaid 流程图 + ECharts 数据可视化 + Chart.js，自动缩放限高，点击放大支持缩放拖拽"
+    },
+    {
+      "id": "deploy-guard",
+      "name": "部署前强制校验",
+      "since": "1.5.0",
+      "desc": "自动检测 div 平衡、单框架、无手写 footer、script 位置，不合格拒绝部署"
+    }
+  ],
+  "categories": {
+    "research": "深度研究",
+    "analysis": "数据分析",
+    "summary": "内容摘要",
+    "comparison": "对比评测",
+    "tutorial": "教程指南",
+    "project": "项目作品",
+    "other": "其他"
+  },
+  "files": {
+    "SKILL.md": {
+      "sha256": "3e0a7d6074980c050d0ac3bf80411851c4c183f106c21d41c20f65c01b2a4bec",
+      "size": 17978,
+      "url": "SKILL.md"
+    },
+    "deploy.py": {
+      "sha256": "b798fbfe7c0608783400f291d10b1d895b293bb58d7dbebbf4745524d62caa06",
+      "size": 4936,
+      "url": "deploy.py"
+    },
+    "index-body.html": {
+      "sha256": "9255573879c35292015832f92215eb5b51e8a38635948dcb0dde5e6b188d805f",
+      "size": 44632,
+      "url": "index-body.html"
+    },
+    "index.html": {
+      "sha256": "625219fceee33524ba6164106d212aab92b382e90e81cb056c593f6a5ebebec0",
+      "size": 47261,
+      "url": "index.html"
+    },
+    "templates/base.css": {
+      "sha256": "e310e2251f19ac9801ab2cf9ea4be112d4623284f84ce77ea5bc1b5792b75613",
+      "size": 27361,
+      "url": "templates/base.css"
+    },
+    "templates/index.html": {
+      "sha256": "5c1fb5e04e261a4633098da4092edfd9f401dd2473aac24dbe17bb37e059cfbe",
+      "size": 30646,
+      "url": "templates/index.html"
+    },
+    "templates/main.js": {
+      "sha256": "989f0e802959cdb1f5425123c621f8c9792944cbd1a13bb2a06d07198ddf4737",
+      "size": 9773,
+      "url": "templates/main.js"
+    },
+    "scripts/main.js": {
+      "sha256": "3d8494f57c8029aaa641777f6a161340952bb0d4cf8640b511c849376f3919a2",
+      "size": 5415,
+      "url": "scripts/main.js"
+    },
+    "lib/__init__.py": {
+      "sha256": "4995c44ded20b5d18e79e78938d636690d74bbfbb417d04dd2da80063de99a20",
+      "size": 14,
+      "url": "lib/__init__.py"
+    },
+    "lib/config.py": {
+      "sha256": "a730475dac37b1ce622e3875db4298cd2d6e7211d496f8497439729caa1dc22f",
+      "size": 6859,
+      "url": "lib/config.py"
+    },
+    "lib/page.py": {
+      "sha256": "56609f4d34935f09955b1e1246352edc74c099fe6b38094299bf72b4b65eae67",
+      "size": 5513,
+      "url": "lib/page.py"
+    },
+    "lib/index.py": {
+      "sha256": "3fd29aa0285849738d7836f8fdfe06829ce8a67f568a2bb42eb494d3806f5205",
+      "size": 9056,
+      "url": "lib/index.py"
+    },
+    "lib/backup.py": {
+      "sha256": "45755d9a3a2dcc59eecd74bda73c08834c0fee8bf3ed092e4495cbfd88603bef",
+      "size": 4941,
+      "url": "lib/backup.py"
+    },
+    "lib/skill_publish.py": {
+      "sha256": "94c0609a8e9a381dcca0cf09ab199f8f95c751a8d0f6b94e124fd7b96fa5eb38",
+      "size": 8721,
+      "url": "lib/skill_publish.py"
+    },
+    "lib/skill_cf_publish.py": {
+      "sha256": "e12f15bcf862ae9e89fcad0dbdc3ec881b7355e0e20d8963743262f62d40f61a",
+      "size": 8485,
+      "url": "lib/skill_cf_publish.py"
+    },
+    "lib/skill_clawhub_publish.py": {
+      "sha256": "f99c9169cdea9e31d285e8797df699b4a5e307e70e48efcfba6d6b91132b75a8",
+      "size": 1753,
+      "url": "lib/skill_clawhub_publish.py"
+    },
+    "lib/local_deploy.py": {
+      "sha256": "38b2f6ac706d56b1c45727c25753c738bffc1193e81e38fb5870995363285b31",
+      "size": 5946,
+      "url": "lib/local_deploy.py"
+    },
+    "lib/remote_deploy.py": {
+      "sha256": "654cb8881d250717433d24079b2e648f8991a068558f4ba30bb0d84fdf34b867",
+      "size": 1746,
+      "url": "lib/remote_deploy.py"
+    },
+    "manifest.json": {
+      "sha256": "30395a4a74dc75a00dfe709a7c4d8abf1184820b7b64fd2b1dd4675200466542",
+      "size": 9236,
+      "url": "manifest.json"
+    },
+    "upgrade.py": {
+      "sha256": "a7ded76b6f3385651c490934eaaa8c0504d01a3e8749d00a6f77d24107b64f8a",
+      "size": 7751,
+      "url": "upgrade.py"
+    },
+    "lib/pull.py": {
+      "sha256": "d1c51bb4c13f22679591a16c760ac0680ccf691ef739758649d51909907487c8",
+      "size": 3553,
+      "url": "lib/pull.py"
+    }
+  },
+  "changelog": [
+    {
+      "version": "1.6.0",
+      "date": "2026-04-14",
+      "changes": [
+        "架构重构：技能目录=唯一工作台，deploy/rebuild/update 在 dist/ 操作，sync_to_deploy() 统一推送",
+        "新增 pull 命令：从部署目录拉取文件到技能 dist/",
+        "sync_to_deploy --clean：同步时删除部署目录中不在 dist/ 的幽灵页面",
+        "索引去重：deploy 时按 title 检查，同名条目覆盖而非重复 append",
+        "add_to_index 修复：外部页面设 external:true，rebuild 不再丢失",
+        "CATEGORY_META 统一：颜色/图标/描述集中管理，不再硬编码",
+        "CDN 按需加载：检测 body 中是否含图表标记，无图表页面不加载 1MB+ CDN",
+        "回到顶部按钮：模板输出（非 JS 动态注入），滚动 400px 显示",
+        "索引页切换目录自动关闭 iframe 预览",
+        "data-reveal 初始隐藏移除：所有报告页面默认可见",
+        "deploy 流程修复：从 body 中提取 style 后不再残留到 page-body 内"
+      ]
+    },
+    {
+      "version": "1.5.0",
+      "date": "2026-04-13",
+      "changes": [
+        "Mermaid 流程图支持：自动缩放限高 80vh、优先横向布局、深色背景修复",
+        "ECharts/Chart.js 图表系统：head 同步加载、DOMContentLoaded 初始化",
+        "图表点击放大：支持滚轮缩放、鼠标/触屏拖拽、工具栏放大/缩小/重置",
+        "Mermaid 弹层修复：pre 底色污染、SVG transform 重置、高度自适应",
+        "部署前强制校验：div 平衡检测、单框架验证、禁止手写 footer、script 位置检查",
+        "TOC 侧栏 padding 优化：内容区与侧栏保持合理间距",
+        "设计系统升级：mermaid-wrap 等比缩放、chart-box 放大镜按钮自动注入"
+      ]
+    },
+    {
+      "version": "1.4.0",
+      "date": "2026-04-10",
+      "changes": [
+        "统一页头页脚：main.js 自动注入，报告页无需手写 footer",
+        "面包屑统一 SVG 房子图标 + 箭头分隔符",
+        "iframe 内点击首页链接通过 postMessage 关闭 viewer",
+        "hash 路由：刷新保持 viewer 状态，从 index.json 恢复标题",
+        "非报告页面不注入报告页头页脚",
+        "修复 scroll reveal 导致内容初始不可见"
+      ]
+    },
+    {
+      "version": "1.3.6",
+      "date": "2026-04-10",
+      "changes": [
+        "所有页面点击改为 iframe 内嵌打开，支持浏览器返回键",
+        "报告页返回链接加 target=_top，iframe 内整页跳转",
+        "新增 update 命令：一键用最新模板重新生成所有报告页",
+        "_get() 修复反引号包裹值",
+        "发布流程自动同步介绍页版本号"
+      ]
+    },
+    {
+      "version": "1.3.4",
+      "date": "2026-04-10",
+      "changes": [
+        "首页链接和 fetch 全面改为相对路径，兼容非根路径部署",
+        "_get() 修复反引号包裹值",
+        "data-ext 属性语法修复",
+        "介绍页面更新配置说明"
+      ]
+    },
+    {
+      "version": "1.3.3",
+      "date": "2026-04-10",
+      "changes": [
+        "首页页面链接改为 siteBase 变量拼接，兼容本地部署模式",
+        "技能介绍页重写：自然语言使用方式 + mock 配置示例",
+        "rebuild_index 自动替换 {{SITE_BASE}} 占位符",
+        "_get() 修复 TOOLS.md 反引号包裹值的问题"
+      ]
+    },
+    {
+      "version": "1.3.1",
+      "date": "2026-04-10",
+      "changes": [
+        "deploy.py 自适应配置：从 TOOLS.md 读取 REPORT_DEPLOY_MODE/LOCAL_DIR/URL/SITE_NAME",
+        "新增 project 分类支持",
+        "SITE_NAME/SITE_URL 动态获取，不再硬编码",
+        "修复首页缺少 project 分类渲染的问题"
+      ]
+    }
+  ],
+  "requires": {
+    "homeRead": [
+      "~/.openclaw/workspace/TOOLS.md"
+    ]
+  }
+}
