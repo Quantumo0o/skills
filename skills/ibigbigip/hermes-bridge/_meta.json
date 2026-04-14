@@ -1,0 +1,11 @@
+{
+  "owner": "ibigbigip",
+  "slug": "hermes-bridge",
+  "displayName": "Hermes Agent Bridge",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775963673761,
+    "commit": null
+  },
+  "history": []
+}
