@@ -1,0 +1,11 @@
+{
+  "owner": "fuzzyb33s",
+  "slug": "agent-peer-tailscale",
+  "displayName": "Agent Peer via Tailscale",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775882521365,
+    "commit": null
+  },
+  "history": []
+}
