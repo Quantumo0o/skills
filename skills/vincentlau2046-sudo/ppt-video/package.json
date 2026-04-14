@@ -1,0 +1,72 @@
+{
+  "name": "ppt-video",
+  "displayName": "PPT to Video",
+  "version": "1.4.0",
+  "description": "将演示文稿 + 背景材料 → 播报/汇报视频，支持 PPTX/PDF/HTML 多格式输入，自动口语化改写和 TTS 配音",
+  "author": "Vincent Lau",
+  "license": "MIT",
+  "keywords": [
+    "ppt",
+    "video",
+    "tts",
+    "edge-tts",
+    "ffmpeg",
+    "演示文稿",
+    "视频生成",
+    "口语化",
+    "播报"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vincentlau2046-sudo/ppt-video.git"
+  },
+  "main": "scripts/generate.js",
+  "bin": {
+    "ppt-video": "./scripts/generate.js"
+  },
+  "scripts": {
+    "start": "node scripts/generate.js",
+    "test": "node scripts/test.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "systemRequirements": {
+    "ffmpeg": ">=5.0",
+    "edge-tts": ">=7.0",
+    "wkhtmltoimage": ">=0.12",
+    "python3": ">=3.8",
+    "python-pptx": ">=0.6.21"
+  },
+  "dependencies": {
+    "marked": "^4.0.0"
+  },
+  "features": [
+    "PPTX/PDF/HTML 多格式支持",
+    "智能讲稿匹配（基于 README 语义分析）",
+    "口语化自动重写（先重点后事实）",
+    "自动风格识别（新闻/技术/政治/轻松）",
+    "Edge TTS 语音合成（多音色支持）",
+    "统一语速控制（默认 +25%）",
+    "音画对齐验证",
+    "标点符号节奏控制"
+  ],
+  "inputFormat": {
+    "slides": "PPTX/PDF/HTML 演示文稿",
+    "script": "已匹配讲稿（script_matched.md 或 讲稿.md）",
+    "material": "背景材料（background.md）",
+    "readme": "内容说明（README.md，用于语义匹配）"
+  },
+  "outputFormat": {
+    "video": "MP4 (H.264 + AAC, 1024×720, 30fps)",
+    "duration": "5-15 分钟（取决于页数）",
+    "fileSize": "5-15 MB"
+  },
+  "qualityChecks": [
+    "分辨率检查（1024×720）",
+    "时长检查（5-15 分钟）",
+    "文件大小检查（5-15 MB）",
+    "编码检查（H.264 + AAC）",
+    "音画对齐验证"
+  ]
+}
