@@ -2,7 +2,7 @@
 name: prisma-access
 description: All-in-one Prisma Access management for Strata Cloud Manager (SCM). Generate configurations, audit against best practices, migrate between tenants, troubleshoot issues, and automate via SCM API.
 argument-hint: "[command] [details]"
-version: 1.0.0
+version: 1.1.0
 metadata:
   openclaw:
     requires:
