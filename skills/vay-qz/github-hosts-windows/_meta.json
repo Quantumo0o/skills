@@ -1,0 +1,11 @@
+{
+  "owner": "vay-qz",
+  "slug": "github-hosts-windows",
+  "displayName": "github改hosts文件加速skill，仅针对windows",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775993620329,
+    "commit": null
+  },
+  "history": []
+}
