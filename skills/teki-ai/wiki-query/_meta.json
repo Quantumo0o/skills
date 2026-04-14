@@ -1,0 +1,11 @@
+{
+  "owner": "teki-ai",
+  "slug": "wiki-query",
+  "displayName": "Wiki Query",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776020345014,
+    "commit": null
+  },
+  "history": []
+}
