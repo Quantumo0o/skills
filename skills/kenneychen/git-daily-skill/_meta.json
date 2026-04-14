@@ -1,0 +1,11 @@
+{
+  "owner": "kenneychen",
+  "slug": "git-daily-skill",
+  "displayName": "每天工作结束后，一键生成当日所有 Git 仓库的提交日报，支持多仓库扫描",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775816629162,
+    "commit": null
+  },
+  "history": []
+}
