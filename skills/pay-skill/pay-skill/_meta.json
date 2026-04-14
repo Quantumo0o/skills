@@ -1,0 +1,11 @@
+{
+  "owner": "pay-skill",
+  "slug": "pay-skill",
+  "displayName": "Pay Clawhub",
+  "latest": {
+    "version": "1.0.9",
+    "publishedAt": 1775976072334,
+    "commit": null
+  },
+  "history": []
+}
