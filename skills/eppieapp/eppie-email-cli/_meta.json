@@ -1,0 +1,11 @@
+{
+  "owner": "eppieapp",
+  "slug": "eppie-email-cli",
+  "displayName": "Eppie Email CLI",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1775994203600,
+    "commit": null
+  },
+  "history": []
+}
