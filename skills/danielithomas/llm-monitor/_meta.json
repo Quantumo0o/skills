@@ -1,0 +1,11 @@
+{
+  "owner": "danielithomas",
+  "slug": "llm-monitor",
+  "displayName": "LLM Monitor",
+  "latest": {
+    "version": "0.7.5",
+    "publishedAt": 1775996288739,
+    "commit": null
+  },
+  "history": []
+}
