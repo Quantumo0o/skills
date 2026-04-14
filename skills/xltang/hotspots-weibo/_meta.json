@@ -1,0 +1,11 @@
+{
+  "owner": "xltang",
+  "slug": "hotspots-weibo",
+  "displayName": "微博热点",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775800378366,
+    "commit": null
+  },
+  "history": []
+}
