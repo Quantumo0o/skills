@@ -1,0 +1,11 @@
+{
+  "owner": "ether-btc",
+  "slug": "caveman-compress",
+  "displayName": "Caveman Input Compression",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775988959550,
+    "commit": null
+  },
+  "history": []
+}
