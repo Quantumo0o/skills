@@ -1,0 +1,11 @@
+{
+  "owner": "surfagentapp",
+  "slug": "surfagent-mcp-selection",
+  "displayName": "SurfAgent MCP Selection",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775798884435,
+    "commit": null
+  },
+  "history": []
+}
