@@ -1,0 +1,11 @@
+{
+  "owner": "conanwhf",
+  "slug": "glm-mcp-server-use",
+  "displayName": "GLM MCP Server Use",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775838370363,
+    "commit": null
+  },
+  "history": []
+}
