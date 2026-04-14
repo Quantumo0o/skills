@@ -1,0 +1,11 @@
+{
+  "owner": "joewangup",
+  "slug": "trade-news-summary",
+  "displayName": "外贸资讯聚合器 (多源 RSS + 翻译 + 飞书推送)",
+  "latest": {
+    "version": "2.3.2",
+    "publishedAt": 1776071934028,
+    "commit": null
+  },
+  "history": []
+}
