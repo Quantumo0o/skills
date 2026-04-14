@@ -1,0 +1,11 @@
+{
+  "owner": "littledinoc",
+  "slug": "skill-grep",
+  "displayName": "Skill Grep",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775979545395,
+    "commit": null
+  },
+  "history": []
+}
