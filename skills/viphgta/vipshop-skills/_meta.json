@@ -3,11 +3,16 @@
   "slug": "vipshop-skills",
   "displayName": "唯品会",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1775813508403,
-    "commit": "https://github.com/openclaw/skills/commit/e450d8424dde9bcfb8fb9f7df6dffcbb10a71ed2"
+    "version": "1.0.10",
+    "publishedAt": 1776147614564,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1775813508403,
+      "commit": "https://github.com/openclaw/skills/commit/e450d8424dde9bcfb8fb9f7df6dffcbb10a71ed2"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775199339218,
