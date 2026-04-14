@@ -1,5 +1,13 @@
 # Changelog - Remember When Skill
 
+## [2.0.0] - 2026-04-12
+### Added
+- Cross Collections section: `create-cross`, `add-to-cross`, `list-cross`, `show-cross` commands and interview protocol.
+- Group Rules section: `set-rule`, `list-rules` commands and rule evaluation protocol.
+- Contextual Enrichment section: `set-daily-context` and `enrich-entry` commands with deduplication protocol.
+- Enrichment Decision Guide: topic-based recommendations for what contextual info to search.
+- Enrichment Configuration documentation in `rules.json`.
+
 ## [1.2.0] - 2026-04-11
 ### Added
 - Proactive Archiving mode: agent detects and offers archival of valuable content autonomously.

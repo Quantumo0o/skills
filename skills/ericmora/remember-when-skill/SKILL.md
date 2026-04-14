@@ -114,7 +114,7 @@ Define a context buffer in your agent configuration:
 
 ### `TOOLS.md` (Internal) — CLI Permissions
 Grant explicit permissions for the `remember-when` CLI:
-- **Persistence access** to `~/.remember-when/` (timeline, media folders).
+- **Persistence access** to `~/.remember-when/` (storage root).
 - **Inbound access** to `/media/inbound/` (incoming files from channels).
 - **Outbound access** to `/media/outbound/` (outbound files).
 - **Mandatory pre-check**: Always run `remember-when inventory` before making decisions about whether a file has already been archived (duplicate prevention).
@@ -124,6 +124,98 @@ Configure a periodic heartbeat routine:
 - On each cycle, scan `/media/inbound/` for new unprocessed files.
 - If pending files are found, notify the user with a summary and ask if they want to archive them (using the interview workflow).
 - This makes the agent genuinely proactive in detecting and archiving multimedia.
+
+## 🔗 Cross Collections
+
+Cross collections allow you to group entries from different days within the **same group** under a thematic umbrella (e.g., "Viatge a París", "Nadal 2026"). They do not cross group boundaries.
+
+### Creating Cross Collections
+`remember-when create-cross -g "<group>" -n "<slug>" --display-name "<Human Name>" -d "<description>"`
+
+### Adding Entries to a Cross Collection
+`remember-when add-to-cross -g "<group>" -c "<cross-slug>" --date <YYYY-MM-DD> --entry-id <id>`
+
+### Listing Cross Collections
+`remember-when list-cross -g "<group>"`
+
+### Viewing Cross Collection Contents
+`remember-when show-cross -g "<group>" -c "<cross-slug>"`
+
+### Interview Protocol for Cross Collections
+When the agent detects a recurring theme (travel, event, project) across multiple days:
+1. **Notify**: "I've noticed you've been talking about `{theme}` across several days. Want me to create a cross collection?"
+2. **If yes**: Run `create-cross` with a descriptive name.
+3. **Going forward**: Automatically match new entries against the cross collection criteria and add them using `add-to-cross`.
+4. **Confirm**: "Added to the '{cross}' collection." after each automatic addition.
+
+## 📏 Group Rules
+
+Rules allow the agent to automatically suggest or create cross collections based on patterns detected in conversations.
+
+### Adding a Rule
+`remember-when set-rule -g "<group>" --trigger <keyword|location> --pattern "<regex>" --action <suggest-cross|create-cross> --cross-collection "<slug>"`
+
+### Listing Rules
+`remember-when list-rules -g "<group>"`
+
+### Rule Evaluation Protocol
+On each archived entry:
+1. Run `remember-when list-rules -g "<group>"` to get active rules.
+2. For each rule, check if the entry's summary matches the pattern.
+3. If matched and action is `suggest-cross`: Ask the user "This matches the '{cross}' collection. Add it?"
+4. If matched and action is `create-cross`: Automatically add and confirm.
+
+## 🌐 Contextual Enrichment
+
+The agent can autonomously search for complementary contextual information (weather, history, news, etc.) and store it alongside entries and daily summaries. The agent searches using its own tools; the CLI stores the results.
+
+### Two Levels of Enrichment
+
+#### 1. Daily Context (collection level)
+When creating a daily summary or on the first entry of a new day, the agent should search for:
+- **Weather**: Conditions for the date and inferred location.
+- **News**: Relevant news filtered by the group's topic.
+- **Historical Events**: Notable events for this date.
+
+`remember-when set-daily-context -g "<group>" -d <YYYY-MM-DD> --weather "<text>" --news "<text>" --historical-events "<text>"`
+
+#### 2. Entry Enrichment (entry level)
+When archiving an `interest_point` or a notable entry, the agent should search for:
+- **History**: Background or historical information about the place/subject.
+- **Type**: Classification (monument, restaurant, park, etc.).
+- **Location**: Geographic description.
+
+`remember-when enrich-entry -g "<group>" --date <YYYY-MM-DD> --entry-id <id> --history "<text>" --enrich-type "<text>" --location "<text>" --extra '<json>'`
+
+### Deduplication Protocol
+Before enriching an `interest_point`, check if it has already been enriched in this group:
+1. If the place was already enriched (same summary in the group): Skip enrichment.
+2. If this is the first occurrence: Search, enrich, and confirm with the user.
+
+### Enrichment Configuration
+Each group has enrichment settings in its `rules.json`:
+```json
+{
+  "enrichment": {
+    "dailyContext": {
+      "enabled": true,
+      "sources": ["weather", "news", "historicalEvents"]
+    },
+    "interestPoints": {
+      "enabled": true,
+      "sources": ["history", "type", "location"],
+      "dedupByGroup": true
+    }
+  }
+}
+```
+
+### What to Enrich (Decision Guide)
+The agent chooses relevant enrichment based on the group's topic:
+- **Travel group**: Weather, history of visited places, local news.
+- **Work group**: Industry news, project milestones, meeting context.
+- **Family group**: Weather, family-relevant events, seasonal context.
+- **Friends group**: Local events, restaurant/bar details, activity info.
 
 ## ❓ Validation Questions API
 

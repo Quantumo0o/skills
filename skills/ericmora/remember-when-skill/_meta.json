@@ -3,9 +3,15 @@
   "slug": "remember-when-skill",
   "displayName": "Remember When Skill",
   "latest": {
-    "version": "1.2.2",
-    "publishedAt": 1775960083819,
-    "commit": "https://github.com/openclaw/skills/commit/6eea43bde3eebd2b116da405b258d3d5f30b2fe0"
+    "version": "1.2.3",
+    "publishedAt": 1776016058345,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.2",
+      "publishedAt": 1775960083819,
+      "commit": "https://github.com/openclaw/skills/commit/6eea43bde3eebd2b116da405b258d3d5f30b2fe0"
+    }
+  ]
 }
