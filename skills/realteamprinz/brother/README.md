@@ -1,12 +1,12 @@
 <div align="center">
 
-# brother.skill
+# brother.skill 🤜🤛
 
 **Distill your bros.**
 
 The ones who make you laugh until you can't breathe.
 The ones who say stupid things that somehow make sense.
-Online or offline — if they're your brother, this skill remembers everything.
+Online or offline -- if they're your brother, this skill remembers everything.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-compatible-blue)](https://clawhub.ai)
@@ -18,117 +18,53 @@ Online or offline — if they're your brother, this skill remembers everything.
 
 ## What is brother.skill?
 
-An AI agent skill that distills the bros in your life — how they talk, what makes them funny, their catchphrases, their chaos energy. Feed it clips, screenshots, group chat logs, and stories. It learns to respond like them.
+Describe your bros -- how they talk, what makes them funny, their catchphrases, their chaos energy. brother.skill builds a personality profile from YOUR descriptions and learns to respond in their style.
 
 Works for:
-- **Your actual brother** — the one who's been roasting you since you were born
-- **Your group chat bros** — the boys, the squad, the homies
-- **Online bros** — YouTubers, streamers, TikTokers you watch every day
-- **Internet legends** — Jake Paul, Logan Paul, MrBeast, IShowSpeed, KSI, PewDiePie, and that one guy in your Discord
+- 🩸 **Your actual brother** -- roasting you since birth
+- 💬 **Your group chat bros** -- the boys, the squad
+- 🌐 **Online bros** -- creators whose energy you want to remember
+- 🎭 **Internet legends** -- Jake Paul, MrBeast, IShowSpeed, KSI, 张凤霞
 
-## How It Works
+## 8 Bro Archetypes
 
-1. **Feed it content** — clips, screenshots, stories, group chat logs, descriptions
-2. **It builds a bro profile** — voice, humor style, energy level, catchphrases, roast patterns
-3. **Talk to your bro** — it responds in their voice, their slang, their energy
-4. **It learns** — every new input makes the bro profile more accurate
+| Archetype | Energy |
+|---|---|
+| 🔊 **Hype Man** | Maximum volume, makes everything an event |
+| 🎯 **Roast Master** | Precise insults, straight face |
+| 🧊 **Cool Bro** | Speaks rarely, everyone listens |
+| 🤡 **Chaos Agent** | Does things nobody asked for |
+| 🧠 **Strategy Bro** | Turns everything into a plan |
+| 😶 **Silent Killer** | Quiet 20 min, then one line destroys everyone |
+| 📱 **Meme Lord** | Communicates exclusively in memes |
+| 🎭 **Storyteller** | Every experience = 10-min drama |
 
-## Examples
-
-### Jake Paul
-
-> "What would Jake Paul say about my bad day?"
->
-> "BRO. BAD DAY? We don't DO bad days. You know what we do? We buy a Lamborghini and DRIVE THROUGH the bad day. IT'S EVERYDAY BRO."
-
-### Logan Paul
-
-> "Should I start a podcast?"
->
-> "Bro. Everyone has a podcast. But not everyone has IMPAULSIVE. What's your hook? ... Actually just start it. Figure it out later. That's literally what I did."
-
-### MrBeast
-
-> "How do I get more views?"
->
-> "Change your thumbnail. No seriously. Have you tried giving away $10,000? That usually works. Also your title needs to make people NEED to click."
-
-### Your Group Chat
-
-> "Write our group chat planning a road trip"
->
-> **Mike:** yo road trip this weekend who's in
-> **Dave:** depends where
-> **Mike:** idk somewhere cool
-> **Dave:** that's not a plan
-> **Jason:** [sends meme]
-> **Mike:** jason you in or not
-> **Jason:** [sends another meme]
-> **Dave:** I'll drive but someone's paying for gas
-> **Mike:** bro you drive a Tesla
-> **Dave:** exactly. Someone's paying for the charging
-
-## Bro Archetypes
-
-brother.skill recognizes different bro types:
-
-| Archetype | Description | Famous Example |
-|---|---|---|
-| **The Hype Man** | Maximum energy, always screaming, makes everything an event | IShowSpeed |
-| **The Roast Master** | Surgically precise insults delivered with a straight face | KSI |
-| **The Cool Bro** | Chill energy, speaks rarely, but when they do — everyone listens | Keanu Reeves |
-| **The Chaos Agent** | Does things nobody asked for, somehow it works | Jake Paul |
-| **The Strategy Bro** | Turns everything into a business plan or a life lesson | MrBeast |
-| **The Silent Killer** | Quiet for 20 minutes then drops one line that destroys everyone | That one friend. You know who. |
-| **The Meme Lord** | Communicates exclusively in memes and reaction images | Every group chat has one |
-| **The Storyteller** | Every experience becomes a 10-minute dramatic retelling | Your funniest friend |
-
-## Bro Profile Dimensions
-
-Each bro is profiled across five dimensions:
-
-### Voice & Language
-Catchphrases, slang, speech patterns, volume level, go-to insults, go-to compliments (rare).
-
-### Comedy Style
-Humor type, timing, signature moves, what they always joke about, what they never touch.
-
-### Energy & Vibe
-Default energy level, peak triggers, group role, entrance energy.
-
-### Content Personality (online bros)
-Platform, content style, audience interaction, collab chemistry, how they've evolved.
-
-### Relationship With You
-How you found them, inside jokes, favorite moments, zombie apocalypse survival rating.
-
-## Features
-
-### Bro Interaction Mode
-Talk to any distilled bro. The skill responds in their voice, their slang, their energy. Roasts you if they would. Hypes you if they would. Stays in character.
-
-### Content Analysis
-Share a clip or screenshot. The skill analyzes why it's funny, compares it to the bro's known patterns, and predicts what they'd do next.
-
-### Group Chat Simulation
-Profile multiple bros and simulate their group dynamics. Generate realistic conversations. Find out who starts drama, who escalates, and who sends the meme that ends the argument.
-
-### Self-Learning
-Every input makes the profile more accurate. Tracks confidence levels from rough sketch (1-5 data points) to near-perfect recreation (50+). Never overwrites — always appends.
-
-## Memory Architecture
+## Quick Example
 
 ```
-bros/
-  [name]/
-    PROFILE.md              — Living bro profile (updated with each input)
-    interaction-log.jsonl   — Every input logged with timestamp
+"My friend Dave is the quietest guy but every 20 minutes 
+he says one thing and everyone goes silent. He looked at 
+my new haircut and just said 'bold choice.'"
+
+→ Archetype: Silent Killer 😶
+  Signature: devastating one-liner after long silence
 ```
 
-- Profiles persist across sessions
-- Confidence scores track accuracy
-- Contradictions flagged for user clarification
-- Evolution tracked over time
+```
+"What would Dave say about my new business idea?"
+
+→ "...that's crazy."
+  [pause]
+  "No I mean... that's actually crazy. Bold choice."
+```
+
+## Privacy & Data
+
+- **All data stored locally** at `~/.brother-skill/bros/`
+- **No cloud sync.** No external transmission.
+- **YOUR descriptions only.** No scraping, no downloading, no monitoring.
+- **Not impersonation.** Captures energy from your memories, not identity.
+- **Delete anytime.** Remove the folder.
 
 ## Install
 
@@ -136,43 +72,38 @@ bros/
 # OpenClaw
 clawhub install realteamprinz/brother
 
-# Hermes
+# Hermes Agent
 hermes skills install brother-skill
 
 # Claude Code
 cp -r brother-skill/ ~/.claude/skills/
 ```
 
-## Emotional Guidelines
-
-1. **Roasts come from love.** Bro humor means you can say terrible things BECAUSE you love them. Never actually hurtful.
-2. **Respect the real person.** Capture energy, not caricature. Stay respectful when distilling real creators.
-3. **Cultural sensitivity.** Chinese internet humor, American YouTube humor, UK banter — all different. Respect the context.
-4. **The quiet bro matters.** Not every bro is loud. Some speak once and destroy everyone. That restraint is their power.
-
 ## Part of the Family
 
-**Daily tier:**
-- [mom.skill](https://clawhub.ai/realteamprinz/mom) — Parenting co-pilot for mothers
-- [dad.skill](https://clawhub.ai/realteamprinz/dad) — Parenting co-pilot for fathers
-- **brother.skill** — Distill your bros *(you are here)*
+Peer tier:
+- 🤜 **brother.skill** -- Distill your bros ← You are here
+- 💅 [sister.skill](https://clawhub.ai/realteamprinz/sister) -- Distill your sisters
+- 💘 [date.skill](https://clawhub.ai/realteamprinz/date) -- Dating intelligence
 
-**Legacy tier:**
-- [mother.skill](https://clawhub.ai/realteamprinz/mother) — Preserve your mother's wisdom
-- [father.skill](https://clawhub.ai/realteamprinz/father) — Preserve your father's legacy
-- [grandma.skill](https://clawhub.ai/realteamprinz/grandma) — Her stories and recipes
-- [grandpa.skill](https://clawhub.ai/realteamprinz/grandpa) — His stories and strength
+Parenting tier:
+- 👪 [parent.skill](https://clawhub.ai/realteamprinz/parent) -- Parenting co-pilot
+- 👩 [mom.skill](https://clawhub.ai/realteamprinz/mom) -- For mothers
+- 👨 [dad.skill](https://clawhub.ai/realteamprinz/dad) -- For fathers
 
-**Pet tier:**
-- [paw.skill](https://clawhub.ai/realteamprinz/paw) — Distill your pet's soul
-- [dog.skill](https://clawhub.ai/realteamprinz/dog) — Canine intelligence
-- [cat.skill](https://clawhub.ai/realteamprinz/cat) — Feline intelligence
+Legacy tier:
+- 🤱 [mother.skill](https://clawhub.ai/realteamprinz/mother) -- Preserve her wisdom
+- 👔 [father.skill](https://clawhub.ai/realteamprinz/father) -- Preserve his legacy
 
-**Wealth tier:**
-- [midas.skill](https://clawhub.ai/realteamprinz/midas) — Extract wealth systems
+Other:
+- 🐾 [paw.skill](https://clawhub.ai/realteamprinz/paw) -- Distill your pet's soul
+- 💰 [midas.skill](https://clawhub.ai/realteamprinz/midas) -- Wealth signal extraction
+- 👔 [colleague.skill](https://clawhub.ai/realteamprinz/colleague) -- Institutional knowledge
 
----
-
-> *"We distill what time takes away."* — But sometimes we also distill what makes us laugh until we cry.
+> *"He left the group chat. But his energy lives on."*
 >
-> Built by [@realteamprinz](https://github.com/realteamprinz) | [PRINZCLAW](https://prinzclaw.ai)
+> Built by [@realteamprinz](https://github.com/realteamprinz) · [PRINZCLAW](https://prinzclaw.ai)
+
+## License
+
+MIT License
