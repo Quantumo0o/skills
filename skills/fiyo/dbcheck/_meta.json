@@ -1,0 +1,11 @@
+{
+  "owner": "fiyo",
+  "slug": "dbcheck",
+  "displayName": "DBCheck 数据库巡检",
+  "latest": {
+    "version": "1.0.8",
+    "publishedAt": 1775992976923,
+    "commit": null
+  },
+  "history": []
+}
