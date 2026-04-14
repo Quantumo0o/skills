@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "http-security-headers",
+  "displayName": "http-security-headers",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775875968168,
+    "commit": null
+  },
+  "history": []
+}
