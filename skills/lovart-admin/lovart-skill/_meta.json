@@ -1,0 +1,11 @@
+{
+  "owner": "lovart-admin",
+  "slug": "lovart-skill",
+  "displayName": "Lovart API Skills",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776066803524,
+    "commit": null
+  },
+  "history": []
+}
