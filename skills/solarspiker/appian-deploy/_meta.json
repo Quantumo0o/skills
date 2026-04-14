@@ -1,0 +1,11 @@
+{
+  "owner": "solarspiker",
+  "slug": "appian-deploy",
+  "displayName": "Appian Deploy",
+  "latest": {
+    "version": "1.2.3",
+    "publishedAt": 1776169309293,
+    "commit": null
+  },
+  "history": []
+}
