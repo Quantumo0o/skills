@@ -3,9 +3,15 @@
   "slug": "url2pdf-mk",
   "displayName": "url2pdf-mk",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1776086771377,
-    "commit": "https://github.com/openclaw/skills/commit/0681d4cc857a4645cc837c15346360f63fb3afa5"
+    "version": "1.1.1",
+    "publishedAt": 1776133456851,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1776086771377,
+      "commit": "https://github.com/openclaw/skills/commit/0681d4cc857a4645cc837c15346360f63fb3afa5"
+    }
+  ]
 }
