@@ -1,0 +1,11 @@
+{
+  "owner": "cellinlab",
+  "slug": "cell-benchmark-filter",
+  "displayName": "对标筛选",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775815372339,
+    "commit": null
+  },
+  "history": []
+}
