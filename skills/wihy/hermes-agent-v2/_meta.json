@@ -1,0 +1,11 @@
+{
+  "owner": "wihy",
+  "slug": "hermes-agent-v2",
+  "displayName": "Hermes Agent Skill",
+  "latest": {
+    "version": "2.1.1",
+    "publishedAt": 1775958598074,
+    "commit": null
+  },
+  "history": []
+}
