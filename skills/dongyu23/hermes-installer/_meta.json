@@ -3,9 +3,15 @@
   "slug": "hermes-installer",
   "displayName": "Hermes Installer",
   "latest": {
-    "version": "1.1.5",
-    "publishedAt": 1775885567494,
-    "commit": "https://github.com/openclaw/skills/commit/79a7136ef1a919010891cafae8dbf0dd24faede7"
+    "version": "1.1.7",
+    "publishedAt": 1775886075934,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.5",
+      "publishedAt": 1775885567494,
+      "commit": "https://github.com/openclaw/skills/commit/79a7136ef1a919010891cafae8dbf0dd24faede7"
+    }
+  ]
 }

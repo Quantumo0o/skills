@@ -11,6 +11,7 @@ metadata:
         - git
         - python
         - pip
+        - docker
 ---
 
 # Hermes Agent 安装配置指南
@@ -120,17 +121,7 @@ uv pip install -e ".[all]"
 ```
 
 **方式二：Docker 部署**
-```bash
-# 1. 克隆仓库
-git clone https://github.com/NousResearch/hermes-agent.git ~/.hermes/hermes-agent
-cd ~/.hermes/hermes-agent
-
-# 2. 构建镜像
-docker build -t hermes-agent .
-
-# 3. 运行容器
-docker run -d -v ~/.hermes:/opt/data hermes-agent
-```
+详见 [docker-deploy.md](./docker-deploy.md)
 git clone https://github.com/NousResearch/hermes-agent.git ~/.hermes/hermes-agent
 cd ~/.hermes/hermes-agent
 
