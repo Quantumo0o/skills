@@ -1,0 +1,11 @@
+{
+  "owner": "buildsentinel-dev",
+  "slug": "build-sentinel",
+  "displayName": "Sentinel",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776268442974,
+    "commit": null
+  },
+  "history": []
+}
