@@ -1,0 +1,11 @@
+{
+  "owner": "adamsellers",
+  "slug": "recipe-chef",
+  "displayName": "Recipe Chef",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776156753680,
+    "commit": null
+  },
+  "history": []
+}
