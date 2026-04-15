@@ -1,0 +1,11 @@
+{
+  "owner": "kansodata",
+  "slug": "kansodata-mongodb-operator",
+  "displayName": "Kansodata MongoDB Operator",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776196241612,
+    "commit": null
+  },
+  "history": []
+}
