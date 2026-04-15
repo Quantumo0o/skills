@@ -1,0 +1,11 @@
+{
+  "owner": "kansodata",
+  "slug": "kansodata-mongodb-companion",
+  "displayName": "Kansodata MongoDB Companion",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776193815130,
+    "commit": null
+  },
+  "history": []
+}
