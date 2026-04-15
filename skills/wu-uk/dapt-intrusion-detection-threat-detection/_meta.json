@@ -1,0 +1,11 @@
+{
+  "owner": "wu-uk",
+  "slug": "dapt-intrusion-detection-threat-detection",
+  "displayName": "threat-detection",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776194220479,
+    "commit": null
+  },
+  "history": []
+}
