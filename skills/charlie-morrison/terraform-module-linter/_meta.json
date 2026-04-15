@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "terraform-module-linter",
+  "displayName": "Terraform Module Linter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776131922024,
+    "commit": null
+  },
+  "history": []
+}
