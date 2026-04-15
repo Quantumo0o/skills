@@ -1,0 +1,11 @@
+{
+  "owner": "tencent-adm",
+  "slug": "workrally",
+  "displayName": "WorkRally",
+  "latest": {
+    "version": "2.1.0",
+    "publishedAt": 1776251575047,
+    "commit": null
+  },
+  "history": []
+}
