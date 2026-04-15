@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "dockerignore-linter",
+  "displayName": "Dockerignore Linter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776037576525,
+    "commit": null
+  },
+  "history": []
+}
