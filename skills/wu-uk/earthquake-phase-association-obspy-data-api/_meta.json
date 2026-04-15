@@ -1,0 +1,11 @@
+{
+  "owner": "wu-uk",
+  "slug": "earthquake-phase-association-obspy-data-api",
+  "displayName": "obspy-data-api",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776198020651,
+    "commit": null
+  },
+  "history": []
+}
