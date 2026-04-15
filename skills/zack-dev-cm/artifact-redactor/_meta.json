@@ -1,0 +1,11 @@
+{
+  "owner": "zack-dev-cm",
+  "slug": "artifact-redactor",
+  "displayName": "Artifact Redactor",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1776224672925,
+    "commit": null
+  },
+  "history": []
+}
