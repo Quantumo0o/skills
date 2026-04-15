@@ -1,0 +1,11 @@
+{
+  "owner": "scnet-sugon",
+  "slug": "fixed-amount-invoice-ocr",
+  "displayName": "Fixed Amount Invoice Ocr",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776073417882,
+    "commit": null
+  },
+  "history": []
+}
