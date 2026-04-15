@@ -1,0 +1,11 @@
+{
+  "owner": "abeltennyson",
+  "slug": "agent-directory1",
+  "displayName": "agent-directory",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776042793198,
+    "commit": null
+  },
+  "history": []
+}
