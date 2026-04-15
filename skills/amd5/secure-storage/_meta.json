@@ -1,0 +1,11 @@
+{
+  "owner": "amd5",
+  "slug": "secure-storage",
+  "displayName": "Secure Storage",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776153164463,
+    "commit": null
+  },
+  "history": []
+}
