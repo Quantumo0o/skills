@@ -1,0 +1,11 @@
+{
+  "owner": "cwheeler67",
+  "slug": "agent-bootstrap-hardening",
+  "displayName": "Agent Bootstrap Hardening",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776273307518,
+    "commit": null
+  },
+  "history": []
+}
