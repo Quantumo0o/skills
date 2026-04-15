@@ -1,0 +1,11 @@
+{
+  "owner": "tencent-adm",
+  "slug": "tencen-ride-skill",
+  "displayName": "腾讯出行服务打车skills",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776135440168,
+    "commit": null
+  },
+  "history": []
+}
