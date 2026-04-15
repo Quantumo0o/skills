@@ -3,9 +3,15 @@
   "slug": "mytaxi",
   "displayName": "Mytaxi",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775781300854,
-    "commit": "https://github.com/openclaw/skills/commit/3b6b6b9d656edec684e3fbb2ed67851850c65430"
+    "version": "1.0.1",
+    "publishedAt": 1776295466360,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775781300854,
+      "commit": "https://github.com/openclaw/skills/commit/3b6b6b9d656edec684e3fbb2ed67851850c65430"
+    }
+  ]
 }
