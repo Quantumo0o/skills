@@ -1,0 +1,11 @@
+{
+  "owner": "yonghyeokrhee",
+  "slug": "meta-coordinator",
+  "displayName": "CS Coordinator agent",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1776192625898,
+    "commit": null
+  },
+  "history": []
+}
