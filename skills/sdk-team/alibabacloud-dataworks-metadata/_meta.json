@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-dataworks-metadata",
+  "displayName": "Alibabacloud Dataworks Metadata",
+  "latest": {
+    "version": "0.0.1-beta.1",
+    "publishedAt": 1776063089390,
+    "commit": null
+  },
+  "history": []
+}
