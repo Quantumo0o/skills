@@ -1,0 +1,11 @@
+{
+  "owner": "octo-patch",
+  "slug": "morning-ai",
+  "displayName": "MorningAI",
+  "latest": {
+    "version": "1.2.5",
+    "publishedAt": 1776158349993,
+    "commit": null
+  },
+  "history": []
+}
