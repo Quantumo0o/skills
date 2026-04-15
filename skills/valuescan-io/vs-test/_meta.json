@@ -1,0 +1,11 @@
+{
+  "owner": "valuescan-io",
+  "slug": "vs-test",
+  "displayName": "vs-test",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776170919098,
+    "commit": null
+  },
+  "history": []
+}
