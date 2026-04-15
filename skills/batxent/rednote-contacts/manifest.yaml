@@ -1,0 +1,185 @@
+name: red-crawler-ops
+version: 1.0.0
+runtime: python
+entry: src/index.py
+description: Portable OpenClaw skill for running the red-crawler CLI. Automatically parses natural language intents into appropriate actions: setup ("帮我初始化爬虫" -> install_or_bootstrap), login ("我要登录" -> login), crawling new profiles ("帮我去爬10个相关的博主 [URL]" -> crawl_seed with max_accounts), nightly collection ("执行夜间采集" -> collect_nightly), reporting ("生成本周的爬取周报" -> report_weekly), and querying existing local DB ("从数据库中找出10个美妆博主" -> list_contactable).
+config:
+  workspace_path:
+    type: string
+    default: .
+    description: Path to the red-crawler repository root.
+  repo_url:
+    type: string
+    default: https://github.com/Batxent/red-crawler.git
+    description: Clone URL used when install_or_bootstrap needs to create a workspace.
+  workspace_parent:
+    type: string
+    default: .
+    description: Parent directory used to create a new red-crawler workspace.
+  workspace_name:
+    type: string
+    default: red-crawler
+    description: Directory name used when install_or_bootstrap creates a workspace.
+  storage_state:
+    type: string
+    default: ./state.json
+    description: Playwright storage state file used for authenticated actions.
+  db_path:
+    type: string
+    default: ./data/red_crawler.db
+    description: SQLite database path inside the workspace.
+  report_dir:
+    type: string
+    default: ./reports
+    description: Directory for generated report artifacts.
+  output_dir:
+    type: string
+    default: ./output
+    description: Directory for crawl exports.
+  cache_dir:
+    type: string
+    default: ./.cache/red-crawler
+    description: Directory for crawler cache files.
+  runner_command:
+    type: [string, array]
+    default: uv run red-crawler
+    description: Command prefix used to launch the red-crawler CLI.
+  default_crawl_budget:
+    type: integer
+    default: 30
+    description: Default crawl budget used when collect_nightly does not receive one.
+  default_report_days:
+    type: integer
+    default: 7
+    description: Default report window used when report_weekly does not receive one.
+  default_list_limit:
+    type: integer
+    default: 20
+    description: Default list limit used when list_contactable does not receive one.
+input_schema:
+  type: object
+  required:
+    - action
+  properties:
+    action:
+      type: string
+      enum:
+        - install_or_bootstrap
+        - bootstrap
+        - login
+        - crawl_seed
+        - collect_nightly
+        - report_weekly
+        - list_contactable
+    workspace_path:
+      type: string
+    repo_url:
+      type: string
+    workspace_parent:
+      type: string
+    workspace_name:
+      type: string
+    branch:
+      type: string
+    runner_command:
+      oneOf:
+        - type: string
+        - type: array
+          items:
+            type: string
+    storage_state:
+      type: string
+    seed_url:
+      type: string
+    login_url:
+      type: string
+    force_login:
+      type: boolean
+    sync_dependencies:
+      type: boolean
+    install_browser:
+      type: boolean
+    output_dir:
+      type: string
+    db_path:
+      type: string
+    report_dir:
+      type: string
+    cache_dir:
+      type: string
+    max_accounts:
+      type: integer
+    max_depth:
+      type: integer
+    include_note_recommendations:
+      type: boolean
+    safe_mode:
+      type: boolean
+    cache_ttl_days:
+      type: integer
+    crawl_budget:
+      type: integer
+    search_term_limit:
+      type: integer
+    startup_jitter_minutes:
+      type: integer
+    slot_name:
+      type: string
+    days:
+      type: integer
+    lead_type:
+      type: string
+    creator_segment:
+      type: string
+    min_relevance_score:
+      type: number
+    limit:
+      type: integer
+    format:
+      type: string
+output_schema:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [success, error]
+    action:
+      type: string
+    command:
+      type: string
+    summary:
+      type: string
+    artifacts:
+      type: object
+      additionalProperties:
+        type: string
+    metrics:
+      type: object
+      additionalProperties: true
+    next_step:
+      type: string
+    stdout:
+      type: string
+    stderr:
+      type: string
+    error_type:
+      type: string
+    message:
+      type: string
+    suggested_fix:
+      type: string
+    error:
+      type: object
+      properties:
+        error_type:
+          type: string
+        message:
+          type: string
+        suggested_fix:
+          type: string
+        command:
+          type: string
+        stdout:
+          type: string
+        stderr:
+          type: string
