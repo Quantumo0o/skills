@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "happy",
+  "displayName": "happy stories",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776041599236,
+    "commit": null
+  },
+  "history": []
+}
