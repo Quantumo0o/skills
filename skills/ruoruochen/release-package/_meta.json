@@ -1,0 +1,11 @@
+{
+  "owner": "ruoruochen",
+  "slug": "release-package",
+  "displayName": "Release Package",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776145517085,
+    "commit": null
+  },
+  "history": []
+}
