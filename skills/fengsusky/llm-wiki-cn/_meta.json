@@ -1,0 +1,11 @@
+{
+  "owner": "fengsusky",
+  "slug": "llm-wiki-cn",
+  "displayName": "使用 LLM 动态构建和维护知识库",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776062516652,
+    "commit": null
+  },
+  "history": []
+}
