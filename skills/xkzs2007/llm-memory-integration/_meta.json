@@ -3,11 +3,16 @@
   "slug": "llm-memory-integration",
   "displayName": "Llm Memory Integration",
   "latest": {
-    "version": "5.2.30",
-    "publishedAt": 1776236233085,
-    "commit": "https://github.com/openclaw/skills/commit/9246e8ebf7586deebd076ab9f732b771f752aa60"
+    "version": "6.3.6",
+    "publishedAt": 1776262989512,
+    "commit": null
   },
   "history": [
+    {
+      "version": "5.2.30",
+      "publishedAt": 1776236233085,
+      "commit": "https://github.com/openclaw/skills/commit/9246e8ebf7586deebd076ab9f732b771f752aa60"
+    },
     {
       "version": "2.1.4",
       "publishedAt": 1775526501500,

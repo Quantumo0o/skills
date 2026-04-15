@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-索引持久化模块 (v4.1)
+索引持久化模块 (v6.0.1)
 索引序列化保存、增量更新、版本管理
+
+安全更新：使用 numpy npz 格式替代 pickle，避免反序列化漏洞
 """
 
 import numpy as np
 from typing import List, Tuple, Optional, Dict, Any
 import json
-import pickle
 import hashlib
 from pathlib import Path
 from datetime import datetime
+
+# 安全警告：不再使用 pickle
+# pickle.load 可能导致任意代码执行，改用 numpy npz 格式
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
 
 
 class IndexPersistence:
@@ -70,24 +76,29 @@ class IndexPersistence:
         
         Args:
             name: 索引名称
-            index: 索引对象
+            index: 索引对象（仅保存向量，索引需要重建）
             vectors: 原始向量
             config: 配置信息
         
         Returns:
             str: 索引 ID
+        
+        安全说明：
+            不再保存索引对象本身，只保存向量和配置。
+            索引需要在加载后重建，避免 pickle 反序列化漏洞。
         """
         # 生成索引 ID
         index_id = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
-        # 保存索引
-        index_file = self.index_dir / f"{index_id}.pkl"
-        with open(index_file, 'wb') as f:
-            pickle.dump({
-                'index': index,
-                'vectors': vectors,
-                'config': config or {}
-            }, f)
+        # 保存向量和配置（使用安全的 npz 格式）
+        index_file = self.index_dir / f"{index_id}.npz"
+        
+        np.savez_compressed(
+            index_file,
+            vectors=vectors.astype(np.float32),
+            config=np.array([json.dumps(config or {})]),
+            created_at=np.array([datetime.now().isoformat()])
+        )
         
         # 更新元数据
         self.metadata['indices'][index_id] = {
@@ -125,11 +136,20 @@ class IndexPersistence:
             print(f"❌ 索引文件不存在: {index_file}")
             return None
         
-        with open(index_file, 'rb') as f:
-            data = pickle.load(f)
-        
-        print(f"✅ 索引已加载: {index_id}")
-        return data
+        # 安全加载：使用 npz 格式，禁用 pickle
+        try:
+            data = np.load(index_file, allow_pickle=False)
+            result = {
+                'vectors': data['vectors'],
+                'config': json.loads(str(data['config'][0])) if len(data['config']) > 0 else {},
+                'created_at': str(data['created_at'][0]) if len(data['created_at']) > 0 else None,
+                'note': '索引需要重建，仅保存了向量'
+            }
+            print(f"✅ 索引已加载: {index_id} (需要重建索引)")
+            return result
+        except Exception as e:
+            print(f"❌ 索引加载失败: {e}")
+            return None
     
     def get_latest_index(self, name: str) -> Optional[Dict]:
         """

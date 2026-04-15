@@ -72,56 +72,85 @@ def get_embedding(query):
         return None
 
 def search_vector(query, embedding):
-    """向量搜索"""
+    """向量搜索（安全版本）"""
     if not embedding:
         results["vector"] = []
         return
     
+    # vec_hex 是向量数据的十六进制表示，来自内部计算，安全
     vec_hex = struct.pack(f'{len(embedding)}f', *embedding).hex()
-    sql = f"SELECT v.record_id, r.content, r.type, r.scene_name, v.distance FROM l1_vec v JOIN l1_records r ON v.record_id = r.record_id WHERE v.embedding MATCH X'{vec_hex}' AND k = 10 ORDER BY v.distance ASC;"
     
+    # 安全修复：使用 sqlite3 连接而不是 subprocess
     try:
-        result = subprocess.run(
-            f'sqlite3 -cmd ".load {VEC_EXT}" "{VECTORS_DB}" "{sql}"', shell=False, capture_output=True, text=True, timeout=5
-        )  # SECURITY FIX: shell=False removed
-        lines = result.stdout.strip().split('\n')
+        import sqlite3
+        conn = sqlite3.connect(str(VECTORS_DB))
+        conn.enable_load_extension(True)
+        conn.load_extension(str(VEC_EXT))
+        cursor = conn.cursor()
+        
+        # 使用参数化查询
+        sql = "SELECT v.record_id, r.content, r.type, r.scene_name, v.distance FROM l1_vec v JOIN l1_records r ON v.record_id = r.record_id WHERE v.embedding MATCH X? AND k = 10 ORDER BY v.distance ASC;"
+        cursor.execute(sql, (vec_hex,))
+        rows = cursor.fetchall()
+        conn.close()
+        
         results["vector"] = []
-        for line in lines:
-            if line and '|' in line:
-                parts = line.split('|')
-                if len(parts) >= 5:
-                    try:
-                        dist = float(parts[4])
-                        if dist > 0:
-                            results["vector"].append({
-                                "record_id": parts[0],
-                                "content": parts[1],
-                                "type": parts[2],
-                                "scene": parts[3],
-                                "distance": dist,
-                                "score": 1.0 - dist
-                            })
-                    except Exception as e:
-                        pass
-            logger.error(f"操作失败: {e}")
+        for row in rows:
+            if len(row) >= 5:
+                dist = float(row[4])
+                if dist > 0:
+                    results["vector"].append({
+                        "record_id": row[0],
+                        "content": row[1],
+                        "type": row[2],
+                        "scene": row[3],
+                        "distance": dist,
+                        "score": 1.0 - dist
+                    })
     except Exception as e:
         results["vector"] = []
 
 def search_fts(query):
-    """FTS 搜索"""
+    """FTS 搜索（安全版本）"""
     tokens = query.replace('，', ' ').replace('、', ' ').split()
-    fts_query = " OR ".join(tokens)
     
-    sql = f"SELECT record_id, content, type, scene_name FROM l1_fts WHERE l1_fts MATCH '{fts_query}' ORDER BY rank LIMIT 10;"
+    # 安全修复：转义 FTS 特殊字符
+    import re
+    safe_tokens = []
+    for token in tokens:
+        # 移除危险字符
+        token = re.sub(r"['\";\\-]", '', token)
+        if token:
+            safe_tokens.append(token)
+    
+    if not safe_tokens:
+        results["fts"] = []
+        return
+    
+    fts_query = " OR ".join(safe_tokens)
+    
+    # 使用参数化查询（通过 sqlite3 命令行）
+    sql = f"SELECT record_id, content, type, scene_name FROM l1_fts WHERE l1_fts MATCH ? ORDER BY rank LIMIT 10;"
     
     try:
-        result = subprocess.run(
-            f'sqlite3 "{VECTORS_DB}" "{sql}"', shell=False, capture_output=True, text=True, timeout=5
-        )  # SECURITY FIX: shell=False removed
-        lines = result.stdout.strip().split('\n')
+        # 安全修复：使用参数列表而不是 shell 命令
+        import sqlite3
+        conn = sqlite3.connect(str(VECTORS_DB))
+        cursor = conn.cursor()
+        cursor.execute(sql, (fts_query,))
+        rows = cursor.fetchall()
+        conn.close()
+        
         results["fts"] = []
-        for line in lines:
-            if line and '|' in line:
+        for row in rows:
+            if len(row) >= 4:
+                results["fts"].append({
+                    "record_id": row[0],
+                    "content": row[1],
+                    "type": row[2],
+                    "scene": row[3],
+                    "score": 0.5
+                })
                 parts = line.split('|')
                 if len(parts) >= 4:
                     results["fts"].append({

@@ -19,7 +19,7 @@ from pathlib import Path
 
 def run_command(cmd: str, check: bool = True) -> bool:
     """
-    运行命令
+    运行命令（安全版本，不使用 shell=True）
     
     Args:
         cmd: 命令字符串
@@ -30,9 +30,9 @@ def run_command(cmd: str, check: bool = True) -> bool:
     """
     print(f"执行: {cmd}")
     try:
+        # 安全修复：不使用 shell=True，使用参数列表
         result = subprocess.run(
-            cmd,
-            shell=True,
+            cmd.split(),
             capture_output=True,
             text=True,
             timeout=60
@@ -117,15 +117,12 @@ def configure_hugepages():
     except:
         pass
     
-    # 尝试配置大页内存
-    print("尝试配置大页内存 (需要 root 权限)...")
-    if run_command("sudo sysctl -w vm.nr_hugepages=1024 2>/dev/null", check=False):
-        print("✅ 大页内存配置成功")
-        return True
-    else:
-        print("⚠️ 大页内存配置失败，请手动配置:")
-        print("   sudo sysctl -w vm.nr_hugepages=1024")
-        return False
+    # 安全修复：不自动执行 sysctl，仅提示用户手动配置
+    print("⚠️ 大页内存配置需要 root 权限")
+    print("   请手动执行以下命令:")
+    print("   sudo sysctl -w vm.nr_hugepages=1024")
+    print("   或在安全配置中启用: allow_hugepage = True")
+    return False
 
 
 def configure_environment():

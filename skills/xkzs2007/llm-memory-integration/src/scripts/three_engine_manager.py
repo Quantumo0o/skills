@@ -114,6 +114,8 @@ class ThreeEngineManager:
                 cursor.execute("SELECT COUNT(*) FROM vocabulary")
                 vocab_count = cursor.fetchone()[0]
                 
+                conn.close()
+                
                 result["status"] = "healthy"
                 result["stats"] = {
                     "documents": doc_count,

@@ -26,11 +26,10 @@ class FaultDetector:
     def check_database_connection(self):
         """检查数据库连接"""
         try:
-            conn = sqlite3.connect(str(VECTORS_DB))
-            cursor = conn.cursor()
-            cursor.execute("SELECT 1")
-            conn.close()
-            return True
+            with sqlite3.connect(str(VECTORS_DB)) as conn:
+                cursor = conn.cursor()
+                cursor.execute("SELECT 1")
+                return True
         except Exception as e:
             self.faults.append({
                 "type": "database_connection",
@@ -43,11 +42,10 @@ class FaultDetector:
     def check_database_integrity(self):
         """检查数据库完整性"""
         try:
-            conn = sqlite3.connect(str(VECTORS_DB))
-            cursor = conn.cursor()
-            cursor.execute("PRAGMA integrity_check")
-            result = cursor.fetchone()[0]
-            conn.close()
+            with sqlite3.connect(str(VECTORS_DB)) as conn:
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA integrity_check")
+                result = cursor.fetchone()[0]
             
             if result != "ok":
                 self.faults.append({
@@ -70,15 +68,13 @@ class FaultDetector:
     def check_vector_coverage(self):
         """检查向量覆盖率"""
         try:
-            conn = sqlite3.connect(str(VECTORS_DB))
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT COUNT(*) FROM l0_conversations")
-            l0_total = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
-            l0_vec = cursor.fetchone()[0]
-            
-            conn.close()
+            with sqlite3.connect(str(VECTORS_DB)) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("SELECT COUNT(*) FROM l0_conversations")
+                l0_total = cursor.fetchone()[0]
+                cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
+                l0_vec = cursor.fetchone()[0]
             
             if l0_total > 0:
                 coverage = l0_vec / l0_total

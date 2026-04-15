@@ -129,7 +129,7 @@ class GPUAccelerator:
             try:
                 import cupy as cp
                 self._cp = cp
-            except:
+            except Exception:
                 self.backend = 'cpu'
         elif self.backend == 'opencl':
             try:
@@ -137,7 +137,7 @@ class GPUAccelerator:
                 self._cl = cl
                 self._ctx = cl.create_some_context()
                 self._queue = cl.CommandQueue(self._ctx)
-            except:
+            except Exception:
                 self.backend = 'cpu'
         
         print(f"GPU 加速器初始化: {self.backend.upper()}")

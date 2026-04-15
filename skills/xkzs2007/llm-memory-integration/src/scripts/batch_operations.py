@@ -2,9 +2,12 @@
 """
 批量操作优化模块
 支持高效的批量插入、更新、删除
+
+安全修复：添加表名和列名验证
 """
 
 import sqlite3
+import re
 from typing import List, Dict, Any, Tuple
 from pathlib import Path
 from contextlib import contextmanager
@@ -13,6 +16,24 @@ from connection_pool import get_connection
 from unified_logger import get_logger
 
 logger = get_logger("batch_operations")
+
+def _validate_identifier(name: str) -> str:
+    """
+    验证标识符（表名、列名）
+    
+    Args:
+        name: 标识符名称
+    
+    Returns:
+        str: 验证后的名称
+    
+    Raises:
+        ValueError: 如果名称无效
+    """
+    # 只允许字母、数字、下划线
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
+        raise ValueError(f"Invalid identifier: {name}")
+    return name
 
 class BatchOperations:
     """批量操作类"""
@@ -55,8 +76,9 @@ class BatchOperations:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             
-            # 获取列名
-            columns = list(records[0].keys())
+            # 安全修复：验证表名和列名
+            table = _validate_identifier(table)
+            columns = [_validate_identifier(col) for col in records[0].keys()]
             placeholders = ', '.join(['?' for _ in columns])
             sql = f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})"
             
@@ -97,11 +119,17 @@ class BatchOperations:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             
+            # 安全修复：验证表名和列名
+            table = _validate_identifier(table)
+            key_column = _validate_identifier(key_column)
+            
             for i in range(0, len(updates), batch_size):
                 batch = updates[i:i+batch_size]
                 
                 for key, values in batch:
-                    set_clause = ', '.join([f"{k} = ?" for k in values.keys()])
+                    # 验证列名
+                    safe_columns = [_validate_identifier(k) for k in values.keys()]
+                    set_clause = ', '.join([f"{k} = ?" for k in safe_columns])
                     sql = f"UPDATE {table} SET {set_clause} WHERE {key_column} = ?"
                     params = list(values.values()) + [key]
                     

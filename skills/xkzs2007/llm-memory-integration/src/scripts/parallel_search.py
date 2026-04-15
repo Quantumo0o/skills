@@ -35,24 +35,41 @@ def search_vector(query):
             embedding = result['data'][0]['embedding']
             vec_hex = struct.pack(f'{len(embedding)}f', *embedding).hex()
             
-            sql = f"SELECT v.record_id, r.content FROM l1_vec v JOIN l1_records r ON v.record_id = r.record_id WHERE v.embedding MATCH X'{vec_hex}' AND k = 5 ORDER BY v.distance ASC;"
-            result = subprocess.run(
-                f'sqlite3 -cmd ".load {VEC_EXT}" "{VECTORS_DB}" "{sql}"', shell=False, capture_output=True, text=True, timeout=5
-            )  # SECURITY FIX: shell=False removed
-            results["vector"] = result.stdout.strip().split('\n')
+            # 安全修复：使用 sqlite3 连接
+            import sqlite3
+            conn = sqlite3.connect(str(VECTORS_DB))
+            conn.enable_load_extension(True)
+            conn.load_extension(str(VEC_EXT))
+            cursor = conn.cursor()
+            sql = "SELECT v.record_id, r.content FROM l1_vec v JOIN l1_records r ON v.record_id = r.record_id WHERE v.embedding MATCH X? AND k = 5 ORDER BY v.distance ASC;"
+            cursor.execute(sql, (vec_hex,))
+            rows = cursor.fetchall()
+            conn.close()
+            results["vector"] = [f"{row[0]}|{row[1]}" for row in rows]
     except Exception as e:
         results["vector"] = [f"Error: {e}"]
 
 def search_fts(query):
-    """FTS 搜索"""
+    """FTS 搜索（安全版本）"""
     tokens = query.replace('，', ' ').replace('、', ' ').split()
-    fts_query = " OR ".join(tokens)
     
-    sql = f"SELECT record_id, content FROM l1_fts WHERE l1_fts MATCH '{fts_query}' ORDER BY rank LIMIT 5;"
-    result = subprocess.run(
-        f'sqlite3 "{VECTORS_DB}" "{sql}"', shell=False, capture_output=True, text=True, timeout=5
-    )  # SECURITY FIX: shell=False removed
-    results["fts"] = result.stdout.strip().split('\n')
+    # 安全修复：转义特殊字符
+    import re
+    safe_tokens = [re.sub(r"['\";\\-]", '', t) for t in tokens if t]
+    fts_query = " OR ".join(safe_tokens) if safe_tokens else ""
+    
+    if not fts_query:
+        results["fts"] = []
+        return
+    
+    import sqlite3
+    conn = sqlite3.connect(str(VECTORS_DB))
+    cursor = conn.cursor()
+    sql = "SELECT record_id, content FROM l1_fts WHERE l1_fts MATCH ? ORDER BY rank LIMIT 5;"
+    cursor.execute(sql, (fts_query,))
+    rows = cursor.fetchall()
+    conn.close()
+    results["fts"] = [f"{row[0]}|{row[1]}" for row in rows]
 
 def main():
     query = sys.argv[1] if len(sys.argv) > 1 else ""

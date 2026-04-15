@@ -27,13 +27,9 @@ from pathlib import Path
 # 安全配置文件路径
 SECURITY_CONFIG_PATH = Path.home() / ".openclaw" / "memory-tdai" / "config" / "security_config.json"
 
-# 默认安全配置
+# 默认安全配置（已移除需要 root 权限的配置）
 DEFAULT_SECURITY_CONFIG = {
-    "allow_sysctl": False,           # 禁止修改 sysctl
-    "allow_service_control": False,  # 禁止控制系统服务
-    "allow_irq_affinity": False,     # 禁止修改 IRQ 亲和性
     "allow_numa_binding": False,     # 禁止 NUMA 绑定
-    "allow_hugepage": False,         # 禁止配置大页内存
     "require_confirmation": True,    # 需要用户确认
     "log_operations": True,          # 记录操作日志
     "allow_auto_apply": False,       # 禁止自动应用
@@ -73,37 +69,12 @@ class SecurityConfirmation:
     所有系统级操作必须通过此类确认。
     """
     
-    # 危险操作列表
+    # 危险操作列表（已移除需要 root 权限的操作）
     DANGEROUS_OPERATIONS = {
-        'sysctl': {
-            'description': '修改内核参数',
-            'risk': '可能影响系统稳定性和安全性',
-            'requires_root': True,
-        },
-        'service_control': {
-            'description': '控制系统服务',
-            'risk': '可能影响系统功能',
-            'requires_root': True,
-        },
-        'irq_affinity': {
-            'description': '修改中断亲和性',
-            'risk': '可能影响系统性能',
-            'requires_root': True,
-        },
         'numa_binding': {
             'description': 'NUMA 内存绑定',
             'risk': '可能影响进程性能',
             'requires_root': False,
-        },
-        'hugepage': {
-            'description': '配置大页内存',
-            'risk': '可能影响内存分配',
-            'requires_root': True,
-        },
-        'realtime_scheduling': {
-            'description': '设置实时调度',
-            'risk': '可能导致系统响应变慢',
-            'requires_root': True,
         },
     }
     
@@ -173,13 +144,7 @@ class SecurityConfirmation:
             self._log_operation(operation_type, operation_detail, 'allowed_by_config')
             return True
         
-        # 检查是否需要 root
-        if permission['requires_root'] and os.geteuid() != 0:
-            print(f"⚠️ 操作 '{operation_type}' 需要 root 权限")
-            self._log_operation(operation_type, operation_detail, 'denied_no_root')
-            return False
-        
-        # 检查是否需要确认
+        # 检查是否需要用户确认
         if not self.config.get('require_confirmation', True):
             self._log_operation(operation_type, operation_detail, 'allowed_no_confirm')
             return True

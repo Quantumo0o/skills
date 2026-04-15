@@ -79,14 +79,33 @@ def main():
     
     cmd = sys.argv[1]
     
+    # 输入验证
+    if len(cmd) > 50:
+        print("❌ 错误: 命令过长")
+        return
+    
+    if not cmd.isalnum():
+        print(f"❌ 错误: 无效的命令格式: {cmd}")
+        return
+    
     if cmd == "enable":
         if len(sys.argv) > 2:
-            enable_stage(sys.argv[2])
+            stage = sys.argv[2]
+            # 输入验证
+            if len(stage) > 10 or not stage.startswith('P'):
+                print("❌ 错误: 无效的阶段名称")
+                return
+            enable_stage(stage)
         else:
             enable_all()
     elif cmd == "disable":
         if len(sys.argv) > 2:
-            disable_stage(sys.argv[2])
+            stage = sys.argv[2]
+            # 输入验证
+            if len(stage) > 10 or not stage.startswith('P'):
+                print("❌ 错误: 无效的阶段名称")
+                return
+            disable_stage(stage)
     elif cmd == "status":
         show_status()
     else:

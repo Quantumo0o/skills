@@ -191,7 +191,7 @@ class VNNISearcher:
         try:
             from numba_accel import int8_dot_product_vnni
             scores = int8_dot_product_vnni(query, self.vectors_int8)
-        except:
+        except Exception:
             scores = self._int8_dot_product_naive(query)
         
         # 获取 top-k

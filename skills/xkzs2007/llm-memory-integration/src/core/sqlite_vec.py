@@ -141,7 +141,7 @@ def is_vec_available(conn: Any) -> bool:
     try:
         version = get_vec_version(conn)
         return bool(version and not version.startswith("获取版本失败"))
-    except:
+    except Exception:
         return False
 
 
