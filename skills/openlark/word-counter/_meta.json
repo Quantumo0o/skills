@@ -1,0 +1,11 @@
+{
+  "owner": "openlark",
+  "slug": "word-counter",
+  "displayName": "Word Counter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776217396476,
+    "commit": null
+  },
+  "history": []
+}
