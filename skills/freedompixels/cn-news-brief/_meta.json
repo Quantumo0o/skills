@@ -1,0 +1,11 @@
+{
+  "owner": "freedompixels",
+  "slug": "cn-news-brief",
+  "displayName": "中文新闻简报",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776037924261,
+    "commit": null
+  },
+  "history": []
+}
