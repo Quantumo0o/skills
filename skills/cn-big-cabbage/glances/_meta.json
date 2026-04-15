@@ -1,0 +1,11 @@
+{
+  "owner": "cn-big-cabbage",
+  "slug": "glances",
+  "displayName": "Glances",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776214964283,
+    "commit": null
+  },
+  "history": []
+}
