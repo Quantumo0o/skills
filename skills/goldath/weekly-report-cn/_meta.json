@@ -1,0 +1,11 @@
+{
+  "owner": "goldath",
+  "slug": "weekly-report-cn",
+  "displayName": "中文周报日报自动生成",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776047761234,
+    "commit": null
+  },
+  "history": []
+}
