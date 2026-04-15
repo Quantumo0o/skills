@@ -1,0 +1,11 @@
+{
+  "owner": "bevanding",
+  "slug": "cex-trader",
+  "displayName": "Cex Trader",
+  "latest": {
+    "version": "2.0.2",
+    "publishedAt": 1776237294202,
+    "commit": null
+  },
+  "history": []
+}
