@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "maven-pom-validator",
+  "displayName": "Maven POM Validator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776123234806,
+    "commit": null
+  },
+  "history": []
+}
