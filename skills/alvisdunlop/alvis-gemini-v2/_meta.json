@@ -1,0 +1,11 @@
+{
+  "owner": "alvisdunlop",
+  "slug": "alvis-gemini-v2",
+  "displayName": "Gemini",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776244980436,
+    "commit": null
+  },
+  "history": []
+}
