@@ -1,0 +1,11 @@
+{
+  "owner": "infectit007",
+  "slug": "eva-security-audit",
+  "displayName": "OpenClaw Security Audit — BLUF Report",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776106062082,
+    "commit": null
+  },
+  "history": []
+}
