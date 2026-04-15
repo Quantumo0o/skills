@@ -1,0 +1,11 @@
+{
+  "owner": "morzai-app",
+  "slug": "morzai-skills",
+  "displayName": "Morzai Skills",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776223220379,
+    "commit": null
+  },
+  "history": []
+}
