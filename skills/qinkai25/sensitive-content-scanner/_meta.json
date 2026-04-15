@@ -1,0 +1,11 @@
+{
+  "owner": "qinkai25",
+  "slug": "sensitive-content-scanner",
+  "displayName": "敏感内容扫描器",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1776156293357,
+    "commit": null
+  },
+  "history": []
+}
