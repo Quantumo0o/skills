@@ -39,7 +39,7 @@ Analyze agent runtime logs, detect patterns, compute health scores, and generate
 
 ### Step 1: Install (30 seconds)
 ```bash
-openclaw skill add capability-evolver
+openclaw skills install capability-evolver
 ```
 
 ### Step 2: Analyze Your First Logs (1 minute)
