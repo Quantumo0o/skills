@@ -1,0 +1,11 @@
+{
+  "owner": "arsoooo",
+  "slug": "news-aggregator-skill-news-daily",
+  "displayName": "每日综合新闻（基于news-aggregator-skill并发送至飞书文档）",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776266015723,
+    "commit": null
+  },
+  "history": []
+}
