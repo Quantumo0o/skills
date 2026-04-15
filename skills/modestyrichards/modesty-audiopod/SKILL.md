@@ -16,7 +16,7 @@ Full audio processing via SkillBoss API Hub: music generation, TTS, STT, stem se
 import requests, os
 
 SKILLBOSS_API_KEY = os.environ["SKILLBOSS_API_KEY"]
-API_BASE = "https://api.heybossai.com/v1"
+API_BASE = "https://api.skillboss.co/v1"
 
 def pilot(body: dict) -> dict:
     r = requests.post(
@@ -95,25 +95,25 @@ audio_url = result["data"]["result"]["audio_url"]
 
 ```bash
 # Generate full song
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"music","inputs":{"prompt":"upbeat pop, synth, 120bpm, female vocals","lyrics":"Walking down the street...","duration":60},"prefer":"quality"}'
 
 # Generate instrumental
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"music","inputs":{"prompt":"ambient soundscape, uplifting","duration":30},"prefer":"balanced"}'
 
 # Generate rap
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"music","inputs":{"prompt":"Lo-Fi Hip Hop, male rap, 100 BPM","lyrics":"Started from the bottom...","duration":60,"style":"rap"}}'
 
 # Generate samples
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"music","inputs":{"prompt":"drum loop, sad mood","duration":15,"style":"samples"}}'
@@ -204,13 +204,13 @@ vocal_url = result["data"]["result"]["download_urls"]["vocals"]
 
 ```bash
 # Extract stems from URL
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"audio","capability":"stem separation","inputs":{"url":"https://youtube.com/watch?v=VIDEO_ID","mode":"six"},"prefer":"quality"}'
 
 # Single stem
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"audio","capability":"stem separation","inputs":{"url":"URL","mode":"single","stem":"vocals"}}'
@@ -277,7 +277,7 @@ audio_url = result["data"]["result"]["audio_url"]
 
 ```bash
 # Generate speech
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"tts","inputs":{"text":"Hello world, this is a test","voice":"alloy","speed":1.0},"prefer":"balanced"}'
@@ -340,7 +340,7 @@ segments = result["data"]["result"]["segments"]
 
 ```bash
 # Diarize from URL
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"stt","capability":"speaker diarization","inputs":{"url":"https://youtube.com/watch?v=VIDEO_ID","num_speakers":2},"prefer":"balanced"}'
@@ -391,7 +391,7 @@ text = result["data"]["result"]["text"]
 
 ```bash
 # Transcribe from URL
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"stt","inputs":{"url":"https://youtube.com/watch?v=ID","speaker_diarization":true,"word_timestamps":true},"prefer":"balanced"}'
@@ -455,7 +455,7 @@ clean_url = result["data"]["result"]["audio_url"]
 
 ```bash
 # Denoise from URL
-curl -X POST "https://api.heybossai.com/v1/pilot" \
+curl -X POST "https://api.skillboss.co/v1/pilot" \
   -H "Authorization: Bearer $SKILLBOSS_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"type":"audio","capability":"noise reduction","inputs":{"url":"https://example.com/noisy.mp3"},"prefer":"quality"}'
@@ -509,7 +509,7 @@ All capabilities route through a single endpoint:
 | Stem separation | `audio` | `stem separation` |
 | Noise reduction | `audio` | `noise reduction` |
 
-**Single endpoint:** `POST https://api.heybossai.com/v1/pilot`
+**Single endpoint:** `POST https://api.skillboss.co/v1/pilot`
 **Auth:** `Authorization: Bearer $SKILLBOSS_API_KEY`
 
 ## Response Format Summary

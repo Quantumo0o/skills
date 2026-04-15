@@ -18,7 +18,7 @@
 
 ## API Endpoint
 
-**All requests:** `POST https://api.heybossai.com/v1/pilot`
+**All requests:** `POST https://api.skillboss.co/v1/pilot`
 **Auth:** `Authorization: Bearer $SKILLBOSS_API_KEY`
 
 ```json
