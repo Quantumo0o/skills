@@ -1,0 +1,11 @@
+{
+  "owner": "eve-builds",
+  "slug": "heygen-skills",
+  "displayName": "HeyGen Skills",
+  "latest": {
+    "version": "2.0.3",
+    "publishedAt": 1776131640136,
+    "commit": null
+  },
+  "history": []
+}
