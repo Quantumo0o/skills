@@ -3,11 +3,16 @@
   "slug": "clawsec-feed",
   "displayName": "clawsec-feed",
   "latest": {
-    "version": "0.0.5",
-    "publishedAt": 1772440340541,
-    "commit": "https://github.com/openclaw/skills/commit/a7d17a84ecfa2508e756c1f3337fd65929cece4d"
+    "version": "0.0.6",
+    "publishedAt": 1776172101835,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.5",
+      "publishedAt": 1772440340541,
+      "commit": "https://github.com/openclaw/skills/commit/a7d17a84ecfa2508e756c1f3337fd65929cece4d"
+    },
     {
       "version": "0.0.4",
       "publishedAt": 1770332088184,
