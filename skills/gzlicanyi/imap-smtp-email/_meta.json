@@ -3,11 +3,16 @@
   "slug": "imap-smtp-email",
   "displayName": "imap-smtp-email",
   "latest": {
-    "version": "0.0.10",
-    "publishedAt": 1773646380130,
-    "commit": "https://github.com/openclaw/skills/commit/a80cb7e7094bb39e5b87b5090893cabddb2c4cc7"
+    "version": "0.0.13",
+    "publishedAt": 1776237939871,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.10",
+      "publishedAt": 1773646380130,
+      "commit": "https://github.com/openclaw/skills/commit/a80cb7e7094bb39e5b87b5090893cabddb2c4cc7"
+    },
     {
       "version": "0.0.9",
       "publishedAt": 1772525235079,
