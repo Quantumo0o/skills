@@ -120,6 +120,18 @@ metadata: {"openclaw":{"emoji":"🧠","events":["agent:bootstrap","message:recei
 - `连续性`|`偏好` → `## Continuity（连续性）`
 - 其他 → `## 其他`
 
+## 事件结构
+
+Hook 监听以下 OpenClaw 事件：
+
+| 事件 | 读取字段 | 说明 |
+|------|----------|------|
+| `message:received` | `event.context.content` | 用户发送的消息内容 |
+| `tool:after` | `event.context.output` | 工具执行输出 |
+| `agent:bootstrap` | `event.context.bootstrapFiles` | 注入引导文件 |
+
+**兼容性：** Hook 同时支持 `event.message` 和 `event.toolOutput` 旧格式，确保向后兼容。
+
 ## 配置
 
 无需配置。使用以下命令启用：

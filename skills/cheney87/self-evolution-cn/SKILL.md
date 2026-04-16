@@ -1,7 +1,7 @@
 ---
 name: self-evolution-cn
 slug: self-evolution-cn
-version: 2.0.0
+version: 2.0.2
 homepage: https://clawhub.ai/skills/self-evolution-cn
 description: "多 agent 自我进化系统，自动记录学习、错误和功能需求，支持多 agent 统计和自动提升"
 ---
@@ -60,6 +60,18 @@ crontab -e  # 添加：0 0 * * * ~/.openclaw/skills/self-evolution-cn/scripts/tr
 openclaw hooks enable self-evolution-cn
 ```
 
+### Hook 事件结构
+
+Hook 监听 OpenClaw 事件并从正确字段读取数据：
+
+| 事件 | 读取字段 | 说明 |
+|------|----------|------|
+| `message:received` | `event.context.content` | 用户消息内容 |
+| `tool:after` | `event.context.output` | 工具执行输出 |
+| `agent:bootstrap` | `event.context.bootstrapFiles` | 引导文件注入 |
+
+**兼容性：** 同时支持 `event.message` 和 `event.toolOutput` 旧格式。
+
 ## 常见问题
 
 ### Q: 如何手动执行检查？
@@ -113,6 +125,17 @@ clawdhub update self-evolution-cn
 当前版本：2.0.0
 
 ### 更新日志
+
+**v2.0.2 (2026-04-16)**
+- 修复 skills 目录下的 handler.js，确保发布到 clawhub 的版本包含正确的修复
+- 从 `event.context.content` 读取消息，而非 `event.message`
+- 从 `event.context.output` 读取工具输出，而非 `event.toolOutput`
+
+**v2.0.1 (2026-04-16)**
+- 修复 Hook 事件结构读取错误：从 `event.context.content` 读取消息，而非 `event.message`
+- 修复 Hook 工具输出读取：从 `event.context.output` 读取，而非 `event.toolOutput`
+- 添加事件结构说明文档
+- 向后兼容旧格式
 
 **v2.0.0 (2026-04-07)**
 - 优化提升格式，去除冗余元数据
