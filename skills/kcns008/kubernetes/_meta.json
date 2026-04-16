@@ -1,13 +1,18 @@
 {
   "owner": "kcns008",
   "slug": "kubernetes",
-  "displayName": "Kubernetes",
+  "displayName": "Kubernetes Agent Swarm",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1774816950189,
-    "commit": "https://github.com/openclaw/skills/commit/32fb730b741429ddd96139b3f6ea90d8f9585cd0"
+    "version": "2.1.0",
+    "publishedAt": 1776271478414,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1774816950189,
+      "commit": "https://github.com/openclaw/skills/commit/32fb730b741429ddd96139b3f6ea90d8f9585cd0"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1774312317829,

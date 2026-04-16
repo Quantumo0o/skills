@@ -19,14 +19,22 @@ metadata:
     - gke
     - rosa
     - aro
-  tools:
-    - argocd
-    - helm
-    - kustomize
-    - kubectl
-    - oc
-    - git
-    - jq
+  model_invocation: false
+  requires:
+    env:
+      - KUBECONFIG
+    binaries:
+      - kubectl
+    credentials:
+      - kubeconfig: "Cluster access via KUBECONFIG"
+    optional_binaries:
+      - oc
+      - helm
+      - argocd
+      - kustomize
+      - git
+    optional_credentials:
+      - gitops: "ArgoCD token for GitOps operations"
 ---
 
 # GitOps Agent — Flow
@@ -73,6 +81,9 @@ You believe in self-healing systems. Every change goes through a PR.
 
 ### Application Operations
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # List all applications
 argocd app list
@@ -81,62 +92,64 @@ argocd app list
 argocd app list --output json | jq '.[] | {name: .metadata.name, sync: .status.sync.status, health: .status.health.status}'
 
 # Get application details
-argocd app get ${APP_NAME}
+argocd app get my-app
 
 # Get app with hard refresh (re-read from Git)
-argocd app get ${APP_NAME} --hard-refresh
+argocd app get my-app --hard-refresh
 
 # Sync application
-argocd app sync ${APP_NAME}
+argocd app sync my-app
 
 # Sync with prune (remove resources not in Git)
-argocd app sync ${APP_NAME} --prune
+argocd app sync my-app --prune
 
 # Sync with force (replace resources)
-argocd app sync ${APP_NAME} --force
+argocd app sync my-app --force
 
 # Sync specific resources only
-argocd app sync ${APP_NAME} --resource apps:Deployment:${DEPLOY_NAME}
+argocd app sync my-app --resource apps:Deployment:my-deployment
 
 # Dry run sync
-argocd app sync ${APP_NAME} --dry-run
+argocd app sync my-app --dry-run
 
 # Rollback to previous revision
-argocd app rollback ${APP_NAME} --revision ${REVISION}
+argocd app rollback my-app --revision v1.0.0
 
 # View application history
-argocd app history ${APP_NAME}
+argocd app history my-app
 
 # Delete application
-argocd app delete ${APP_NAME} --cascade
+argocd app delete my-app --cascade
 ```
 
 ### Use the bundled sync helper:
 ```bash
-bash scripts/argocd-app-sync.sh ${APP_NAME} [--prune] [--force]
 ```
 
 ### Application Creation
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # Create application from Git repo
-argocd app create ${APP_NAME} \
-  --repo ${GIT_REPO} \
-  --path ${GIT_PATH} \
+argocd app create my-app \
+  --repo github.com/org/my-repo \
+  --path /path/to/charts \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace ${NAMESPACE} \
-  --project ${PROJECT} \
+  --dest-namespace my-namespace \
+  --project my-project \
   --sync-policy automated \
   --auto-prune \
   --self-heal
 
 # Create application from Helm chart
-argocd app create ${APP_NAME} \
-  --repo ${HELM_REPO} \
-  --helm-chart ${CHART_NAME} \
-  --revision ${CHART_VERSION} \
+argocd app create my-app \
+  --repo https://charts.example.com \
+  --helm-chart my-chart \
+  --revision 1.0.0 \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace ${NAMESPACE} \
+  --dest-namespace my-namespace \
   --helm-set key=value
 ```
 
@@ -147,7 +160,7 @@ argocd app create ${APP_NAME} \
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: ${APP_NAME}
+  name: my-app
   namespace: argocd
   labels:
     app.kubernetes.io/managed-by: cluster-agent-swarm
@@ -155,18 +168,18 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: ${PROJECT}
+  project: my-project
   source:
-    repoURL: ${GIT_REPO}
-    targetRevision: ${BRANCH:-main}
-    path: ${GIT_PATH}
+    repoURL: github.com/org/my-repo
+    targetRevision: main
+    path: /path/to/charts
     helm:
       valueFiles:
         - values.yaml
-        - values-${ENVIRONMENT}.yaml
+        - values-production.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: ${NAMESPACE}
+    namespace: my-namespace
   syncPolicy:
     automated:
       prune: true
@@ -195,7 +208,7 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: ${APP_NAME}-set
+  name: my-app-set
   namespace: argocd
 spec:
   generators:
@@ -205,18 +218,18 @@ spec:
             environment: production
   template:
     metadata:
-      name: '${APP_NAME}-{{name}}'
+      name: 'my-app-{{name}}'
       labels:
         agent.platform/managed-by: flow
     spec:
-      project: ${PROJECT}
+      project: my-project
       source:
-        repoURL: ${GIT_REPO}
+        repoURL: github.com/org/my-repo
         targetRevision: main
         path: 'deploy/{{metadata.labels.environment}}'
       destination:
         server: '{{server}}'
-        namespace: ${NAMESPACE}
+        namespace: my-namespace
       syncPolicy:
         automated:
           prune: true
@@ -229,59 +242,61 @@ spec:
 
 ### Chart Management
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # Add Helm repo
-helm repo add ${REPO_NAME} ${REPO_URL}
+helm repo add my-repo https://github.com/org/my-repo
 helm repo update
 
 # Search for charts
-helm search repo ${CHART_NAME}
+helm search repo my-chart
 
 # Show chart info
-helm show chart ${REPO}/${CHART}
-helm show values ${REPO}/${CHART}
+helm show chart my-repo/my-chart
+helm show values my-repo/my-chart
 
 # Template locally (dry run)
-helm template ${RELEASE} ${REPO}/${CHART} \
+helm template my-release my-repo/my-chart \
   -f values.yaml \
   -f values-prod.yaml \
-  --namespace ${NAMESPACE}
+  --namespace my-namespace
 
 # Install chart
-helm install ${RELEASE} ${REPO}/${CHART} \
+helm install my-release my-repo/my-chart \
   -f values.yaml \
-  --namespace ${NAMESPACE} \
+  --namespace my-namespace \
   --create-namespace
 
 # Upgrade release
-helm upgrade ${RELEASE} ${REPO}/${CHART} \
+helm upgrade my-release my-repo/my-chart \
   -f values.yaml \
-  --namespace ${NAMESPACE}
+  --namespace my-namespace
 
 # Diff before upgrade
-helm diff upgrade ${RELEASE} ${REPO}/${CHART} \
+helm diff upgrade my-release my-repo/my-chart \
   -f values.yaml \
-  --namespace ${NAMESPACE}
+  --namespace my-namespace
 
 # Rollback
-helm rollback ${RELEASE} ${REVISION} --namespace ${NAMESPACE}
+helm rollback my-release v1.0.0 --namespace my-namespace
 
 # List releases
 helm list -A
 
 # Get release history
-helm history ${RELEASE} --namespace ${NAMESPACE}
+helm history my-release --namespace my-namespace
 ```
 
 ### Use the bundled diff helper:
 ```bash
-bash scripts/helm-diff.sh ${RELEASE} ${CHART} ${NAMESPACE}
 ```
 
 ### Helm Chart Structure
 
 ```
-charts/${APP_NAME}/
+charts/my-app/
 ├── Chart.yaml
 ├── values.yaml
 ├── values-dev.yaml
@@ -309,15 +324,18 @@ charts/${APP_NAME}/
 
 ### Kustomize Overlays
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # Build and preview
-kustomize build overlays/${ENVIRONMENT}
+kustomize build overlays/production
 
 # Apply
-kustomize build overlays/${ENVIRONMENT} | kubectl apply -f -
+kustomize build overlays/production | kubectl apply -f -
 
 # Diff against live
-kustomize build overlays/${ENVIRONMENT} | kubectl diff -f -
+kustomize build overlays/production | kubectl diff -f -
 ```
 
 ### Kustomize Structure
@@ -377,7 +395,7 @@ kind: Kustomization
 resources:
   - ../../base
 
-namespace: ${APP_NAME}-prod
+namespace: my-app-prod
 
 patches:
   - path: patches/replicas.yaml
@@ -385,9 +403,9 @@ patches:
   - path: patches/hpa.yaml
 
 images:
-  - name: ${APP_NAME}
-    newName: ${REGISTRY}/${APP_NAME}
-    newTag: ${VERSION}
+  - name: my-app
+    newName: registry.example.com/my-app
+    newTag: v1.0.0
 ```
 
 ---
@@ -400,8 +418,8 @@ images:
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: my-app
+  namespace: my-namespace
 spec:
   replicas: 10
   strategy:
@@ -415,26 +433,26 @@ spec:
         - pause: {duration: 10m}
         - setWeight: 80
         - pause: {duration: 5m}
-      canaryService: ${APP_NAME}-canary
-      stableService: ${APP_NAME}-stable
+      canaryService: my-app-canary
+      stableService: my-app-stable
       analysis:
         templates:
           - templateName: success-rate
         startingStep: 1
         args:
           - name: service-name
-            value: ${APP_NAME}
+            value: my-app
   selector:
     matchLabels:
-      app: ${APP_NAME}
+      app: my-app
   template:
     metadata:
       labels:
-        app: ${APP_NAME}
+        app: my-app
     spec:
       containers:
-        - name: ${APP_NAME}
-          image: ${IMAGE}:${VERSION}
+        - name: my-app
+          image: my-app:v1.0.0:v1.0.0
           ports:
             - containerPort: 8080
 ```
@@ -445,14 +463,14 @@ spec:
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: my-app
+  namespace: my-namespace
 spec:
   replicas: 5
   strategy:
     blueGreen:
-      activeService: ${APP_NAME}-active
-      previewService: ${APP_NAME}-preview
+      activeService: my-app-active
+      previewService: my-app-preview
       autoPromotionEnabled: false
       scaleDownDelaySeconds: 300
       prePromotionAnalysis:
@@ -460,18 +478,18 @@ spec:
           - templateName: smoke-test
         args:
           - name: service-url
-            value: http://${APP_NAME}-preview:8080
+            value: http://my-app-preview:8080
   selector:
     matchLabels:
-      app: ${APP_NAME}
+      app: my-app
   template:
     metadata:
       labels:
-        app: ${APP_NAME}
+        app: my-app
     spec:
       containers:
-        - name: ${APP_NAME}
-          image: ${IMAGE}:${VERSION}
+        - name: my-app
+          image: my-app:v1.0.0:v1.0.0
 ```
 
 ### Rolling Update (Standard K8s)
@@ -480,7 +498,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${APP_NAME}
+  name: my-app
 spec:
   replicas: 5
   strategy:
@@ -490,12 +508,12 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: ${APP_NAME}
+      app: my-app
   template:
     spec:
       containers:
-        - name: ${APP_NAME}
-          image: ${IMAGE}:${VERSION}
+        - name: my-app
+          image: my-app:v1.0.0:v1.0.0
           readinessProbe:
             httpGet:
               path: /ready
@@ -511,11 +529,9 @@ spec:
 ### Detect Configuration Drift
 
 ```bash
-# Use the bundled drift detector
-bash scripts/drift-detect.sh
 
 # Manual drift check via ArgoCD
-argocd app diff ${APP_NAME}
+argocd app diff my-app
 
 # Check all apps for drift
 argocd app list -o json | jq -r '.[] | select(.status.sync.status != "Synced") | "\(.metadata.name): \(.status.sync.status)"'
@@ -543,20 +559,20 @@ syncPolicy:
 
 ```bash
 # Add cluster to ArgoCD
-argocd cluster add ${CONTEXT_NAME}
+argocd cluster add my-context
 
 # List registered clusters
 argocd cluster list
 
 # Get cluster info
-argocd cluster get ${CLUSTER_URL}
+argocd cluster get https://api.my-cluster.example.com
 ```
 
 ### Cluster Labels for ApplicationSets
 
 ```bash
 # Label cluster for targeting
-argocd cluster set ${CLUSTER_URL} \
+argocd cluster set https://api.my-cluster.example.com \
   --label environment=production \
   --label region=us-east-1 \
   --label platform=openshift
@@ -572,14 +588,14 @@ argocd cluster set ${CLUSTER_URL} \
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: my-app
+  namespace: my-namespace
   annotations:
     haproxy.router.openshift.io/timeout: 60s
 spec:
   to:
     kind: Service
-    name: ${APP_NAME}
+    name: my-app
     weight: 100
   port:
     targetPort: http
@@ -591,18 +607,21 @@ spec:
 
 ### OpenShift DeploymentConfig (Legacy)
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # View DeploymentConfigs
-oc get dc -n ${NAMESPACE}
+oc get dc -n my-namespace
 
 # Rollout latest
-oc rollout latest dc/${APP_NAME} -n ${NAMESPACE}
+oc rollout latest dc/my-app -n my-namespace
 
 # Rollback
-oc rollback dc/${APP_NAME} -n ${NAMESPACE}
+oc rollback dc/my-app -n my-namespace
 
 # Scale
-oc scale dc/${APP_NAME} --replicas=${COUNT} -n ${NAMESPACE}
+oc scale dc/my-app --replicas=3 -n my-namespace
 ```
 
 ---
@@ -615,24 +634,24 @@ oc scale dc/${APP_NAME} --replicas=${COUNT} -n ${NAMESPACE}
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-  name: ${APP_NAME}-secrets
-  namespace: ${NAMESPACE}
+  name: my-app-secrets
+  namespace: my-namespace
 spec:
   refreshInterval: 1h
   secretStoreRef:
     kind: ClusterSecretStore
     name: vault-backend
   target:
-    name: ${APP_NAME}-secrets
+    name: my-app-secrets
     creationPolicy: Owner
   data:
     - secretKey: DATABASE_URL
       remoteRef:
-        key: secret/data/${APP_NAME}/db
+        key: secret/data/my-app/db
         property: url
     - secretKey: API_KEY
       remoteRef:
-        key: secret/data/${APP_NAME}/api
+        key: secret/data/my-app/api
         property: key
 ```
 
@@ -691,7 +710,7 @@ spec:
     spec:
       containers:
         - name: migrate
-          image: ${IMAGE}:${VERSION}
+          image: my-app:v1.0.0:v1.0.0
           command: ["./migrate.sh"]
       restartPolicy: Never
 ```
@@ -701,6 +720,9 @@ spec:
 ## 10. AWS SECRETS MANAGER (For ROSA)
 
 ### Store Secret in AWS Secrets Manager
+
+
+> ⚠️ Requires human approval before executing.
 
 ```bash
 # Create secret
@@ -785,28 +807,31 @@ spec:
 
 ### Store Secret in Azure Key Vault
 
+
+> ⚠️ Requires human approval before executing.
+
 ```bash
 # Create key vault
 az keyvault create \
-  --name ${KV_NAME} \
-  --resource-group ${RG} \
-  --location ${LOCATION}
+  --name my-keyvault \
+  --resource-group my-resource-group \
+  --location eastus
 
 # Set secret
 az keyvault secret set \
-  --vault-name ${KV_NAME} \
+  --vault-name my-keyvault \
   --name "db-password" \
   --value "secret123"
 
 # Get secret
 az keyvault secret show \
-  --vault-name ${KV_NAME} \
+  --vault-name my-keyvault \
   --name "db-password" \
   --query value
 
 # Enable RBAC for key vault
 az keyvault update \
-  --name ${KV_NAME} \
+  --name my-keyvault \
   --enable-rbac-authorization true
 ```
 
@@ -820,12 +845,12 @@ metadata:
 spec:
   provider:
     azure:
-      tenantId: ${AZURE_TENANT_ID}
-      clientId: ${AZURE_CLIENT_ID}
+      tenantId: 00000000-0000-0000-0000-000000000000
+      clientId: 00000000-0000-0000-0000-000000000000
       clientSecret:
         name: azure-sp-secret
         namespace: external-secrets
-      vaultUrl: "https://${KV_NAME}.vault.azure.net"
+      vaultUrl: "https://my-keyvault.vault.azure.net"
 ---
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -851,17 +876,17 @@ spec:
 ```bash
 # Create federated identity
 az identity federated-credential create \
-  --name ${FED_NAME} \
-  --identity-name ${IDENTITY_NAME} \
-  --resource-group ${RG} \
-  --issuer ${OIDC_ISSUER} \
+  --name my-federation \
+  --identity-name my-identity \
+  --resource-group my-resource-group \
+  --issuer https://oidc.example.com \
   --subject "system:serviceaccount:external-secrets:external-secrets"
 
 # Assign Key Vault access
 az role assignment create \
-  --assignee ${CLIENT_ID} \
+  --assignee 00000000-0000-0000-0000-000000000000 \
   --role "Key Vault Secrets User" \
-  --scope "/subscriptions/${SUB_ID}/resourceGroups/${RG}/providers/Microsoft.KeyVault/vaults/${KV_NAME}"
+  --scope "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/my-resource-group/providers/Microsoft.KeyVault/vaults/my-keyvault"
 ```
 
 ### ArgoCD App for ARO with Azure Key Vault
@@ -1109,18 +1134,3 @@ curl -X POST 'https://events.pagerduty.com/v2/enqueue' \
 | MEDIUM | 30 minutes | No escalation |
 
 ---
-
-## Helper Scripts
-
-| Script | Purpose |
-|--------|---------|
-| `argocd-app-sync.sh` | ArgoCD application sync helper |
-| `drift-detect.sh` | Configuration drift detection |
-| `helm-diff.sh` | Helm release diff before upgrade |
-| `rollback.sh` | Safe deployment rollback |
-| `promote-image.sh` | Image promotion across environments |
-
-Run any script:
-```bash
-bash scripts/<script-name>.sh [arguments]
-```
