@@ -3,11 +3,16 @@
   "slug": "eisenhower-task-manager",
   "displayName": "Eisenhower Task Manager",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775703261363,
-    "commit": "https://github.com/openclaw/skills/commit/7ee0728e7f147769fdd752b893dda3d054d4ae44"
+    "version": "1.0.6",
+    "publishedAt": 1776349617320,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775703261363,
+      "commit": "https://github.com/openclaw/skills/commit/7ee0728e7f147769fdd752b893dda3d054d4ae44"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774842297419,
