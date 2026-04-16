@@ -3,11 +3,16 @@
   "slug": "video-agent",
   "displayName": "Video Agent (Deprecated)",
   "latest": {
-    "version": "2.22.0",
-    "publishedAt": 1775415269945,
-    "commit": "https://github.com/openclaw/skills/commit/deb6b2609085b68241e6c26c3ace3d8818e8e51b"
+    "version": "2.23.0",
+    "publishedAt": 1776103932448,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.22.0",
+      "publishedAt": 1775415269945,
+      "commit": "https://github.com/openclaw/skills/commit/deb6b2609085b68241e6c26c3ace3d8818e8e51b"
+    },
     {
       "version": "2.21.0",
       "publishedAt": 1773618137940,
