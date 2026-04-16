@@ -3,11 +3,16 @@
   "slug": "planning-with-files",
   "displayName": "Planning with files",
   "latest": {
-    "version": "2.26.1",
-    "publishedAt": 1774037351007,
-    "commit": "https://github.com/openclaw/skills/commit/ce32ef69de460238f9ea91d43989a482f819e8e5"
+    "version": "2.34.0",
+    "publishedAt": 1776280417470,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.26.1",
+      "publishedAt": 1774037351007,
+      "commit": "https://github.com/openclaw/skills/commit/ce32ef69de460238f9ea91d43989a482f819e8e5"
+    },
     {
       "version": "2.22.0",
       "publishedAt": 1773269478507,
