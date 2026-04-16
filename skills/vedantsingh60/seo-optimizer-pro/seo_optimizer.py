@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 SEO Optimizer Pro - AI-Powered SEO Content Optimization
-Version: 1.0.7
+Version: 1.0.8
 Copyright © 2026 UnisAI. All Rights Reserved.
 
 Model-agnostic SEO analysis — pass any model ID from any supported provider.
@@ -31,7 +31,7 @@ PRIVACY NOTICE: This skill sends your content to third-party AI providers.
 Review the provider's privacy policy before sending sensitive content.
 """
 
-__version__ = "1.0.7"
+__version__ = "1.0.8"
 
 import os
 import json
@@ -131,8 +131,8 @@ class SEOOptimizer:
     # Known tested models — documentation only, NOT a validation gate.
     KNOWN_MODELS = [
         "claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5-20251001",
-        "gpt-5.2-pro", "gpt-5.2", "gpt-5.1",
-        "gemini-2.5-pro", "gemini-2.5-flash",
+        "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-thinking", "gpt-5.2-pro", "gpt-5.2",
+        "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-3-flash", "gemini-2.5-pro", "gemini-2.5-flash",
         "mistral-large-latest", "mistral-small-latest",
         "deepseek-chat", "deepseek-reasoner",
         "grok-4-1-fast", "grok-3-beta",

@@ -3,11 +3,16 @@
   "slug": "seo-optimizer-pro",
   "displayName": "SEO Optimizer Pro",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1772205281523,
-    "commit": "https://github.com/openclaw/skills/commit/21ba3ab28946a8f041370c8fa8fb4856009977da"
+    "version": "1.0.8",
+    "publishedAt": 1775753479397,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1772205281523,
+      "commit": "https://github.com/openclaw/skills/commit/21ba3ab28946a8f041370c8fa8fb4856009977da"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1771271180367,

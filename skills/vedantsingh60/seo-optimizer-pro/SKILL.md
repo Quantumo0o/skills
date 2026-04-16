@@ -44,8 +44,8 @@ No hardcoded list; new models work without updates.
 | Provider | Tested Models | Prefix |
 |----------|--------------|--------|
 | **Anthropic** | claude-opus-4-6, claude-sonnet-4-6, claude-haiku-4-5-20251001 | `claude-` |
-| **OpenAI** | gpt-5.2-pro, gpt-5.2, gpt-5.1 | `gpt-`, `o1`, `o3` |
-| **Google** | gemini-2.5-pro, gemini-2.5-flash | `gemini-` |
+| **OpenAI** | gpt-5.4, gpt-5.4-pro, gpt-5.4-mini, gpt-5.4-thinking, gpt-5.2-pro, gpt-5.2 | `gpt-`, `o1`, `o3` |
+| **Google** | gemini-3.1-pro-preview, gemini-3.1-flash-lite, gemini-3-flash, gemini-2.5-pro | `gemini-` |
 | **Mistral** | mistral-large-latest, mistral-small-latest | `mistral-`, `mixtral-` |
 | **DeepSeek** | deepseek-chat, deepseek-reasoner | `deepseek-` |
 | **xAI** | grok-4-1-fast, grok-3-beta | `grok-` |
@@ -242,8 +242,8 @@ from skills.seo_optimizer import SEOOptimizer
 optimizer = SEOOptimizer()
 
 # Or use a different model
-optimizer = SEOOptimizer(model="gpt-5.2-pro")  # Use GPT-5.2
-# optimizer = SEOOptimizer(model="gemini-3-pro")  # Use Gemini 3
+optimizer = SEOOptimizer(model="gpt-5.4")  # Use GPT-5.4
+# optimizer = SEOOptimizer(model="gemini-3.1-pro-preview")  # Use Gemini 3.1
 # optimizer = SEOOptimizer(model="mistral-large-2501")  # Use Mistral
 
 # Analyze content
@@ -276,7 +276,9 @@ for i, rec in enumerate(results.aeo_recommendations, 1):
 - `claude-opus-4-6` (Recommended — best quality)
 - `claude-sonnet-4-6`
 - `claude-haiku-4-5-20251001` (Default — fastest/cheapest)
-- `gpt-5.2-pro`, `gpt-5.2`, `gpt-5.1`
+- `gpt-5.4`, `gpt-5.4-pro`, `gpt-5.4-mini`, `gpt-5.4-thinking`
+- `gpt-5.2-pro`, `gpt-5.2`
+- `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite`, `gemini-3-flash`
 - `gemini-2.5-pro`, `gemini-2.5-flash`
 - `mistral-large-latest`, `mistral-small-latest`
 - `deepseek-chat`, `deepseek-reasoner`
@@ -403,11 +405,11 @@ A: No, this skill analyzes and optimizes existing content. To generate new conte
 
 ## 🗺️ Roadmap
 
-### ✅ Current Release (v1.0.2)
+### ✅ Current Release (v1.0.8)
 - Content readability analysis (Flesch-Kincaid)
 - Keyword density tracking
 - Technical SEO audit
-- Multi-provider AI optimization (Claude, GPT, Gemini, Llama, Mistral)
+- Multi-provider AI optimization (Claude, GPT-5.4, Gemini 3.1, DeepSeek, Grok, MiniMax, Qwen, Llama, Mistral)
 - AEO-specific recommendations
 - Impact estimation
 
@@ -473,6 +475,13 @@ This skill is **free and open to all users** on ClawhHub.
 
 ## 📝 Changelog
 
+### [1.0.8] - 2026-04-09
+
+#### ✨ Model Updates
+- **GPT-5.4 Series** - Added gpt-5.4, gpt-5.4-pro, gpt-5.4-mini, gpt-5.4-thinking (released March 2026)
+- **Gemini 3.1 Series** - Added gemini-3.1-pro-preview, gemini-3.1-flash-lite (released February/March 2026)
+- Updated Claude model options to 4.6 series in manifest and docs
+
 ### [1.0.7] - 2026-02-27
 
 #### 🏗️ Model-Agnostic Architecture
@@ -537,8 +546,8 @@ This skill is **free and open to all users** on ClawhHub.
 
 ---
 
-**Last Updated**: February 27, 2026
-**Current Version**: 1.0.7
+**Last Updated**: April 9, 2026
+**Current Version**: 1.0.8
 **Status**: Active & Maintained
 
 © 2026 UnisAI. All rights reserved.
