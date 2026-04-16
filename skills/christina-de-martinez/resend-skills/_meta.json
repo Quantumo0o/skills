@@ -3,11 +3,16 @@
   "slug": "resend-skills",
   "displayName": "Resend Skills",
   "latest": {
-    "version": "2.7.0",
-    "publishedAt": 1772587015877,
-    "commit": "https://github.com/openclaw/skills/commit/4356326d06da2cac3ea6b12f258c353e5e6e29de"
+    "version": "3.3.1",
+    "publishedAt": 1775869938761,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.7.0",
+      "publishedAt": 1772587015877,
+      "commit": "https://github.com/openclaw/skills/commit/4356326d06da2cac3ea6b12f258c353e5e6e29de"
+    },
     {
       "version": "2.5.0",
       "publishedAt": 1771370107650,
