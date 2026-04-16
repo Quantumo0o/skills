@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "meta-tags-optimizer",
-  "displayName": "SEO Meta Tags & Title Optimizer",
+  "displayName": "Meta Tags Optimizer",
   "latest": {
-    "version": "7.2.0",
-    "publishedAt": 1775475009490,
-    "commit": "https://github.com/openclaw/skills/commit/6031a07f783d2c745098cca82be4c9f82d71b92a"
+    "version": "8.0.0",
+    "publishedAt": 1776184656671,
+    "commit": null
   },
   "history": [
+    {
+      "version": "7.2.0",
+      "publishedAt": 1775475009490,
+      "commit": "https://github.com/openclaw/skills/commit/6031a07f783d2c745098cca82be4c9f82d71b92a"
+    },
     {
       "version": "6.2.0",
       "publishedAt": 1775113052732,
