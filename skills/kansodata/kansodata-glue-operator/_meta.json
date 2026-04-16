@@ -1,0 +1,11 @@
+{
+  "owner": "kansodata",
+  "slug": "kansodata-glue-operator",
+  "displayName": "Kansodata Glue Operator",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776299903841,
+    "commit": null
+  },
+  "history": []
+}
