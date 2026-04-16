@@ -3,11 +3,16 @@
   "slug": "free-ride",
   "displayName": "Free Ride - Unlimited free AI",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1775140998807,
-    "commit": "https://github.com/openclaw/skills/commit/6a65403554b063feee6181f9c1df30bced27083d"
+    "version": "1.0.9",
+    "publishedAt": 1776276877028,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1775140998807,
+      "commit": "https://github.com/openclaw/skills/commit/6a65403554b063feee6181f9c1df30bced27083d"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1774618346215,
