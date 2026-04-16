@@ -1,7 +1,7 @@
 ---
 name: serp-analysis
-description: 'SERP analysis and search intent mapping: analyze ranking factors, SERP features, AI overviews, featured snippets, and People Also Ask patterns. Part of a 20-skill SEO & GEO suite. SERP分析/搜索结果/精选摘要/AI概览/搜索意图'
-version: "6.0.0"
+description: 'Analyze SERPs: ranking factors, features, intent patterns, AI overviews, featured snippets. SERP分析/搜索结果'
+version: "8.0.0"
 license: Apache-2.0
 compatibility: "Claude Code ≥1.0, skills.sh marketplace, ClawHub marketplace, Vercel Labs skills ecosystem. No system packages required. Optional: MCP network access for SEO tool integrations."
 allowed-tools: WebFetch
@@ -10,7 +10,7 @@ when_to_use: "Use when analyzing search engine results pages, SERP features, fea
 argument-hint: "<keyword or query>"
 metadata:
   author: aaron-he-zhu
-  version: "6.0.0"
+  version: "8.0.0"
   geo-relevance: "high"
   tags:
     - seo
@@ -70,13 +70,14 @@ metadata:
 
 # SERP Analysis
 
-**Decode any search results page before you write a single word** — this skill maps every ranking factor, SERP feature, and AI Overview trigger for your target keyword, then tells you exactly what format and depth your content needs to win.
 
-**Quick example**: `Analyze the SERP for "how to start a podcast"` → see which content types dominate, which featured snippets are winnable, whether an AI Overview fires, and the minimum domain authority needed to rank.
+> **[SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills for SEO + GEO · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
+> **System Mode**: This research skill follows the shared [Skill Contract](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md) and [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md).
+
+
+This skill analyzes Search Engine Results Pages to reveal what's working for ranking content, which SERP features appear, and what triggers AI-generated answers. Understand the battlefield before creating content.
 
 **System role**: Research layer skill. It turns market signals into reusable strategic inputs for the rest of the library.
-
-> **Part of the [SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
 
 ## When This Must Trigger
 
@@ -281,15 +282,3 @@ If any findings should influence ongoing strategy, recommend promoting key concl
 ## Next Best Skill
 
 - **Primary**: [seo-content-writer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/seo-content-writer/SKILL.md) — turn SERP patterns into a content brief or page structure.
-
-## Related Skills in This Suite
-
-| Phase | Skills |
-|-------|--------|
-| **Research** | [keyword-research](../keyword-research/SKILL.md), [competitor-analysis](../competitor-analysis/SKILL.md), [serp-analysis](../serp-analysis/SKILL.md), [content-gap-analysis](../content-gap-analysis/SKILL.md) |
-| **Build** | [seo-content-writer](../../build/seo-content-writer/SKILL.md), [geo-content-optimizer](../../build/geo-content-optimizer/SKILL.md), [meta-tags-optimizer](../../build/meta-tags-optimizer/SKILL.md), [schema-markup-generator](../../build/schema-markup-generator/SKILL.md) |
-| **Optimize** | [on-page-seo-auditor](../../optimize/on-page-seo-auditor/SKILL.md), [technical-seo-checker](../../optimize/technical-seo-checker/SKILL.md), [internal-linking-optimizer](../../optimize/internal-linking-optimizer/SKILL.md), [content-refresher](../../optimize/content-refresher/SKILL.md) |
-| **Monitor** | [rank-tracker](../../monitor/rank-tracker/SKILL.md), [backlink-analyzer](../../monitor/backlink-analyzer/SKILL.md), [performance-reporter](../../monitor/performance-reporter/SKILL.md), [alert-manager](../../monitor/alert-manager/SKILL.md) |
-| **Cross-cutting** | [content-quality-auditor](../../cross-cutting/content-quality-auditor/SKILL.md), [domain-authority-auditor](../../cross-cutting/domain-authority-auditor/SKILL.md), [entity-optimizer](../../cross-cutting/entity-optimizer/SKILL.md), [memory-management](../../cross-cutting/memory-management/SKILL.md) |
-
-> **Install the full suite**: See [README](https://github.com/aaron-he-zhu/seo-geo-claude-skills) for one-command install of all 20 skills.
