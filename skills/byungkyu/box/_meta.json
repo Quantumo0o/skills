@@ -3,11 +3,16 @@
   "slug": "box",
   "displayName": "Box",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770762304564,
-    "commit": "https://github.com/openclaw/skills/commit/f08f5d69ae1b56dce20653c2be377c30da462994"
+    "version": "1.0.5",
+    "publishedAt": 1776212976225,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770762304564,
+      "commit": "https://github.com/openclaw/skills/commit/f08f5d69ae1b56dce20653c2be377c30da462994"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1770637886876,
