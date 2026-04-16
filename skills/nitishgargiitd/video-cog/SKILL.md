@@ -1,6 +1,6 @@
 ---
 name: video-cog
-description: "AI video generation and production powered by CellCog. Create marketing videos, product demos, explainer videos, educational content, spokesperson videos with lipsync, training materials, UGC content, news reports. Up to 4-minute videos from a single prompt — scripted, voiced, scored, and edited automatically. 6-7 foundation models orchestrated."
+description: "AI video generation and production powered by CellCog. Marketing videos, product demos, explainers, educational content, lipsync spokesperson videos, UGC, news reports, training materials, cinematic short films, social media reels, YouTube content. Up to 4-minute videos — scripted, voiced, scored, and edited from a single prompt."
 metadata:
   openclaw:
     emoji: "🎬"
@@ -9,45 +9,38 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
+# Video Cog - AI Video Production
 
-# Video Cog - The Frontier of Multi-Agent Video Production
-
-**Long-form AI video production is the hardest challenge in multi-agent coordination.** CellCog may be the only platform that pulls it off.
+Long-form AI video production from a single prompt — scripted, voiced, scored, and edited automatically.
 
 6-7 foundation models orchestrated to produce up to 4-minute videos from a single prompt: script writing, scene generation, voice synthesis, lipsync, music scoring, and editing — all automatic. Marketing videos, product demos, explainers, educational content, AI spokesperson videos, UGC, news reports, and more.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -178,7 +171,7 @@ This multi-step process requires the full agent team for best results.
 
 ## ⚠️ Important — Video Generation Expectations
 
-Long-form AI video production is still at the frontier of what's possible. While some users generate high-quality, cinematic videos that are ready for production use, others may spend significant credits and still not achieve a usable result. Even spending thousands of credits does not guarantee a satisfactory outcome — this is the nature of where AI video technology stands today.
+Long-form AI video production is still an evolving capability. While some users generate high-quality, cinematic videos that are ready for production use, others may spend significant credits and still not achieve a usable result. Even spending thousands of credits does not guarantee a satisfactory outcome — this is the nature of where AI video technology stands today.
 
 There is a real learning curve to generating long-form videos with CellCog. It takes time, money, and patience. Your prompting skill, the complexity of what you're trying to create, and how well the foundation models perform on your specific request all play a role. Results improve as you develop intuition for what works, but we want to be upfront: video generation is inherently unpredictable, and there is always a risk that the output may not meet your expectations.
 
@@ -198,3 +191,10 @@ There is a real learning curve to generating long-form videos with CellCog. It t
 
 6. **Provide scripts**: For spokesperson/voiceover videos, write out exactly what should be said.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.
