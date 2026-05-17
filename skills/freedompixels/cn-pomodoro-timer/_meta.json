@@ -1,0 +1,11 @@
+{
+  "owner": "freedompixels",
+  "slug": "cn-pomodoro-timer",
+  "displayName": "Cn Pomodoro Timer",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776261220456,
+    "commit": "https://github.com/openclaw/skills/commit/8ab71bff807faf02a46ae235465c0682b9966158"
+  },
+  "history": []
+}

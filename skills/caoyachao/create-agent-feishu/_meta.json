@@ -1,0 +1,11 @@
+{
+  "owner": "caoyachao",
+  "slug": "create-agent-feishu",
+  "displayName": "OpenClaw Create Agent",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776160362293,
+    "commit": "https://github.com/openclaw/skills/commit/92b7ef31ab21237d2b60823aee31e3eca88b6ff9"
+  },
+  "history": []
+}

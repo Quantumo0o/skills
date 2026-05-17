@@ -1,6 +1,6 @@
 {
   "name": "surrealdb-memory",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "displayName": "SurrealDB Knowledge Graph Memory",
   "description": "A comprehensive knowledge graph memory system with semantic search, episodic memory, working memory, per-agent isolation, and automatic context injection.",
   "author": "Clawdbot",
@@ -192,5 +192,8 @@
       }
     ],
     "note": "Both jobs run as ISOLATED agentTurn sessions with delivery:none. They never fire into the main agent session."
+  },
+  "changelog": {
+    "2.3.0": "Security: secret-like facts and entities are now filtered before memory injection (both at retrieval and prompt-side). Auth: memory extraction scripts resolve OpenAI keys through the auth profile system (OAuth > token > api_key) instead of raw env vars. Fixed: AUTH_OPENAI_DEFAULT_KEY vault sync on key rotation. Archived stored facts containing raw tokens/secrets."
   }
 }

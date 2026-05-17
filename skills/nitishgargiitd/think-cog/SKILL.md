@@ -1,6 +1,6 @@
 ---
 name: think-cog
-description: "Complex ideas need iteration, not conversation. Think → Do → Review → Repeat. CellCog completes the full loop — brainstorming, reasoning, problem-solving, strategic thinking, then executing across every modality: research, documents, visuals, data, prototypes. Like having an Alfred who doesn't just advise — he builds."
+description: "AI brainstorming and strategic thinking powered by CellCog. Reasoning, problem-solving, ideation, strategic planning — then execution across every modality: research, documents, visuals, data, prototypes. Think, build, review, repeat."
 metadata:
   openclaw:
     emoji: "💭"
@@ -9,7 +9,6 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Think Cog - Your Alfred for Complex Ideas
 
 **Complex ideas need iteration, not conversation.** Think → Do → Review → Repeat.
@@ -18,38 +17,32 @@ CellCog is the thinking partner that completes the full loop — reasons with yo
 
 For problems where you don't know the answer upfront and the solution emerges through doing, not just discussing.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
-    prompt="[your thinking prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-**All other agents (blocks until done):**
+**All agents except OpenClaw (blocks until done):**
 ```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
 result = client.create_chat(
-    prompt="[your thinking prompt]",
+    prompt="[your task prompt]",
     task_label="my-task",
     chat_mode="agent",
 )
+print(result["message"])
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference.
 
 ---
 
@@ -88,7 +81,7 @@ result = client.send_message(
 
 **Think-cog expects back-and-forth conversation**, not single requests. Each exchange deepens understanding.
 
-See the **cellcog** mothership skill for complete SDK API reference.
+See https://cellcog.ai for complete SDK API reference.
 
 ---
 
@@ -253,3 +246,11 @@ Think-cog is for when you're in discovery mode. Other skills are for when you're
 
 The conversation continues, ideas refine, and eventually you arrive at a clear strategy to execute.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.
+**Other agents:** `pip install cellcog` and set `CELLCOG_API_KEY`. See https://cellcog.ai for details.

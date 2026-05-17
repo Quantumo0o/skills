@@ -1,13 +1,18 @@
 {
   "owner": "teoslayer",
   "slug": "pilot-protocol",
-  "displayName": "pilotprotocol",
+  "displayName": "Pilot Protocol",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1772260710850,
-    "commit": "https://github.com/openclaw/skills/commit/09f57656b00648181b90cd7f7f18dc2451467787"
+    "version": "2.0.0",
+    "publishedAt": 1775772704164,
+    "commit": "https://github.com/openclaw/skills/commit/7616ac073ebaa6348c5add06ed6a22c379646bb7"
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1772260710850,
+      "commit": "https://github.com/openclaw/skills/commit/09f57656b00648181b90cd7f7f18dc2451467787"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1770847903306,

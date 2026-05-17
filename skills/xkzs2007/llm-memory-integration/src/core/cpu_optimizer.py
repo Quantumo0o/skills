@@ -66,7 +66,7 @@ def detect_cpu_info() -> Dict[str, Any]:
                 # 检测核心数
                 cores = cpuinfo.count('processor')
                 info['cores'] = max(1, cores)
-        except:
+        except Exception:
             pass
         
         # 检测缓存大小
@@ -79,7 +79,7 @@ def detect_cpu_info() -> Dict[str, Any]:
                     if hugepages_line:
                         hugepages = int(hugepages_line[0].split(':')[1].strip())
                         info['hugepages'] = hugepages > 0
-        except:
+        except Exception:
             pass
     
     return info
@@ -133,7 +133,7 @@ class CPUOptimizer:
                     if 'mkl' in str(info).lower():
                         return True
             return False
-        except:
+        except Exception:
             return False
     
     def _check_numba(self) -> bool:

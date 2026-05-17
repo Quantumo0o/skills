@@ -67,6 +67,7 @@ function loadConfig() {
           userId: (account.allowFrom || [])[0] || null,
           groupId: (account.groupAllowFrom || [])[0] || null,
           appId: account.appId || null,
+          appSecret: account.appSecret || null,
           allowFrom: account.allowFrom || [],
           groupAllowFrom: account.groupAllowFrom || [],
           sourceFile: src,
@@ -250,6 +251,56 @@ function restartGateway() {
 // 自动验证飞书修复情况
 // ============================================================================
 
+function getTenantAccessToken(appId, appSecret) {
+  try {
+    const output = execSync(
+      `curl -s -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
+        -H "Content-Type: application/json" \
+        -d '{"app_id":"${appId}","app_secret":"${appSecret}"}'`,
+      { encoding: 'utf8', timeout: 10000 }
+    );
+    const result = JSON.parse(output);
+    return result.tenant_access_token || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function sendFeishuMessage(targetId, text, receiveIdType = 'chat_id') {
+  if (!CONFIG?.appId || !CONFIG?.appSecret) {
+    return { success: false, message: '配置文件中无 appId/appSecret' };
+  }
+  
+  try {
+    // 1. 获取 token
+    const token = getTenantAccessToken(CONFIG.appId, CONFIG.appSecret);
+    if (!token) {
+      return { success: false, message: '获取 tenant_access_token 失败' };
+    }
+    
+    // 2. 发送消息
+    const now = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+    const content = JSON.stringify({ text: text.replace('{time}', now) });
+    
+    const output = execSync(
+      `curl -s -X POST "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}" \
+        -H "Authorization: Bearer ${token}" \
+        -H "Content-Type: application/json" \
+        -d '{"receive_id":"${targetId}","msg_type":"text","content":${JSON.stringify(content)}}'`,
+      { encoding: 'utf8', timeout: 10000 }
+    );
+    
+    const result = JSON.parse(output);
+    if (result.code === 0) {
+      return { success: true, message: `✅ 已发送消息到飞书群聊（${now}）`, now };
+    } else {
+      return { success: false, message: `飞书 API 错误: ${result.msg || result.code}` };
+    }
+  } catch (e) {
+    return { success: false, message: '发送飞书消息失败: ' + e.message };
+  }
+}
+
 function verifyFeishuFix() {
   try {
     // 1. 读取当前飞书配置
@@ -323,6 +374,46 @@ function verifyFeishuFix() {
 }
 
 // ============================================================================
+// 发送飞书验证消息（遍历所有群聊和用户）
+// ============================================================================
+
+function sendFeishuVerification() {
+  const results = {
+    groups: [],
+    users: [],
+  };
+  
+  const message = '🔧 飞书修复验证 - 当前时间：{time}\n✅ 如果收到此消息，说明飞书消息功能已恢复正常。';
+  
+  // 发送到所有群聊
+  if (CONFIG?.groupAllowFrom?.length) {
+    for (const groupId of CONFIG.groupAllowFrom) {
+      const res = sendFeishuMessage(groupId, message, 'chat_id');
+      results.groups.push({ id: groupId, ...res });
+    }
+  }
+  
+  // 发送到所有用户（DM）
+  if (CONFIG?.allowFrom?.length) {
+    for (const userId of CONFIG.allowFrom) {
+      const res = sendFeishuMessage(userId, message, 'open_id');
+      results.users.push({ id: userId, ...res });
+    }
+  }
+  
+  // 汇总结果
+  const totalSent = results.groups.filter(r => r.success).length + results.users.filter(r => r.success).length;
+  const totalFailed = results.groups.filter(r => !r.success).length + results.users.filter(r => !r.success).length;
+  
+  return {
+    success: totalSent > 0,
+    groups: results.groups,
+    users: results.users,
+    summary: `已发送 ${totalSent} 条消息${totalFailed > 0 ? `，${totalFailed} 条失败` : ''}`,
+  };
+}
+
+// ============================================================================
 // 主逻辑
 // ============================================================================
 
@@ -344,10 +435,11 @@ function diagnose() {
     results.fixes.push(fixGroupAllowFrom());
   }
   
-  // 如果有修复操作，自动重启 Gateway 并验证
+  // 如果有修复操作，强制重启 Gateway 并验证
   const hasFixes = results.fixes.length > 0;
   if (hasFixes) {
-    // 1. 自动重启 Gateway
+    // 1. 强制重启 Gateway
+    console.log('\n🔄 配置已恢复，强制重启 Gateway...');
     results.gatewayRestart = restartGateway();
     
     // 2. 等待 Gateway 启动完成
@@ -355,8 +447,11 @@ function diagnose() {
       console.log('⏳ 等待 Gateway 重启完成...');
       execSync('sleep 5', { encoding: 'utf8' });
       
-      // 3. 自动验证修复结果
+      // 3. 自动验证修复结果（配置+日志）
       results.verification = verifyFeishuFix();
+      
+      // 4. 发送飞书验证消息（带当前时间）
+      results.feishuMessage = sendFeishuVerification();
     }
   }
   
@@ -418,6 +513,21 @@ function diagnose() {
         console.log(`   ${icon} ${check.check}: ${check.value}`);
       }
       console.log(`   ${results.verification.summary}`);
+    }
+    
+    // 飞书消息发送结果
+    if (results.feishuMessage) {
+      console.log('');
+      console.log('📤 飞书消息确认:');
+      for (const g of results.feishuMessage.groups) {
+        const icon = g.success ? '✅' : '❌';
+        console.log(`   ${icon} 群聊 ${g.id}: ${g.message}`);
+      }
+      for (const u of results.feishuMessage.users) {
+        const icon = u.success ? '✅' : '❌';
+        console.log(`   ${icon} 用户 ${u.id}: ${u.message}`);
+      }
+      console.log(`   📊 ${results.feishuMessage.summary}`);
     }
   }
   

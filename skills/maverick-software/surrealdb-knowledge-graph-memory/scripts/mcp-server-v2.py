@@ -14,6 +14,7 @@ Run with: python3 mcp-server-v2.py
 import json
 import sys
 import os
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -31,6 +32,23 @@ SURREAL_CONFIG = {
 }
 
 SYNC_WRITE_THRESHOLD = 0.7
+
+SECRET_LINE_PATTERNS = [
+    re.compile(r"gateway\.auth\.token", re.IGNORECASE),
+    re.compile(r"authorization\s*[:=]", re.IGNORECASE),
+    re.compile(r"bearer\s+[a-z0-9._\-]+", re.IGNORECASE),
+    re.compile(r"\b(?:api[_ -]?key|secret|password|token)\b\s*[:=]", re.IGNORECASE),
+    re.compile(r"\bsk-[a-z0-9-]{10,}\b", re.IGNORECASE),
+    re.compile(r"\b[a-f0-9]{32,128}\b", re.IGNORECASE),
+]
+
+SECRET_ENTITY_PATTERNS = [
+    re.compile(r"secrets?\\.json", re.IGNORECASE),
+    re.compile(r"token", re.IGNORECASE),
+    re.compile(r"secret", re.IGNORECASE),
+    re.compile(r"password", re.IGNORECASE),
+    re.compile(r"api[_ -]?key", re.IGNORECASE),
+]
 
 try:
     from surrealdb import Surreal
@@ -103,6 +121,19 @@ def get_embedding(text: str) -> list:
     client = openai.OpenAI(api_key=api_key)
     response = client.embeddings.create(input=text, model="text-embedding-3-small")
     return response.data[0].embedding
+
+
+def is_sensitive_memory_text(text: str) -> bool:
+    """Detect secret-like memory content that should never be injected."""
+    if not text:
+        return False
+    return any(pattern.search(text) for pattern in SECRET_LINE_PATTERNS)
+
+
+def is_sensitive_entity_name(name: str) -> bool:
+    if not name:
+        return False
+    return any(pattern.search(name) for pattern in SECRET_ENTITY_PATTERNS)
 
 
 # ============================================
@@ -523,8 +554,9 @@ def memory_inject(
                             fact["similarity"] = fact.get("similarity", 0) * 1.3
                             fact["task_boosted"] = True
         
-        # Sort by similarity and limit
-        facts = sorted(facts, key=lambda f: f.get("similarity", 0), reverse=True)[:max_facts]
+        # Sort by similarity, drop secret-like facts, then limit
+        facts = sorted(facts, key=lambda f: f.get("similarity", 0), reverse=True)
+        facts = [f for f in facts if not is_sensitive_memory_text(f.get("content", ""))][:max_facts]
         
         # Calculate average confidence
         avg_confidence = sum(f.get("confidence", 0) for f in facts) / len(facts) if facts else 0
@@ -555,7 +587,8 @@ def memory_inject(
                     if entities:
                         related_entities.extend([
                             {"name": e.get("name"), "type": e.get("type"), "role": e.get("role")}
-                            for e in entities if isinstance(e, dict)
+                            for e in entities
+                            if isinstance(e, dict) and not is_sensitive_entity_name(e.get("name", ""))
                         ])
         
         close_db(db)

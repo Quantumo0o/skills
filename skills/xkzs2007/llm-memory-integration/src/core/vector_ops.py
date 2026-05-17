@@ -55,7 +55,7 @@ def detect_simd_support() -> dict:
                 elif 'sse' in cpuinfo.lower():
                     support['sse'] = True
                     support['method'] = 'sse'
-        except:
+        except Exception:
             pass
     
     # 检查 numpy 是否支持 SIMD
@@ -63,7 +63,7 @@ def detect_simd_support() -> dict:
         # numpy 会自动使用可用的 SIMD 指令
         if hasattr(np, '__config__'):
             support['numpy_simd'] = True
-    except:
+    except Exception:
         support['numpy_simd'] = False
     
     return support

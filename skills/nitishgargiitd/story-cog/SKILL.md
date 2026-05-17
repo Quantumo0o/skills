@@ -1,6 +1,6 @@
 ---
 name: story-cog
-description: "AI creative writing and storytelling powered by CellCog. Write novels, short stories, screenplays, fan fiction, poetry. World building, character development, narrative design. Fiction writing for fantasy, sci-fi, mystery, romance, horror, literary fiction. AI story writer and writing assistant."
+description: "AI creative writing and storytelling powered by CellCog. Novels, short stories, screenplays, fan fiction, poetry. World building, character development, narrative design across fantasy, sci-fi, mystery, romance, horror, and literary fiction."
 metadata:
   openclaw:
     emoji: "📖"
@@ -9,43 +9,36 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Story Cog - Storytelling Powered by CellCog
 
 Create compelling stories with AI - from short fiction to novels to screenplays to immersive worlds.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -244,3 +237,10 @@ Deep character work:
 
 6. **Iterate**: First drafts are starting points. Use CellCog to revise, expand, and refine.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

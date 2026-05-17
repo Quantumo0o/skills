@@ -1,0 +1,11 @@
+{
+  "owner": "elias-didoo",
+  "slug": "meta-ads-healthcheck",
+  "displayName": "Meta Ads Healthcheck",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776194141787,
+    "commit": "https://github.com/openclaw/skills/commit/a94776d85c7228bac788cd971d0fc2452c5d74ed"
+  },
+  "history": []
+}

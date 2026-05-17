@@ -16,39 +16,16 @@
  */
 
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { pass, fail, report, exitWithResults, createTempDir } from "../../clawsec-suite/test/lib/test_harness.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = path.resolve(__dirname, "..", "scripts", "render_report.mjs");
 const NODE_BIN = process.execPath;
 
 let tempDir;
-let passCount = 0;
-let failCount = 0;
-
-function pass(name) {
-  passCount++;
-  console.log(`✓ ${name}`);
-}
-
-function fail(name, error) {
-  failCount++;
-  console.error(`✗ ${name}`);
-  console.error(`  ${String(error)}`);
-}
-
-async function setupTestDir() {
-  tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "render-report-test-"));
-}
-
-async function cleanupTestDir() {
-  if (tempDir) {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  }
-}
 
 function createAuditJson(findings) {
   return JSON.stringify({
@@ -622,6 +599,62 @@ async function testSkillNameExtractionFromTitle() {
 }
 
 // -----------------------------------------------------------------------------
+// Test: Skill name matching is case-insensitive
+// -----------------------------------------------------------------------------
+async function testSkillNameMatchingIsCaseInsensitive() {
+  const testName = "render_report: suppression skill matching is case-insensitive";
+  try {
+    const auditFile = path.join(tempDir, "audit.json");
+    const deepFile = path.join(tempDir, "deep.json");
+    const configFile = path.join(tempDir, "config.json");
+
+    const findings = [
+      {
+        severity: "critical",
+        checkId: "skills.code_safety",
+        skill: "ClawSec-Suite",
+        title: "dangerous-exec detected",
+      },
+    ];
+
+    const suppressions = [
+      {
+        checkId: "skills.code_safety",
+        skill: "clawsec-suite",
+        reason: "First-party security tooling",
+        suppressedAt: "2026-02-13",
+      },
+    ];
+
+    await fs.writeFile(auditFile, createAuditJson(findings));
+    await fs.writeFile(deepFile, createAuditJson([]));
+    await fs.writeFile(configFile, createConfigJson(suppressions));
+
+    const result = await runRenderReport([
+      "--audit",
+      auditFile,
+      "--deep",
+      deepFile,
+      "--enable-suppressions",
+      "--config",
+      configFile,
+    ]);
+
+    if (
+      result.stdout.includes("Summary: 0 critical") &&
+      result.stdout.includes("INFO-SUPPRESSED:") &&
+      result.stdout.includes("[ClawSec-Suite]")
+    ) {
+      pass(testName);
+    } else {
+      fail(testName, `Case-insensitive skill matching failed: ${result.stdout}`);
+    }
+  } catch (error) {
+    fail(testName, error);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test: Empty suppressions array works (no suppressions applied)
 // -----------------------------------------------------------------------------
 async function testEmptySuppressions() {
@@ -730,7 +763,8 @@ async function testConfigWithoutEnableFlagDoesNotSuppress() {
 // Main test runner
 // -----------------------------------------------------------------------------
 async function runAllTests() {
-  await setupTestDir();
+  const tmpDir = await createTempDir();
+  tempDir = tmpDir.path;
 
   try {
     await testSuppressedFindingsDisplayed();
@@ -742,19 +776,15 @@ async function runAllTests() {
     await testMultipleSuppressions();
     await testSkillNameExtractionFromPath();
     await testSkillNameExtractionFromTitle();
+    await testSkillNameMatchingIsCaseInsensitive();
     await testEmptySuppressions();
     await testConfigWithoutEnableFlagDoesNotSuppress();
   } finally {
-    await cleanupTestDir();
+    await tmpDir.cleanup();
   }
 
-  console.log("");
-  console.log(`Passed: ${passCount}`);
-  console.log(`Failed: ${failCount}`);
-
-  if (failCount > 0) {
-    process.exit(1);
-  }
+  report();
+  exitWithResults();
 }
 
 runAllTests().catch((err) => {

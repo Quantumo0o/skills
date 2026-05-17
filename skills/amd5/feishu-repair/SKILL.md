@@ -1,7 +1,7 @@
 ---
 name: feishu-repair
-description: 自动修复飞书-飞书群聊自动修复+会话自动修复 - 诊断 Gateway 连接、权限配置、消息投递问题
-version: 1.3.0
+description: 自动修复飞书-自动修复飞书群聊+自动修复会话 - 诊断 Gateway 连接、权限配置、消息投递问题
+version: 2.0.0
 author: c32
 category: monitoring
 tags:
@@ -16,7 +16,7 @@ requirements:
 
 # Feishu Repair — 飞书群聊+会话修复技能
 
-**版本**: 1.0.0
+**版本**: 1.9.0
 **创建日期**: 2026-04-14
 **触发关键词**: `修复飞书`
 
@@ -28,12 +28,12 @@ requirements:
 
 | 问题类型 | 诊断方式 | 修复方式 |
 |---------|---------|---------|
-| Gateway 未运行 | systemctl 检查 | 提示手动重启 |
-| 飞书 WebSocket 断开 | journalctl 日志 | 提示手动重启 |
-| 群聊权限丢失 | 检查 groupAllowFrom | 自动恢复配置 |
-| 用户权限丢失 | 检查 allowFrom | 自动恢复配置 |
-| 配置未生效 | 检查 config | 提示手动重启 Gateway |
-| 消息不回复 | 综合诊断 | 输出修复报告 |
+| Gateway 未运行 | systemctl 检查 | 自动重启 Gateway |
+| 飞书 WebSocket 断开 | journalctl 日志 | 自动重启 Gateway |
+| 群聊权限丢失 | 检查 groupAllowFrom | 自动恢复配置 + 强制重启 + 验证 + 发送消息到所有群聊和用户 |
+| 用户权限丢失 | 检查 allowFrom | 自动恢复配置 + 强制重启 + 验证 + 发送消息到所有群聊和用户 |
+| 配置未生效 | 检查 config | 强制重启 Gateway + 验证 |
+| 消息不回复 | 综合诊断 | 输出修复报告 + 发送验证消息 |
 
 ---
 
@@ -52,17 +52,26 @@ skills/feishu-repair/
 
 ## 🔧 修复流程
 
-1. **诊断**: 检查 Gateway、飞书配置、日志错误
-2. **修复**: 从配置文件恢复丢失的权限
-3. **重启**: 自动重启 Gateway 使配置生效
-4. **验证**: 自动检查修复结果（配置+日志）
+```
+诊断 → 修复 → 强制重启 Gateway → 验证 → 发消息确认
+```
+
+| 步骤 | 功能 | 说明 |
+|------|------|------|
+| 1️⃣ 诊断 | 检查 Gateway、飞书配置、日志错误 | 始终执行 |
+| 2️⃣ 修复 | 从配置恢复丢失的权限 | 检测到问题 |
+| 3️⃣ **强制重启** | 重启 Gateway 使配置生效 | **有修复操作时强制重启** |
+| 4️⃣ 验证 | 配置 + 日志双重检查 | 重启后自动执行 |
+| 5️⃣ 消息确认 | 遍历所有群聊和会话发送当前时间 | 验证通过后自动发送 |
+
+### 修复策略
 
 | 策略 | 触发条件 | 动作 |
 |------|---------|------|
 | 配置恢复 | 权限丢失/配置异常 | 从 `openclaw.json` 或 `openclaw.json.bak*` 读取完整配置自动恢复 |
-| Gateway 状态检查 | Gateway 未运行 | 提示手动重启 |
-| WebSocket 重连 | WS 断开日志 | 提示手动重启 |
-| 配置生效检查 | 配置变更未生效 | 提示手动重启 Gateway |
+| Gateway 状态检查 | Gateway 未运行 | 自动重启 Gateway |
+| WebSocket 重连 | WS 断开日志 | 自动重启 Gateway |
+| 配置生效检查 | 配置变更未生效 | 自动重启 Gateway + 验证 |
 
 ### 配置读取优先级
 
@@ -84,6 +93,8 @@ skills/feishu-repair/
 
 ## ⚠️ 注意事项
 
-- Gateway 重启操作仅提示用户手动执行（不自动重启）
-- 权限配置恢复会自动写入 openclaw.json
+- 检测到配置问题并修复后，**强制重启 Gateway**（不是提示手动）
+- 重启完成后，自动验证修复结果（配置 + 日志双重检查）
+- 验证通过后，自动在飞书所有群聊（groupAllowFrom）和会话（allowFrom）发送当前时间，确认消息功能已恢复
+- 配置读取优先级：`openclaw.json` > `openclaw.json.bak` > `openclaw.json.bak.1`
 - 诊断结果输出详细报告

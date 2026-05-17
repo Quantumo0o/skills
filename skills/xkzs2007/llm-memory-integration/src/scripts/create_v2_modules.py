@@ -26,11 +26,6 @@ if not (BASE_DIR / "search.py").exists():
     print("   此脚本必须在 llm-memory-integration/scripts 目录下运行")
     sys.exit(1)
 
-# 安全检查：确保不是以 root 运行
-if os.geteuid() == 0:
-    print("❌ 错误：请勿以 root 用户运行此脚本")
-    sys.exit(1)
-
 # 预定义的模块列表（白名单）
 ALLOWED_MODULES = {
     "async_support.py": "异步支持模块",

@@ -1,0 +1,33 @@
+title: Example Plugin
+package_name: example-plugin
+plugin_id: example-plugin
+plugin_type: tool # tool | provider | channel | mixed
+language: typescript # typescript | javascript
+version: 1.0.0
+description: One-line summary of what the plugin does.
+
+behavior:
+  primary_job: Describe the main runtime capability.
+  tools:
+    - name: example_tool
+      description: One-line tool description
+      side_effects: false
+      optional: false
+
+config:
+  required: []
+  optional: []
+
+external_dependencies:
+  npm_packages: []
+  env_vars: []
+  binaries: []
+
+publish:
+  include_ci_workflow: false
+  include_bundled_skill: false
+  bundled_skill_slug: ""
+
+notes:
+  - Add API/auth details here if relevant.
+  - Add repo/source preferences here if relevant.

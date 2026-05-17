@@ -156,6 +156,7 @@ node scripts/chart.mjs --type bar \
 ### More Chart Types
 
 - **`point`** — Scatter plot
+- **`histogram`** — Binned quantitative distribution chart
 - **`candlestick`** — OHLC financial charts (`--open-field`, `--high-field`, `--low-field`, `--close-field`)
 - **`heatmap`** — Grid visualization (`--color-value-field`, `--color-scheme viridis`)
 - **Stacked bars** — `--type bar --stacked --color-field category`
@@ -197,6 +198,8 @@ Omit `--dark` for light mode (reports, emails, light UIs):
 ## Font Families
 
 Use `--font-family` with any CSS font-family stack Vega can resolve.
+
+Need more control over headings? `--title-size`, `--subtitle-size`, `--title-color`, and `--subtitle-color` let you tune chart title typography without editing the Vega spec. Need softer dashboard gridlines? `--grid-dash 4,2` adds custom dashed grid patterns without touching the Vega spec either.
 
 **Safest generic families:**
 - `sans-serif`
@@ -269,7 +272,7 @@ echo '[{"x":"A","y":1},{"x":"B","y":2}]' | node scripts/chart.mjs --output out.p
 ### Core
 | Option | Description | Default |
 |--------|-------------|---------|
-| `--type` | `line`, `bar`, `area`, `point`, `pie`, `donut`, `candlestick`, `heatmap` | `line` |
+| `--type` | `line`, `bar`, `area`, `point`, `histogram`, `pie`, `donut`, `candlestick`, `heatmap` | `line` |
 | `--data` | JSON array or shorthand `key:val,...` | stdin |
 | `--output` | Output file path | `chart.png` |
 | `--title` | Chart title | — |
@@ -306,6 +309,7 @@ echo '[{"x":"A","y":1},{"x":"B","y":2}]' | node scripts/chart.mjs --output out.p
 | `--series-field` | Field to split into multiple lines |
 | `--stacked` | Stack bars/areas |
 | `--color-field` | Field for color encoding |
+| `--series-order CSV` | Explicit series/category order for multi-series legends and stacked-bar legend/stack order |
 
 ### Annotations
 | Option | Description |

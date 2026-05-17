@@ -1,0 +1,11 @@
+{
+  "owner": "hanxueyuan",
+  "slug": "colgate",
+  "displayName": "Colgate",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776238329751,
+    "commit": "https://github.com/openclaw/skills/commit/9dfe7b457330f6835079f8e3e47072d89fc9dc76"
+  },
+  "history": []
+}

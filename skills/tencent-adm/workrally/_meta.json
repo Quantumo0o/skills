@@ -1,0 +1,11 @@
+{
+  "owner": "tencent-adm",
+  "slug": "workrally",
+  "displayName": "WorkRally",
+  "latest": {
+    "version": "2.1.0",
+    "publishedAt": 1776251575047,
+    "commit": "https://github.com/openclaw/skills/commit/4a32c6ad770130bd1718cddb70e64c7a5c05fd8b"
+  },
+  "history": []
+}

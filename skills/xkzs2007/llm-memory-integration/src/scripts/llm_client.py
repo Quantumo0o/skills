@@ -46,6 +46,14 @@ class LLMClient:
         self.temperature = llm_config.get("temperature", 0.5)
         self.provider = llm_config.get("provider", "openai-compatible")
         
+        # 输入验证
+        if self.base_url and len(self.base_url) > 2048:
+            raise ValueError("base_url 过长")
+        if self.api_key and len(self.api_key) > 256:
+            raise ValueError("api_key 过长")
+        if self.model and len(self.model) > 100:
+            raise ValueError("model 名称过长")
+        
         if not self.api_key:
             print("警告: 未配置 LLM API 密钥，请设置配置文件或环境变量 LLM_API_KEY")
     

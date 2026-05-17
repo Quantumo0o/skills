@@ -1,9 +1,8 @@
 import { spawn, exec } from "node:child_process";
 import * as fs from "node:fs";
-import * as path from "node:path";
 import * as os from "node:os";
+import * as path from "node:path";
 import { promisify } from "node:util";
-
 import type { GatewayRequestHandlers } from "./types.js";
 
 const execAsync = promisify(exec);
@@ -46,10 +45,7 @@ function which(cmd: string): string | null {
   }
 
   // Also check common install locations
-  const extraPaths = [
-    path.join(os.homedir(), ".surrealdb", "surreal"),
-    "/usr/local/bin/surreal",
-  ];
+  const extraPaths = [path.join(os.homedir(), ".surrealdb", "surreal"), "/usr/local/bin/surreal"];
 
   for (const fullPath of extraPaths) {
     try {
@@ -118,7 +114,7 @@ async function checkSchemaInitialized(): Promise<{
 
     const { stdout } = await execAsync(
       `echo "INFO FOR DB;" | "${surrealPath}" sql --conn http://localhost:${SURREALDB_PORT} --user root --pass root --ns openclaw --db memory`,
-      { timeout: 10000 }
+      { timeout: 10000 },
     );
 
     const hasFact = stdout.includes("fact");
@@ -188,7 +184,7 @@ async function getStats() {
 
     const { stdout } = await execAsync(
       `echo "${queries}" | "${surrealPath}" sql --conn http://localhost:${SURREALDB_PORT} --user root --pass root --ns openclaw --db memory`,
-      { timeout: 15000 }
+      { timeout: 15000 },
     );
 
     // Parse all count values by position (not by checking if current value === 0,
@@ -220,10 +216,9 @@ async function installSurrealDb(): Promise<{
   error?: string;
 }> {
   try {
-    const { stdout, stderr } = await execAsync(
-      "curl -sSf https://install.surrealdb.com | sh",
-      { timeout: 300000 }
-    );
+    const { stdout, stderr } = await execAsync("curl -sSf https://install.surrealdb.com | sh", {
+      timeout: 300000,
+    });
     return { success: true, stdout, stderr };
   } catch (e) {
     return {
@@ -245,7 +240,7 @@ async function installPythonDeps(): Promise<{
       // Use existing venv
       const { stdout, stderr } = await execAsync(
         `source "${path.join(skillDir, ".venv", "bin", "activate")}" && pip install surrealdb openai pyyaml`,
-        { timeout: 120000, shell: "/bin/bash" }
+        { timeout: 120000, shell: "/bin/bash" },
       );
       return { success: true, stdout, stderr };
     }
@@ -253,7 +248,7 @@ async function installPythonDeps(): Promise<{
     // Try pip with --user
     const { stdout, stderr } = await execAsync(
       "pip3 install --user surrealdb openai pyyaml || pip install --user surrealdb openai pyyaml",
-      { timeout: 120000, shell: "/bin/bash" }
+      { timeout: 120000, shell: "/bin/bash" },
     );
     return { success: true, stdout, stderr };
   } catch (e) {
@@ -281,7 +276,7 @@ async function startSurrealDb(): Promise<{
       {
         detached: true,
         stdio: "ignore",
-      }
+      },
     );
 
     child.unref();
@@ -330,7 +325,7 @@ async function initSchema(): Promise<{
     try {
       const { stdout, stderr } = await execAsync(
         `"${surrealPath}" import --conn http://localhost:${SURREALDB_PORT} --user root --pass root --ns openclaw --db memory "${schemaFile}"`,
-        { timeout: 30000 }
+        { timeout: 30000 },
       );
       return { success: true, stdout, stderr };
     } catch (importError) {
@@ -340,13 +335,15 @@ async function initSchema(): Promise<{
         const venvPython = path.join(skillDir, ".venv", "bin", "python3");
         const pythonCmd = fs.existsSync(venvPython) ? venvPython : "python3";
         try {
-          const { stdout: migrateOut } = await execAsync(`"${pythonCmd}" "${migrateScript}"`, { timeout: 60000 });
+          const { stdout: migrateOut } = await execAsync(`"${pythonCmd}" "${migrateScript}"`, {
+            timeout: 60000,
+          });
           return { success: true, stdout: migrateOut };
         } catch {
           // Fall through to schema check
         }
       }
-      
+
       // Check if schema is actually there
       const checkResult = await checkSchemaInitialized();
       if (checkResult.initialized) {
@@ -409,7 +406,7 @@ async function autoRepair(): Promise<{
 }
 
 async function runMaintenance(
-  operation: string
+  operation: string,
 ): Promise<{ success: boolean; [key: string]: unknown }> {
   try {
     const surrealPath = which("surreal");
@@ -421,15 +418,14 @@ async function runMaintenance(
     switch (operation) {
       case "decay":
         query =
-          "UPDATE fact SET confidence = confidence * 0.95 WHERE last_accessed < time::now() - 30d AND archived = false;";
+          "UPDATE fact SET confidence = confidence * 0.95 WHERE last_accessed < time::now() - 30d AND archived != true;";
         break;
       case "prune":
-        query =
-          "DELETE FROM fact WHERE confidence < 0.2 AND last_confirmed < time::now() - 30d;";
+        query = "DELETE FROM fact WHERE confidence < 0.2 AND last_confirmed < time::now() - 30d;";
         break;
       case "full":
         query = `
-          UPDATE fact SET confidence = confidence * 0.95 WHERE last_accessed < time::now() - 30d AND archived = false;
+          UPDATE fact SET confidence = confidence * 0.95 WHERE last_accessed < time::now() - 30d AND archived != true;
           DELETE FROM fact WHERE confidence < 0.2 AND last_confirmed < time::now() - 30d;
         `;
         break;
@@ -439,7 +435,7 @@ async function runMaintenance(
 
     const { stdout } = await execAsync(
       `echo "${query}" | "${surrealPath}" sql --conn http://localhost:${SURREALDB_PORT} --user root --pass root --ns openclaw --db memory`,
-      { timeout: 60000 }
+      { timeout: 60000 },
     );
 
     return { success: true, operation, output: stdout };
@@ -475,7 +471,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await autoRepair();
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -484,7 +484,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await installSurrealDb();
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -493,7 +497,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await installPythonDeps();
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -502,7 +510,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await startSurrealDb();
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -511,7 +523,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await initSchema();
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -521,7 +537,11 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const result = await runMaintenance(operation);
       respond(true, result, undefined);
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
@@ -529,12 +549,16 @@ export const memoryHandlers: GatewayRequestHandlers = {
     try {
       // Return recent memory activity (extractions, queries, etc.)
       // For now, return empty activity until we implement activity tracking
-      respond(true, {
-        recentExtractions: [],
-        recentQueries: [],
-        lastExtraction: null,
-        lastQuery: null,
-      }, undefined);
+      respond(
+        true,
+        {
+          recentExtractions: [],
+          recentQueries: [],
+          lastExtraction: null,
+          lastQuery: null,
+        },
+        undefined,
+      );
     } catch (e) {
       respond(true, { error: e instanceof Error ? e.message : String(e) }, undefined);
     }
@@ -553,19 +577,34 @@ export const memoryHandlers: GatewayRequestHandlers = {
         respond(true, { running: false }, undefined);
       }
     } catch (e) {
-      respond(true, { running: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { running: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 
   "memory.runExtraction": async ({ params, respond }) => {
     try {
       console.log("[memory.runExtraction] params:", JSON.stringify(params));
-      const { full = false, reconcile = false, relations = false } = params as { 
-        full?: boolean; 
+      const {
+        full = false,
+        reconcile = false,
+        relations = false,
+      } = params as {
+        full?: boolean;
         reconcile?: boolean;
         relations?: boolean;
       };
-      console.log("[memory.runExtraction] parsed: full=", full, "reconcile=", reconcile, "relations=", relations);
+      console.log(
+        "[memory.runExtraction] parsed: full=",
+        full,
+        "reconcile=",
+        reconcile,
+        "relations=",
+        relations,
+      );
       const skillDir = findSkillDir();
       if (!skillDir) {
         respond(true, { success: false, error: "surrealdb-memory skill not found" }, undefined);
@@ -580,7 +619,7 @@ export const memoryHandlers: GatewayRequestHandlers = {
 
       const venvPython = path.join(skillDir, ".venv", "bin", "python3");
       const pythonCmd = fs.existsSync(venvPython) ? venvPython : "python3";
-      
+
       // Build command based on operation type
       let command: string;
       if (relations) {
@@ -591,11 +630,39 @@ export const memoryHandlers: GatewayRequestHandlers = {
         command = `"${pythonCmd}" "${script}" extract${full ? " --full" : ""}`;
       }
 
-      const { stdout, stderr } = await execAsync(command, { timeout: 300000, cwd: skillDir });
+      // Overlay vault secrets into child env so scripts get current keys
+      // (systemd Environment= may be stale after key rotation)
+      const childEnv = { ...process.env };
+      const vaultPath = path.join(os.homedir(), ".openclaw", "secrets.json");
+      try {
+        const vaultRaw = fs.readFileSync(vaultPath, "utf-8");
+        const vault = JSON.parse(vaultRaw) as Record<string, string>;
+        for (const [key, value] of Object.entries(vault)) {
+          if (typeof value === "string") {
+            childEnv[key] = value;
+          }
+        }
+      } catch {
+        // vault may not exist; continue with process env
+      }
 
-      respond(true, { success: true, output: stdout, stderr, _debug: { command, relations, reconcile, full } }, undefined);
+      const { stdout, stderr } = await execAsync(command, {
+        timeout: 300000,
+        cwd: skillDir,
+        env: childEnv,
+      });
+
+      respond(
+        true,
+        { success: true, output: stdout, stderr, _debug: { command, relations, reconcile, full } },
+        undefined,
+      );
     } catch (e) {
-      respond(true, { success: false, error: e instanceof Error ? e.message : String(e) }, undefined);
+      respond(
+        true,
+        { success: false, error: e instanceof Error ? e.message : String(e) },
+        undefined,
+      );
     }
   },
 };

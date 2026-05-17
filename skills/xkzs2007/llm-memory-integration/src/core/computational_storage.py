@@ -92,7 +92,7 @@ class ComputationalStorageDetector:
                                 device_info['csd'] = True
                                 info['csd_available'] = True
                                 info['devices'].append(device_info)
-        except:
+        except Exception:
             pass
         
         # 检测 PIM 设备（通过 /sys 或特定驱动）
@@ -108,7 +108,7 @@ class ComputationalStorageDetector:
                 if os.path.exists(path):
                     info['pim_available'] = True
                     break
-        except:
+        except Exception:
             pass
         
         # 检测 CIM 设备
@@ -124,7 +124,7 @@ class ComputationalStorageDetector:
                 if os.path.exists(path):
                     info['cim_available'] = True
                     break
-        except:
+        except Exception:
             pass
         
         # 检测 PNM 设备（如 CXL 内存）
@@ -140,7 +140,7 @@ class ComputationalStorageDetector:
                 # 检查是否有 CXL 或特殊内存设备
                 if 'cxl' in result.stdout.lower():
                     info['pnm_available'] = True
-        except:
+        except Exception:
             pass
         
         # 确定推荐模式

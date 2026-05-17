@@ -69,26 +69,26 @@ def get_embedding(text, config):
 
 def check_status():
     """检查向量化状态"""
+    # 使用上下文管理器确保连接关闭
     if USE_PYSQLITE3:
-        conn = connect(str(VECTORS_DB))
+        conn_ctx = connect(str(VECTORS_DB))
     else:
-        conn = sqlite3.connect(str(VECTORS_DB))
+        conn_ctx = sqlite3.connect(str(VECTORS_DB))
     
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(*) FROM l0_conversations")
-    total = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
-    vectorized = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM l1_records")
-    l1_total = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM l1_vec_rowids")
-    l1_vectorized = cursor.fetchone()[0]
-    
-    conn.close()
+    with conn_ctx as conn:
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM l0_conversations")
+        total = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
+        vectorized = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM l1_records")
+        l1_total = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM l1_vec_rowids")
+        l1_vectorized = cursor.fetchone()[0]
     
     print("=" * 50)
     print("   向量化状态报告")
@@ -122,52 +122,49 @@ def fix_vectorization():
     config = get_embedding_config()
     print(f"Embedding 配置: {config['provider']}/{config['model']} ({config['dimensions']}D)")
     
-    conn = connect(str(VECTORS_DB))
-    cursor = conn.cursor()
-    
-    # 获取未向量化的对话
-    cursor.execute("""
-        SELECT record_id, message_text 
-        FROM l0_conversations 
-        WHERE record_id NOT IN (SELECT rowid FROM l0_vec_rowids)
-        ORDER BY timestamp DESC
-    """)
-    unvectorized = cursor.fetchall()
-    
-    print(f"\n发现 {len(unvectorized)} 条未向量化的对话")
-    
-    if len(unvectorized) == 0:
-        print("✅ 所有对话已向量化")
-        conn.close()
-        return
-    
-    success_count = 0
-    for record_id, message_text in unvectorized:
-        print(f"\n处理: {record_id[:50]}...")
+    with connect(str(VECTORS_DB)) as conn:
+        cursor = conn.cursor()
         
-        # 获取向量
-        embedding = get_embedding(message_text, config)
+        # 获取未向量化的对话
+        cursor.execute("""
+            SELECT record_id, message_text 
+            FROM l0_conversations 
+            WHERE record_id NOT IN (SELECT rowid FROM l0_vec_rowids)
+            ORDER BY timestamp DESC
+        """)
+        unvectorized = cursor.fetchall()
         
-        if embedding:
-            try:
-                # 将向量转换为 blob
-                import struct
-                vector_blob = struct.pack(f'{len(embedding)}f', *embedding)
-                
-                cursor.execute("""
-                    INSERT OR REPLACE INTO l0_vec (record_id, embedding, recorded_at)
-                    VALUES (?, ?, datetime('now'))
-                """, (record_id, vector_blob))
-                
-                conn.commit()
-                print(f"  ✅ 向量化成功")
-                success_count += 1
-            except Exception as e:
-                print(f"  ❌ 存储失败: {e}")
-        else:
-            print(f"  ⏭️ 跳过")
-    
-    conn.close()
+        print(f"\n发现 {len(unvectorized)} 条未向量化的对话")
+        
+        if len(unvectorized) == 0:
+            print("✅ 所有对话已向量化")
+            return
+        
+        success_count = 0
+        for record_id, message_text in unvectorized:
+            print(f"\n处理: {record_id[:50]}...")
+            
+            # 获取向量
+            embedding = get_embedding(message_text, config)
+            
+            if embedding:
+                try:
+                    # 将向量转换为 blob
+                    import struct
+                    vector_blob = struct.pack(f'{len(embedding)}f', *embedding)
+                    
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO l0_vec (record_id, embedding, recorded_at)
+                        VALUES (?, ?, datetime('now'))
+                    """, (record_id, vector_blob))
+                    
+                    conn.commit()
+                    print(f"  ✅ 向量化成功")
+                    success_count += 1
+                except Exception as e:
+                    print(f"  ❌ 存储失败: {e}")
+            else:
+                print(f"  ⏭️ 跳过")
     
     print(f"\n========================================")
     print(f"向量化完成: {success_count}/{len(unvectorized)} 条成功")

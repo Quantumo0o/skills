@@ -199,20 +199,20 @@ async function appendToFile(filePath: string, content: string): Promise<void> {
 
 // 检测用户纠正
 function detectCorrection(content: string): boolean {
-  const keywords = ['不对', '错了', '错误', '不是这样', '应该是', 'No, that\'s wrong', 'Actually'];
-  return keywords.some(keyword => content.toLowerCase().includes(keyword.toLowerCase()));
+  const keywords = ['不对', '错了', '错误', '不是这样', '应该是'];
+  return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测知识缺口
 function detectKnowledgeGap(content: string): boolean {
   const keywords = ['我不知道', '查不到', '不知道', '无法找到', '找不到'];
-  return keywords.some(keyword => content.toLowerCase().includes(keyword.toLowerCase()));
+  return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测更好的方法
 function detectBetterMethod(content: string): boolean {
   const keywords = ['更好的方法', '更简单', '优化', '改进', '更好的'];
-  return keywords.some(keyword => content.toLowerCase().includes(keyword.toLowerCase()));
+  return keywords.some(keyword => content.includes(keyword));
 }
 
 // 记录学习

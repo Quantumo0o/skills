@@ -1,0 +1,11 @@
+{
+  "owner": "maikimolto",
+  "slug": "proxmox-multi-control",
+  "displayName": "Proxmox Multi Control",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776242036819,
+    "commit": "https://github.com/openclaw/skills/commit/dab00210b533ade7a1d1bb6c1e7b338ae38df60c"
+  },
+  "history": []
+}

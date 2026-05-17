@@ -108,15 +108,20 @@ def safe_query(sql: str, params: tuple = (), db_path: Optional[Path] = None) -> 
 def safe_execute(sql: str, params: tuple = (), db_path: Optional[Path] = None) -> int:
     """安全执行快捷函数"""
     with SafeDB(db_path) as db:
-        conn = db.connect()
-        cursor = conn.cursor()
-        cursor.execute(sql, params)
-        conn.commit()
-        return cursor.rowcount
+        with db.connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            conn.commit()
+            return cursor.rowcount
 
 
 def get_count(table: str, db_path: Optional[Path] = None) -> int:
     """获取表记录数"""
+    # 验证表名（防止 SQL 注入）
+    import re
+    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table):
+        raise ValueError(f"Invalid table name: {table}")
+    
     with SafeDB(db_path) as db:
         result = db.execute(f"SELECT COUNT(*) FROM {table}")
         return result[0][0] if result else 0

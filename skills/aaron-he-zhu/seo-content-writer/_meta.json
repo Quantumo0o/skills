@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "seo-content-writer",
-  "displayName": "SEO Content Writer & Blog Optimizer",
+  "displayName": "Seo Content Writer",
   "latest": {
-    "version": "7.2.0",
-    "publishedAt": 1775475001187,
-    "commit": "https://github.com/openclaw/skills/commit/be8e0726d4e3a063c7b407c6d33ef85005dd6860"
+    "version": "8.0.0",
+    "publishedAt": 1776184649201,
+    "commit": "https://github.com/openclaw/skills/commit/8b7eeb5ce28ae3da787c6fe052a48291f308a96f"
   },
   "history": [
+    {
+      "version": "7.2.0",
+      "publishedAt": 1775475001187,
+      "commit": "https://github.com/openclaw/skills/commit/be8e0726d4e3a063c7b407c6d33ef85005dd6860"
+    },
     {
       "version": "6.2.0",
       "publishedAt": 1775113045770,

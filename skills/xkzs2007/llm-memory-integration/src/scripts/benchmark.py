@@ -97,10 +97,9 @@ def run_benchmark():
     
     # 示例测试
     def test_query():
-        conn = sqlite3.connect(":memory:")
-        cursor = conn.execute("SELECT 1")
-        cursor.fetchone()
-        conn.close()
+        with sqlite3.connect(":memory:") as conn:
+            cursor = conn.execute("SELECT 1")
+            cursor.fetchone()
     
     benchmark.benchmark_query("simple_query", test_query, 10000)
     

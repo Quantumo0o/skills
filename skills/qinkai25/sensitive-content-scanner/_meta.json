@@ -1,0 +1,11 @@
+{
+  "owner": "qinkai25",
+  "slug": "sensitive-content-scanner",
+  "displayName": "敏感内容扫描器",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1776156293357,
+    "commit": "https://github.com/openclaw/skills/commit/bd3a992ff18f1d8f8a2bb837fa8fc60e5451498b"
+  },
+  "history": []
+}

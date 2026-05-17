@@ -1,0 +1,11 @@
+{
+  "owner": "alvisdunlop",
+  "slug": "alvis-web-scrape",
+  "displayName": "Scrape",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776301171692,
+    "commit": "https://github.com/openclaw/skills/commit/ac0e20e6bc55f552dbf302295483903c8155f0cd"
+  },
+  "history": []
+}

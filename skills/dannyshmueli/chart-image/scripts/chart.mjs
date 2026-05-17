@@ -8,7 +8,15 @@
  *   echo '{"type":"line","data":[...]}' | node chart.mjs --output chart.png
  * 
  * Options:
- *   --type       Chart type: line, bar, area, point (default: line)
+ *   --type       Chart type: line, bar, area, point, histogram (default: line)
+ *   --bins       Histogram bin count or Vega bin config hints (histogram only)
+ *   --tick-min-step N  Minimum step between quantitative axis ticks
+ *   --tick-min-step-x N  Minimum step between quantitative X axis ticks
+ *   --tick-min-step-y N  Minimum step between quantitative Y axis ticks
+ *   --x-label-angle N  Rotate X-axis labels in degrees
+ *   --y-label-angle N  Rotate Y-axis labels in degrees
+ *   --x-label-overlap MODE  Control Vega X-axis label overlap strategy
+ *   --y-label-overlap MODE  Control Vega Y-axis label overlap strategy
  *   --data       JSON array of data points
  *   --spec       Path to full Vega-Lite spec JSON file
  *   --output     Output file path (default: chart.png)
@@ -20,6 +28,7 @@
  *   --x-title    X axis title
  *   --y-title    Y axis title
  *   --color      Line/bar color (default: #e63946)
+ *   --x-domain   X axis domain as "min,max" (supports numeric or temporal bounds)
  *   --y-domain   Y axis domain as "min,max" (e.g., "0,100")
  *   --y-pad      Add vertical padding as a fraction of data range (e.g. 0.1 = 10%)
  *   --svg        Output SVG instead of PNG
@@ -29,6 +38,30 @@ import * as vega from 'vega';
 import * as vegaLite from 'vega-lite';
 import sharp from 'sharp';
 import { writeFileSync, readFileSync } from 'fs';
+
+function parseLabelOverlap(value) {
+  if (value === undefined || value === null) return undefined;
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'off', 'none'].includes(normalized)) return false;
+  if (['parity', 'greedy'].includes(normalized)) return normalized;
+  throw new Error(`Invalid label overlap mode: ${value}. Use parity, greedy, true, or false.`);
+}
+
+function parseScaleDomain(value) {
+  if (value === undefined || value === null) return undefined;
+  const parts = String(value)
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0);
+  if (parts.length !== 2) {
+    throw new Error(`Invalid scale domain: ${value}. Use \"min,max\".`);
+  }
+  return parts.map(part => {
+    const numeric = Number(part);
+    return Number.isFinite(numeric) ? numeric : part;
+  });
+}
 
 // Show help
 function showHelp() {
@@ -45,6 +78,7 @@ CHART TYPES:
   bar           Vertical bar chart
   area          Area chart with fill
   point         Scatter plot
+  histogram     Histogram (binned quantitative distribution)
   pie           Pie chart (use --category-field, --y-field)
   donut         Donut chart (pie with hole)
   candlestick   OHLC candlestick (use --open/high/low/close-field)
@@ -58,6 +92,13 @@ BASIC OPTIONS:
   --title       Chart title
   --subtitle    Chart subtitle
   --title-align Title alignment: start, middle, end (default: start)
+  --title-size N      Title font size in px
+  --subtitle-size N   Subtitle font size in px
+  --title-weight W    Title font weight (normal, bold, 100-900)
+  --subtitle-weight W Subtitle font weight (normal, bold, 100-900)
+  --title-color COLOR Title text color override
+  --subtitle-color COLOR Subtitle text color override
+  --grid-dash A,B    Gridline dash pattern (e.g. 4,2)
   --width       Chart width in pixels (default: 600)
   --height      Chart height in pixels (default: 300)
   --dark        Dark mode (night-friendly colors)
@@ -69,12 +110,22 @@ DATA FIELDS:
   --x-title     X axis label
   --y-title     Y axis label
   --x-type      X axis type: ordinal, temporal, quantitative
+  --x-domain    X axis domain as "min,max" (useful for numeric or temporal zoom / clipping)
   --x-format    X axis label format (d3-time-format for temporal, e.g. "%b %d", "%H:%M")
   --x-sort      X axis order: ascending, descending, none (preserve input order)
+  --series-order CSV  Explicit series/category order for multi-series + stacked legends/stacks
   --x-label-limit PX  Max pixel width for X axis labels before Vega truncates them
   --y-label-limit PX  Max pixel width for Y axis labels before Vega truncates them
   --x-ticks N    Target tick count for the X axis
   --y-ticks N    Target tick count for the primary/left Y axis
+  --bins N       Histogram bin count (histogram only)
+  --tick-min-step N  Minimum step between quantitative axis ticks
+  --tick-min-step-x N  Minimum step between quantitative X axis ticks
+  --tick-min-step-y N  Minimum step between quantitative Y axis ticks
+  --x-label-angle N  Rotate X-axis labels in degrees
+  --y-label-angle N  Rotate Y-axis labels in degrees
+  --x-label-overlap MODE  X-axis label overlap: parity, greedy, true, false
+  --y-label-overlap MODE  Y-axis label overlap: parity, greedy, true, false
   --y2-ticks N   Target tick count for the secondary/right Y axis
 
 STYLING:
@@ -198,7 +249,7 @@ function parseArgs(args) {
     
     switch (arg) {
       case '--help': case '-h': showHelp(); break;
-      case '--version': case '-v': console.log('chart.mjs v2.6.23'); process.exit(0); break;
+      case '--version': case '-v': console.log('chart.mjs v2.6.35'); process.exit(0); break;
       case '--type': opts.type = next; i++; break;
       case '--data': opts.data = parseDataArg(next); i++; break;
       case '--spec': opts.specFile = next; i++; break;
@@ -211,7 +262,8 @@ function parseArgs(args) {
       case '--x-title': opts.xTitle = next; i++; break;
       case '--y-title': opts.yTitle = next; i++; break;
       case '--color': opts.color = next; i++; break;
-      case '--y-domain': opts.yDomain = next.split(',').map(Number); i++; break;
+      case '--x-domain': opts.xDomain = parseScaleDomain(next); i++; break;
+      case '--y-domain': opts.yDomain = parseScaleDomain(next); i++; break;
       case '--y-pad': opts.yPad = parseFloat(next); i++; break;
       case '--svg': opts.svg = true; break;
       case '--show-change': opts.showChange = true; break;
@@ -254,6 +306,13 @@ function parseArgs(args) {
       case '--y-format': opts.yFormat = next; i++; break;  // percent, dollar, compact, or d3-format string
       case '--subtitle': opts.subtitle = next; i++; break;
       case '--title-align': opts.titleAlign = next; i++; break;
+      case '--title-size': opts.titleSize = parseFloat(next); i++; break;
+      case '--subtitle-size': opts.subtitleSize = parseFloat(next); i++; break;
+      case '--title-weight': opts.titleWeight = next; i++; break;
+      case '--subtitle-weight': opts.subtitleWeight = next; i++; break;
+      case '--title-color': opts.titleColor = next; i++; break;
+      case '--subtitle-color': opts.subtitleColor = next; i++; break;
+      case '--grid-dash': opts.gridDash = next.split(',').map(v => parseFloat(v.trim())).filter(v => Number.isFinite(v) && v >= 0); i++; break;
       case '--no-grid': opts.noGrid = true; break;
       case '--legend': opts.legend = next; i++; break;  // top, bottom, left, right, none
       case '--legend-columns': opts.legendColumns = parseInt(next); i++; break;  // Wrap legend entries into columns
@@ -262,6 +321,14 @@ function parseArgs(args) {
       case '--x-ticks': opts.xTicks = parseInt(next); i++; break;  // Target X axis tick count
       case '--y-ticks': opts.yTicks = parseInt(next); i++; break;  // Target primary/left Y axis tick count
       case '--y2-ticks': opts.y2Ticks = parseInt(next); i++; break;  // Target secondary/right Y axis tick count
+      case '--bins': opts.bins = parseInt(next); i++; break;  // Histogram bin count
+      case '--tick-min-step': opts.tickMinStep = parseFloat(next); i++; break;  // Minimum step for quantitative axis ticks
+      case '--tick-min-step-x': opts.tickMinStepX = parseFloat(next); i++; break;  // Minimum step for quantitative X axis ticks
+      case '--tick-min-step-y': opts.tickMinStepY = parseFloat(next); i++; break;  // Minimum step for quantitative Y axis ticks
+      case '--x-label-angle': opts.xLabelAngle = parseFloat(next); i++; break;  // X axis label rotation angle
+      case '--y-label-angle': opts.yLabelAngle = parseFloat(next); i++; break;  // Y axis label rotation angle
+      case '--x-label-overlap': opts.xLabelOverlap = parseLabelOverlap(next); i++; break;  // X axis label overlap strategy
+      case '--y-label-overlap': opts.yLabelOverlap = parseLabelOverlap(next); i++; break;  // Y axis label overlap strategy
       case '--trend-line': opts.trendLine = true; break;  // Linear regression trend line
       case '--watermark': opts.watermark = next; i++; break;  // Watermark text overlay
       case '--smooth': opts.smooth = true; break;  // Smooth/curved line interpolation (monotone)
@@ -473,6 +540,37 @@ function resolveTitleAnchor(opts, fallback = 'start') {
   return allowed.has(opts.titleAlign) ? opts.titleAlign : fallback;
 }
 
+function resolveFontWeight(value) {
+  if (value === undefined || value === null || value === '') return undefined;
+  const normalized = String(value).trim();
+  if (!normalized) return undefined;
+  const named = new Set(['normal', 'bold', 'bolder', 'lighter']);
+  if (named.has(normalized)) return normalized;
+  const numeric = Number(normalized);
+  if (Number.isFinite(numeric) && numeric >= 100 && numeric <= 900) return numeric;
+  return undefined;
+}
+
+function buildChartTitle(opts, theme, fallback = 'start') {
+  if (!opts.title) return undefined;
+  const titleWeight = resolveFontWeight(opts.titleWeight);
+  const subtitleWeight = resolveFontWeight(opts.subtitleWeight);
+  const title = {
+    text: opts.title,
+    anchor: resolveTitleAnchor(opts, fallback),
+    color: opts.titleColor || theme.text,
+    ...(Number.isFinite(opts.titleSize) && opts.titleSize > 0 ? { fontSize: opts.titleSize } : {}),
+    ...(titleWeight !== undefined ? { fontWeight: titleWeight } : {}),
+  };
+  if (opts.subtitle) {
+    title.subtitle = opts.subtitle;
+    title.subtitleColor = opts.subtitleColor || theme.grid;
+    title.subtitleFontSize = Number.isFinite(opts.subtitleSize) && opts.subtitleSize > 0 ? opts.subtitleSize : 12;
+    if (subtitleWeight !== undefined) title.subtitleFontWeight = subtitleWeight;
+  }
+  return title;
+}
+
 function buildLegendConfig(opts, theme, extra = {}) {
   return {
     labelColor: theme.text,
@@ -483,6 +581,18 @@ function buildLegendConfig(opts, theme, extra = {}) {
     ...(opts.legend && opts.legend !== 'none' ? { orient: opts.legend } : {}),
     ...extra,
   };
+}
+
+function buildOrderedNominalScale(opts, fallbackScheme = 'category10') {
+  const scale = { scheme: opts.colorScheme || fallbackScheme };
+  if (Array.isArray(opts.seriesOrder) && opts.seriesOrder.length > 0) {
+    scale.domain = opts.seriesOrder;
+  }
+  return scale;
+}
+
+function buildOrderedNominalSort(opts) {
+  return Array.isArray(opts.seriesOrder) && opts.seriesOrder.length > 0 ? opts.seriesOrder : undefined;
 }
 
 function applyYPadToValues(values, opts) {
@@ -549,6 +659,7 @@ function buildSpec(opts) {
       ...(opts.smooth ? { interpolate: 'monotone' } : {})
     },
     point: { type: 'point', color: theme.accent, size: pointSize },
+    histogram: { type: 'bar', color: theme.accent, ...(barRadius ? { cornerRadius: barRadius } : {}) },
     candlestick: null, // Handled separately as composite chart
   };
   
@@ -590,7 +701,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      pieSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'middle'), color: theme.text };
+      pieSpec.title = buildChartTitle(opts, theme, 'middle');
     }
     
     // Add labels if showValues
@@ -682,7 +793,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      heatmapSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'start'), color: theme.text };
+      heatmapSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     // Add value labels if showValues
@@ -784,7 +895,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      candleSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'start'), color: theme.text };
+      candleSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     if (opts.yDomain || opts.yScale || opts.zeroBaseline) {
@@ -827,8 +938,18 @@ function buildSpec(opts) {
           field: opts.colorField,
           type: 'nominal',
           title: opts.colorField,
-          scale: { scheme: opts.colorScheme || 'category10' }
-        }
+          scale: buildOrderedNominalScale(opts, 'category10'),
+          ...(buildOrderedNominalSort(opts) ? { sort: buildOrderedNominalSort(opts) } : {})
+        },
+        ...(buildOrderedNominalSort(opts)
+          ? {
+              order: {
+                field: opts.colorField,
+                type: 'nominal',
+                sort: buildOrderedNominalSort(opts)
+              }
+            }
+          : {})
       },
       config: {
         font: fontFamily,
@@ -847,7 +968,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      stackedSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'start'), color: theme.text };
+      stackedSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     return stackedSpec;
@@ -880,7 +1001,8 @@ function buildSpec(opts) {
           field: opts.seriesField,
           type: 'nominal',
           title: opts.seriesField,
-          scale: { scheme: opts.colorScheme || 'category10' }
+          scale: buildOrderedNominalScale(opts, 'category10'),
+          ...(buildOrderedNominalSort(opts) ? { sort: buildOrderedNominalSort(opts) } : {})
         }
       },
       config: {
@@ -900,7 +1022,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      multiSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'start'), color: theme.text };
+      multiSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     return multiSpec;
@@ -1030,7 +1152,7 @@ function buildSpec(opts) {
     }
     
     if (opts.title) {
-      volumeSpec.title = { text: opts.title, anchor: resolveTitleAnchor(opts, 'start'), color: theme.text };
+      volumeSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     return volumeSpec;
@@ -1123,12 +1245,7 @@ function buildSpec(opts) {
     };
     
     if (opts.title) {
-      dualSpec.title = {
-        text: opts.title,
-        anchor: resolveTitleAnchor(opts, 'start'),
-        color: theme.text,
-        ...(opts.subtitle ? { subtitle: opts.subtitle, subtitleColor: theme.grid, subtitleFontSize: 12 } : {})
-      };
+      dualSpec.title = buildChartTitle(opts, theme, 'start');
     }
     
     return dualSpec;
@@ -1169,30 +1286,46 @@ function buildSpec(opts) {
   }
   
   // Base layer - the main chart
-  const xAxisType = opts.xType || 'ordinal';  // ordinal (default), temporal, quantitative
+  const xAxisType = opts.xType || (opts.type === 'histogram' ? 'quantitative' : 'ordinal');  // ordinal (default), temporal, quantitative
   const yFormat = resolveYFormat(opts.yFormat);
   const mainLayer = {
     mark: markConfig[opts.type] || markConfig.line,
-    encoding: {
-      x: {
-        field: opts.xField,
-        type: xAxisType,
-        title: opts.xTitle || opts.xField,
-        axis: { labelAngle: opts.xLabelAngle !== undefined ? opts.xLabelAngle : -45 },
-        // Sort bar charts by value when --sort is specified
-        ...(opts.sort && opts.type === 'bar' ? {
-          sort: opts.sort === 'desc' ? { field: opts.yField, order: 'descending' }
-               : opts.sort === 'asc' ? { field: opts.yField, order: 'ascending' }
-               : null
-        } : {})
-      },
-      y: {
-        field: opts.yField,
-        type: 'quantitative',
-        title: opts.yTitle || opts.yField,
-        ...(yFormat ? { axis: { format: yFormat } } : {})
-      }
-    }
+    encoding: opts.type === 'histogram'
+      ? {
+          x: {
+            field: opts.xField,
+            type: 'quantitative',
+            bin: Number.isFinite(opts.bins) && opts.bins > 0 ? { maxbins: opts.bins } : true,
+            title: opts.xTitle || opts.xField,
+            axis: { labelAngle: opts.xLabelAngle !== undefined ? opts.xLabelAngle : -45 }
+          },
+          y: {
+            aggregate: 'count',
+            type: 'quantitative',
+            title: opts.yTitle || 'Count',
+            ...(yFormat ? { axis: { format: yFormat } } : {})
+          }
+        }
+      : {
+          x: {
+            field: opts.xField,
+            type: xAxisType,
+            title: opts.xTitle || opts.xField,
+            axis: { labelAngle: opts.xLabelAngle !== undefined ? opts.xLabelAngle : -45 },
+            // Sort bar charts by value when --sort is specified
+            ...(opts.sort && opts.type === 'bar' ? {
+              sort: opts.sort === 'desc' ? { field: opts.yField, order: 'descending' }
+                   : opts.sort === 'asc' ? { field: opts.yField, order: 'ascending' }
+                   : null
+            } : {})
+          },
+          y: {
+            field: opts.yField,
+            type: 'quantitative',
+            title: opts.yTitle || opts.yField,
+            ...(yFormat ? { axis: { format: yFormat } } : {})
+          }
+        }
   };
   
   if (opts.yDomain || opts.yScale || opts.zeroBaseline) {
@@ -1232,7 +1365,7 @@ function buildSpec(opts) {
       field: origX.field,
       type: origX.type || 'ordinal',
       title: origX.title,
-      axis: { labelAngle: 0 },
+      axis: { labelAngle: opts.yLabelAngle !== undefined ? opts.yLabelAngle : 0 },
       ...(opts.sort ? {
         sort: opts.sort === 'asc' ? { field: opts.yField, order: 'ascending' }
              : opts.sort === 'desc' ? { field: opts.yField, order: 'descending' }
@@ -1621,6 +1754,7 @@ function buildSpec(opts) {
         labelFontSize: 11, 
         titleFontSize: 13, 
         gridColor: theme.grid,
+        ...(Array.isArray(opts.gridDash) && opts.gridDash.length > 0 ? { gridDash: opts.gridDash } : {}),
         labelColor: theme.text,
         titleColor: theme.text,
         domainColor: theme.grid
@@ -1631,12 +1765,7 @@ function buildSpec(opts) {
   };
   
   if (opts.title) {
-    spec.title = {
-      text: opts.title,
-      anchor: resolveTitleAnchor(opts, 'start'),
-      color: theme.text,
-      ...(opts.subtitle ? { subtitle: opts.subtitle, subtitleColor: theme.grid, subtitleFontSize: 12 } : {})
-    };
+    spec.title = buildChartTitle(opts, theme, 'start');
   }
   
   return spec;
@@ -1695,6 +1824,14 @@ async function main() {
     if (Array.isArray(node.layer)) node.layer.forEach(child => walkEncodings(child, fn));
   };
 
+  if (opts.xDomain) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.x && enc.x.field) {
+        enc.x.scale = { ...(enc.x.scale || {}), domain: opts.xDomain };
+      }
+    });
+  }
+
   // Apply --x-format to x axis encoding (works for temporal axes)
   if (opts.xFormat) {
     walkEncodings(spec, (enc) => {
@@ -1716,12 +1853,30 @@ async function main() {
     });
   }
 
+  if (opts.xLabelOverlap !== undefined) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.x && enc.x.field) {
+        if (!enc.x.axis) enc.x.axis = {};
+        enc.x.axis.labelOverlap = opts.xLabelOverlap;
+      }
+    });
+  }
+
   // Apply --y-label-limit to keep long category/value labels from overflowing the chart
   if (opts.yLabelLimit !== undefined && Number.isFinite(opts.yLabelLimit) && opts.yLabelLimit > 0) {
     walkEncodings(spec, (enc) => {
       if (enc && enc.y && enc.y.field) {
         if (!enc.y.axis) enc.y.axis = {};
         enc.y.axis.labelLimit = opts.yLabelLimit;
+      }
+    });
+  }
+
+  if (opts.yLabelOverlap !== undefined) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.y && enc.y.field) {
+        if (!enc.y.axis) enc.y.axis = {};
+        enc.y.axis.labelOverlap = opts.yLabelOverlap;
       }
     });
   }
@@ -1754,6 +1909,46 @@ async function main() {
         if (enc.y.axis.orient === 'right') {
           enc.y.axis.tickCount = opts.y2Ticks;
         }
+      }
+    });
+  }
+
+  if (opts.tickMinStep !== undefined && Number.isFinite(opts.tickMinStep) && opts.tickMinStep > 0) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.x && enc.x.type === 'quantitative') {
+        if (!enc.x.axis) enc.x.axis = {};
+        enc.x.axis.tickMinStep = opts.tickMinStep;
+      }
+      if (enc && enc.y && enc.y.type === 'quantitative') {
+        if (!enc.y.axis) enc.y.axis = {};
+        enc.y.axis.tickMinStep = opts.tickMinStep;
+      }
+    });
+  }
+
+  if (opts.tickMinStepX !== undefined && Number.isFinite(opts.tickMinStepX) && opts.tickMinStepX > 0) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.x && enc.x.type === 'quantitative') {
+        if (!enc.x.axis) enc.x.axis = {};
+        enc.x.axis.tickMinStep = opts.tickMinStepX;
+      }
+    });
+  }
+
+  if (opts.tickMinStepY !== undefined && Number.isFinite(opts.tickMinStepY) && opts.tickMinStepY > 0) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.y && enc.y.type === 'quantitative') {
+        if (!enc.y.axis) enc.y.axis = {};
+        enc.y.axis.tickMinStep = opts.tickMinStepY;
+      }
+    });
+  }
+
+  if (opts.yLabelAngle !== undefined && Number.isFinite(opts.yLabelAngle)) {
+    walkEncodings(spec, (enc) => {
+      if (enc && enc.y) {
+        if (!enc.y.axis) enc.y.axis = {};
+        enc.y.axis.labelAngle = opts.yLabelAngle;
       }
     });
   }

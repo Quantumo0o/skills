@@ -4,6 +4,7 @@ description: |
   Box API integration with managed OAuth. Manage files, folders, collaborations, and cloud storage.
   Use this skill when users want to upload, download, share, or organize files and folders in Box.
   For other third party apps, use the api-gateway skill (https://clawhub.ai/byungkyu/api-gateway).
+  Security: The MATON_API_KEY authenticates with Maton.ai but grants NO access to Box by itself. Box access requires explicit OAuth authorization by the user through Maton's connect flow. Access is strictly scoped to connections the user has authorized.
   Requires network access and valid Maton API key.
 metadata:
   author: maton
@@ -37,7 +38,7 @@ EOF
 https://gateway.maton.ai/box/2.0/{resource}
 ```
 
-The gateway proxies requests to `api.box.com/2.0` and automatically injects your OAuth token.
+The gateway proxies requests to `api.box.com/2.0` (for most endpoints) or `upload.box.com/api/2.0` (for upload endpoints) and automatically injects your OAuth token. The routing is handled automatically based on the endpoint path.
 
 ## Authentication
 
@@ -102,7 +103,7 @@ EOF
 ```json
 {
   "connection": {
-    "connection_id": "bd484938-0902-4fc0-9ffb-2549d7d91f1d",
+    "connection_id": "{connection_id}",
     "status": "ACTIVE",
     "creation_time": "2026-02-08T21:14:41.808115Z",
     "last_updated_time": "2026-02-08T21:16:10.100340Z",
@@ -135,7 +136,7 @@ python <<'EOF'
 import urllib.request, os, json
 req = urllib.request.Request('https://gateway.maton.ai/box/2.0/users/me')
 req.add_header('Authorization', f'Bearer {os.environ["MATON_API_KEY"]}')
-req.add_header('Maton-Connection', 'bd484938-0902-4fc0-9ffb-2549d7d91f1d')
+req.add_header('Maton-Connection', '{connection_id}')
 print(json.dumps(json.load(urllib.request.urlopen(req)), indent=2))
 EOF
 ```
@@ -315,15 +316,157 @@ Returns a redirect to the download URL.
 
 #### Upload File
 
+Upload a new file (up to 50 MB for direct upload):
+
 ```bash
-POST https://upload.box.com/api/2.0/files/content
+POST /box/api/2.0/files/content
 Content-Type: multipart/form-data
 
 attributes={"name":"file.txt","parent":{"id":"0"}}
 file=<binary data>
 ```
 
-**Note:** File uploads use a different base URL: `upload.box.com`
+The `attributes` field is a JSON string with:
+- `name` (required) - Filename to use
+- `parent.id` (required) - Folder ID to upload to (use `"0"` for root)
+- `content_created_at` - Optional timestamp
+- `content_modified_at` - Optional timestamp
+
+**Response:**
+```json
+{
+  "total_count": 1,
+  "entries": [
+    {
+      "type": "file",
+      "id": "123456789",
+      "name": "file.txt",
+      "size": 1024,
+      "created_at": "2026-04-14T10:00:00-07:00",
+      "modified_at": "2026-04-14T10:00:00-07:00",
+      "parent": {"type": "folder", "id": "0", "name": "All Files"}
+    }
+  ]
+}
+```
+
+**Note:** The gateway automatically routes upload endpoints to `upload.box.com`.
+
+#### Upload New File Version
+
+Upload a new version of an existing file:
+
+```bash
+POST /box/api/2.0/files/{file_id}/content
+Content-Type: multipart/form-data
+
+attributes={"name":"file.txt"}
+file=<binary data>
+```
+
+### Chunked Upload (Large Files)
+
+For files larger than 50 MB (up to 50 GB), use chunked upload sessions. The gateway automatically routes these endpoints to `upload.box.com`.
+
+#### Create Upload Session
+
+```bash
+POST /box/api/2.0/files/upload_sessions
+Content-Type: application/json
+
+{
+  "folder_id": "0",
+  "file_size": 104857600,
+  "file_name": "large_file.zip"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "F971964745A5CD0C001BBE4E58196BFD",
+  "type": "upload_session",
+  "session_expires_at": "2026-04-15T10:00:00-07:00",
+  "part_size": 8388608,
+  "total_parts": 13,
+  "num_parts_processed": 0,
+  "session_endpoints": {
+    "list_parts": "https://upload.box.com/api/2.0/files/upload_sessions/F971964745A5CD0C001BBE4E58196BFD/parts",
+    "commit": "https://upload.box.com/api/2.0/files/upload_sessions/F971964745A5CD0C001BBE4E58196BFD/commit",
+    "upload_part": "https://upload.box.com/api/2.0/files/upload_sessions/F971964745A5CD0C001BBE4E58196BFD",
+    "status": "https://upload.box.com/api/2.0/files/upload_sessions/F971964745A5CD0C001BBE4E58196BFD",
+    "abort": "https://upload.box.com/api/2.0/files/upload_sessions/F971964745A5CD0C001BBE4E58196BFD"
+  }
+}
+```
+
+#### Create Upload Session for New Version
+
+```bash
+POST /box/api/2.0/files/{file_id}/upload_sessions
+Content-Type: application/json
+
+{
+  "file_size": 104857600,
+  "file_name": "large_file.zip"
+}
+```
+
+#### Upload Part
+
+```bash
+PUT /box/api/2.0/files/upload_sessions/{session_id}
+Content-Type: application/octet-stream
+Content-Range: bytes 0-8388607/104857600
+Digest: sha=<base64-encoded SHA-1 of part>
+
+<part data>
+```
+
+**Response:**
+```json
+{
+  "part": {
+    "part_id": "6F2D3A7B8C4E5F6A",
+    "offset": 0,
+    "size": 8388608,
+    "sha1": "134b65991ed521fcfe4724b7d814ab8ded5185dc"
+  }
+}
+```
+
+#### List Uploaded Parts
+
+```bash
+GET /box/api/2.0/files/upload_sessions/{session_id}/parts
+```
+
+#### Commit Upload Session
+
+After all parts are uploaded:
+
+```bash
+POST /box/api/2.0/files/upload_sessions/{session_id}/commit
+Content-Type: application/json
+Digest: sha=<base64-encoded SHA-1 of entire file>
+
+{
+  "parts": [
+    {"part_id": "6F2D3A7B8C4E5F6A", "offset": 0, "size": 8388608},
+    {"part_id": "7G3E4B8D9F5A6C7B", "offset": 8388608, "size": 8388608}
+  ]
+}
+```
+
+**Response:** Returns the created file object.
+
+#### Abort Upload Session
+
+```bash
+DELETE /box/api/2.0/files/upload_sessions/{session_id}
+```
+
+Returns 204 No Content on success
 
 #### Update File Info
 
@@ -649,10 +792,121 @@ folder = response.json()
 print(f"Created folder: {folder['id']}")
 ```
 
+### Python (Upload File)
+
+```python
+import os
+import json
+import requests
+
+file_path = '/path/to/local/file.txt'
+parent_folder_id = '0'  # Root folder
+
+with open(file_path, 'rb') as f:
+    response = requests.post(
+        'https://gateway.maton.ai/box/api/2.0/files/content',
+        headers={
+            'Authorization': f'Bearer {os.environ["MATON_API_KEY"]}'
+        },
+        files={
+            'attributes': (None, json.dumps({
+                'name': os.path.basename(file_path),
+                'parent': {'id': parent_folder_id}
+            })),
+            'file': (os.path.basename(file_path), f)
+        }
+    )
+result = response.json()
+file_entry = result['entries'][0]
+print(f"Uploaded: {file_entry['name']} (ID: {file_entry['id']})")
+```
+
+### Python (Chunked Upload for Large Files)
+
+```python
+import os
+import json
+import hashlib
+import base64
+import requests
+
+CHUNK_SIZE = 8 * 1024 * 1024  # 8 MB (Box's default part size)
+file_path = '/path/to/large/file.zip'
+parent_folder_id = '0'
+
+headers = {'Authorization': f'Bearer {os.environ["MATON_API_KEY"]}'}
+file_size = os.path.getsize(file_path)
+file_name = os.path.basename(file_path)
+
+# Step 1: Create upload session
+response = requests.post(
+    'https://gateway.maton.ai/box/api/2.0/files/upload_sessions',
+    headers={**headers, 'Content-Type': 'application/json'},
+    json={
+        'folder_id': parent_folder_id,
+        'file_size': file_size,
+        'file_name': file_name
+    }
+)
+session = response.json()
+session_id = session['id']
+part_size = session['part_size']
+
+# Step 2: Upload parts
+parts = []
+file_sha1 = hashlib.sha1()
+
+with open(file_path, 'rb') as f:
+    offset = 0
+    while offset < file_size:
+        chunk = f.read(part_size)
+        chunk_size = len(chunk)
+        end_byte = offset + chunk_size - 1
+        
+        # Calculate SHA-1 for this part
+        part_sha1 = hashlib.sha1(chunk).digest()
+        file_sha1.update(chunk)
+        
+        response = requests.put(
+            f'https://gateway.maton.ai/box/api/2.0/files/upload_sessions/{session_id}',
+            headers={
+                **headers,
+                'Content-Type': 'application/octet-stream',
+                'Content-Range': f'bytes {offset}-{end_byte}/{file_size}',
+                'Digest': f'sha={base64.b64encode(part_sha1).decode()}'
+            },
+            data=chunk
+        )
+        part_info = response.json()['part']
+        parts.append({
+            'part_id': part_info['part_id'],
+            'offset': part_info['offset'],
+            'size': part_info['size']
+        })
+        offset += chunk_size
+        print(f"Uploaded part {len(parts)}: {offset}/{file_size} bytes")
+
+# Step 3: Commit upload session
+response = requests.post(
+    f'https://gateway.maton.ai/box/api/2.0/files/upload_sessions/{session_id}/commit',
+    headers={
+        **headers,
+        'Content-Type': 'application/json',
+        'Digest': f'sha={base64.b64encode(file_sha1.digest()).decode()}'
+    },
+    json={'parts': parts}
+)
+result = response.json()
+print(f"Upload complete: {result['entries'][0]['name']}")
+```
+
 ## Notes
 
 - Root folder ID is `0`
-- File uploads use `upload.box.com` instead of `api.box.com`
+- The gateway automatically routes upload endpoints to `upload.box.com`
+- Direct upload supports files up to 50 MB; use chunked upload for files up to 50 GB
+- Upload endpoints use multipart/form-data with `attributes` JSON and `file` fields
+- Chunked uploads require SHA-1 digest headers for integrity verification
 - Delete operations return 204 No Content on success
 - Use `fields` parameter to request specific fields and reduce response size
 - Shared links can have password protection and expiration dates

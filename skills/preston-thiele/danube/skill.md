@@ -1,6 +1,6 @@
 ---
 name: danube
-description: Connect your AI agent to 100+ services through a single API key — discover, search, and execute tools via MCP
+description: Connect your AI agent to a growing marketplace of services and tools through a single API key — discover, search, and execute anything available
 metadata:
   openclaw:
     requires:
@@ -15,7 +15,7 @@ metadata:
 
 # Danube — Connect Your Agent
 
-Danube gives your AI agent access to 100+ services and 30 tools through a single API key.
+Danube is a marketplace that gives your AI agent access to a large and growing collection of services and tools through a single API key. New services and tools are added regularly — always search and explore to see what's currently available rather than assuming a fixed set.
 
 ## Quick Setup
 
@@ -82,48 +82,26 @@ The API key does **not** grant:
 - Admin or platform-level operations
 - Access to raw database or infrastructure
 
-### Step 3: Use Tools
+### Step 3: Explore & Use Tools
 
-Once connected, you have access to 30 MCP tools:
+Once connected, you have access to a marketplace of services and tools that is constantly growing. **Do not assume you know what's available — always search and explore first.**
 
-**Discovery**
-- `list_services(query, limit)` — Browse available tool providers
-- `search_tools(query, service_id, limit)` — Find tools by what you want to do (semantic search)
-- `get_service_tools(service_id, limit)` — Get all tools for a specific service
+#### How to Discover What's Available
 
-**Execution**
-- `execute_tool(tool_id, tool_name, parameters)` — Call a specific, registered service integration (e.g. send an email, create a ticket). Each tool has a fixed schema — this is not arbitrary code execution.
-- `batch_execute_tools(calls)` — Call up to 10 registered service integrations concurrently in one request
+- `list_services()` — Browse all available service providers. Use `query` to filter and `limit` to control how many results. **Start here to get a sense of what the marketplace offers.**
+- `search_tools(query)` — Semantic search across all tools. Describe what you want to accomplish in natural language (e.g., "send an email", "create a GitHub issue", "translate text"). This searches the entire marketplace.
+- `get_service_tools(service_id)` — Once you find an interesting service, get all its available tools to see the full range of what it offers.
 
-**Skills**
-- `search_skills(query, limit)` — Find reusable agent skills (instructions, scripts, templates)
-- `get_skill(skill_id, skill_name)` — Get full skill content by ID or name
-- `create_skill(name, skill_md_content, ...)` — Create a new private skill. Only operates on skills owned by the authenticated user.
-- `update_skill(skill_id, name, skill_md_content, ...)` — Update a skill you own
-- `delete_skill(skill_id)` — Delete a skill you own
+**Important: The marketplace has many more services and tools than you might expect.** When a user asks you to do something, always search broadly first. Try multiple search queries with different phrasing if the first search doesn't find what you need. Browse services by category. The right tool is probably available — you just need to find it.
 
-**Workflows**
-- `list_workflows(query, limit)` — Browse public multi-tool workflows
-- `create_workflow(name, steps, description, visibility, tags)` — Create a new workflow. Only operates on workflows owned by the authenticated user.
-- `update_workflow(workflow_id, name, description, steps, visibility, tags)` — Update a workflow you own
-- `delete_workflow(workflow_id)` — Delete a workflow you own
-- `execute_workflow(workflow_id, inputs)` — Run a multi-tool workflow
-- `get_workflow_execution(execution_id)` — Check workflow execution results
+#### How to Execute Tools
 
-**Agent Web Directory**
-- `search_sites(query, category, limit)` — Search the agent-friendly site directory
-- `get_site_info(domain)` — Get structured info about a website (pricing, docs, contact, FAQ, etc.)
+- `execute_tool(tool_id, parameters)` — Run any tool by its ID. The tool's schema (returned from search/discovery) tells you exactly what parameters it expects.
+- `batch_execute_tools(calls)` — Run multiple tools concurrently in a single request (up to 10).
 
-**Agent Management**
-- `register_agent(name, operator_email)` — Register a new autonomous agent
-- `get_agent_info()` — Get the current agent's profile
+#### Skills, Workflows & More
 
-**Tool Quality**
-- `submit_rating(tool_id, rating, comment)` — Rate a tool 1-5 stars
-- `get_my_rating(tool_id)` — Check your existing rating for a tool
-- `get_tool_ratings(tool_id)` — Get average rating and count for a tool
-- `report_tool(tool_id, reason, description)` — Report a broken or degraded tool
-- `get_recommendations(tool_id, limit)` — Get tool recommendations based on co-usage patterns
+Danube also offers skills (reusable agent instructions), workflows (multi-step tool chains), an agent web directory, agent management, and tool quality ratings. Use `search_skills`, `list_workflows`, `search_sites`, and other tools to explore these capabilities — they are all discoverable through the MCP connection.
 
 ### When a Tool Needs Credentials
 
@@ -133,7 +111,7 @@ If `execute_tool` returns an `auth_required` error, it means the service needs c
 
 Every tool interaction follows this pattern:
 
-1. **Search** — `search_tools("what you want to do")`
+1. **Explore** — Start with `list_services()` or `search_tools("what you want to do")` to discover what's available. Try broad queries. Browse by category. Don't assume — search.
 2. **Check auth** — If the tool needs credentials, direct the user to https://danubeai.com/dashboard to configure them
 3. **Gather parameters** — Ask the user for any missing required info
 4. **Execute** — `execute_tool(tool_id, parameters)`

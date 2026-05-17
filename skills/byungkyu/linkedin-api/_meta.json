@@ -3,11 +3,16 @@
   "slug": "linkedin-api",
   "displayName": "LinkedIn",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775103938654,
-    "commit": "https://github.com/openclaw/skills/commit/079b560eca807c7cfe22a788f7bd1feb220c0727"
+    "version": "1.0.6",
+    "publishedAt": 1775771166812,
+    "commit": "https://github.com/openclaw/skills/commit/45f07d8f4f53d2b9c438cc2384afca60a1aa1815"
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775103938654,
+      "commit": "https://github.com/openclaw/skills/commit/079b560eca807c7cfe22a788f7bd1feb220c0727"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1771398176684,

@@ -308,7 +308,7 @@ def find_similar_facts(db, content: str, threshold: float = 0.85) -> list[dict]:
         SELECT id, content, confidence, source,
                vector::similarity::cosine(embedding, $embedding) AS similarity
         FROM fact
-        WHERE archived = false
+        WHERE archived != true
             AND vector::similarity::cosine(embedding, $embedding) > $threshold
         ORDER BY similarity DESC
         LIMIT 5
@@ -602,7 +602,7 @@ def run_reconcile(verbose: bool = False):
         decay_result = db.query("""
             UPDATE fact SET confidence = confidence * 0.95 
             WHERE last_accessed < time::now() - 30d 
-                AND archived = false
+                AND archived != true
                 AND confidence > 0.1
         """)
         stats["decayed"] = len(decay_result[0]) if decay_result and decay_result[0] else 0
@@ -704,7 +704,7 @@ def run_deduplicate(threshold: float = 0.95, dry_run: bool = False):
         db.use(SURREAL_CONFIG["namespace"], SURREAL_CONFIG["database"])
         
         # Get all facts
-        facts = db.query("SELECT id, content, embedding, confidence, created_at FROM fact WHERE archived = false")
+        facts = db.query("SELECT id, content, embedding, confidence, created_at FROM fact WHERE archived != true")
         
         if not facts:
             print("No facts to deduplicate")
@@ -809,7 +809,7 @@ def run_relation_discovery(batch_size: int = 20, verbose: bool = False):
         facts = db.query("""
             SELECT id, content, confidence, source, created_at
             FROM fact
-            WHERE archived = false
+            WHERE archived != true
             ORDER BY created_at DESC
             LIMIT 100
         """)
@@ -1027,7 +1027,7 @@ def run_rebuild_links():
         db.use(SURREAL_CONFIG["namespace"], SURREAL_CONFIG["database"])
         
         # Get all facts
-        facts = db.query("SELECT id, content FROM fact WHERE archived = false")
+        facts = db.query("SELECT id, content FROM fact WHERE archived != true")
         
         if not facts:
             print("No facts to process")

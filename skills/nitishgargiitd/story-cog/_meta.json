@@ -3,11 +3,16 @@
   "slug": "story-cog",
   "displayName": "Story Cog",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1775627935760,
-    "commit": "https://github.com/openclaw/skills/commit/6fc5ad09aaf2878adbcb56b60e0ab39e7bce372a"
+    "version": "1.0.9",
+    "publishedAt": 1776187999420,
+    "commit": "https://github.com/openclaw/skills/commit/e88031d821814eed6a7ad720011bcd9adaec16ee"
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1775627935760,
+      "commit": "https://github.com/openclaw/skills/commit/6fc5ad09aaf2878adbcb56b60e0ab39e7bce372a"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1775180662512,

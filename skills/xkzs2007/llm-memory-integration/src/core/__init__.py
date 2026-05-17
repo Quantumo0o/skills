@@ -80,7 +80,7 @@ from .vnni_search import VNNISearcher, INT8Quantizer as VNNIQuantizer, check_vnn
 from .ann_selector import ANNSelector
 from .async_ops import AsyncVectorSearch, AsyncLLMClient, AsyncEmbeddingClient, AsyncMemoryPipeline
 from .index_persistence import IndexPersistence, IncrementalIndexUpdater
-from .hugepage_manager import HugePageManager
+# hugepage_manager.py 已删除 - 需要 root 权限
 
 # v4.2 新增
 from .distributed_search import DistributedSearcher, VectorSharder
@@ -93,8 +93,8 @@ from .hardware_optimize import HardwareOptimizer, AMXAccelerator, NeuralEngineAc
 
 # v5.2.18 新增 - NUMA 亲和性优化
 from .numa_optimizer import NUMATopology, NUMAOptimizer, get_numa_optimizer, check_numa_status
-from .cache_aware_scheduler import CacheTopology, CacheAwareScheduler, get_cache_aware_scheduler, check_cas_status
-from .irq_isolator import IRQTopology, IRQIsolator, get_irq_isolator, check_irq_status
+# cache_aware_scheduler.py 已删除 - 需要 root 权限
+# irq_isolator.py 已删除 - 需要 root 权限
 
 # v5.2.22 新增 - FMA 加速
 from .fma_accelerator import FMADetector, FMAAccelerator, get_fma_accelerator, check_fma_status
@@ -141,25 +141,8 @@ from .rag_optimizer import (
     print_optimization_summary
 )
 
-# v5.2.27 新增 - 实时调度、零拷贝优化
-from .realtime_scheduler import (
-    SCHED_FIFO,
-    SCHED_RR,
-    SCHED_OTHER,
-    RealtimeScheduler,
-    ThreadPriority,
-    SchedInfo,
-    get_scheduler,
-    set_scheduler,
-    get_priority,
-    set_priority,
-    get_policy_name,
-    get_cpu_affinity,
-    set_cpu_affinity,
-    check_realtime_capability,
-    print_realtime_status,
-    apply_chrt
-)
+# v5.2.27 新增 - 零拷贝优化
+# realtime_scheduler.py 已删除 - 需要 root 权限
 from .zero_copy import (
     MappedFile,
     ZeroCopyVectorLoader,
@@ -210,6 +193,49 @@ from .security_confirmation import (
     load_security_config,
     save_security_config,
     print_security_status
+)
+
+# v6.0 新增 - RAGCache、近似缓存、多分辨率搜索、CXL优化、稀疏向量
+from .rag_cache import (
+    RAGCache,
+    KnowledgeTree,
+    LRUKCache,
+    CacheEntry,
+    RetrievalInferenceOverlap,
+    print_ragcache_status
+)
+from .approximate_cache import (
+    ApproximateCache,
+    ApproximateCacheEntry,
+    SemanticSimilarityMatcher,
+    SemanticPromptCache,
+    print_approximate_cache_status
+)
+from .multiresolution_search import (
+    ResolutionLevel,
+    MultiResolutionIndex,
+    QueryComplexityEstimator,
+    MultiResolutionSearcher,
+    DistributedParallelSearcher,
+    print_multiresolution_status
+)
+from .cxl_optimizer import (
+    MemoryType,
+    MemoryNode,
+    CXLMemoryDetector,
+    AdaptiveScheduler,
+    HotDataMigrator,
+    CXLOptimizer,
+    print_cxl_status
+)
+from .sparse_anns import (
+    SparseVector,
+    SparseInvertedIndex,
+    CompressedSparseStorage,
+    SparseANNS,
+    dense_to_sparse,
+    sparse_to_dense,
+    print_sparse_anns_status
 )
 
 # v5.0 新增
@@ -311,7 +337,7 @@ __all__ = [
     'AsyncMemoryPipeline',
     'IndexPersistence',
     'IncrementalIndexUpdater',
-    'HugePageManager',
+    # HugePageManager 已删除 - 需要 root 权限
     
     # v4.2 新增
     'DistributedSearcher',
@@ -336,14 +362,8 @@ __all__ = [
     'NUMAOptimizer',
     'get_numa_optimizer',
     'check_numa_status',
-    'CacheTopology',
-    'CacheAwareScheduler',
-    'get_cache_aware_scheduler',
-    'check_cas_status',
-    'IRQTopology',
-    'IRQIsolator',
-    'get_irq_isolator',
-    'check_irq_status',
+    # CacheAwareScheduler 已删除 - 需要 root 权限
+    # IRQIsolator 已删除 - 需要 root 权限
     
     # v5.2.22 新增 - FMA 加速
     'FMADetector',
@@ -397,23 +417,7 @@ __all__ = [
     'RAGQueryOptimizer',
     'print_optimization_summary',
     
-    # v5.2.27 新增 - 实时调度
-    'SCHED_FIFO',
-    'SCHED_RR',
-    'SCHED_OTHER',
-    'RealtimeScheduler',
-    'ThreadPriority',
-    'SchedInfo',
-    'get_scheduler',
-    'set_scheduler',
-    'get_priority',
-    'set_priority',
-    'get_policy_name',
-    'get_cpu_affinity',
-    'set_cpu_affinity',
-    'check_realtime_capability',
-    'print_realtime_status',
-    'apply_chrt',
+    # v5.2.27 新增 - 实时调度（已删除 - 需要 root 权限）
     
     # v5.2.27 新增 - 零拷贝
     'MappedFile',
@@ -461,6 +465,47 @@ __all__ = [
     'load_security_config',
     'save_security_config',
     'print_security_status',
+    
+    # v6.0 新增 - RAGCache
+    'RAGCache',
+    'KnowledgeTree',
+    'LRUKCache',
+    'CacheEntry',
+    'RetrievalInferenceOverlap',
+    'print_ragcache_status',
+    
+    # v6.0 新增 - 近似缓存
+    'ApproximateCache',
+    'ApproximateCacheEntry',
+    'SemanticSimilarityMatcher',
+    'SemanticPromptCache',
+    'print_approximate_cache_status',
+    
+    # v6.0 新增 - 多分辨率搜索
+    'ResolutionLevel',
+    'MultiResolutionIndex',
+    'QueryComplexityEstimator',
+    'MultiResolutionSearcher',
+    'DistributedParallelSearcher',
+    'print_multiresolution_status',
+    
+    # v6.0 新增 - CXL 优化
+    'MemoryType',
+    'MemoryNode',
+    'CXLMemoryDetector',
+    'AdaptiveScheduler',
+    'HotDataMigrator',
+    'CXLOptimizer',
+    'print_cxl_status',
+    
+    # v6.0 新增 - 稀疏向量 ANNS
+    'SparseVector',
+    'SparseInvertedIndex',
+    'CompressedSparseStorage',
+    'SparseANNS',
+    'dense_to_sparse',
+    'sparse_to_dense',
+    'print_sparse_anns_status',
     
     # v5.0 新增
     'MultimodalEncoder',

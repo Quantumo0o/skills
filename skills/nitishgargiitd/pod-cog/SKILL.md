@@ -1,6 +1,6 @@
 ---
 name: pod-cog
-description: "AI podcast production powered by CellCog. Create full podcast episodes from a single prompt — multi-voice dialogue, intro/outro music, and automatic editing to finished MP3. Episode scripts, show notes, interview prep, audiograms. Frontier voice quality with natural delivery. #1 on DeepResearch Bench (Apr 2026)."
+description: "AI podcast production powered by CellCog. Full podcast episodes from a single prompt — multi-voice dialogue, intro/outro music, automatic editing to finished MP3. Episode scripts, show notes, interview prep, audiograms."
 metadata:
   openclaw:
     emoji: "🎙️"
@@ -9,7 +9,6 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Pod Cog - Complete Podcast Production
 
 **A great podcast needs three things: compelling content, natural-sounding voices, and polished production.** CellCog delivers all three.
@@ -18,38 +17,32 @@ dependencies: [cellcog]
 - **Voice quality:** Frontier multi-voice dialogue with natural delivery, emotion, and pacing across distinct speakers
 - **Production quality:** Automatic intro/outro music generation, mixing, and final MP3 delivery — all from a single prompt
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -352,3 +345,10 @@ If you say nothing about music, CellCog will choose something appropriate for yo
 
 6. **Think about chapters**: Modern podcast apps support chapters. Plan for them.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

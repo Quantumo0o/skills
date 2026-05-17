@@ -1,0 +1,38 @@
+title: Weather Pulse
+package_name: weather-pulse
+plugin_id: weather-pulse
+plugin_type: tool
+language: typescript
+version: 1.0.0
+description: Query a weather API and expose a compact forecast tool for agents.
+
+behavior:
+  primary_job: Fetch current and next-day forecast summaries for a configured location.
+  tools:
+    - name: get_forecast
+      description: Return a short weather summary
+      side_effects: false
+      optional: false
+
+config:
+  required:
+    - WEATHER_API_KEY
+  optional:
+    - DEFAULT_LOCATION
+
+external_dependencies:
+  npm_packages:
+    - zod
+  env_vars:
+    - WEATHER_API_KEY
+    - DEFAULT_LOCATION
+  binaries: []
+
+publish:
+  include_ci_workflow: true
+  include_bundled_skill: false
+  bundled_skill_slug: ""
+
+notes:
+  - Default to a read-only tool plugin.
+  - Mention rate limits and required env vars in README.

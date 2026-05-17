@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "performance-reporter",
-  "displayName": "SEO & GEO Performance Reporter",
+  "displayName": "Performance Reporter",
   "latest": {
-    "version": "7.2.0",
-    "publishedAt": 1775475050281,
-    "commit": "https://github.com/openclaw/skills/commit/dd9768ea30b9d355c0a27a2e1251c956d4d2f638"
+    "version": "8.0.0",
+    "publishedAt": 1776184688091,
+    "commit": "https://github.com/openclaw/skills/commit/094ff0542b9de1c8bfd0625ffcc7490e9d0ec274"
   },
   "history": [
+    {
+      "version": "7.2.0",
+      "publishedAt": 1775475050281,
+      "commit": "https://github.com/openclaw/skills/commit/dd9768ea30b9d355c0a27a2e1251c956d4d2f638"
+    },
     {
       "version": "6.2.0",
       "publishedAt": 1775113081076,

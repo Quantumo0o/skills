@@ -1,6 +1,6 @@
 ---
 name: crypto-cog
-description: "The market never sleeps, and neither does your analysis. #1 on DeepResearch Bench (Apr 2026) applied to crypto — token deep-dives, on-chain metrics, DeFi protocol breakdowns, wallet portfolio reviews, market sentiment research, whitepaper analysis, and smart contract evaluation. From degen plays to institutional due diligence, one prompt covers it all."
+description: "AI crypto research and analysis powered by CellCog. Token deep-dives, on-chain metrics, DeFi protocol breakdowns, wallet portfolio reviews, market sentiment, whitepaper analysis, smart contract evaluation. Comprehensive crypto intelligence from a single prompt."
 metadata:
   openclaw:
     emoji: "🪙"
@@ -9,45 +9,38 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Crypto Cog - Deep Research for a 24/7 Market
 
 **The market never sleeps, and neither does your analysis.** #1 on DeepResearch Bench (Apr 2026) applied to crypto.
 
 Crypto moves fast. Narratives shift overnight. New protocols launch daily. You need research depth that keeps pace with a market that never closes. CellCog brings the same deep reasoning that tops financial research benchmarks — now applied to tokens, DeFi, on-chain data, and the entire Web3 landscape. From degen plays to institutional due diligence, one prompt covers it all.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -217,3 +210,10 @@ Due diligence on new projects:
 
 6. **Don't trust, verify**: Use CellCog's research as a starting point. Always verify on-chain data with primary sources before making financial decisions.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

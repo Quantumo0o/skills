@@ -1,0 +1,11 @@
+{
+  "owner": "learningloons-hash",
+  "slug": "lithtrix-search",
+  "displayName": "Lithtrix Search",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776148965247,
+    "commit": "https://github.com/openclaw/skills/commit/635ce17c36fe0f0afd4336f7da9e8e5ced7348ab"
+  },
+  "history": []
+}

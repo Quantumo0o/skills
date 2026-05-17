@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "rank-tracker",
-  "displayName": "SEO Rank Tracker & SERP Monitor",
+  "displayName": "Rank Tracker",
   "latest": {
-    "version": "7.2.0",
-    "publishedAt": 1775475037518,
-    "commit": "https://github.com/openclaw/skills/commit/e493769e32a63a56effdd7c7415bb4e88274d746"
+    "version": "8.0.0",
+    "publishedAt": 1776184680557,
+    "commit": "https://github.com/openclaw/skills/commit/49328a37fdf41c00da27bf11d42f5939e6588d92"
   },
   "history": [
+    {
+      "version": "7.2.0",
+      "publishedAt": 1775475037518,
+      "commit": "https://github.com/openclaw/skills/commit/e493769e32a63a56effdd7c7415bb4e88274d746"
+    },
     {
       "version": "6.2.0",
       "publishedAt": 1775113073618,

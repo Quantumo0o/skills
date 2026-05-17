@@ -344,7 +344,7 @@ class AccessControlManager:
         try:
             salt, hash_value = stored_hash.split(':')
             return hashlib.sha256((password + salt).encode()).hexdigest() == hash_value
-        except:
+        except Exception:
             return False
     
     def _log_audit(self, action: str, user_id: str, details: Dict):

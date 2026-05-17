@@ -3,11 +3,16 @@
   "slug": "brand-cog",
   "displayName": "Brand Cog",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1775627850981,
-    "commit": "https://github.com/openclaw/skills/commit/e24c68aed7ba59dd18027e1549124bc91119ec58"
+    "version": "1.0.11",
+    "publishedAt": 1776187897975,
+    "commit": "https://github.com/openclaw/skills/commit/1c19d304f15591cc2bc12739493bac4161b7fc04"
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1775627850981,
+      "commit": "https://github.com/openclaw/skills/commit/e24c68aed7ba59dd18027e1549124bc91119ec58"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1775180574475,

@@ -1,0 +1,11 @@
+{
+  "owner": "gglinux",
+  "slug": "evidence-based-parenting",
+  "displayName": "科学育儿",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776255397759,
+    "commit": "https://github.com/openclaw/skills/commit/6f056e8c94e428936ae36a937ad983a234f000a2"
+  },
+  "history": []
+}

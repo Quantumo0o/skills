@@ -3,11 +3,16 @@
   "slug": "torchliquidationbot",
   "displayName": "Torch Liquidation Bot",
   "latest": {
-    "version": "4.0.4",
-    "publishedAt": 1772291811048,
-    "commit": "https://github.com/openclaw/skills/commit/2e9b7c3452f1f0e3e89ffca5d92424e6352b590e"
+    "version": "10.0.0",
+    "publishedAt": 1776032717959,
+    "commit": "https://github.com/openclaw/skills/commit/7a7dff8d1797d763fc01186f2588a08854e1bf7f"
   },
   "history": [
+    {
+      "version": "4.0.4",
+      "publishedAt": 1772291811048,
+      "commit": "https://github.com/openclaw/skills/commit/2e9b7c3452f1f0e3e89ffca5d92424e6352b590e"
+    },
     {
       "version": "3.0.2",
       "publishedAt": 1770996863366,

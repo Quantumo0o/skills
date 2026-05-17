@@ -127,7 +127,7 @@ class KunpengDetector:
                 for line in result.stdout.split('\n'):
                     if 'NUMA node(s):' in line:
                         info['numa_nodes'] = int(line.split(':')[1].strip())
-        except:
+        except Exception:
             pass
         
         # 检测缓存大小
@@ -163,7 +163,7 @@ class KunpengDetector:
                             info['cache']['l2'] = size_kb
                         elif level == 3:
                             info['cache']['l3'] = size_kb
-        except:
+        except Exception:
             pass
         
         # 检测 KML 数学库
@@ -176,7 +176,7 @@ class KunpengDetector:
             )
             if result.returncode == 0:
                 info['kml_available'] = 'libkml' in result.stdout.lower() or 'libkm' in result.stdout.lower()
-        except:
+        except Exception:
             pass
         
         # 检测毕昇编译器
@@ -198,7 +198,7 @@ class KunpengDetector:
                 )
                 if result2.returncode == 0:
                     info['bisheng_available'] = 'bisheng' in result2.stdout.lower() or 'kunpeng' in result2.stdout.lower()
-        except:
+        except Exception:
             pass
         
         # 确定推荐实现

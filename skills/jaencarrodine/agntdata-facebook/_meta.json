@@ -1,0 +1,11 @@
+{
+  "owner": "jaencarrodine",
+  "slug": "agntdata-facebook",
+  "displayName": "Facebook API",
+  "latest": {
+    "version": "1.0.11",
+    "publishedAt": 1776188246748,
+    "commit": "https://github.com/openclaw/skills/commit/5ea78cc8c5ecb9bdb28552cec659416458c1ff42"
+  },
+  "history": []
+}

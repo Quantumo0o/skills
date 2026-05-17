@@ -1,0 +1,11 @@
+{
+  "owner": "freedompixels",
+  "slug": "cn-countdown",
+  "displayName": "CN Countdown",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776261109224,
+    "commit": "https://github.com/openclaw/skills/commit/e3105308110d3794b12bf4e7f2862b9ae175cfa3"
+  },
+  "history": []
+}

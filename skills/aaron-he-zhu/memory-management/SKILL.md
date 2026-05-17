@@ -1,7 +1,7 @@
 ---
 name: memory-management
-description: 'SEO campaign memory manager: persist keyword research, audit results, and project context across Claude Code sessions with hot/warm/cold storage tiers. Part of a 20-skill SEO & GEO suite. 项目记忆/跨会话/SEO数据管理/项目追踪/数据归档'
-version: "7.0.0"
+description: 'Persist SEO/GEO campaign context across Claude sessions with automatic hot-list, active work, and archive tiers. 项目记忆/跨会话'
+version: "8.0.0"
 license: Apache-2.0
 compatibility: "Claude Code ≥1.0, skills.sh marketplace, ClawHub marketplace, Vercel Labs skills ecosystem. No system packages required. Optional: MCP network access for SEO tool integrations."
 homepage: "https://github.com/aaron-he-zhu/seo-geo-claude-skills"
@@ -9,7 +9,7 @@ when_to_use: "Use when reviewing, archiving, or cleaning up campaign memory. Als
 argument-hint: "[review|archive|cleanup]"
 metadata:
   author: aaron-he-zhu
-  version: "7.0.0"
+  version: "8.0.0"
   geo-relevance: "low"
   tags:
     - seo
@@ -68,11 +68,12 @@ metadata:
 
 # Memory Management
 
-**Never lose SEO progress between sessions again.** This skill implements a three-tier memory system (HOT/WARM/COLD) that automatically loads your keywords, audit results, and campaign context every time you start Claude Code — so you pick up exactly where you left off.
+> **[SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills for SEO + GEO · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
+> **System Mode**: This cross-cutting skill is part of the protocol layer and follows the shared [Skill Contract](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md) and [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md).
 
-**How to start**: `What do we know about this project?` — instantly loads your keywords, audit results, and campaign context from previous sessions.
+This skill implements a three-tier memory system (HOT/WARM/COLD) for SEO and GEO projects. HOT memory (80 lines max) loads automatically every session via the SessionStart hook. WARM memory loads on demand per skill. COLD memory is archived data queried only when explicitly requested. The skill manages the full lifecycle: capture, promote, demote, and archive.
 
-> **Part of the [SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
+**System role**: Campaign Memory Loop. It defines how project context is captured, promoted, archived, and handed off across sessions. It is the sole executor of WARM-to-COLD archival and the aggregator for cross-skill project status queries.
 
 ## When This Must Trigger
 
@@ -176,7 +177,33 @@ What does [internal jargon] mean in this project?
 **Expected output**: a memory update plan, hot-cache changes, and a short handoff summary.
 
 - **Reads**: current campaign facts, new findings from other skills, approved decisions, and the shared [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md).
-- **Writes**: updates to `memory/hot-cache.md`, `memory/open-loops.md`, `memory/decisions.md`, and related `memory/` folders. Manages WARM-to-COLD archival in `memory/archive/`. Compiles `memory/wiki/index.md` (auto-refreshed) and wiki compiled pages (user-confirmed).
+- **Writes**: updates to `memory/hot-cache.md`, `memory/open-loops.md`, `memory/decisions.md`, and related `memory/` folders. Manages WARM-to-COLD archival in `memory/archive/`. Compiles `memory/wiki/index.md` (auto-refreshed) and wiki compiled pages (user-confirmed). **Auditor handoff archiving** (v7.1.0+): when triggered (by the Stop hook, by a direct user request, or via an auditor's "Save these results?" yes-response), append a structured block to `memory/audits/YYYY-MM.md` using the exact format below. The archive is consumed by `/seo:p2-review` for the 2026-07-10 tombstone evaluation tied to [ADR-001](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/decisions/2026-04-adr-001-inline-auditor-runbook.md).
+
+  **Archive block format** (append to end of the monthly file, newest entries at bottom):
+
+  ```markdown
+  ## YYYY-MM-DD · <target> · <framework>
+
+  - runbook_version: 1.1
+  - status: DONE | DONE_WITH_CONCERNS | BLOCKED
+  - framework: CORE-EEAT | CITE
+  - vetos_failed: [T04, R10]    # empty list [] if none
+  - veto_count: 2
+  - raw_overall: 78
+  - final_overall: 60            # or "n/a" if BLOCKED
+  - cap_applied: true
+  - gap_types: [missing, shallow]  # derived from key_findings if present; [] if none
+  - false_positive: false        # user annotation; default false; set true only on explicit user "this was wrong" feedback
+  - audit_source: content-quality-auditor | domain-authority-auditor
+  ```
+
+  **Rules**:
+  - One block per audit. Do not overwrite existing blocks.
+  - `target` is the URL or domain audited.
+  - `runbook_version` is copied from the current runbook header — this is how `/seo:p2-review` identifies cross-version reruns.
+  - `gap_types` is derived from `key_findings[].gap_type` if the handoff carries them (deferred to P2; until then, leave as `[]`).
+  - `false_positive` is the ONLY field that can be added/flipped after initial write, via explicit user annotation.
+  - If the monthly file does not exist, create it with a single `# Audit Archive — YYYY-MM` header at top.
 - **Promotes**: durable strategy, blockers, terminology, entity candidates, and major deltas. Applies temperature lifecycle rules: promote to HOT on high reference frequency, demote on staleness.
 - **Next handoff**: use the `Next Best Skill` below when the project memory baseline is ready for active work.
 
@@ -339,14 +366,3 @@ If any veto-level issue was found (CORE-EEAT T04, C01, R10 or CITE T03, T05, T09
 ## Next Best Skill
 
 - **Primary**: [keyword-research](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/keyword-research/SKILL.md) — seed or refresh campaign strategy with current demand signals.
-
-## Related Skills
-
-> Part of the [SEO & GEO Skills Suite](https://github.com/aaron-he-zhu/seo-geo-claude-skills) — 20 specialized skills for search optimization.
-
-| Need | Skill |
-|------|-------|
-| Start keyword research for a new campaign | `keyword-research` |
-| Run a content quality audit to store results | `content-quality-auditor` |
-| Track ranking changes over time | `rank-tracker` |
-| Generate performance reports from stored data | `performance-reporter` |

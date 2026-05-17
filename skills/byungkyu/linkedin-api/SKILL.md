@@ -411,6 +411,8 @@ GET /linkedin/rest/jobLibrary?q=criteria&keyword=software&organization=google
 
 The Marketing API provides access to LinkedIn's advertising platform. These endpoints use the versioned REST API.
 
+**Ad Account Allowlist:** If you receive a 403 Forbidden error when creating campaigns with the message "Your application is not configured to access the related advertiser account(s)", your ad account ID needs to be added to Maton's allowlist. Contact [support@maton.ai](mailto:support@maton.ai) with your ad account ID to request access.
+
 #### Required Headers for Marketing API
 
 ```

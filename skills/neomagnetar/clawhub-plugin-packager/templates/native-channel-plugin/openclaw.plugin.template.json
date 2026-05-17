@@ -1,0 +1,10 @@
+{
+  "id": "{{plugin_id}}",
+  "name": "{{title}}",
+  "description": "{{description}}",
+  "configSchema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  }
+}

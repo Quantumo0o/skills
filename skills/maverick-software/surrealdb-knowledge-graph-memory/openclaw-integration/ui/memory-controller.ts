@@ -60,7 +60,15 @@ export async function loadMemoryStatus(state: MemoryState) {
         | undefined;
 
       if (statsRes && "error" in statsRes) {
-        state.memoryStats = { ...statsRes, facts: 0, entities: 0, relationships: 0, archived: 0, avg_confidence: 0, by_source: [] } as MemoryStats;
+        state.memoryStats = {
+          ...statsRes,
+          facts: 0,
+          entities: 0,
+          relationships: 0,
+          archived: 0,
+          avg_confidence: 0,
+          by_source: [],
+        } as MemoryStats;
       } else if (statsRes) {
         state.memoryStats = statsRes;
       }
@@ -114,7 +122,8 @@ export async function installMemoryBinary(state: MemoryState) {
     })) as { success: boolean; stdout?: string; stderr?: string; error?: string } | undefined;
 
     if (result) {
-      state.memoryInstallLog = result.stdout || result.stderr || result.error || JSON.stringify(result);
+      state.memoryInstallLog =
+        result.stdout || result.stderr || result.error || JSON.stringify(result);
     }
 
     await loadMemoryStatus(state);
@@ -138,7 +147,8 @@ export async function installMemoryPython(state: MemoryState) {
     })) as { success: boolean; stdout?: string; stderr?: string; error?: string } | undefined;
 
     if (result) {
-      state.memoryInstallLog = result.stdout || result.stderr || result.error || JSON.stringify(result);
+      state.memoryInstallLog =
+        result.stdout || result.stderr || result.error || JSON.stringify(result);
     }
 
     await loadMemoryStatus(state);
@@ -188,7 +198,8 @@ export async function initMemorySchema(state: MemoryState) {
     })) as { success: boolean; stdout?: string; stderr?: string; error?: string } | undefined;
 
     if (result) {
-      state.memoryInstallLog = result.stdout || result.stderr || result.error || JSON.stringify(result);
+      state.memoryInstallLog =
+        result.stdout || result.stderr || result.error || JSON.stringify(result);
     }
 
     await loadMemoryStatus(state);
@@ -201,7 +212,7 @@ export async function initMemorySchema(state: MemoryState) {
 
 export async function runMemoryMaintenance(
   state: MemoryState,
-  operation: "decay" | "prune" | "full"
+  operation: "decay" | "prune" | "full",
 ) {
   if (!state.client || !state.connected) return;
   if (state.memoryBusyAction) return;
@@ -229,12 +240,14 @@ export async function runMemoryMaintenance(
 
 export async function pollExtractionProgress(state: MemoryState) {
   if (!state.client || !state.connected) return;
-  
+
   try {
-    const result = (await state.client.request("memory.extractionProgress", {})) as ExtractionProgress | undefined;
+    const result = (await state.client.request("memory.extractionProgress", {})) as
+      | ExtractionProgress
+      | undefined;
     if (result) {
       state.memoryExtractionProgress = result;
-      
+
       // If completed, stop polling and refresh stats
       if (!result.running && state._progressPollInterval) {
         clearInterval(state._progressPollInterval);
@@ -252,12 +265,12 @@ function startProgressPolling(state: MemoryState) {
   if (state._progressPollInterval) {
     clearInterval(state._progressPollInterval);
   }
-  
+
   // Poll every 500ms
   state._progressPollInterval = setInterval(() => {
     pollExtractionProgress(state);
   }, 500);
-  
+
   // Initial poll
   pollExtractionProgress(state);
 }
@@ -271,23 +284,30 @@ function stopProgressPolling(state: MemoryState) {
 
 export async function runMemoryExtraction(
   state: MemoryState,
-  operation: "extract" | "relations" | "full"
+  operation: "extract" | "relations" | "full",
 ) {
   if (!state.client || !state.connected) return;
   if (state.memoryBusyAction) return;
 
-  const actionName = operation === "relations" ? "relations" : operation === "full" ? "full-extract" : "extract";
+  const actionName =
+    operation === "relations" ? "relations" : operation === "full" ? "full-extract" : "extract";
   state.memoryBusyAction = actionName;
   state.memoryExtractionLog = null;
-  state.memoryExtractionProgress = { running: true, phase: "starting", percent: 0, message: "Starting..." };
+  state.memoryExtractionProgress = {
+    running: true,
+    phase: "starting",
+    percent: 0,
+    message: "Starting...",
+  };
 
   // Start polling for progress
   startProgressPolling(state);
 
   try {
-    const params: { full?: boolean; reconcile?: boolean; relations?: boolean; timeoutMs: number } = {
-      timeoutMs: 300000, // 5 minutes - extraction can take a while
-    };
+    const params: { full?: boolean; reconcile?: boolean; relations?: boolean; timeoutMs: number } =
+      {
+        timeoutMs: 300000, // 5 minutes - extraction can take a while
+      };
 
     if (operation === "extract") {
       // Just extract changed files
@@ -297,7 +317,7 @@ export async function runMemoryExtraction(
       params.full = true;
     }
 
-    const result = (await state.client.request("memory.runExtraction", params)) as 
+    const result = (await state.client.request("memory.runExtraction", params)) as
       | { success: boolean; output?: string; stderr?: string; error?: string }
       | undefined;
 

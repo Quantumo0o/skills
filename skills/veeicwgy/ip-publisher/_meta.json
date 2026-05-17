@@ -1,0 +1,11 @@
+{
+  "owner": "veeicwgy",
+  "slug": "ip-publisher",
+  "displayName": "IP Publisher（个人IP内容自动化）",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776223964469,
+    "commit": "https://github.com/openclaw/skills/commit/4bea1acac7937c7f96507b4d245dbc597703c251"
+  },
+  "history": []
+}

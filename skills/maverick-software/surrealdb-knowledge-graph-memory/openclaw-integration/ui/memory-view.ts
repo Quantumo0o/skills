@@ -66,25 +66,32 @@ export type MemoryProps = {
 };
 
 function isExtractionRunning(props: MemoryProps): boolean {
-  return props.extractionProgress?.running || 
-         props.busyAction === "extract" || 
-         props.busyAction === "relations" || 
-         props.busyAction === "full-extract";
+  return (
+    props.extractionProgress?.running ||
+    props.busyAction === "extract" ||
+    props.busyAction === "relations" ||
+    props.busyAction === "full-extract"
+  );
 }
 
 function getExtractionLabel(busyAction: string | null): string {
   switch (busyAction) {
-    case "extract": return "Extracting facts...";
-    case "relations": return "Discovering relationships...";
-    case "full-extract": return "Running full sync...";
-    default: return "Processing...";
+    case "extract":
+      return "Extracting facts...";
+    case "relations":
+      return "Discovering relationships...";
+    case "full-extract":
+      return "Running full sync...";
+    default:
+      return "Processing...";
   }
 }
 
 export function renderMemory(props: MemoryProps) {
-  const isHealthy = props.health?.surrealdb_server?.running && 
-                    props.health?.schema?.initialized && 
-                    props.health?.python_deps?.ok;
+  const isHealthy =
+    props.health?.surrealdb_server?.running &&
+    props.health?.schema?.initialized &&
+    props.health?.python_deps?.ok;
 
   return html`
     <style>
@@ -251,9 +258,14 @@ export function renderMemory(props: MemoryProps) {
           <div>
             <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
               🧠 Knowledge Graph Memory
-              ${isHealthy 
-                ? html`<span class="chip chip-ok" style="font-size: 11px;">Online</span>`
-                : html`<span class="chip chip-warn" style="font-size: 11px;">Setup Required</span>`
+              ${
+                isHealthy
+                  ? html`
+                      <span class="chip chip-ok" style="font-size: 11px">Online</span>
+                    `
+                  : html`
+                      <span class="chip chip-warn" style="font-size: 11px">Setup Required</span>
+                    `
               }
             </div>
             <div class="card-sub">SurrealDB-powered semantic memory with confidence scoring and graph relationships.</div>
@@ -262,11 +274,15 @@ export function renderMemory(props: MemoryProps) {
             <button class="btn" ?disabled=${props.loading || props.busyAction !== null} @click=${props.onRefresh}>
               ${props.loading ? "Loading…" : "↻ Refresh"}
             </button>
-            ${!isHealthy ? html`
+            ${
+              !isHealthy
+                ? html`
               <button class="btn primary" ?disabled=${props.busyAction !== null} @click=${props.onAutoRepair}>
                 ${props.busyAction === "repair" ? "Repairing…" : "🔧 Auto-Repair"}
               </button>
-            ` : nothing}
+            `
+                : nothing
+            }
           </div>
         </div>
         ${props.error ? html`<div class="callout danger" style="margin-top: 12px;">${props.error}</div>` : nothing}
@@ -290,34 +306,41 @@ function renderDashboard(props: MemoryProps) {
   const health = props.health;
   const isActive = health?.surrealdb_server?.running ?? false;
   const hasData = stats && !stats.error;
-  const displayStats = hasData ? stats : { facts: 0, entities: 0, relationships: 0, archived: 0, avg_confidence: 0, by_source: [] };
+  const displayStats = hasData
+    ? stats
+    : { facts: 0, entities: 0, relationships: 0, archived: 0, avg_confidence: 0, by_source: [] };
 
   return html`
     <section class="card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <div class="card-title">📊 Dashboard</div>
-        ${isActive
-          ? html`<a href="http://localhost:8000" target="_blank" class="btn small" title="Open SurrealDB Studio">🔗 DB Studio</a>`
-          : nothing
+        ${
+          isActive
+            ? html`
+                <a href="http://localhost:8000" target="_blank" class="btn small" title="Open SurrealDB Studio"
+                  >🔗 DB Studio</a
+                >
+              `
+            : nothing
         }
       </div>
 
       <!-- Stats Grid -->
       <div class="stat-grid">
         <div class="stat-box">
-          <div class="stat-value" style="color: ${isActive ? 'var(--primary-color, #58a6ff)' : 'var(--text-muted)'};">
+          <div class="stat-value" style="color: ${isActive ? "var(--primary-color, #58a6ff)" : "var(--text-muted)"};">
             ${displayStats.facts}
           </div>
           <div class="stat-label">Facts</div>
         </div>
         <div class="stat-box">
-          <div class="stat-value" style="color: ${isActive ? 'var(--success-color, #3fb950)' : 'var(--text-muted)'};">
+          <div class="stat-value" style="color: ${isActive ? "var(--success-color, #3fb950)" : "var(--text-muted)"};">
             ${displayStats.entities}
           </div>
           <div class="stat-label">Entities</div>
         </div>
         <div class="stat-box">
-          <div class="stat-value" style="color: ${isActive ? 'var(--warning-color, #d29922)' : 'var(--text-muted)'};">
+          <div class="stat-value" style="color: ${isActive ? "var(--warning-color, #d29922)" : "var(--text-muted)"};">
             ${displayStats.relationships}
           </div>
           <div class="stat-label">Relations</div>
@@ -337,22 +360,28 @@ function renderDashboard(props: MemoryProps) {
           <span class="confidence-value">${displayStats.avg_confidence.toFixed(2)}</span>
         </div>
         <div class="confidence-track">
-          <div class="confidence-fill" style="width: ${displayStats.avg_confidence * 100}%; background: ${isActive ? 'var(--primary-color, #58a6ff)' : 'var(--text-muted)'};"></div>
+          <div class="confidence-fill" style="width: ${displayStats.avg_confidence * 100}%; background: ${isActive ? "var(--primary-color, #58a6ff)" : "var(--text-muted)"};"></div>
         </div>
       </div>
 
       <!-- Sources -->
-      ${hasData && displayStats.by_source && displayStats.by_source.length > 0 ? html`
+      ${
+        hasData && displayStats.by_source && displayStats.by_source.length > 0
+          ? html`
         <div class="sources-list">
           <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">By Source</div>
-          ${displayStats.by_source.slice(0, 5).map(s => html`
+          ${displayStats.by_source.slice(0, 5).map(
+            (s) => html`
             <div class="source-row">
               <span>${s.source}</span>
               <span class="chip" style="font-size: 10px;">${s.count}</span>
             </div>
-          `)}
+          `,
+          )}
         </div>
-      ` : nothing}
+      `
+          : nothing
+      }
     </section>
 
     <!-- Health Status -->
@@ -362,9 +391,9 @@ function renderDashboard(props: MemoryProps) {
       <div class="health-row">
         <span class="health-label">SurrealDB</span>
         <div class="health-detail">
-          <span>${health?.surrealdb_binary?.installed ? (health.surrealdb_binary.version || 'Installed') : 'Not installed'}</span>
-          <div class="health-badge ${health?.surrealdb_binary?.installed ? 'ok' : 'warn'}">
-            ${health?.surrealdb_binary?.installed ? '✓' : '✗'}
+          <span>${health?.surrealdb_binary?.installed ? health.surrealdb_binary.version || "Installed" : "Not installed"}</span>
+          <div class="health-badge ${health?.surrealdb_binary?.installed ? "ok" : "warn"}">
+            ${health?.surrealdb_binary?.installed ? "✓" : "✗"}
           </div>
         </div>
       </div>
@@ -372,9 +401,9 @@ function renderDashboard(props: MemoryProps) {
       <div class="health-row">
         <span class="health-label">Database</span>
         <div class="health-detail">
-          <span>${health?.surrealdb_server?.running ? `Port ${health.surrealdb_server.port}` : 'Offline'}</span>
-          <div class="health-badge ${health?.surrealdb_server?.running ? 'ok' : 'warn'}">
-            ${health?.surrealdb_server?.running ? '✓' : '✗'}
+          <span>${health?.surrealdb_server?.running ? `Port ${health.surrealdb_server.port}` : "Offline"}</span>
+          <div class="health-badge ${health?.surrealdb_server?.running ? "ok" : "warn"}">
+            ${health?.surrealdb_server?.running ? "✓" : "✗"}
           </div>
         </div>
       </div>
@@ -382,9 +411,9 @@ function renderDashboard(props: MemoryProps) {
       <div class="health-row">
         <span class="health-label">Schema</span>
         <div class="health-detail">
-          <span>${health?.schema?.initialized ? 'Ready' : 'Not initialized'}</span>
-          <div class="health-badge ${health?.schema?.initialized ? 'ok' : 'warn'}">
-            ${health?.schema?.initialized ? '✓' : '✗'}
+          <span>${health?.schema?.initialized ? "Ready" : "Not initialized"}</span>
+          <div class="health-badge ${health?.schema?.initialized ? "ok" : "warn"}">
+            ${health?.schema?.initialized ? "✓" : "✗"}
           </div>
         </div>
       </div>
@@ -392,9 +421,9 @@ function renderDashboard(props: MemoryProps) {
       <div class="health-row">
         <span class="health-label">Python</span>
         <div class="health-detail">
-          <span>${health?.python_deps?.ok ? 'All deps' : 'Missing'}</span>
-          <div class="health-badge ${health?.python_deps?.ok ? 'ok' : 'warn'}">
-            ${health?.python_deps?.ok ? '✓' : '✗'}
+          <span>${health?.python_deps?.ok ? "All deps" : "Missing"}</span>
+          <div class="health-badge ${health?.python_deps?.ok ? "ok" : "warn"}">
+            ${health?.python_deps?.ok ? "✓" : "✗"}
           </div>
         </div>
       </div>
@@ -417,7 +446,9 @@ function renderOperations(props: MemoryProps) {
         <div class="tool-title">📥 Knowledge Extraction</div>
         <div class="tool-desc">Extract facts from MEMORY.md and memory/*.md files using AI.</div>
         
-        ${isExtractionRunning(props) ? html`
+        ${
+          isExtractionRunning(props)
+            ? html`
           <!-- Progress Bar -->
           <div class="progress-container" style="margin: 12px 0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
@@ -425,10 +456,13 @@ function renderOperations(props: MemoryProps) {
                 ${props.extractionProgress?.message || getExtractionLabel(props.busyAction)}
               </span>
               <span style="font-size: 12px; color: var(--text-muted);">
-                ${props.extractionProgress?.percent != null ? `${Math.round(props.extractionProgress.percent)}%` : ''}
-                ${props.extractionProgress?.current != null && props.extractionProgress?.total != null 
-                  ? `(${props.extractionProgress.current}/${props.extractionProgress.total})` 
-                  : ''}
+                ${props.extractionProgress?.percent != null ? `${Math.round(props.extractionProgress.percent)}%` : ""}
+                ${
+                  props.extractionProgress?.current != null &&
+                  props.extractionProgress?.total != null
+                    ? `(${props.extractionProgress.current}/${props.extractionProgress.total})`
+                    : ""
+                }
               </span>
             </div>
             <div style="height: 8px; background: var(--border-color, #30363d); border-radius: 4px; overflow: hidden;">
@@ -438,16 +472,21 @@ function renderOperations(props: MemoryProps) {
                 background: linear-gradient(90deg, var(--primary-color, #58a6ff), var(--success-color, #3fb950));
                 border-radius: 4px;
                 transition: width 0.3s ease;
-                ${!props.extractionProgress?.percent ? 'animation: progress-pulse 1.5s ease-in-out infinite;' : ''}
+                ${!props.extractionProgress?.percent ? "animation: progress-pulse 1.5s ease-in-out infinite;" : ""}
               "></div>
             </div>
-            ${props.extractionProgress?.detail ? html`
+            ${
+              props.extractionProgress?.detail
+                ? html`
               <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                 ${props.extractionProgress.detail}
               </div>
-            ` : nothing}
+            `
+                : nothing
+            }
           </div>
-        ` : html`
+        `
+            : html`
           <div class="tool-buttons">
             <button class="btn" ?disabled=${!canRunTools || props.busyAction !== null}
               @click=${() => props.onRunExtraction("extract")}
@@ -465,13 +504,18 @@ function renderOperations(props: MemoryProps) {
               Full Sync
             </button>
           </div>
-        `}
+        `
+        }
         
-        ${!canRunTools && !isExtractionRunning(props) ? html`
-          <div style="font-size: 11px; color: var(--warning-color); margin-top: 8px;">
-            ⚠️ Database and Python deps required
-          </div>
-        ` : nothing}
+        ${
+          !canRunTools && !isExtractionRunning(props)
+            ? html`
+                <div style="font-size: 11px; color: var(--warning-color); margin-top: 8px">
+                  ⚠️ Database and Python deps required
+                </div>
+              `
+            : nothing
+        }
         ${props.extractionLog && !isExtractionRunning(props) ? html`<div class="log-output">${props.extractionLog}</div>` : nothing}
       </div>
 
@@ -497,7 +541,9 @@ function renderOperations(props: MemoryProps) {
       </div>
 
       <!-- Installation (only show if not healthy) -->
-      ${!isHealthy ? html`
+      ${
+        !isHealthy
+          ? html`
         <div class="tool-section">
           <div class="tool-title">📦 Setup</div>
           <div class="tool-desc">Manual installation if auto-repair doesn't work.</div>
@@ -517,7 +563,9 @@ function renderOperations(props: MemoryProps) {
           </div>
           ${props.installLog ? html`<div class="log-output">${props.installLog}</div>` : nothing}
         </div>
-      ` : nothing}
+      `
+          : nothing
+      }
     </section>
 
     <!-- Quick Tips -->

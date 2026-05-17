@@ -3,19 +3,32 @@
   "version": "2.2.2",
   "description": "Knowledge graph memory system with SurrealDB, working memory, episodic memory, outcome calibration, context-aware search, MCP tools, confidence scoring, and LLM-powered extraction",
   "keywords": [
-    "memory",
+    "embeddings",
+    "episodic-memory",
     "knowledge-graph",
+    "llm",
+    "mcp",
+    "memory",
+    "outcome-learning",
     "surrealdb",
     "vector-search",
-    "embeddings",
-    "mcp",
-    "llm",
-    "episodic-memory",
-    "working-memory",
-    "outcome-learning"
+    "working-memory"
   ],
-  "author": "OpenClaw",
   "license": "MIT",
+  "author": "OpenClaw",
+  "scripts": {
+    "discover": "python3 scripts/extract-knowledge.py discover-relations",
+    "episodes:stats": "python3 scripts/episodes.py stats",
+    "extract": "python3 scripts/extract-knowledge.py extract",
+    "extract:full": "python3 scripts/extract-knowledge.py extract --full",
+    "init": "./scripts/init-db.sh",
+    "migrate:v2": "python3 scripts/migrate-v2.py",
+    "reconcile": "python3 scripts/extract-knowledge.py reconcile",
+    "setup": "./scripts/install.sh --skip-surreal",
+    "setup:with-surreal": "./scripts/install.sh",
+    "status": "python3 scripts/extract-knowledge.py status",
+    "wm:status": "python3 scripts/working_memory.py status"
+  },
   "openclaw": {
     "type": "skill",
     "triggers": [
@@ -131,18 +144,5 @@
     "gateway": {
       "handlers": "openclaw-integration/gateway/memory.ts"
     }
-  },
-  "scripts": {
-    "setup": "./scripts/install.sh --skip-surreal",
-    "setup:with-surreal": "./scripts/install.sh",
-    "init": "./scripts/init-db.sh",
-    "migrate:v2": "python3 scripts/migrate-v2.py",
-    "extract": "python3 scripts/extract-knowledge.py extract",
-    "extract:full": "python3 scripts/extract-knowledge.py extract --full",
-    "status": "python3 scripts/extract-knowledge.py status",
-    "reconcile": "python3 scripts/extract-knowledge.py reconcile",
-    "discover": "python3 scripts/extract-knowledge.py discover-relations",
-    "wm:status": "python3 scripts/working_memory.py status",
-    "episodes:stats": "python3 scripts/episodes.py stats"
   }
 }

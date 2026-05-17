@@ -1,0 +1,32 @@
+{
+  "name": "{{package_name}}",
+  "version": "{{version}}",
+  "type": "module",
+  "private": false,
+  "description": "{{description}}",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "openclaw.plugin.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@openclaw/plugin-sdk": "^0.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "openclaw": {
+    "compat": {
+      "pluginApi": "{{plugin_api}}"
+    },
+    "build": {
+      "openclawVersion": "{{openclaw_version}}"
+    }
+  }
+}

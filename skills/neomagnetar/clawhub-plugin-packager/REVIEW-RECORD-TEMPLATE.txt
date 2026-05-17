@@ -1,0 +1,40 @@
+PLUGIN PACKAGE CRITIQUE
+
+Plugin Name:
+Plugin Type:
+Package Version:
+
+INPUTS PROVIDED
+- 
+
+MISSING INFORMATION
+- 
+
+ASSUMPTIONS / INFERENCES
+- 
+
+FILES ADDED
+- 
+
+FILES EDITED
+- 
+
+FILES REMOVED
+- 
+
+REVIEW FLAGS
+- 
+
+PUBLISH READINESS
+- Ready
+- Ready with review flags
+- Rebuild recommended
+
+INSTALL / PUBLISH HANDOFF
+- local install:
+- local test:
+- publish dry run:
+- publish:
+
+SECOND-RUN RECOMMENDATIONS
+- 

@@ -297,22 +297,20 @@ if __name__ == "__main__":
         print("   5. 最终状态")
         print("=" * 50)
         
-        conn = connect(str(VECTORS_DB))
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM l0_conversations")
-        l0_total = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
-        l0_vec = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM l1_records")
-        l1_total = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM l1_vec_rowids")
-        l1_vec = cursor.fetchone()[0]
-        
-        conn.close()
+        with connect(str(VECTORS_DB)) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT COUNT(*) FROM l0_conversations")
+            l0_total = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM l0_vec_rowids")
+            l0_vec = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM l1_records")
+            l1_total = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM l1_vec_rowids")
+            l1_vec = cursor.fetchone()[0]
         
         print(f"\nL0 对话层:")
         print(f"  总数: {l0_total}")

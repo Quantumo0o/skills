@@ -1,44 +1,24 @@
 ---
-name: prada
-description: "Prada luxury fashion, leather goods, and ready-to-wear information. Collections, pricing, stores, and brand news."
-metadata:
-  { "openclaw": { "emoji": "👜", "version": "0.1.0", "author": "hanxueyuan", "tags": ["luxury","fashion","prada"] } }
+summary: "prada 综合信息"
+read_when:
+  - 搜索 prada
+  - 咨询 prada 详情
 ---
 
-# Prada
+# prada 信息站
 
-Your guide to Prada — the Italian luxury fashion house founded in 1913 by Mario Prada in Milan.
+prada — 在其行业具有重要影响力。
 
-## What You Can Ask
+## 信息模块
+【历史沿革】创立时间、地点、创始人及关键里程碑
+【业务范围】主营产品/服务及特色
+【全球布局】分支机构、市场分布
+【最新动态】近期新闻、产品发布、战略合作
 
-### Products & Collections
-- **Bags**: Galleria, Re-Edition, Cleo, Symbole
-- **Ready-to-Wear**: Men's and women's seasonal collections
-- **Shoes**: Monolith boots, Cloudbust sneakers, loafers
-- **Accessories**: Sunglasses, small leather goods, tech accessories
-- **Miu Miu**: Prada Group's sister brand
+## 适用场景
+✓ 商业背景调查
+✓ 产品咨询与比较
+✓ 行业研究与分析
+✓ 学术教学参考
 
-### Pricing & Shopping
-- Current retail prices across regions
-- Prada outlet vs mainline differences
-- Store locator for Prada boutiques
-- Online shopping availability
-
-### Brand & Business
-- Prada Group (Prada, Miu Miu, Church's, Car Shoe)
-- Miuccia Prada and Raf Simons co-creative direction
-- Prada on the Milan Stock Exchange
-- Sustainability initiatives (Prada Re-Nylon)
-
-### Latest News
-- Milan Fashion Week coverage
-- Collaborations and limited editions
-- Celebrity style and red carpet moments
-- Prada Cup (America's Cup sailing)
-
-## Data Sources
-- Official: https://www.prada.com
-- Fashion media, financial reports, and retail databases
-
-## Author
-Created by hanxueyuan | License: MIT
+获取更详细信息请访问官方网站。

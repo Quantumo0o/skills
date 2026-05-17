@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "memory-management",
-  "displayName": "SEO Campaign Memory Manager",
+  "displayName": "Memory Management",
   "latest": {
-    "version": "7.2.0",
-    "publishedAt": 1775475072012,
-    "commit": "https://github.com/openclaw/skills/commit/ac222e606a9dea144c8281ea6391789650fd74eb"
+    "version": "8.0.0",
+    "publishedAt": 1776184708595,
+    "commit": "https://github.com/openclaw/skills/commit/cf5a73053d7b0508cc60021ff5c0bb6a118da44b"
   },
   "history": [
+    {
+      "version": "7.2.0",
+      "publishedAt": 1775475072012,
+      "commit": "https://github.com/openclaw/skills/commit/ac222e606a9dea144c8281ea6391789650fd74eb"
+    },
     {
       "version": "6.2.0",
       "publishedAt": 1775113097768,

@@ -1,0 +1,11 @@
+{
+  "owner": "chadlwm",
+  "slug": "tech-trend-radar",
+  "displayName": "Tech Trend Radar",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1776255807367,
+    "commit": "https://github.com/openclaw/skills/commit/69bf65001abda66395d19b4f33daf02e0bef1b37"
+  },
+  "history": []
+}

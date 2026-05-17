@@ -1,412 +1,300 @@
 ---
 name: task-manager
-description: Task management tool based on Eisenhower Matrix + P0-P2 priority system. Uses four quadrants for strategic prioritization at macro level, and P0/P1/P2 for fine-grained sorting at micro level. Supports task creation, completion, archiving, cross-quadrant adjustment, future list management, and delegation list management.
+description: Task management based on Eisenhower Matrix + P0-P2 priority with Customer Project Management. Four quadrants for execution, separate Customer Project List for all customer work.
 ---
 
-# Task Manager - Three-Level Priority System
+# Task Manager - Four-Level System
 
-This skill provides **three-level** standardized task list management:
-- **Execution Layer**: Eisenhower Four Quadrants (personal tasks)
-- **Future Layer**: Maybe List (ideas that may or may not be done)
-- **Management Layer**: Delegation List (tasks delegated to team members, periodic review)
+## Architecture
 
-## 📊 Three-Level Management System
+| Layer | File | Purpose |
+|-------|------|---------|
+| Customer | `tasks/customer-projects.md` | ALL customer projects (single source of truth) |
+| Execution | `tasks/tasks.md` | Four quadrants (personal + customer tasks requiring YOUR execution) |
+| Future | `tasks/maybe.md` | Ideas for later evaluation |
+| Delegation | `tasks/delegation.md` | Tasks assigned to others |
+| Archive | `tasks/archived.md` | Completed/deleted history |
 
-### 🔷 Execution Layer: Eisenhower Four Quadrants
+## Core Principles
 
-| Quadrant | Characteristic | Strategy | Typical Scenarios |
-|----------|-----------------|----------|-------------------|
-| 🔥 **Q1** | Important + Urgent | **Do Immediately** | Deadlines passed, blocking others, hard deadlines |
-| 💼 **Q2** | Important + Not Urgent | **Plan & Schedule** | OKRs, team building, strategic tasks |
-| ⚡ **Q3** | Not Important + Urgent | **Batch Process** | Daily maintenance, tech fixes, delegatable |
-| 🧘 **Q4** | Not Important + Not Urgent | **Postpone/Delete** | Exploratory research, learning tasks, optional features |
+1. **Customer projects NEVER duplicate** - exist only in Customer Project List
+2. **Personal execution only** - customer tasks enter quadrants only when YOU must execute
+3. **Sequential numbering** - 1-N per file, no gaps, no duplicates
+4. **Auto-fix numbering** - after EVERY operation, verify and fix sequence
 
-### 🔶 Micro Layer: P0/P1/P2 Three-Tier Sorting
+## Four Quadrants
 
-Refine priority within the **same quadrant** using three tiers:
+| Q | Name | Strategy | When |
+|---|------|----------|------|
+| Q1 | Important + Urgent | Execute immediately | Deadlines, blockers |
+| Q2 | Important + Not Urgent | Plan & schedule | OKRs, strategic work |
+| Q3 | Not Important + Urgent | Batch process | Maintenance, delegatable |
+| Q4 | Not Important + Not Urgent | Postpone/delete | Exploration, optional |
 
-- **🔴 P0**: Must do today (hard deadline or blocking others)
-- **🟡 P1**: Complete within this week (near-term high priority)
-- **🟢 P2**: Within this month/quarter (important but not urgent)
+## Priority Tiers (within quadrant)
 
-**Why only three tiers?**
-- Simplified decision-making: too many tiers cause indecision
-- Core scenarios covered: urgent/near-term/long-term is enough
-- Lower maintenance cost: less frequent adjustments
+- **P0**: Today (hard deadline or blocking)
+- **P1**: This week
+- **P2**: This month/quarter
 
-### 🌱 Future Layer: Maybe List
+## Customer Project Workflow
 
-Collects all "**may do later**" ideas and inspirations, temporarily not placed in quadrants:
-
-- **Applicable Scenarios**:
-  - Ideas not mature enough, need more information
-  - Timing not right, waiting for the right opportunity
-  - Low interest, temporarily set aside but reluctant to delete
-  - Need further research to judge importance/urgency
-
-- **Management Principles**:
-  - ✅ Quick capture to avoid forgetting
-  - ✅ Regular review (weekly/monthly)
-  - ✅ Move to quadrants or delete
-  - ❌ Don't pile up too many (keep <20)
-
-**Note**: Maybe List = Future List, for storing ideas that are temporarily uncertain whether to do, or timing is not yet mature.
-
-### 👑 Management Layer: Delegation List
-
-Used for **managing tasks delegated to subordinates**, periodic review of progress and quality:
-
-- **Applicable Scenarios**:
-  - Assign tasks to team members
-  - Track project progress and quality
-  - Regular review of completion status
-  - Evaluate subordinate capability and growth
-
-- **Management Principles**:
-  - ✅ **Clear owner and deadline**
-  - ✅ **Regular review** (weekly/bi-weekly)
-  - ✅ **Track progress and quality**
-  - ✅ **Timely feedback and guidance**
-  - ❌ **Don't micromanage** (give autonomy)
-  - ❌ **Don't pile up too many** (keep <15)
-
-## 🎯 Usage Principles
-
-### 1. **Determine Level First, Then Priority**
-```markdown
-Step 1: Judge task type → Determine level (Execution/Future/Management)
-Step 2: If execution task → Determine quadrant position
-Step 3: Compare urgency within same quadrant → Assign P0/P1/P2
+```
+New Customer Project
+    ↓
+Add to Customer Project List (record all)
+    ↓
+Need YOUR execution?
+    ├─ YES → Add to appropriate Quadrant, tag with [Customer/ProjectName]
+    └─ NO → Keep in Customer Project List only
+    ↓
+Regular Review → Update status (Active/Blocked/Pending)
+    ↓
+Completed → Archive entry + complete quadrant task if exists
 ```
 
-**Examples**:
-- "Hiring" → Personal execution → **Q1** → Must do today → **P0**
-- "AI Business Scenario Discovery" → Personal execution → **Q2** → This week focus → **P1**
-- "Process Lark messages" → Personal execution → **Q3** → Batch on schedule → **P1**
-- "Code Agent Research" → Personal execution → **Q4** → Tabled → **P2**
-- "Let Xiao Wang take responsibility for Project X" → Delegation → **Delegation List** → Review next week
-- "Research AI Painting" → Uncertain → **Maybe List** → Pending evaluation
+## Task Numbering Rules
 
-### 2. **Level > Quadrant > Number**
-- Prioritize **task level** (Execution/Future/Management)
-- Within Execution Layer, prioritize **quadrant distribution**
-- Within same quadrant, P0/P1/P2 used for **specific execution order**
+### Quadrant Tasks (tasks.md)
+- Q1: 1 to N
+- Q2: (N+1) to M
+- Q3: (M+1) to P
+- Q4: (P+1) to Q
+- Continuous sequence across quadrants, no gaps
 
-### 3. **Dynamic Adjustment**
-- Tasks may **flow across levels** (e.g., Maybe List → Quadrants)
-- Tasks may **flow across quadrants** (e.g., Q2 → Q1)
-- P0/P1/P2 can be adjusted **within same quadrant**
-- Regular review to optimize distribution
+### Maybe List (maybe.md)
+- Sequential: 1, 2, 3... 
+- **ALWAYS append to END** - never insert in middle
+- Verify: last_number == total_count
 
-### 4. **Maybe List Rotation Mechanism**
-```markdown
-New Idea → Maybe List (quick record)
-↓
-Regular Review (weekly/monthly)
-↓
-Decision → Move to Quadrant / Delete / Keep Pending
-```
+### Customer Projects (customer-projects.md)
+- Per-customer numbering: 1, 2, 3...
+- Independent across customers
 
-**Review Criteria**:
-- **Important + Urgent** → Q1
-- **Important + Not Urgent** → Q2
-- **Not Important + Urgent** → Q3
-- **Not Important + Not Urgent** → Q4 or Delete
+### Delegation List (delegation.md)
+- Sequential: 1, 2, 3...
+- **ALWAYS append to END**
+- Verify: last_number == total_count
+- Format: `### X. Task Name @assignee`
 
-### 5. **Delegation List Rotation Mechanism**
-```markdown
-Delegated Task → Delegation List (record owner + deadline)
-↓
-Regular Review (weekly/bi-weekly)
-↓
-Decision → Mark Complete / Extend / Re-delegate / Remove
-```
+### Archive (archived.md)
+- Sequential: 1, 2, 3...
+- **ALWAYS append to END**
+- Group by archive date
+- Format: `### X. Task Name [Archived: YYYY-MM-DD]`
 
-**Review Criteria**:
-- **Completed** → Archive and summarize
-- **In Progress** → Check progress, provide guidance
-- **At Risk** → Help resolve difficulties or adjust deadline
-- **Poor Quality** → Feedback improvement or re-delegate
+## Numbering Verification (MUST RUN AFTER EVERY OPERATION)
 
-## 📁 Task File Structure
+1. Read target file
+2. Scan for: duplicates, gaps, wrong transitions
+3. Reassign sequential numbers starting from 1
+4. Re-read to verify
+5. Repeat if issues remain
 
-- **Main Task List**: `tasks/tasks.md` - Grouped by quadrants, sorted by P0/P1/P2 within each (personal execution)
-- **Future List**: `tasks/maybe.md` - Collect uncertain ideas and inspirations
-- **Delegation List**: `tasks/delegation.md` - Record delegated tasks, periodic review
-- **Archive File**: `tasks/archived.md` - Store completed/deleted task history
+**Numbering Checklist:**
+- [ ] Sequential from 1, no gaps
+- [ ] No duplicates
+- [ ] Q2 starts at Q1_count+1, Q3 at Q2_end+1, etc.
 
-## 🔄 Operation Flow
+## Operations
 
 ### Add Task
 
-#### Scenario A: Clear Task (Direct to Quadrant)
+See [references/task-add.md](references/task-add.md) for complete workflow.
 
-##### Step 1: Determine Quadrant (Macro)
-Ask:
-- **Is it important?** (valuable for business/team/personal growth)
-- **Is it urgent?** (has deadline/blocking others/expired)
-
-→ Determine quadrant position
-
-##### Step 2: Assign P0/P1/P2 (Micro)
-Compare within **same quadrant**:
-- Must do today? → **P0**
-- Complete this week? → **P1**
-- Within this month/quarter? → **P2**
-
-##### Step 3: Add Task
-See [references/task-add.md](references/task-add.md)
-
-#### Scenario B: Uncertain Idea (Go to Maybe List)
-
-When:
-- Idea not mature enough, need more information
-- Timing not right, waiting for opportunity
-- Low interest, temporarily set aside but reluctant to delete
-- Need further research to judge importance/urgency
-
-**Add to Maybe List Format**:
-```markdown
-### [Category]
-
-#### X. Task Name【Tag】
-- [ ] **Status**: Pending Evaluation
-- [ ] **Description**: Brief description
-- [ ] **Created**: YYYY-MM-DD
-- [ ] **Notes**: Why in Maybe List (e.g., "waiting for more info", "timing not right")
-```
-
-#### Scenario C: Delegated Task (Go to Delegation List)
-
-When assigning task to team member:
-
-**Add to Delegation List Format**:
-```markdown
-### [Project/Team]
-
-#### X. Task Name【Tag】
-- [ ] **Status**: In Progress / Completed / Extended / Re-delegated
-- [ ] **Owner**: @Name
-- [ ] **Description**: Brief description
-- [ ] **Deadline**: YYYY-MM-DD
-- [ ] **Created**: YYYY-MM-DD
-- [ ] **Last Review**: YYYY-MM-DD
-- [ ] **Next Review**: YYYY-MM-DD
-- [ ] **Notes**: Progress notes, feedback, guidance
-```
-
-**Delegation Principles**:
-- ✅ **Clear owner and expected outcome**
-- ✅ **Set reasonable deadline**
-- ✅ **Provide necessary resources and support**
-- ✅ **Regular review of progress and quality**
-- ❌ **Don't micromanage** (excessive intervention)
-- ❌ **Don't give vague instructions** (causing misunderstanding)
-
-### Move from Maybe List to Quadrant
-
-**When to move?**
-- After gaining more information, can judge importance/urgency
-- Timing is right, need to start action
-- Found it's actually important, need re-evaluation
-
-**Operation Steps**:
-1. Read `tasks/maybe.md`
-2. Judge which quadrant it should enter
-3. Add to corresponding quadrant per normal process
-4. Delete from Maybe List
-
-### Move from Delegation List to Quadrant
-
-**When to move?**
-- Task requires your personal execution (no longer delegated)
-- Task becomes urgent and important, need intervention
-- Subordinate cannot complete, need to take over
-
-**Operation Steps**:
-1. Read `tasks/delegation.md`
-2. Judge if personal execution is needed
-3. Add to corresponding quadrant per normal process
-4. Remove from Delegation List
-
-### Check and Fix Task Numbering
-
-When the user asks to check task numbering issues (e.g., "check task numbering", "fix sequence numbers", "序号问题"), you MUST:
-
-1. **Read the task file** (`tasks/tasks.md`)
-2. **Scan for numbering issues**:
-   - Duplicate numbers (e.g., two tasks with `### 7.`)
-   - Missing numbers (gaps in sequence)
-   - Incorrect quadrant transitions (Q1 ends with 6, Q2 should start with 7)
-3. **Automatically fix all issues**:
-   - Reassign sequential numbers starting from 1
-   - Ensure no duplicates or gaps
-   - Update quadrant headers if counts changed
-4. **Re-read and re-verify**: After fixing, read the file again to confirm all numbering is correct
-5. **Repeat if necessary**: If issues remain, repeat steps 2-4 until the entire file has correct sequential numbering with no duplicates or gaps
-
-**Numbering Rules**:
-- Task numbers must be sequential: 1, 2, 3, 4... with no gaps
-- No duplicate numbers within the same file
-- When moving tasks between quadrants, renumber all affected tasks
-- Q1 tasks: 1-N, Q2 tasks: (N+1)-M, Q3 tasks: (M+1)-P, Q4 tasks: (P+1)-Q
-
-**Verification Checklist**:
-- [ ] Q1 tasks are numbered 1 to N sequentially
-- [ ] Q2 tasks are numbered (N+1) to M sequentially
-- [ ] Q3 tasks are numbered (M+1) to P sequentially
-- [ ] Q4 tasks are numbered (P+1) to Q sequentially
-- [ ] No duplicate numbers exist anywhere in the file
-- [ ] No gaps in the sequence
-
-**IMPORTANT**: After EVERY task operation (add, delete, update, move, complete, etc.), you MUST check and fix numbering issues automatically. Do not wait for the user to ask.
+**Quick Guide:**
+1. Determine level: Quadrants / Delegation / Maybe
+2. Determine quadrant (if applicable): Q1/Q2/Q3/Q4
+3. Assign priority: P0/P1/P2
+4. Insert at appropriate position
+5. Renumber ALL tasks (sequential from 1)
+6. Update statistics
+7. Display updated list
+8. **(Optional)** Offer to open Dashboard for visual review
 
 ### Complete Task
 
-See [references/task-complete.md](references/task-complete.md)
+See [references/task-complete.md](references/task-complete.md) for complete workflow.
 
-**Post-completion reflection**:
-- If Q1 task: Why did it become urgent? Can we plan ahead?
-- If Q2 task: Is it progressing as planned? Need adjustment?
-- If Q3 task: Can it be automated or delegated?
-- If Q4 task: Is it really not needed?
+**Key Points:**
+- **MUST NOT stop at just marking [x]** - full flow required
+- Delete completed task from source file
+- Renumber remaining tasks
+- Move to archived.md
+- Update statistics
+- Display updated list
+- **(Optional)** Offer to open Dashboard to see updated status
 
-**Delegated task completion reflection**:
-- How did the subordinate perform? Any growth?
-- Any areas for improvement?
-- Need to provide more training or support?
-- Can delegate more similar tasks?
+**Three Scenarios:**
+1. **Main Task List** (tasks.md) - Four Quadrant tasks
+2. **Delegation List** (delegation.md) - Delegated tasks  
+3. **Maybe List** (maybe.md) - Future tasks
 
-### Adjust Priority
+### Post-Operation Dashboard Offer
 
-#### Cross-Level Adjustment (Strategic)
-When task **nature or priority** changes:
-- **Upgrade**: Maybe List → Quadrants (timing is right)
-- **Downgrade**: Quadrants → Maybe List (no longer urgent)
-- **Transfer**: Quadrants → Delegation List (decide to delegate)
-- **Transfer**: Delegation List → Quadrants (need personal execution)
+After any task operation (add/complete/update), the skill SHOULD offer to open the dashboard:
 
-#### Cross-Quadrant Adjustment (Tactical)
-When task **importance or urgency** changes:
-- **Upgrade**: Q2 → Q1 (new deadline appears)
-- **Downgrade**: Q1 → Q2 (found early warning mechanism)
-- **Transfer**: Q3 → Q4 (no longer urgent)
-
-#### Same-Quadrant Adjustment (Tactical)
-Only adjust P0/P1/P2 **within same quadrant**:
-- P1 → P0 (deadline moved up)
-- P2 → P1 (client pushing for progress)
-- P1 → P2 (time relaxed)
-
-## 📈 Ideal Distribution Reference
-
-Healthy task distribution should be:
-
-| File | Recommended Count | Description |
-|------|------------------|-------------|
-| 🔥 Q1 | 3-5 | Too many indicates insufficient planning |
-| 💼 Q2 | 8-12 | Core area for strategic investment |
-| ⚡ Q3 | 5-10 | Can gradually optimize automation |
-| 🧘 Q4 | <10 | Regular cleanup |
-| 🌱 Maybe List | <20 | Regular review, avoid piling up |
-| 👑 Delegation List | <15 | Regular review, avoid out of control |
-
-**Healthy Signs**:
-- ✅ Q1 ≤ 5
-- ✅ Q2 takes largest proportion
-- ✅ Q4 regularly cleaned
-- ✅ Maybe List regularly reviewed and cleared
-- ✅ Delegation List regularly reviewed and archived
-- ❌ Q1 explosive growth (need stronger planning)
-- ❌ Delegation List exceeds 15 (need simplification or authorization)
-
-## 🗓️ Time Rhythm Suggestions
-
-### Daily Check
-- **Q1**: What must be completed today?
-- **Q2**: What to focus on this week?
-- **Q3**: What can be batch processed?
-- **Q4**: What can be deleted?
-
-### Weekly Review
-- Are there too many Q1 tasks? (Strengthen planning)
-- How are Q2 tasks progressing? (Enough strategic investment?)
-- Can Q3 tasks be automated?
-- Does Q4 need cleanup?
-- **Maybe List**: Review tasks that can move to quadrants
-- **Delegation List**:
-  - Review all delegated task progress
-  - Check for延期风险
-  - Provide necessary guidance and feedback
-  - Mark completed tasks
-
-### Monthly Optimization
-- Archive and analyze completed Q1 tasks
-- Convert Q2 tasks to specific action plans
-- Evaluate Q3 batch processing efficiency
-- Clean up invalid Q4 tasks
-- **Maybe List**: Clear or significantly reduce (at least review once)
-- **Delegation List**:
-  - Evaluate overall subordinate performance
-  - Summarize success experiences and issues
-  - Adjust authorization strategy and communication style
-  - Archive completed tasks
-
-## ⚠️ Notes
-
-- **Sequential numbers**: Start from 1, no duplicates, no gaps
-- **Level before quadrant**: Three levels are main structure, quadrants are execution layer organization
-- **Archive after completion**: Don't just mark complete
-- **Update timestamp after each operation**
-- **Regular Q4 cleanup**: Avoid task buildup
-- **Control Q1 count**: Reflect on planning if exceeds 5
-- **Maybe List is not trash bin**: Regular review, either move to quadrants or delete
-- **Maybe List max 20**: Otherwise loses meaning
-- **Delegation List is not hands-off**: Regular review, ensure task quality and progress
-- **Delegation List max 15**: Otherwise difficult to manage effectively
-- **Delegation is not abandonment**: Maintain focus while giving autonomy
-
-## 📋 Statistics Templates
-
-### Main Task List Statistics
 ```markdown
-## 📊 Statistics
+✅ Task Added Successfully
 
-| Quadrant | Count | Task Numbers | Strategy |
-|----------|-------|--------------|----------|
-| 🔥 Q1 | X | 1-X | Do Immediately |
-| 💼 Q2 | Y | X+1-X+Y | Plan & Schedule |
-| ⚡ Q3 | Z | ... | Batch Process |
-| 🧘 Q4 | W | ... | Postpone/Delete |
-| **Total** | N | - | - |
+**Summary:**
+- Task: [Task Name]
+- Location: Q2 #15
+- Priority: P1
+
+📊 Would you like to view the task dashboard?
+→ User approves: Launch dashboard and open browser
+→ User declines: Continue with next operation
 ```
 
-### Maybe List Statistics
-```markdown
-## 📊 Maybe List Statistics
+**Implementation:** Check if user wants to open dashboard after major operations.
 
-| Item | Count | Description |
-|------|-------|-------------|
-| Total Tasks | M | - |
-| Pending Evaluation | M | All |
-| Average Stay Time | X Weeks | Review if >4 weeks |
+### Add Customer Project
+
+**Step 1**: Add to Customer Project List
+```markdown
+### [Customer Name]
+
+#### X. Project Name [Status]
+- **Status**: Active / Blocked / Pending / Completed
+- **Type**: Implementation / Support / POC / Maintenance
+- **Description**: Brief
+- **Created**: YYYY-MM-DD
+- **Last Review**: YYYY-MM-DD
+- **Notes**: Progress, blockers
 ```
 
-### Delegation List Statistics
-```markdown
-## 📊 Delegation List Statistics
+**Step 2**: If personal execution needed, also add to Quadrants
 
-| Item | Count | Description |
-|------|-------|-------------|
-| Total Tasks | D | - |
-| In Progress | D1 | Need continuous attention |
-| Completed | D2 | Completed this month/week |
-| At Risk | D3 | Need intervention |
-| Average Completion Rate | X% | Overall subordinate performance |
-| Average Review Cycle | X Days | Review frequency appropriate? |
+### Complete Customer Project
+
+1. Mark Completed in Customer Project List
+2. Archive the entry in archived.md
+3. Complete related quadrant task if exists
+
+### Add to Maybe List
+
+1. Read `tasks/maybe.md`
+2. Find highest task number (N)
+3. Append new task as #(N+1) at END
+4. Update total count and timestamp
+
+### Check/Fix Numbering
+
+Trigger phrases: "check task numbering", "fix sequence", "序号问题"
+
+**Action**: Read file → scan issues → auto-fix → re-verify → repeat if needed
+
+## Output Format (MUST OUTPUT AFTER EVERY OPERATION)
+
+```markdown
+✅ [Operation] Completed
+
+**Summary:**
+- Operation: [Add/Update/Complete/Move/Delete]
+- Target: [Task name/ID]
+- Location: [Q1/Q2/Q3/Q4/Customer/Maybe/Delegation/Archive]
+
+**Statistics:**
+| Quadrant | Count |
+|----------|-------|
+| Q1 | X |
+| Q2 | X |
+| Q3 | X |
+| Q4 | X |
 ```
+
+See [references/output-examples.md](references/output-examples.md) for detailed examples.
+
+## Healthy Metrics
+
+| List | Target | Warning |
+|------|--------|---------|
+| Customer Projects | 5-15 | - |
+| Q1 | 3-5 | >5 indicates poor planning |
+| Q2 | 8-12 | Core investment area |
+| Q3 | 5-10 | Automate gradually |
+| Q4 | <10 | Clean up regularly |
+| Maybe | <20 | Review monthly |
+| Delegation | <15 | Review weekly |
+
+## Time Rhythm
+
+- **Daily**: Check Q1, customer escalations
+- **Weekly**: Review Customer Projects, Q2 planning, Delegation check
+- **Monthly**: Archive completed, review blocked, adjust priorities
+
+## Task Tags
+
+- Customer tasks in quadrants: `[Customer/ProjectName]`
+- Blocked tasks: `🚫 Blocked`
+- Status: P0/P1/P2
+
+## Dashboard (Optional)
+
+A real-time web dashboard is available to view all tasks in a friendly format.
+
+**Location**: `dashboard/`
+
+**Features**:
+- 📊 Real-time statistics showing task counts by quadrant
+- 🔥 Four-quadrant matrix view with color coding
+- 🏢 Customer projects overview with filtering
+- 👑 Delegation list with assignee and deadline info
+- 🌱 Maybe list for future ideas
+- 🎨 Dark theme with modern UI design
+- 🌐 Bilingual support (English/Chinese)
+- ⚡ Real-time updates via WebSocket when markdown files change
+- 📱 Responsive layout for different screen sizes
+
+### Dashboard Launch Workflow
+
+After completing task operations, the skill will **offer** to open the dashboard:
+
+```
+✅ [Operation] Completed
+
+Would you like to view the task dashboard?
+[Open Dashboard] [Skip]
+
+If approved → Auto-start dashboard and open browser
+If skipped  → Dashboard remains available for manual launch
+```
+
+### Manual Launch (Anytime)
+
+```bash
+cd dashboard
+./start.sh              # Auto-installs deps on first run, then starts server
+```
+
+> **Features**:
+> - **Auto-install**: First run automatically installs npm dependencies
+> - **Port memory**: Remembers your last used port
+> - **Hot reload**: File changes auto-refresh the browser
+
+### Architecture
+- Markdown files are the single source of truth
+- Node.js server parses markdown in real-time
+- WebSocket pushes updates to browser when files change
+- No database required - pure markdown-driven
+
+## Reference Materials
+
+| File | Purpose |
+|------|---------|
+| `references/task-add.md` | **Complete workflow for adding tasks** - levels, quadrants, priorities, renumbering |
+| `references/task-complete.md` | **Complete workflow for completing tasks** - 3 scenarios (Main/Delegation/Maybe), archiving |
+| `references/numbering-rules.md` | Numbering rules for all 5 task lists |
+| `references/output-examples.md` | Output format examples |
+| `references/maybe-list-workflow.md` | Step-by-step Maybe List operations |
+| `references/templates.md` | Statistics and report templates |
+| `references/dashboard-offer.md` | Dashboard offer workflow after task operations |
+| `dashboard/` | Real-time web dashboard (run `./start.sh`) |
+
+**Critical**: Always read `task-add.md` or `task-complete.md` before performing those operations to ensure full workflow compliance.
 
 ---
 
-*Version: 5.1 (Added automatic task numbering check and fix)*
-*Last Updated: 2026-04-09*
+*Version: 8.0 (Added real-time dashboard with bilingual support)*
+*Last Updated: 2026-04-16*

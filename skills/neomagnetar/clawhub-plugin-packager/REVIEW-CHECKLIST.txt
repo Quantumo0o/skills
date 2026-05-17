@@ -1,0 +1,54 @@
+CLAWHUB PLUGIN PACKAGER — REVIEW CHECKLIST
+
+Use this checklist during the second-pass audit of the GENERATED PLUGIN PACKAGE JOB.
+
+1. DELIVERABLE BOUNDARY
+- Does the main plugin zip contain only plugin-release files?
+- Is the critique file kept outside the plugin zip?
+- Is there exactly one plugin zip and one separate critique file?
+
+2. IDENTITY ALIGNMENT
+- Are package name, plugin id, README title, and folder naming aligned?
+- If split identities exist, were they explicitly requested?
+
+3. NATIVE PLUGIN CONTRACT
+- Does the package include openclaw.plugin.json?
+- Does openclaw.plugin.json include configSchema, even if empty?
+- Does package.json include explicit openclaw compatibility/build metadata?
+- Is there a real runtime entrypoint?
+- Does README explain install, enable, config, and publish flow?
+
+4. TYPE CORRECTNESS
+- Does the package match the intended plugin type?
+- Tool plugin: tools registered and documented?
+- Provider plugin: provider surfaces registered and documented?
+- Channel plugin: channel setup surfaces included and documented?
+
+5. CODE / STRUCTURE
+- Are files internally consistent?
+- Are imports plausible for the chosen runtime shape?
+- Is the package minimal but real?
+- Were speculative files avoided unless justified?
+
+6. INFERENCE QUALITY
+- Are inferred values reasonable?
+- Are assumptions captured in the critique file?
+- Were missing-but-inferable fields filled without blocking the build?
+
+7. PUBLISH READINESS
+- Does the package look publishable rather than conversational?
+- Is versioning reasonable?
+- Are manifest and package metadata syntactically plausible?
+- Are only text-based support files included?
+
+8. HUMAN REVIEW FLAGS
+- External API/auth uncertainty
+- Unsafe side effects
+- Optional-vs-required tool ambiguity
+- Naming or repo-source ambiguity
+- Missing tests or CI workflow when those matter
+
+RESULT
+- PASS
+- PASS WITH REVIEW FLAGS
+- REBUILD RECOMMENDED

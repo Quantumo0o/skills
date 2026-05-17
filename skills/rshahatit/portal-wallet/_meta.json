@@ -1,0 +1,11 @@
+{
+  "owner": "rshahatit",
+  "slug": "portal-wallet",
+  "displayName": "Portal Wallet",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776280462756,
+    "commit": "https://github.com/openclaw/skills/commit/917b813179feb3f296c2f96acdf08f3d684210e9"
+  },
+  "history": []
+}

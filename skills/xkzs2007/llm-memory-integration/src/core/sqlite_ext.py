@@ -42,7 +42,7 @@ def load_config() -> dict:
             with open(CONFIG_PATH, 'r') as f:
                 config = json.load(f)
                 return {**DEFAULT_CONFIG, **config}
-        except:
+        except Exception:
             pass
     return DEFAULT_CONFIG
 

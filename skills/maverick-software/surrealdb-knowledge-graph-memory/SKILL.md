@@ -1,7 +1,7 @@
 ---
 name: surrealdb-memory
 description: "A comprehensive knowledge graph memory system with semantic search, episodic memory, working memory, automatic context injection, and per-agent isolation."
-version: 2.2.2
+version: 2.3.0
 metadata:
   openclaw:
     requires:

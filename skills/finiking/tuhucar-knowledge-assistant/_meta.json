@@ -1,0 +1,11 @@
+{
+  "owner": "finiking",
+  "slug": "tuhucar-knowledge-assistant",
+  "displayName": "TuhuCar Knowledge Assistant",
+  "latest": {
+    "version": "0.0.2",
+    "publishedAt": 1776263445094,
+    "commit": "https://github.com/openclaw/skills/commit/8542bb24601898be65204668547f477a85de3cbb"
+  },
+  "history": []
+}

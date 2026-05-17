@@ -1,0 +1,11 @@
+{
+  "owner": "sjj2026",
+  "slug": "shike-multi-agent",
+  "displayName": "Shike Multi-Agent System",
+  "latest": {
+    "version": "1.4.0",
+    "publishedAt": 1776255979868,
+    "commit": "https://github.com/openclaw/skills/commit/0445f7d80c53c0d6a90705aa41b678b5da9b27c0"
+  },
+  "history": []
+}

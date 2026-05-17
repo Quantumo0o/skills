@@ -275,6 +275,15 @@ def main():
     
     cmd = sys.argv[1]
     
+    # 输入验证
+    if len(cmd) > 50:
+        print("❌ 错误: 命令过长")
+        return
+    
+    if not cmd.isalnum() and cmd not in ['status', 'run', 'config']:
+        print(f"❌ 错误: 无效的命令格式: {cmd}")
+        return
+    
     if cmd == "status":
         upgrade.show_status()
     elif cmd == "run":
@@ -284,6 +293,12 @@ def main():
         if len(sys.argv) >= 4:
             key = sys.argv[2]
             value = sys.argv[3]
+            
+            # 输入验证
+            if len(key) > 100 or len(value) > 1000:
+                print("❌ 错误: 参数过长")
+                return
+            
             # 更新配置
             print(f"✅ 已更新 {key} = {value}")
         else:
